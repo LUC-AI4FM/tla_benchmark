@@ -1,0 +1,352 @@
+{
+  "id": 35,
+  "Specification": "CheckpointCoordination: A fault-tolerant distributed checkpoint coordination protocol over a set of nodes with a majority quorum. Models node/network failures and recoveries, Paxos-style leader election, replicated log propagation, and checkpoint lifecycle (start/finish). A lease mechanism controls which node may take a checkpoint at any time. Temporal invariants ensure checkpoints are eventually taken and liveness is maintained under fairness assumptions.",
+  "ModuleName": "CheckpointCoordination",
+  "ExtendsModules": [],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Node",
+    "Majority"
+  ],
+  "VariableNames": [
+    "IsNodeUp",
+    "NetworkPath",
+    "Leader",
+    "ReplicatedLog",
+    "ExecutionCounter",
+    "LastVotePayload",
+    "CurrentLease",
+    "CanTakeCheckpoint",
+    "IsTakingCheckpoint",
+    "TimeoutCounter",
+    "LatestCheckpoint"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "EnvironmentVars",
+    "PaxosVars",
+    "CheckpointVars",
+    "AllVars",
+    "NoNode",
+    "Log",
+    "LogIndex",
+    "MinLogIndex",
+    "BlankLog",
+    "LogCheckpoint",
+    "CheckpointLease",
+    "NoCheckpointLease",
+    "ReadLog",
+    "WriteLog",
+    "MergeLogs",
+    "OpenIndices",
+    "FirstOpenIndex",
+    "TypeInvariant",
+    "SafetyInvariant",
+    "TemporalInvariant",
+    "ConnectedOneWay",
+    "Connected",
+    "HaveQuorum",
+    "NodeFailure",
+    "NodeRecovery",
+    "NetworkFailure",
+    "NetworkRecovery",
+    "ElectLeader",
+    "ShouldReplaceLease",
+    "SendReplicatedRequest",
+    "PropagateReplicatedRequest",
+    "ProcessReplicatedRequest",
+    "StartCheckpoint",
+    "FinishCheckpoint",
+    "TriggerTimeout",
+    "Init",
+    "Next",
+    "TemporalAssumptions",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "NodeFailure",
+    "NodeRecovery",
+    "NetworkFailure",
+    "NetworkRecovery",
+    "ElectLeader",
+    "SendReplicatedRequest",
+    "PropagateReplicatedRequest",
+    "ProcessReplicatedRequest",
+    "StartCheckpoint",
+    "FinishCheckpoint",
+    "TriggerTimeout",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "available",
+    "currentLease",
+    "index",
+    "request",
+    "isTimedOut"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF n = Leader THEN NoNode ELSE Leader"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{NoNode}",
+    "{0}",
+    "{NoCheckpointLease}"
+  ],
+  "SetOperators": [
+    "\\notin",
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[i \\in LogIndex |-> NoNode]",
+    "[i \\in LogIndex |-> ReadLog(node, i)]",
+    "[n \\in Node |-> TRUE]",
+    "[src, dst \\in Node |-> TRUE]",
+    "[n \\in Node |-> BlankLog]",
+    "[n \\in Node |-> MinLogIndex]",
+    "[n \\in Node |-> NoCheckpointLease]",
+    "[n \\in Node |-> FALSE]",
+    "[Node -> BOOLEAN]",
+    "[Node \\X Node -> BOOLEAN]",
+    "[Node -> Log]",
+    "[Node -> LogIndex]",
+    "[Node -> (CheckpointLease \\cup {NoCheckpointLease})]"
+  ],
+  "FunctionApplication": [
+    "ReplicatedLog[…]",
+    "CanTakeCheckpoint[…]",
+    "IsTakingCheckpoint[…]",
+    "CurrentLease[…]",
+    "IsNodeUp[…]",
+    "LastVotePayload[…]",
+    "ExecutionCounter[…]",
+    "NetworkPath[…]",
+    "HaveQuorumFrom[…]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[log |-> BlankLog, counter |-> MinLogIndex]"
+  ],
+  "RecordAccess": [
+    "LatestCheckpoint.log",
+    "LatestCheckpoint.counter",
+    "currentLease.counter",
+    "currentLease.node"
+  ],
+  "TupleConstructor": [
+    "<<NetworkPath>>",
+    "<<ReplicatedLog>>",
+    "<<TimeoutCounter, LatestCheckpoint>>",
+    "<<Leader>>",
+    "<<IsNodeUp>>",
+    "<<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
+    "<<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "<<Leader, ExecutionCounter, LastVotePayload>>",
+    "<<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "<<Leader, ReplicatedLog, LastVotePayload>>",
+    "<<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "<<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "<<Leader, ReplicatedLog, ExecutionCounter>>",
+    "<<TimeoutCounter>>",
+    "<<CurrentLease, LatestCheckpoint>>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "SubSeq",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<",
+    ">=",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE n : n \\notin Node",
+    "CHOOSE lease : lease \\notin CheckpointLease",
+    "CHOOSE index \\in OpenIndices :"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "IsNodeUp",
+    "Leader",
+    "ExecutionCounter",
+    "LastVotePayload",
+    "CurrentLease",
+    "CanTakeCheckpoint",
+    "IsTakingCheckpoint",
+    "ReplicatedLog",
+    "NetworkPath",
+    "LatestCheckpoint",
+    "TimeoutCounter"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<NetworkPath>>",
+    "UNCHANGED <<ReplicatedLog>>",
+    "UNCHANGED <<TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader>>",
+    "UNCHANGED <<IsNodeUp>>",
+    "UNCHANGED PaxosVars",
+    "UNCHANGED CheckpointVars",
+    "UNCHANGED EnvironmentVars",
+    "UNCHANGED <<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
+    "UNCHANGED <<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ExecutionCounter, LastVotePayload>>",
+    "UNCHANGED <<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ReplicatedLog, LastVotePayload>>",
+    "UNCHANGED <<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ReplicatedLog, ExecutionCounter>>",
+    "UNCHANGED <<TimeoutCounter>>",
+    "UNCHANGED <<CurrentLease, LatestCheckpoint>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_AllVars"
+  ],
+  "AlwaysOp": [
+    "[][Next]",
+    "[]TypeInvariant",
+    "[]SafetyInvariant",
+    "[]TemporalInvariant"
+  ],
+  "EventuallyOp": [
+    "<>(\\E n \\in Node : CanTakeCheckpoint[n])",
+    "<>(LatestCheckpoint /= BlankLog)"
+  ],
+  "LeadsToOp": [
+    "/\\ CanTakeCheckpoint[n] ~>",
+    "/\\ IsTakingCheckpoint[n] ~>"
+  ],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": "",
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "OperatorDefNames_StatePredicate": [
+    "BlankLog",
+    "ReadLog",
+    "WriteLog",
+    "MergeLogs",
+    "FirstOpenIndex",
+    "TypeInvariant",
+    "SafetyInvariant",
+    "Connected",
+    "HaveQuorum",
+    "Init",
+    "Next"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "TemporalInvariant",
+    "TemporalAssumptions",
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "EnvironmentVars",
+    "PaxosVars",
+    "CheckpointVars",
+    "AllVars",
+    "NoNode",
+    "Log",
+    "LogIndex",
+    "MinLogIndex",
+    "LogCheckpoint",
+    "CheckpointLease",
+    "NoCheckpointLease",
+    "OpenIndices",
+    "ConnectedOneWay",
+    "ShouldReplaceLease"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in LogIndex |-> NoNode]",
+    "[i \\in LogIndex |-> ReadLog(node, i)]",
+    "[n \\in Node |-> TRUE]",
+    "[src, dst \\in Node |-> TRUE]",
+    "[n \\in Node |-> BlankLog]",
+    "[n \\in Node |-> MinLogIndex]",
+    "[n \\in Node |-> NoCheckpointLease]",
+    "[n \\in Node |-> FALSE]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node \\X Node -> BOOLEAN]",
+    "[Node -> Log]",
+    "[Node -> LogIndex]",
+    "[Node -> (CheckpointLease \\cup {NoCheckpointLease})]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<NetworkPath>>",
+    "UNCHANGED <<ReplicatedLog>>",
+    "UNCHANGED <<TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader>>",
+    "UNCHANGED <<IsNodeUp>>",
+    "UNCHANGED <<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
+    "UNCHANGED <<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ExecutionCounter, LastVotePayload>>",
+    "UNCHANGED <<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ReplicatedLog, LastVotePayload>>",
+    "UNCHANGED <<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
+    "UNCHANGED <<Leader, ReplicatedLog, ExecutionCounter>>",
+    "UNCHANGED <<TimeoutCounter>>",
+    "UNCHANGED <<CurrentLease, LatestCheckpoint>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED PaxosVars",
+    "UNCHANGED CheckpointVars",
+    "UNCHANGED EnvironmentVars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "",
+  "VerificationTools": [],
+  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+}

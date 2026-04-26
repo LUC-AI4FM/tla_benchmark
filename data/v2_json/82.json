@@ -1,0 +1,221 @@
+{
+  "id": 82,
+  "Specification": "A PlusCal-derived specification of the EWD998 termination detection algorithm using a bag-based network model. It simulates the asynchronous exchange of messages and token movement across a ring of nodes, verifying that the initiator correctly identifies system-wide termination while accounting for in-flight messages and node status transitions.",
+  "ModuleName": "EWD998PCal",
+  "ExtendsModules": [
+    "Integers",
+    "Bags",
+    "BagsExt"
+  ],
+  "InstanceModules": [
+    "EWD998"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "network",
+    "active",
+    "color",
+    "counter"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [
+    "Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "Node",
+    "Initiator",
+    "vars",
+    "ProcSet",
+    "Init",
+    "Next",
+    "Spec",
+    "token",
+    "tok",
+    "pending",
+    "EWD998",
+    "EWD998Spec",
+    "Alias",
+    "StateConstraint"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "tpos",
+    "tok"
+  ],
+  "LetInNames": [
+    "tpos",
+    "tok"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag (in network)",
+    "IF color[self] = \"black\" THEN \"black\" ELSE tok.color (in node)",
+    "IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0 (in pending)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{[type|-> \"tok\", q |-> 0, color |-> \"black\"]}",
+    "{self}",
+    "{0}",
+    "BOOLEAN"
+  ],
+  "SetOperators": [
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Node |-> IF n = Initiator THEN ... ELSE ...]",
+    "[Node -> BOOLEAN]",
+    "[self \\in Node |-> \"black\"]",
+    "[self \\in Node |-> 0]",
+    "[n \\in Node |-> IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
+  ],
+  "FunctionApplication": [
+    "net[from]",
+    "net[to]",
+    "net[rcv]",
+    "active[self]",
+    "color[self]",
+    "counter[self]",
+    "network[i]",
+    "network[n]",
+    "network[n][[type|->\"pl\"]]"
+  ],
+  "FunctionOverride": [
+    "[ net EXCEPT ![from] = BagRemove(@, oldMsg), ![to] = BagAdd(@, newMsg) ]",
+    "[ net EXCEPT ![to] = BagAdd(@, msg) ]",
+    "[ net EXCEPT ![to] = BagRemove(@, msg) ]",
+    "[counter EXCEPT ![self] = counter[self] + 1]",
+    "[counter EXCEPT ![self] = counter[self] - 1]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[color EXCEPT ![self] = \"black\"]",
+    "[active EXCEPT ![self] = FALSE]",
+    "[color EXCEPT ![self] = \"white\"]"
+  ],
+  "RecordConstructor": [
+    "[type|-> \"tok\", q |-> 0, color |-> \"black\"]",
+    "[type|-> \"pl\"]",
+    "[type|-> \"tok\", q |-> tok.q + counter[self], color |-> IF color[self] = \"black\" THEN ... ELSE ...]",
+    "[type|-> \"tok\", q |-> 0, color |-> \"white\"]",
+    "[pos |-> tpos, q |-> tok.q, color |-> tok.color]",
+    "[ network |-> network, active |-> active, color |-> color, counter |-> counter, token |-> token, pending |-> pending ]"
+  ],
+  "RecordAccess": [
+    "msg.type",
+    "tok.type",
+    "tok.q",
+    "tok.color",
+    "m.type"
+  ],
+  "TupleConstructor": [
+    "<< network, active, color, counter >>",
+    "<<active, color>>",
+    "<<network, color, counter>>",
+    "<<active, counter>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. N-1"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Node : \\E m \\in DOMAIN network[i]: m.type = \"tok\"",
+    "CHOOSE m \\in DOMAIN network[tpos] : m.type = \"tok\""
+  ],
+  "StringLiterals": [
+    "4d658e04",
+    "530581e3",
+    "black",
+    "channel",
+    "pl",
+    "tok",
+    "white"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Bags"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "It",
+    "Safra",
+    "active",
+    "color",
+    "counter",
+    "network",
+    "nic"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<network, color, counter>>",
+    "UNCHANGED <<active, counter>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][EWD998!Next]_EWD998!vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "fair process (node \\in Node) variables active \\in BOOLEAN, color = \"black\", counter = 0;"
+  ],
+  "PlusCalProcesses": [
+    "fair process (node \\in Node)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "\\A i \\in DOMAIN counter : counter[i] < 3"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

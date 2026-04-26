@@ -1,0 +1,12 @@
+{
+  "system_overview": "This specification implements trace validation for the EWD998Chan termination detection algorithm. It maps system traces (collected from a real distributed implementation as newline-delimited JSON log files) back to the high-level TLA+ specification to verify that the implementation conforms to the formal model. Log entries are causally ordered using vector clocks and matched against the specification's actions.",
+  "actors_and_components": "The system consists of the same channel-based ring of nodes as EWD998Chan. The trace validation layer reads an external JSON log file, causally orders the log entries using vector clocks, and constrains TLC's state exploration to follow the logged sequence of events. Each log entry records an event type (send, receive, deactivate), message type and content, sender/receiver identities, and vector clock timestamps.",
+  "state_variables": "All state variables are inherited from EWD998Chan: node activation status, colors, counters, and inboxes. The trace log is loaded as a constant (not a state variable) from an external JSON file.",
+  "initial_state": "The initial state constrains all nodes to start active with white color, matching the known initial state of the implementation. Counters are zero and the token starts at node 0.",
+  "actions": "The trace constrains the next-state relation by matching each log entry to one of: (1) initiate token, (2) pass token, (3) receive token, (4) send payload message, (5) receive payload message, (6) deactivate, or (7) termination message (mapped to stuttering since it is not part of the high-level spec). Each matching predicate constrains the TLA+ action to be consistent with the logged event.",
+  "safety_properties": "A trace invariant checks that no failure messages appear in the log and that termination messages are consistent with actual node inactivity.",
+  "liveness_properties": "NOT_SPECIFIED",
+  "model_bounds": "The trace length is bounded by the log file length. TLC is run in breadth-first search mode with a view that includes the trace level to prevent premature state merging.",
+  "expected_output_files": ["EWD998ChanTrace.tla"],
+  "additional_assumptions": "Requires the Json, TLC, IOUtils, and VectorClocks community modules. TLC must be run in BFS mode. The log file path is specified via the JSON environment variable. A postcondition checks that the entire log was successfully matched. The TLA+ debugger can be used to diagnose matching failures."
+}
