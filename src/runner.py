@@ -67,7 +67,7 @@ def _call_model(cfg: dict[str, Any], prompt: str) -> dict[str, Any]:
         raise ValueError(f"Unknown backend: {backend}")
 
 
-def run_single_spec(spec_id: str, model_cfg: dict, prompt_name: str, condition: str, api_key: str, gpu_id: int):
+def run_single_spec(spec_id: str, spec_version: str, model_cfg: dict, prompt_name: str, condition: str, api_key: str, gpu_id: int):
     os.environ["OPENAI_API_KEY"] = api_key
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
     
