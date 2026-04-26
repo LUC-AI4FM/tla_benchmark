@@ -21,7 +21,9 @@
   "AssumptionNames": [
     "NAssumption"
   ],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => TD!Spec"
+  ],
   "OperatorDefNames": [
     "Node",
     "Color",
@@ -83,30 +85,39 @@
   ],
   "IfThenElse": [
     "IF color[i] = \"black\" THEN \"black\" ELSE tcolor",
-    "IF j>i THEN \"black\" ELSE @]"
+    "IF j>i THEN \"black\" ELSE @"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
     "{0}",
-    "{\"white\", \"black\"}",
-    "{i}"
+    "{i}",
+    "{\"white\", \"black\"}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
     "[Node -> BOOLEAN]",
     "[Node -> Color]"
   ],
   "FunctionApplication": [
-    "color[…]",
-    "active[…]"
+    "active[i]",
+    "active[0]",
+    "color[i]",
+    "color[0]",
+    "color[j]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[color EXCEPT ![0] = \"white\"]",
+    "[color EXCEPT ![i] = \"white\"]",
+    "[active EXCEPT ![j] = TRUE]",
+    "[color EXCEPT ![i] = IF j>i THEN \"black\" ELSE @]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
-    "<<tpos, tcolor>>",
-    "<<color, tpos, tcolor>>",
     "<<active, color, tpos, tcolor>>"
   ],
   "SequenceOps": [],
@@ -118,13 +129,13 @@
     "<"
   ],
   "RangeExpr": [
-    "0 .. ",
-    "in 0 .. "
+    "0 .. N-1",
+    "0 .. tpos"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
-    "white",
-    "black"
+    "black",
+    "white"
   ],
   "ArithmeticModules": [
     "Naturals"
@@ -146,24 +157,20 @@
   "TemporalSubscript": [
     "[][Next]_vars",
     "[][ UNCHANGED color ]_vars",
-    "[][\\A i \\in Node : ~ SendMsg(i)]_vars",
-    "WF_vars(System)",
-    "WF_vars(Next)"
+    "<>[][\\A i \\in Node : ~ SendMsg(i)]_vars"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[][ UNCHANGED color ]",
-    "[]<> ~ active[i]) ~> terminationDetected",
-    "[][\\A i \\in Node : ~ SendMsg(i)]"
+    "[][Next]_vars",
+    "[][ UNCHANGED color ]_vars",
+    "[]<> ~ active[i]",
+    "<>[][\\A i \\in Node : ~ SendMsg(i)]_vars"
   ],
   "EventuallyOp": [
-    "<> ~ active[i]) ~> terminationDetected",
-    "<>[][\\A i \\in Node : ~ SendMsg(i)]",
-    "<>(\\A i \\in Node : ~ active[i])"
+    "<>(\\A i \\in Node : ~ active[i])",
+    "<>[][\\A i \\in Node : ~ SendMsg(i)]_vars"
   ],
   "LeadsToOp": [
-    "(\\A i \\in Node : ~ active[i]) ~> terminationDetected",
-    "(\\A i \\in Node : []<> ~ active[i]) ~> terminationDetected"
+    "~>"
   ],
   "FairnessConditions": [
     "WF_vars(System)",
@@ -173,7 +180,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -182,10 +189,10 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
+    "Node",
+    "Color",
     "TypeOK",
-    "Init",
-    "System",
-    "Environment",
+    "vars",
     "TokenAlwaysBlack",
     "terminationDetected",
     "TerminationDetection",
@@ -201,14 +208,9 @@
     "CheckInductiveSpec"
   ],
   "OperatorDefNames_Init": [
-    "Init",
-    "InitiateProbe"
+    "Init"
   ],
   "OperatorDefNames_ValueDef": [
-    "Node",
-    "Color",
-    "Next",
-    "vars",
     "TD"
   ],
   "FunctionConstructor_ByDomain": [],
@@ -224,7 +226,17 @@
     "UNCHANGED color"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd840/EWD840.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because AllNodesTerminateIfNoMessages nests temporal operators: <>[][...]_vars => <>(...).",
+    "Init is in OperatorDefNames_Init (exact name).",
+    "Spec, SpecWFNext are temporal (use [][Next]_vars /\\ WF). NeverChangeColor uses [] outer. Liveness, FalseLiveness use ~>. AllNodesTerminateIfNoMessages uses <>[][...]. CheckInductiveSpec uses [][Next]_vars.",
+    "Action operators (InitiateProbe, PassToken, System, SendMsg, Deactivate, Environment, Next) prime variables or are disjunctions of actions and are placed in ActionDefNames (excluded from the partition's other categories).",
+    "TD is an INSTANCE handle (non-action, non-temporal value) so it is in OperatorDefNames_ValueDef.",
+    "VerificationTools includes TLAPS because EWD840_proof depends on this module via EXTENDS EWD840 (Spec => TD!Spec is also stated as a THEOREM in this file)."
+  ]
 }

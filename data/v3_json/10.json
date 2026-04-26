@@ -16,8 +16,17 @@
     "unsat",
     "alloc"
   ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
+  "AssumptionNames": [
+    "IsFiniteSet(Resources)"
+  ],
+  "TheoremNames": [
+    "SimpleAllocator => []TypeInvariant",
+    "SimpleAllocator => []ResourceMutex",
+    "SimpleAllocator => ClientsWillReturn",
+    "SimpleAllocator2 => ClientsWillReturn",
+    "SimpleAllocator => ClientsWillObtain",
+    "SimpleAllocator => InfOftenSatisfied"
+  ],
   "OperatorDefNames": [
     "TypeInvariant",
     "available",
@@ -48,9 +57,7 @@
   "Implication": [
     "=>"
   ],
-  "Negation": [
-    "~"
-  ],
+  "Negation": [],
   "BooleanConstants": [],
   "Quantifiers": [
     "\\A",
@@ -65,39 +72,45 @@
   ],
   "IfThenElse": [],
   "CaseExpr": [],
-  "SetEnumeration": [],
+  "SetEnumeration": [
+    "{}"
+  ],
   "SetOperators": [
-    "\\subseteq",
+    "SUBSET",
+    "\\cup",
+    "\\",
     "\\cap",
-    "\\cup"
+    "\\subseteq",
+    "UNION"
   ],
   "FiniteSetOps": [
     "IsFiniteSet",
-    "SUBSET",
-    "UNION"
+    "Permutations"
   ],
   "FunctionConstructor": [
     "[c \\in Clients |-> {}]",
     "[Clients -> SUBSET Resources]"
   ],
   "FunctionApplication": [
-    "alloc[…]",
-    "unsat[…]"
+    "unsat[c]",
+    "alloc[c]",
+    "alloc[c1]",
+    "alloc[c2]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[unsat EXCEPT ![c] = S]",
+    "[alloc EXCEPT ![c] = @ \\cup S]",
+    "[unsat EXCEPT ![c] = @ \\ S]",
+    "[alloc EXCEPT ![c] = @ \\ S]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
-    "<<unsat,alloc>>"
+    "<<unsat, alloc>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -118,39 +131,44 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(Return(c, alloc[c]))",
+    "SF_vars(\\E S \\in SUBSET Resources: Allocate(c,S))",
+    "WF_vars(unsat[c] = {} /\\ Return(c, alloc[c]))"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[]<>(unsat[c] = {})",
     "[]TypeInvariant",
-    "[]ResourceMutex"
+    "[]ResourceMutex",
+    "[]<>(unsat[c] = {})"
   ],
   "EventuallyOp": [
     "<>(unsat[c] = {})"
   ],
   "LeadsToOp": [
-    "\\A c \\in Clients : unsat[c]={} ~> alloc[c]={}",
-    "\\A c \\in Clients, r \\in Resources : r \\in unsat[c] ~> r \\in alloc[c]"
+    "unsat[c]={} ~> alloc[c]={}",
+    "r \\in unsat[c] ~> r \\in alloc[c]"
   ],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(Return(c, alloc[c]))",
+    "SF_vars(\\E S \\in SUBSET Resources: Allocate(c,S))",
+    "WF_vars(unsat[c] = {} /\\ Return(c, alloc[c]))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
-  "SymmetrySet": [],
+  "SymmetrySet": [
+    "Permutations(Clients) \\cup Permutations(Resources)"
+  ],
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeInvariant",
-    "available",
-    "Init",
-    "Next",
     "ResourceMutex"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -164,6 +182,11 @@
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
+    "available",
+    "Request",
+    "Allocate",
+    "Return",
+    "Next",
     "vars",
     "Symmetry"
   ],
@@ -179,7 +202,12 @@
     "UNCHANGED unsat"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/SimpleAllocator/SimpleAllocator.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true due to the operator InfOftenSatisfied which contains a diamond operator nested inside a box operator: []<>(unsat[c] = {}).",
+    "The operators Request, Allocate, Return, and Next are actions containing primed variables and were placed in OperatorDefNames_ValueDef as they do not fit the criteria for StatePredicate, TemporalProperty, or Init."
+  ]
 }

@@ -12,13 +12,17 @@
   "InstanceModules": [],
   "InstanceSubstitutions": [],
   "ConstantNames": [
-    "F",
-    "N",
-    "Nodes",
-    "Features"
+    "F"
   ],
   "VariableNames": [],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"generate\"",
+    "TLCGet(\"config\").depth = -1",
+    "TLCGet(\"config\").deadlock = FALSE",
+    "TLCGet(\"revision\").timestamp >= 1663391404",
+    "F \\subseteq FeatureFlags",
+    "TLCSet(1, 0)"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "FeatureFlags",
@@ -36,10 +40,11 @@
     "Nodes"
   ],
   "ActionDefNames": [
+    "InitiateProbeOpts",
     "PassTokenOpts",
     "SystemOpts",
-    "AtTermination",
-    "AtTerminationDetected"
+    "SendMsgOpts",
+    "EnvironmentOpts"
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
@@ -69,98 +74,110 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF \"pt5\" \\in F THEN ~ active[0] ELSE TRUE",
-    "IF color[i] = \"black\" THEN \"black\" ELSE @]"
+    "IF \"pt5\" \\in F THEN ~ active[0] ELSE TRUE (in InitiateProbeOpts)",
+    "IF color[i] = \"black\" THEN \"black\" ELSE @ (in PassTokenOpts)",
+    "IF terminated # terminated' THEN TLCSet(1, TLCGet(\"level\")) ELSE TRUE (in AtTermination)"
   ],
   "CaseExpr": [
-    "CASE \"pt3\" \\in F /\\ color[i] = \"black\" -> 0\n                                      [] \"pt4\" \\in F /\\ token.color = \"black\" -> 0\n                                      [] OTHER    ->  @ - 1,"
+    "CASE \"pt3\" \\in F /\\ color[i] = \"black\" -> 0 [] \"pt4\" \\in F /\\ token.color = \"black\" -> 0 [] OTHER -> @ - 1 (in PassTokenOpts)"
   ],
   "SetEnumeration": [
-    "{\"pt1\",\"pt2\",\"pt3\",\"pt4\",\"pt5\"}",
-    "{0}"
+    "{\"pt1\",\"pt2\",\"pt3\",\"pt4\",\"pt5\"}"
   ],
   "SetOperators": [
-    "\\subseteq"
+    "\\subseteq",
+    "SUBSET",
+    "\\"
   ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
+  "FiniteSetOps": [],
   "FunctionConstructor": [
     "[Node -> BOOLEAN]",
     "[Node -> Color]"
   ],
   "FunctionApplication": [
-    "active[…]",
-    "color[…]",
-    "counter[…]",
-    "pending[…]",
-    "o[…]"
+    "active[0]",
+    "active[i]",
+    "color[i]",
+    "active[n]",
+    "pending[n]",
+    "counter[i]",
+    "o[\"InitiateProbeOpts\"]",
+    "o[\"PassTokenOpts\"]",
+    "o[\"SendMsgOpts\"]",
+    "o[\"RecvMsg\"]",
+    "o[\"Deactivate\"]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[token EXCEPT !.pos = CASE ..., !.q = @ + counter[i], !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[ color EXCEPT ![i] = \"white\" ]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"config\").depth",
+    "TLCGet(\"config\").deadlock",
+    "TLCGet(\"revision\").timestamp",
     "token.pos",
     "token.color",
-    "behavior.actions",
+    "TLCGet(\"stats\").behavior.actions",
     "IOEnv.Out",
     "IOEnv.F",
     "IOEnv.N"
   ],
   "TupleConstructor": [
-    "<<active, counter, pending>>"
+    "<<active, counter, pending>>",
+    "<< F, N, TLCGet(\"level\"), TLCGet(1), TLCGet(\"level\") - TLCGet(1), o[\"InitiateProbeOpts\"],o[\"PassTokenOpts\"], o[\"SendMsgOpts\"],o[\"RecvMsg\"],o[\"Deactivate\"] >>"
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "+",
     "-",
-    "%"
+    "+"
   ],
   "ComparisonOps": [
-    ">",
-    "<",
-    ">="
+    ">=",
+    ">"
   ],
   "RangeExpr": [
-    "RandomElement(1..TLCGet",
-    "in 1..512"
+    "1..TLCGet(\"level\")",
+    "1..512"
   ],
   "ChoiceExpr": [
     "CHOOSE s \\in SUBSET FeatureFlags : ToString(s) = IOEnv.F",
     "CHOOSE n \\in 1..512 : ToString(n) = IOEnv.N"
   ],
   "StringLiterals": [
+    "%1$s#%2$s#%3$s#%4$s#%5$s#%6$s#%7$s#%8$s#%9$s#%10$s",
+    "Deactivate",
+    "Detection follows termination!",
+    "Inconsistent action stats!",
+    "InitiateProbeOpts",
+    "PassTokenOpts",
+    "RecvMsg",
+    "SendMsgOpts",
+    "black",
     "config",
     "generate",
-    "revision",
+    "level",
     "pt1",
     "pt2",
     "pt3",
     "pt4",
     "pt5",
-    "black",
-    "white",
-    "level",
+    "revision",
     "stats",
-    "InitiateProbeOpts",
-    "PassTokenOpts",
-    "SendMsgOpts",
-    "RecvMsg",
-    "Deactivate",
-    "Inconsistent action stats!",
-    "Detection follows termination!",
-    "%1$s#%2$s#%3$s#%4$s#%5$s#%6$s#%7$s#%8$s#%9$s#%10$s"
+    "white"
   ],
   "ArithmeticModules": [],
   "DataStructureModules": [],
   "ToolingModules": [
     "TLC",
     "IOUtils",
+    "CSV",
     "Randomization"
   ],
   "PrimedVariables": [
-    "token",
     "color",
-    "terminated"
+    "token"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<active, counter, pending>>"
@@ -170,9 +187,7 @@
     "[][SystemOpts \\/ EnvironmentOpts]_vars"
   ],
   "AlwaysOp": [
-    "[] \"pt4\" \\in F /\\ token.color = \"black\" -> 0",
-    "[] OTHER    ->  @ - 1,",
-    "[][SystemOpts \\/ EnvironmentOpts]"
+    "[][SystemOpts \\/ EnvironmentOpts]_vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
@@ -181,34 +196,32 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
+  "StateConstraint": [
+    "AtTerminationDetected"
+  ],
+  "ActionConstraint": [
+    "AtTermination"
+  ],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "InitSim",
-    "InitiateProbeOpts",
-    "SystemOpts",
-    "SendMsgOpts",
-    "EnvironmentOpts",
     "terminated",
-    "AtTerminationDetected",
-    "Features",
-    "Nodes"
+    "AtTerminationDetected"
   ],
   "OperatorDefNames_TemporalProperty": [
     "SpecOpts"
   ],
-  "OperatorDefNames_Init": [
-    "InitSim",
-    "InitiateProbeOpts"
-  ],
+  "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
-    "FeatureFlags"
+    "FeatureFlags",
+    "AtTermination",
+    "Features",
+    "Nodes"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
@@ -220,7 +233,16 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd998/EWD998_opts.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "OperatorDefNames partitioned: ActionDefNames (InitiateProbeOpts, PassTokenOpts, SystemOpts, SendMsgOpts, EnvironmentOpts), StatePredicate (InitSim, terminated, AtTerminationDetected), TemporalProperty (SpecOpts), ValueDef (FeatureFlags, AtTermination, Features, Nodes).",
+    "InitSim is in StatePredicate because it is a Boolean conjunction over unprimed variables that constrains the initial state; SpecOpts uses InitSim /\\ Init as initial states.",
+    "AtTermination placed in ValueDef because it is an IF-THEN-ELSE returning a non-Boolean TLCSet result.",
+    "TemporalNesting is false: SpecOpts uses [][...]_vars with no nested temporal operators.",
+    "FunctionConstructors are SetType form (RandomSubset domain).",
+    "VerificationTools = [TLC] since this spec is intended for TLC simulation/generation mode (ASSUME TLCGet(\"config\").mode = \"generate\")."
+  ]
 }

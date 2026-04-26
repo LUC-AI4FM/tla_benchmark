@@ -1,131 +1,75 @@
 {
   "id": 176,
-  "Specification": "spanning",
+  "Specification": "A specification of a distributed spanning-tree algorithm. Each non-root process learns its parent by receiving messages from neighbors; messages travel over an asynchronous channel modeled by a set of pairs. The spec asserts type-correctness, eventual termination of all processes (every node either is the root or has chosen a parent in the neighbor graph), the OneParent stability property, and the SntMsg invariant that no orphan node has sent any message.",
   "ModuleName": "spanning",
-  "ExtendsModules": [
-    "Integers"
-  ],
+  "ExtendsModules": ["Integers"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Proc",
-    "NoPrnt",
-    "root",
-    "nbrs"
+  "ConstantNames": ["Proc", "NoPrnt", "root", "nbrs"],
+  "VariableNames": ["prnt", "rpt", "msg"],
+  "AssumptionNames": [
+    "NoPrnt \\notin Proc /\\ nbrs \\subseteq Proc \\times Proc"
   ],
-  "VariableNames": [
-    "prnt",
-    "rpt",
-    "msg",
-    "vars",
-    "Init",
-    "Proc"
-  ],
-  "AssumptionNames": [],
   "TheoremNames": [],
   "OperatorDefNames": [
-    "vars",
-    "Init",
-    "CanSend",
-    "Update",
-    "Send",
-    "Parent",
-    "Next",
-    "Spec",
-    "TypeOK",
-    "Termination",
-    "OneParent",
-    "SntMsg"
+    "vars", "Init", "CanSend", "Update", "Send", "Parent", "Next", "Spec",
+    "TypeOK", "Termination", "OneParent", "SntMsg"
   ],
-  "ActionDefNames": [
-    "Update",
-    "Send",
-    "Parent",
-    "Next",
-    "OneParent"
-  ],
+  "ActionDefNames": ["Update", "Send", "Parent", "Next"],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
+  "Implication": ["=>"],
+  "Negation": ["~"],
+  "BooleanConstants": ["FALSE", "TRUE"],
+  "Quantifiers": ["\\E", "\\A"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\notin", "\\in"],
+  "IfThenElse": [
+    "IF i # root /\\ prnt[i] = NoPrnt /\\ <<j, i>> \\in msg THEN Update(i, j) ELSE \\/ Send(i) \\/ Parent(i) \\/ UNCHANGED <<prnt, msg, rpt>>"
   ],
-  "Negation": [
-    "~"
-  ],
-  "BooleanConstants": [
-    "TRUE",
-    "FALSE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in",
-    "\\notin"
-  ],
-  "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{<<i, k>>}"
   ],
-  "SetOperators": [
-    "\\notin",
-    "\\subseteq",
-    "\\cup"
-  ],
+  "SetOperators": ["\\subseteq", "\\times", "\\cup"],
   "FiniteSetOps": [],
   "FunctionConstructor": [
     "[i \\in Proc |-> NoPrnt]",
     "[i \\in Proc |-> FALSE]",
     "[Proc -> BOOLEAN]"
   ],
-  "FunctionApplication": [
-    "prnt[…]",
-    "rpt[…]"
+  "FunctionApplication": ["prnt[i]", "rpt[i]"],
+  "FunctionOverride": [
+    "[prnt EXCEPT ![i] = j]",
+    "[rpt EXCEPT ![i] = TRUE]"
   ],
-  "FunctionOverride": [],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
     "<<prnt, rpt, msg>>",
     "<<i, j>>",
-    "<<rpt, msg>>",
     "<<i, k>>",
-    "<<prnt, rpt>>",
-    "<<msg, prnt>>",
     "<<j, i>>",
-    "<<prnt, msg, rpt>>",
+    "<<i ,j>>",
     "<<i, prnt[i]>>",
-    "<<i ,j>>"
+    "<<prnt, msg, rpt>>",
+    "<<rpt, msg>>",
+    "<<prnt, rpt>>",
+    "<<msg, prnt>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [],
-  "ArithmeticModules": [
-    "Integers"
-  ],
+  "ArithmeticModules": ["Integers"],
   "DataStructureModules": [],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "prnt",
-    "msg",
-    "rpt"
-  ],
+  "PrimedVariables": ["prnt", "msg", "rpt"],
   "UnchangedExprs": [
     "UNCHANGED <<rpt, msg>>",
     "UNCHANGED <<prnt, rpt>>",
@@ -134,22 +78,26 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(\\E i, j \\in Proc: IF i # root /\\ prnt[i] = NoPrnt /\\ <<j, i>> \\in msg THEN Update(i, j) ELSE \\/ Send(i) \\/ Parent(i) \\/ UNCHANGED <<prnt, msg, rpt>>)",
+    "[][\\A i \\in Proc : prnt[i] # NoPrnt => prnt[i] = prnt'[i]]_vars"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[][\\A i \\in Proc : prnt[i] # NoPrnt => prnt[i] = prnt'[i]]"
+    "[][Next]_vars",
+    "[][\\A i \\in Proc : prnt[i] # NoPrnt => prnt[i] = prnt'[i]]_vars"
   ],
   "EventuallyOp": [
     "<>(\\A i \\in Proc : i = root \\/ (prnt[i] # NoPrnt /\\ <<i, prnt[i]>> \\in nbrs))"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(\\E i, j \\in Proc: IF i # root /\\ prnt[i] = NoPrnt /\\ <<j, i>> \\in msg THEN Update(i, j) ELSE \\/ Send(i) \\/ Parent(i) \\/ UNCHANGED <<prnt, msg, rpt>>)"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -158,15 +106,10 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
-    "CanSend",
-    "Next",
-    "TypeOK",
-    "SntMsg"
+    "CanSend", "TypeOK", "SntMsg"
   ],
   "OperatorDefNames_TemporalProperty": [
-    "Spec",
-    "Termination"
+    "Spec", "Termination", "OneParent"
   ],
   "OperatorDefNames_Init": [
     "Init"
@@ -189,9 +132,11 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "specifications/spanning/spanning.tla",
-  "VerificationTools": [
-    "TLC"
-  ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/SpanningTree/spanning.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "TemporalNesting is false; the spec uses only the standard [][Next]_vars and a top-level <>(...) Termination plus a [][...]_vars OneParent stability formula, none of which nest temporal operators inside others.",
+    "Action operators Update, Send, Parent, and Next contain primed variables and are listed in ActionDefNames; they are excluded from the partition categories of OperatorDefNames since the partition uses ActionDefNames as a separate fifth bucket per the schema.",
+    "CanSend is a state predicate over current-state variables; SntMsg and TypeOK assert state-level invariants; vars is a structural tuple value, placed in ValueDef."
+  ]
 }

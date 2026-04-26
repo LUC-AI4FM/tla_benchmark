@@ -31,10 +31,6 @@
     "AllCommitYesVotes"
   ],
   "ActionDefNames": [
-    "TypeInvParticipantNB",
-    "TypeInvNB",
-    "InitParticipantNB",
-    "InitNB",
     "forward",
     "preDecideOnForward",
     "preDecide",
@@ -83,35 +79,48 @@
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ participants -> {notsent, commit, abort} ]",
-    "[ participants -> {notsent} ]"
+    "[participants -> [vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [participants -> {notsent, commit, abort}]]]",
+    "[participants -> [vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [participants -> {notsent}]]]",
+    "[participants -> {notsent}]",
+    "[participants -> {notsent, commit, abort}]"
   ],
   "FunctionApplication": [
-    "participant[…]",
-    "forward[…]",
-    "broadcast[…]"
+    "participant[i]",
+    "participant[j]",
+    "participant[k]",
+    "participant[i].forward[i]",
+    "participant[i].forward[j]",
+    "participant[j].forward[i]",
+    "participant[j].forward[k]",
+    "coordinator.broadcast[i]",
+    "coordinator.broadcast[j]"
   ],
   "FunctionOverride": [
-    "[@ EXCEPT !.decision = abort]"
+    "[participant EXCEPT ![i] = [@ EXCEPT !.forward = [@ EXCEPT ![j] = participant[i].forward[i]]]]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.forward = [@ EXCEPT ![i] = participant[j].forward[i]]]]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.forward = [@ EXCEPT ![i] = coordinator.broadcast[i]]]]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = participant[i].forward[i]]]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = abort]]"
   ],
-  "RecordConstructor": [],
+  "RecordConstructor": [
+    "[vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [participants -> {notsent, commit, abort}]]",
+    "[vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [participants -> {notsent}]]"
+  ],
   "RecordAccess": [
-    "coordinator.broadcast",
-    "coordinator.alive",
-    "coordinator.faulty"
+    ".alive",
+    ".forward",
+    ".decision",
+    ".broadcast",
+    ".vote",
+    ".faulty"
   ],
   "TupleConstructor": [
-    "<<coordinator>>",
-    "<<coordinator, participant>>"
+    "<<coordinator, participant>>",
+    "<<coordinator>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -121,25 +130,32 @@
   "PrimedVariables": [
     "participant"
   ],
-  "UnchangedExprs": [],
-  "EnabledExprs": [],
-  "TemporalSubscript": [],
-  "AlwaysOp": [
-    "[][progNNB]"
+  "UnchangedExprs": [
+    "UNCHANGED<<coordinator>>"
   ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][progNNB]_<<coordinator, participant>>",
+    "WF_<<coordinator, participant>>(\\E j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)"
+  ],
+  "AlwaysOp": [],
   "EventuallyOp": [
-    "<>(participant[i].decision = commit \\/ participant[i].faulty)",
-    "<>(participant[i].decision = abort  \\/ participant[i].faulty)"
+    "<>(participant[i].decision = commit / participant[i].faulty)",
+    "<>(participant[i].decision = abort  / participant[i].faulty)"
   ],
   "LeadsToOp": [
-    "~>  participant[i].decision = commit \\/ participant[i].faulty \\/ coordinator.fault"
+    "\\A j \\in participants : participant[j].vote = yes ~>  participant[i].decision = commit / participant[i].faulty / coordinator.faulty"
   ],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_<<coordinator, participant>>(\\E j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -149,8 +165,7 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeInvParticipantNB",
-    "InitParticipantNB",
-    "parProgNNB"
+    "TypeInvNB"
   ],
   "OperatorDefNames_TemporalProperty": [
     "fairnessNB",
@@ -164,20 +179,33 @@
     "InitNB"
   ],
   "OperatorDefNames_ValueDef": [
-    "TypeInvNB",
-    "InitNB",
+    "forward",
+    "preDecideOnForward",
+    "preDecide",
+    "decideNB",
+    "abortOnTimeout",
     "parProgNB",
+    "parProgNNB",
     "progNNB"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
-    "[ participants -> {notsent, commit, abort} ]",
-    "[ participants -> {notsent} ]"
+    "[participants -> [vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [participants -> {notsent, commit, abort}]]]",
+    "[participants -> [vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [participants -> {notsent}]]]",
+    "[participants -> {notsent}]",
+    "[participants -> {notsent, commit, abort}]"
   ],
-  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED<<coordinator>>"
+  ],
   "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/ACP_NB/ACP_NB.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Operators classified as ValueDef (forward, preDecideOnForward, preDecide, decideNB, abortOnTimeout, parProgNB, parProgNNB, progNNB) are TLA+ actions and were placed there as they do not fit the criteria for StatePredicate, TemporalProperty, or Init [1].",
+    "TemporalNesting is true due to the use of the leads-to operator (~>) in AllCommitYesVotes, which expands to [](P => <>Q), nesting the diamond operator within a box operator [2, 3]."
+  ]
 }

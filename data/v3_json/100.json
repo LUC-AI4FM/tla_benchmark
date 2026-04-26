@@ -20,8 +20,13 @@
     "weight",
     "msgs"
   ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
+  "AssumptionNames": [
+    "Leader \\in Procs"
+  ],
+  "TheoremNames": [
+    "Spec => Safe",
+    "Spec => Live"
+  ],
   "OperatorDefNames": [
     "vars",
     "Sum",
@@ -49,15 +54,21 @@
     "RcvLdr",
     "Next"
   ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
+  "RecursiveOperatorNames": [
+    "Sum(fun, set)"
+  ],
+  "LocalOperatorNames": [
+    "p",
+    "M"
+  ],
   "LetInNames": [
     "p",
     "M"
   ],
   "LambdaParams": [],
   "Implication": [
-    "=>"
+    "=>",
+    "~>"
   ],
   "Negation": [
     "~"
@@ -78,32 +89,61 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF p = Leader THEN TRUE ELSE FALSE ]",
-    "IF p = Leader THEN One ELSE Zero ]"
+    "IF set = {} THEN Zero ELSE LET p == CHOOSE p \\in set: TRUE IN Add(FoldFunction(Add, Zero, fun[p]), Sum(fun, set \\ {p}))",
+    "IF p = Leader THEN TRUE ELSE FALSE",
+    "IF p = Leader THEN One ELSE Zero"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{p}",
+    "{}",
     "{<<>>}",
+    "{p}",
     "{Leader}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[ Procs -> BOOLEAN ]",
     "[ p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE ]",
     "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]",
-    "[ Procs -> BOOLEAN ]",
-    "[ Procs -> {<<>>} ]"
+    "[ Procs -> {<<>>} ]",
+    "[p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])]",
+    "[p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]",
+    "[ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]"
   ],
   "FunctionApplication": [
-    "fun[…]",
-    "msgs[…]",
-    "weight[…]",
-    "active[…]"
+    "fun[p]",
+    "msgs[p]",
+    "msgs[p][i]",
+    "weight[p]",
+    "active[p]",
+    "weight[q]",
+    "msgs[q]",
+    "msgs[Leader]",
+    "weight[Leader]",
+    "active[Leader]"
   ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
-  "RecordAccess": [],
+  "FunctionOverride": [
+    "[weight EXCEPT ![p] = Half(weight[p])]",
+    "[msgs EXCEPT ![q] = Append(@, weight[p]')]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[weight EXCEPT ![p] = Add(@, msgs[p][i])]",
+    "[msgs EXCEPT ![p] = RemoveAt(@, i)]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[msgs EXCEPT ![Leader] = Append(@, weight[p])]",
+    "[weight EXCEPT ![p] = Zero]",
+    "[active EXCEPT ![Leader] = FALSE]",
+    "[weight EXCEPT ![Leader] = Add(@, msgs[Leader][i])]",
+    "[msgs EXCEPT ![Leader] = RemoveAt(@, i)]"
+  ],
+  "RecordConstructor": [
+    "[active |-> {p \\in Procs : active[p]}, weights |-> [p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])], msgs |-> [p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]]"
+  ],
+  "RecordAccess": [
+    "weight[p].den"
+  ],
   "TupleConstructor": [
     "<<active, weight, msgs>>",
     "<<>>",
@@ -111,19 +151,16 @@
     "<<weight, msgs>>"
   ],
   "SequenceOps": [
-    "Append",
-    "Len"
+    "Len",
+    "Append"
   ],
-  "ArithmeticOps": [
-    "-"
-  ],
+  "ArithmeticOps": [],
   "ComparisonOps": [
-    ">",
-    "<",
     "<="
   ],
   "RangeExpr": [
-    "in 1..Len"
+    "1..Len(msgs[p])",
+    "1..Len(msgs[Leader])"
   ],
   "ChoiceExpr": [
     "CHOOSE p \\in set: TRUE"
@@ -152,60 +189,64 @@
   "TemporalSubscript": [
     "[][Next]_vars",
     "WF_vars(RcvLdr)",
-    "WF_vars(IdleLdr)"
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[](TerminationDetected => []Terminated)"
+    "[][Next]_vars",
+    "[](TerminationDetected => []Terminated)",
+    "[]Terminated"
   ],
-  "EventuallyOp": [
-    "<>>} ]",
-    "<>>",
-    "<>>}"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [
     "Terminated ~> TerminationDetected"
   ],
   "FairnessConditions": [
     "WF_vars(RcvLdr)",
-    "WF_vars(IdleLdr)"
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
   ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
+  "StateConstraint": [
+    "\\A p \\in Procs : weight[p].den <= 8"
+  ],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Sum",
     "TypeOK",
-    "Next",
     "TerminationDetected",
+    "Terminated",
     "StateConstraint"
   ],
   "OperatorDefNames_TemporalProperty": [
-    "Init",
     "Spec",
-    "Terminated",
     "Safe",
-    "Live",
-    "Alias"
+    "Live"
   ],
   "OperatorDefNames_Init": [
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
-    "vars"
+    "vars",
+    "Sum",
+    "Alias"
   ],
   "FunctionConstructor_ByDomain": [
     "[ p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE ]",
-    "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]"
+    "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]",
+    "[p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])]",
+    "[p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]",
+    "[ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]"
   ],
   "FunctionConstructor_SetType": [
     "[ Procs -> BOOLEAN ]",
@@ -219,7 +260,16 @@
     "UNCHANGED active"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/Huang/Huang.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true: Safe is defined as [](TerminationDetected => []Terminated), nesting [] inside another [].",
+    "Sum is a recursive value-returning function (returns dyadic rational sum), placed in OperatorDefNames_ValueDef.",
+    "Alias is a record-valued helper for pretty-printing trace states, placed in OperatorDefNames_ValueDef.",
+    "vars is a tuple definition placed in OperatorDefNames_ValueDef.",
+    "TerminationDetected and Terminated are non-temporal Boolean predicates (state predicates).",
+    "Action operators SendMsg/RcvMsg/Idle/IdleLdr/RcvLdr/Next partition into ActionDefNames."
+  ]
 }
