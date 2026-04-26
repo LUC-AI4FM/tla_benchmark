@@ -23,7 +23,9 @@
   "AssumptionNames": [
     "NAssumption"
   ],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => EWD998Spec"
+  ],
   "OperatorDefNames": [
     "Node",
     "Initiator",
@@ -38,7 +40,6 @@
     "Next",
     "Spec",
     "token",
-    "tok",
     "pending",
     "EWD998",
     "EWD998Spec",
@@ -78,36 +79,57 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]",
-    "IF color[self] = \"black\" THEN \"black\" ELSE tok.color)])",
-    "IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
+    "IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag (in Init/network)",
+    "IF color[self] = \"black\" THEN \"black\" ELSE tok.color (in node)",
+    "IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0 (in pending)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{0}",
-    "{self}"
+    "{[type|-> \"tok\", q |-> 0, color |-> \"black\"]}",
+    "{self}",
+    "{0}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\",
+    "DOMAIN"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[n \\in Node |-> IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]",
+    "[Node -> BOOLEAN]",
     "[self \\in Node |-> \"black\"]",
     "[self \\in Node |-> 0]",
-    "[Node -> BOOLEAN]"
+    "[n \\in Node |-> IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
   ],
   "FunctionApplication": [
-    "net[…]",
-    "active[…]",
-    "counter[…]",
-    "color[…]",
-    "network[…]"
+    "net[from]",
+    "net[to]",
+    "net[rcv]",
+    "active[self]",
+    "color[self]",
+    "counter[self]",
+    "network[i]",
+    "network[n]",
+    "network[n][[type|->\"pl\"]]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[ net EXCEPT ![from] = BagRemove(@, oldMsg), ![to] = BagAdd(@, newMsg) ]",
+    "[ net EXCEPT ![to] = BagAdd(@, msg) ]",
+    "[ net EXCEPT ![to] = BagRemove(@, msg) ]",
+    "[counter EXCEPT ![self] = counter[self] + 1]",
+    "[counter EXCEPT ![self] = counter[self] - 1]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[color EXCEPT ![self] = \"black\"]",
+    "[active EXCEPT ![self] = FALSE]",
+    "[color EXCEPT ![self] = \"white\"]"
+  ],
   "RecordConstructor": [
     "[type|-> \"tok\", q |-> 0, color |-> \"black\"]",
     "[type|-> \"pl\"]",
+    "[type|-> \"tok\", q |-> tok.q + counter[self], color |-> IF color[self] = \"black\" THEN \"black\" ELSE tok.color]",
     "[type|-> \"tok\", q |-> 0, color |-> \"white\"]",
     "[pos |-> tpos, q |-> tok.q, color |-> tok.color]",
-    "[type|->\"pl\"]"
+    "[ network |-> network, active |-> active, color |-> color, counter |-> counter, token |-> token, pending |-> pending ]"
   ],
   "RecordAccess": [
     "msg.type",
@@ -128,20 +150,19 @@
     "-"
   ],
   "ComparisonOps": [
-    ">",
     "<"
   ],
   "RangeExpr": [
-    "0 .. "
+    "0 .. N-1"
   ],
   "ChoiceExpr": [
     "CHOOSE i \\in Node : \\E m \\in DOMAIN network[i]: m.type = \"tok\"",
     "CHOOSE m \\in DOMAIN network[tpos] : m.type = \"tok\""
   ],
   "StringLiterals": [
-    "tok",
     "black",
     "pl",
+    "tok",
     "white"
   ],
   "ArithmeticModules": [
@@ -153,10 +174,10 @@
   ],
   "ToolingModules": [],
   "PrimedVariables": [
-    "network",
-    "counter",
     "active",
-    "color"
+    "color",
+    "counter",
+    "network"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<active, color>>",
@@ -166,36 +187,38 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "[][EWD998!Next]_EWD998"
+    "[][EWD998!Next]_EWD998!vars",
+    "WF_vars(node(self))"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[][EWD998!Next]"
+    "[][Next]_vars",
+    "[][EWD998!Next]_EWD998!vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "ewd998",
-  "PlusCalProcesses": [],
+  "PlusCalAlgorithm": [
+    "--algorithm ewd998 { variables network = [n \\in Node |-> IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]; define { passMsg(net, from, oldMsg, to, newMsg) == ...; sendMsg(net, to, msg) == ...; dropMsg(net, to, msg) == ...; pendingMsgs(net, rcv) == DOMAIN net[rcv] } fair process (node \\in Node) variables active \\in BOOLEAN, color = \"black\", counter = 0; { l: while (TRUE) { either ... or ... or ... or ... or ... } } }"
+  ],
+  "PlusCalProcesses": [
+    "fair process (node \\in Node) variables active \\in BOOLEAN, color = \"black\", counter = 0;"
+  ],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
+  "StateConstraint": [
+    "StateConstraint"
+  ],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "passMsg",
-    "sendMsg",
-    "dropMsg",
     "Init",
-    "Next",
-    "token",
-    "tok",
-    "pending",
     "StateConstraint"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -203,21 +226,27 @@
     "EWD998Spec"
   ],
   "OperatorDefNames_Init": [
-    "Initiator",
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
     "Node",
     "Initiator",
+    "passMsg",
+    "sendMsg",
+    "dropMsg",
     "pendingMsgs",
     "vars",
     "ProcSet",
+    "token",
+    "pending",
     "EWD998",
     "Alias"
   ],
   "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]",
     "[self \\in Node |-> \"black\"]",
-    "[self \\in Node |-> 0]"
+    "[self \\in Node |-> 0]",
+    "[n \\in Node |-> IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
   ],
   "FunctionConstructor_SetType": [
     "[Node -> BOOLEAN]"
@@ -229,7 +258,19 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd998/EWD998PCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "OperatorDefNames partitioned: ActionDefNames (node, Next), StatePredicate (Init, StateConstraint), TemporalProperty (Spec, EWD998Spec), Init (Init), ValueDef (Node, Initiator, passMsg, sendMsg, dropMsg, pendingMsgs, vars, ProcSet, token, pending, EWD998, Alias).",
+    "passMsg, sendMsg, dropMsg, pendingMsgs come from the PlusCal define block and produce records/sets, hence ValueDef.",
+    "token and pending are non-Boolean derived values used by the EWD998 instance.",
+    "Alias is a record-valued debugging alias, hence ValueDef.",
+    "EWD998 (instance) is non-Boolean (a module reference), hence ValueDef.",
+    "TemporalNesting is false: Spec uses [][Next]_vars and WF without nesting.",
+    "FunctionConstructors are mostly ByDomain ([x \\in S |-> e]); one SetType ([Node -> BOOLEAN]).",
+    "PlusCalAlgorithm and PlusCalProcesses populated because this is a PlusCal-translated module (--algorithm ewd998 with a single fair process node).",
+    "VerificationTools = [TLC] since this is a PlusCal/TLA+ module checked by TLC."
+  ]
 }

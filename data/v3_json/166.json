@@ -1,6 +1,6 @@
 {
   "id": 166,
-  "Specification": "",
+  "Specification": "Specifies the Car Guys NPR puzzle in which prisoners use two switches A and B to communicate. The Counter increments his count whenever he sees switch A up, while every other prisoner moves switch A up at most twice. When count reaches 2*(|Prisoner|-1), all prisoners have visited the room. The spec proves Safety (Done implies all others switched A) and Liveness (eventually Done).",
   "ModuleName": "Prisoners",
   "ExtendsModules": [
     "Naturals",
@@ -9,15 +9,21 @@
   "InstanceModules": [],
   "InstanceSubstitutions": [],
   "ConstantNames": [
-    "Prisoner"
+    "Prisoner",
+    "Counter"
   ],
   "VariableNames": [
     "switchAUp",
     "switchBUp",
-    "timesSwitched"
+    "timesSwitched",
+    "count"
   ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
+  "AssumptionNames": [
+    "Counter \\in Prisoner /\\ Cardinality(Prisoner) > 1"
+  ],
+  "TheoremNames": [
+    "Spec => Safety /\\ Liveness"
+  ],
   "OperatorDefNames": [
     "OtherPrisoner",
     "vars",
@@ -31,8 +37,7 @@
     "Spec",
     "Safety",
     "Liveness",
-    "CountInvariant",
-    "oneIfUp"
+    "CountInvariant"
   ],
   "ActionDefNames": [
     "NonCounterStep",
@@ -43,7 +48,9 @@
   "LocalOperatorNames": [],
   "LetInNames": [
     "totalSwitched",
-    "p"
+    "sum",
+    "p",
+    "oneIfUp"
   ],
   "LambdaParams": [],
   "Implication": [
@@ -67,28 +74,39 @@
     "\\in"
   ],
   "IfThenElse": [
+    "IF (~switchAUp) /\\ (timesSwitched[i] < 2) THEN /\\ switchAUp' = TRUE /\\ timesSwitched' = [timesSwitched EXCEPT ![i] = @+1] /\\ UNCHANGED switchBUp ELSE /\\ switchBUp' = ~switchBUp /\\ UNCHANGED <<switchAUp, timesSwitched>>",
+    "IF switchAUp THEN /\\ switchAUp' = FALSE /\\ UNCHANGED switchBUp /\\ count' = count + 1 ELSE /\\ switchBUp' = ~switchBUp /\\ UNCHANGED <<switchAUp, count>>",
+    "IF S = {} THEN 0 ELSE LET p == CHOOSE pr \\in S : TRUE IN timesSwitched[p] + sum[S \\ {p}]",
     "IF switchAUp THEN 1 ELSE 0"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{Counter}",
     "{p}",
-    "{totalSwitched - oneIfUp, totalSwitched - oneIfUp + 1}"
+    "{totalSwitched - oneIfUp, totalSwitched - oneIfUp + 1}",
+    "BOOLEAN"
   ],
-  "SetOperators": [],
-  "FiniteSetOps": [
-    "Cardinality",
+  "SetOperators": [
+    "\\",
     "SUBSET"
   ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
   "FunctionConstructor": [
-    "[i \\in OtherPrisoner |-> 0]",
-    "[OtherPrisoner -> 0..2]"
+    "[OtherPrisoner -> 0..2]",
+    "[i \\in OtherPrisoner |-> 0]"
   ],
   "FunctionApplication": [
-    "timesSwitched[…]",
-    "sum[…]"
+    "timesSwitched[i]",
+    "timesSwitched[p]",
+    "sum[S \\ {p}]",
+    "sum[OtherPrisoner]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[timesSwitched EXCEPT ![i] = @+1]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -98,9 +116,9 @@
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
+    "*",
     "+",
-    "-",
-    "*"
+    "-"
   ],
   "ComparisonOps": [
     ">",
@@ -108,7 +126,7 @@
   ],
   "RangeExpr": [
     "0..2",
-    "in 0 .. ("
+    "0 .. (2 * Cardinality(Prisoner) - 1)"
   ],
   "ChoiceExpr": [
     "CHOOSE pr \\in S : TRUE"
@@ -137,10 +155,11 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "WF_vars(CounterStep)"
+    "WF_vars(CounterStep)",
+    "WF_vars(NonCounterStep(i))"
   ],
   "AlwaysOp": [
-    "[][Next]",
+    "[][Next]_vars",
     "[](Done => (\\A i \\in Prisoner \\ {Counter} : timesSwitched[i] > 0))"
   ],
   "EventuallyOp": [
@@ -148,13 +167,14 @@
   ],
   "LeadsToOp": [],
   "FairnessConditions": [
-    "WF_vars(CounterStep)"
+    "WF_vars(CounterStep)",
+    "WF_vars(NonCounterStep(i))"
   ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -164,11 +184,8 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "Init",
     "Done",
-    "Next",
-    "CountInvariant",
-    "oneIfUp"
+    "CountInvariant"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Fairness",
@@ -199,9 +216,14 @@
     "UNCHANGED timesSwitched"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "specifications/PrisonerCounter/Prisoners.tla",
+  "CorpusSource": "specifications/Prisoners/Prisoners.tla",
   "VerificationTools": [
     "TLC"
   ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "Action operators NonCounterStep, CounterStep, Next are placed in ActionDefNames; they are excluded from the OperatorDefNames partition (4 buckets + ActionDefNames partition OperatorDefNames).",
+    "Fairness is categorized as TemporalProperty because it contains WF_vars temporal operators.",
+    "TypeOK, Done, and CountInvariant are Boolean-valued state predicates without primes or temporal operators.",
+    "TemporalNesting is false: top-level temporal operators ([], <>, WF_vars) appear at top level only — Safety has [](...=> ...) but the implication body is a state predicate, not a temporal formula."
+  ]
 }

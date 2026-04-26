@@ -15,13 +15,12 @@
     "tx",
     "snapshotStore",
     "written",
-    "missed",
-    "NoVal",
-    "v",
-    "Val"
+    "missed"
   ],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => [](TypeInvariant /\\ TxLifecycle)"
+  ],
   "OperatorDefNames": [
     "NoVal",
     "Store",
@@ -68,39 +67,53 @@
     "\\notin"
   ],
   "IfThenElse": [
-    "IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]]",
-    "IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}]"
+    "IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]",
+    "IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{NoVal}",
     "{t}",
     "{k}",
     "{NoVal, v}"
   ],
   "SetOperators": [
-    "\\notin",
     "\\cup",
     "\\subseteq",
-    "\\cap"
+    "\\cap",
+    "\\"
   ],
   "FiniteSetOps": [
     "SUBSET"
   ],
   "FunctionConstructor": [
-    "[k \\in Key |-> NoVal]",
-    "[t \\in TxId |-> {}]",
     "[Key -> Val \\cup {NoVal}]",
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[t \\in TxId |-> {}]",
     "[TxId -> Store]",
-    "[TxId -> SUBSET Key]"
+    "[TxId -> SUBSET Key]",
+    "[k \\in Key |-> IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]]",
+    "[otherTx \\in TxId |-> IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}]"
   ],
   "FunctionApplication": [
-    "store[…]",
-    "snapshotStore[…]",
-    "written[…]",
-    "missed[…]"
+    "store[k]",
+    "snapshotStore[t]",
+    "snapshotStore[t][k]",
+    "written[t]",
+    "missed[t]",
+    "missed[otherTx]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[snapshotStore EXCEPT ![t] = store]",
+    "[snapshotStore EXCEPT ![t][k] = v]",
+    "[written EXCEPT ![t] = @ \\cup {k}]",
+    "[snapshotStore EXCEPT ![t][k] = NoVal]",
+    "[snapshotStore EXCEPT ![t] = [k \\in Key |-> NoVal]]",
+    "[written EXCEPT ![t] = {}]",
+    "[missed EXCEPT ![t] = {}]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -109,13 +122,8 @@
     "<<store, tx, snapshotStore, written, missed>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [
     "CHOOSE v : v \\notin Val"
@@ -137,9 +145,11 @@
     "UNCHANGED store"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[][Next]_<<store, tx, snapshotStore, written, missed>>"
+  ],
   "AlwaysOp": [
-    "[][Next]",
+    "[][Next]_<<store, tx, snapshotStore, written, missed>>",
     "[](TypeInvariant /\\ TxLifecycle)"
   ],
   "EventuallyOp": [],
@@ -149,7 +159,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -158,10 +168,8 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
     "TypeInvariant",
-    "TxLifecycle",
-    "Next"
+    "TxLifecycle"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec"
@@ -175,7 +183,10 @@
   ],
   "FunctionConstructor_ByDomain": [
     "[k \\in Key |-> NoVal]",
-    "[t \\in TxId |-> {}]"
+    "[t \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[t \\in TxId |-> {}]",
+    "[k \\in Key |-> IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]]",
+    "[otherTx \\in TxId |-> IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}]"
   ],
   "FunctionConstructor_SetType": [
     "[Key -> Val \\cup {NoVal}]",
@@ -190,7 +201,11 @@
     "UNCHANGED store"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
+  "CorpusSource": "specifications/KeyValueStore/KeyValueStore.tla",
   "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "NoVal (CHOOSE-based constant) and Store (set type) placed in OperatorDefNames_ValueDef.",
+    "TypeInvariant and TxLifecycle are non-temporal Boolean predicates (state predicates).",
+    "All actions OpenTx/Add/Update/Remove/RollbackTx/CloseTx/Next prime variables and partition into ActionDefNames."
+  ]
 }

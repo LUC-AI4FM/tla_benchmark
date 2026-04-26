@@ -28,6 +28,7 @@
   ],
   "TheoremNames": [],
   "OperatorDefNames": [
+    "NTF",
     "Proc",
     "Status",
     "vars",
@@ -77,25 +78,35 @@
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{\"V0\", \"V1\", \"S0\", \"S1\", \"D0\", \"D1\", \"U0\", \"U1\", \"BYZ\"}",
-    "{\"V0\", \"V1\"}"
+    "{ \"V0\", \"V1\", \"S0\", \"S1\", \"D0\", \"D1\", \"U0\", \"U1\", \"BYZ\" }",
+    "{ \"V0\", \"V1\" }"
   ],
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"V0\" ]",
-    "[ i \\in Proc |-> \"V1\" ]",
-    "[ Proc -> { \"V0\", \"V1\" } ]",
-    "[ Proc -> Status ]",
-    "[ Proc -> 0..N ]"
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> \"V0\"]",
+    "[i \\in Proc |-> \"V1\"]",
+    "[Proc -> { \"V0\", \"V1\" }]",
+    "[Proc -> Status]",
+    "[Proc -> 0..N]"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "nRcvd0[…]",
-    "nRcvd1[…]"
+    "pc[i]",
+    "nRcvd0[i]",
+    "nRcvd1[i]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[pc EXCEPT ![i] = \"BYZ\"]",
+    "[pc EXCEPT ![i] = \"S0\"]",
+    "[pc EXCEPT ![i] = \"S1\"]",
+    "[pc EXCEPT ![i] = \"D0\"]",
+    "[pc EXCEPT ![i] = \"D1\"]",
+    "[pc EXCEPT ![i] = \"U0\"]",
+    "[pc EXCEPT ![i] = \"U1\"]",
+    "[nRcvd0 EXCEPT ![i] = nRcvd0[i] + 1]",
+    "[nRcvd1 EXCEPT ![i] = nRcvd1[i] + 1]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -114,15 +125,14 @@
     "*"
   ],
   "ComparisonOps": [
-    ">",
     "<",
-    ">="
+    ">=",
+    ">"
   ],
   "RangeExpr": [
-    "1 .. ",
-    "in 0..N",
-    "in 0..F",
-    "0..N"
+    "1..N",
+    "0..N",
+    "0..F"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -164,22 +174,20 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Proc : / Receive(self) / Propose(self) / Decide(self))"
   ],
-  "AlwaysOp": [
-    "[][Next]",
-    "[](\\A i \\in Proc : pc[i] # \"U0\" /\\ pc[i] # \"U1\" /\\ pc[i] # \"D1\")"
-  ],
-  "EventuallyOp": [
-    "<>(\\A i \\in Proc : pc[i] # \"U0\" /\\ pc[i] # \"U1\" /\\ pc[i] # \"D0\")"
-  ],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Proc : / Receive(self) / Propose(self) / Decide(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -188,10 +196,7 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
-    "Next",
-    "Init0",
-    "Init1",
+    "NTF",
     "TypeOK"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -207,17 +212,22 @@
   "OperatorDefNames_ValueDef": [
     "Proc",
     "Status",
-    "vars"
+    "vars",
+    "Faulty",
+    "Propose",
+    "Receive",
+    "Decide",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"V0\" ]",
-    "[ i \\in Proc |-> \"V1\" ]"
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> \"V0\"]",
+    "[i \\in Proc |-> \"V1\"]"
   ],
   "FunctionConstructor_SetType": [
-    "[ Proc -> { \"V0\", \"V1\" } ]",
-    "[ Proc -> Status ]",
-    "[ Proc -> 0..N ]"
+    "[Proc -> { \"V0\", \"V1\" }]",
+    "[Proc -> Status]",
+    "[Proc -> 0..N]"
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED << nSnt0, nSnt1, nRcvd0, nRcvd1 >>",
@@ -231,7 +241,13 @@
     "UNCHANGED vars"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/cf1s_folklore/cf1s_folklore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "The operators Faulty, Propose, Receive, Decide, and Next were placed in OperatorDefNames_ValueDef because they are actions containing primed variables and thus do not fit the StatePredicate, TemporalProperty, or Init categories.",
+    "TemporalNesting is false as there are no nested temporal operators like []<> or [] followed by another temporal operator in the property bodies.",
+    "VerificationTools includes TLC based on comments in the source referring to checking IndInv0 with TLC."
+  ]
 }

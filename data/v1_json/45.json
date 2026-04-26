@@ -1,0 +1,139 @@
+{
+  "id": 45,
+  "Specification": "DijkstraMutex: A TLA+ model of Dijkstra's mutual exclusion algorithm. Processes step through labeled program locations (Li0–Li6, cs, ncs) using shared boolean arrays b and c and a shared pointer k. Properties include MutualExclusion (safety), DeadlockFree, StarvationFree, and DeadlockFreedom (liveness via leads-to).",
+  "ModuleName": "DijkstraMutex",
+  "ExtendsModules": ["Integers"],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": ["Proc", "defaultInitValue"],
+  "VariableNames": ["b", "c", "k", "pc", "temp"],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars", "ProcSet", "Init",
+    "Li0", "Li1", "Li2", "Li3a", "Li3b", "Li3c", "Li3d",
+    "Li4a", "Li4b", "cs", "Li5", "Li6", "ncs",
+    "P", "Next", "Spec",
+    "MutualExclusion", "DeadlockFree", "StarvationFree",
+    "LSpec", "DeadlockFreedom"
+  ],
+  "ActionDefNames": [
+    "Li0", "Li1", "Li2", "Li3a", "Li3b", "Li3c", "Li3d",
+    "Li4a", "Li4b", "cs", "Li5", "Li6", "ncs",
+    "P", "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": ["=>"],
+  "Negation": ["~"],
+  "BooleanConstants": ["TRUE", "FALSE"],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in", "\\notin"],
+  "IfThenElse": [
+    "IF k # self THEN /\\ pc' = [pc EXCEPT ![self] = \"Li2\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4a\"]",
+    "IF b[temp[self]] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li3c\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li3d\"]",
+    "IF temp[self] # {} THEN /\\ \\E j \\in temp[self] : /\\ temp' = [temp EXCEPT ![self] = temp[self] \\ {j}] /\\ IF ~c[j] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4b\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"] /\\ temp' = temp",
+    "IF ~c[j] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4b\"]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{self}",
+    "{j}",
+    "{\"Li5\", \"Li6\", \"ncs\"}"
+  ],
+  "SetOperators": ["\\"],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Proc |-> TRUE]",
+    "[self \\in Proc |-> defaultInitValue]",
+    "[self \\in ProcSet |-> \"Li0\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]", "pc[i]", "pc[j]",
+    "b[temp[self]]",
+    "c[j]",
+    "temp[self]"
+  ],
+  "FunctionOverride": [
+    "[b EXCEPT ![self] = FALSE]",
+    "[b EXCEPT ![self] = TRUE]",
+    "[c EXCEPT ![self] = TRUE]",
+    "[c EXCEPT ![self] = FALSE]",
+    "[temp EXCEPT ![self] = k]",
+    "[temp EXCEPT ![self] = Proc \\ {self}]",
+    "[temp EXCEPT ![self] = temp[self] \\ {j}]",
+    "[pc EXCEPT ![self] = \"Li0\"]",
+    "[pc EXCEPT ![self] = \"Li1\"]",
+    "[pc EXCEPT ![self] = \"Li2\"]",
+    "[pc EXCEPT ![self] = \"Li3a\"]",
+    "[pc EXCEPT ![self] = \"Li3b\"]",
+    "[pc EXCEPT ![self] = \"Li3c\"]",
+    "[pc EXCEPT ![self] = \"Li3d\"]",
+    "[pc EXCEPT ![self] = \"Li4a\"]",
+    "[pc EXCEPT ![self] = \"Li4b\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[pc EXCEPT ![self] = \"Li5\"]",
+    "[pc EXCEPT ![self] = \"Li6\"]",
+    "[pc EXCEPT ![self] = \"ncs\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< b, c, k, pc, temp >>",
+    "<< c, k, temp >>",
+    "<< b, c, k, temp >>",
+    "<< b, k, temp >>",
+    "<< b, c, k >>",
+    "<< b, c, temp >>",
+    "<< b, k >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Li0", "Li1", "Li2", "Li3a", "Li3b", "Li3c", "Li3d",
+    "Li4a", "Li4b", "cs", "Li5", "Li6", "ncs"
+  ],
+  "ArithmeticModules": ["Integers"],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": ["b", "c", "k", "pc", "temp"],
+  "UnchangedExprs": [
+    "UNCHANGED << c, k, temp >>",
+    "UNCHANGED << b, c, k, temp >>",
+    "UNCHANGED << b, k, temp >>",
+    "UNCHANGED << b, c, k >>",
+    "UNCHANGED << b, c, temp >>",
+    "UNCHANGED << b, k >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": ["[][Next]_vars"],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "(pc[i] = \"Li0\") ~> (\\E j \\in Proc : pc[j] = \"cs\")",
+    "(pc[i] = \"Li0\") ~> (pc[i] = \"cs\")",
+    "(pc[i] \\notin {\"Li5\", \"Li6\", \"ncs\"}) ~> (\\E j \\in Proc : pc[j] = \"cs\")"
+  ],
+  "FairnessConditions": [
+    "WF_vars(P(self))",
+    "WF_vars((pc[self] # \"ncs\") /\\ P(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

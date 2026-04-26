@@ -1,6 +1,6 @@
 {
   "id": 170,
-  "Specification": "",
+  "Specification": "Specification of the Paxos consensus algorithm without explicit leaders or learners. Acceptors process Phase1a/Phase1b (prepare) and Phase2a/Phase2b (accept) messages over a global msgs set. Maintains maxBal, maxVBal, maxVal per acceptor. Refines the Voting module via INSTANCE Voting; the theorem Spec => V!Spec asserts this refinement. Includes a candidate inductive invariant Inv used to prove the refinement.",
   "ModuleName": "Paxos",
   "ExtendsModules": [
     "Integers"
@@ -23,7 +23,9 @@
   "AssumptionNames": [
     "QuorumAssumption"
   ],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => V!Spec"
+  ],
   "OperatorDefNames": [
     "Ballot",
     "None",
@@ -35,7 +37,6 @@
     "Phase1a",
     "Phase1b",
     "Phase2a",
-    "Q1bv",
     "Phase2b",
     "Next",
     "Spec",
@@ -47,7 +48,7 @@
     "Send",
     "Phase1a",
     "Phase1b",
-    "Q1bv",
+    "Phase2a",
     "Phase2b",
     "Next"
   ],
@@ -77,40 +78,55 @@
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF maxVBal[a] = -1 THEN maxVal[a] = None ELSE <<maxVBal[a], maxVal[a]>> \\in votes[a]"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{\"1a\"}",
     "{\"1b\"}",
-    "{-1}",
-    "{None}",
     "{\"2a\"}",
     "{\"2b\"}",
-    "{m}"
+    "{-1}",
+    "{None}",
+    "{m}",
+    "{m \\in msgs : m.type = \"1b\" /\\ m.acc \\in Q /\\ m.bal = b}",
+    "{m \\in Q1b : m.mbal \\geq 0}",
+    "{<<m.bal, m.val>> : m \\in {mm \\in msgs: mm.type = \"2b\" /\\ mm.acc = a}}",
+    "{mm \\in msgs: mm.type = \"2b\" /\\ mm.acc = a}"
   ],
   "SetOperators": [
-    "\\subseteq",
+    "\\cup",
     "\\cap",
-    "\\notin",
-    "\\cup"
+    "\\subseteq"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]",
     "[a \\in Acceptor |-> -1]",
     "[a \\in Acceptor |-> None]",
-    "[Acceptor -> Ballot \\cup {-1}]",
-    "[Acceptor -> Value \\cup {None}]"
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs: mm.type = \"2b\" /\\ mm.acc = a}}]"
   ],
   "FunctionApplication": [
-    "maxBal[…]",
-    "maxVBal[…]",
-    "maxVal[…]",
-    "votes[…]"
+    "maxBal[a]",
+    "maxVBal[a]",
+    "maxVal[a]",
+    "votes[a]",
+    "maxBal[m.acc]",
+    "votes[m.acc]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![a] = m.bal]",
+    "[maxVBal EXCEPT ![a] = m.bal]",
+    "[maxVal EXCEPT ![a] = m.val]"
+  ],
   "RecordConstructor": [
     "[type |-> \"1a\", bal |-> b]",
-    "[type |-> \"2a\", bal |-> b, val |-> v]"
+    "[type |-> \"1b\", acc |-> a, bal |-> m.bal, mbal |-> maxVBal[a], mval |-> maxVal[a]]",
+    "[type |-> \"2a\", bal |-> b, val |-> v]",
+    "[type |-> \"2b\", acc |-> a, bal |-> m.bal, val |-> m.val]"
   ],
   "RecordAccess": [
     "m.type",
@@ -118,8 +134,8 @@
     "m.acc",
     "m.mbal",
     "m.mval",
-    "mm.mbal",
     "m.val",
+    "mm.mbal",
     "mm.type",
     "mm.acc",
     "mm.bal",
@@ -128,7 +144,6 @@
   "TupleConstructor": [
     "<<maxBal, maxVBal, maxVal, msgs>>",
     "<<maxBal, maxVBal, maxVal>>",
-    "<<maxVBal, maxVal>>",
     "<<m.bal, m.val>>",
     "<<maxVBal[a], maxVal[a]>>",
     "<<m.mbal, m.mval>>"
@@ -139,7 +154,6 @@
   ],
   "ComparisonOps": [
     ">",
-    "<",
     "\\geq"
   ],
   "RangeExpr": [],
@@ -172,7 +186,7 @@
     "[][Next]_vars"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
@@ -181,7 +195,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -191,10 +205,6 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "Init",
-    "Phase2a",
-    "Next",
-    "votes",
     "Inv"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -208,13 +218,13 @@
     "None",
     "Message",
     "vars",
-    "Phase1a",
-    "Q1bv",
+    "votes",
     "V"
   ],
   "FunctionConstructor_ByDomain": [
     "[a \\in Acceptor |-> -1]",
-    "[a \\in Acceptor |-> None]"
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs: mm.type = \"2b\" /\\ mm.acc = a}}]"
   ],
   "FunctionConstructor_SetType": [
     "[Acceptor -> Ballot \\cup {-1}]",
@@ -230,5 +240,11 @@
   "VerificationTools": [
     "TLC"
   ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "Action operators (Send, Phase1a, Phase1b, Phase2a, Phase2b, Next) are listed in ActionDefNames and excluded from the four OperatorDefNames buckets per the partition rule.",
+    "Ballot, None, Message, vars, votes, and V (the INSTANCE alias) are non-Boolean value definitions placed in OperatorDefNames_ValueDef.",
+    "TypeOK and Inv are Boolean-valued state predicates without primes or temporal operators.",
+    "Spec contains [][Next]_vars and is therefore TemporalProperty.",
+    "TemporalNesting is false: only [][Next]_vars at top level, no nested temporal operators."
+  ]
 }

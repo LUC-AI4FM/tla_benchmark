@@ -1,6 +1,6 @@
 {
   "id": 70,
-  "Specification": "Spec",
+  "Specification": "An abstract specification of the termination detection problem in a ring with asynchronous communication. Models nodes that may be active or inactive, with messages pending in queues, and verifies safety, quiescence, and liveness of termination detection via fairness on the DetectTermination action.",
   "ModuleName": "AsyncTerminationDetection",
   "ExtendsModules": [
     "Naturals"
@@ -72,7 +72,8 @@
     "\\E"
   ],
   "EqualityOps": [
-    "="
+    "=",
+    "#"
   ],
   "MembershipOps": [
     "\\in"
@@ -84,21 +85,36 @@
     "{FALSE, terminated}",
     "{terminationDetected, terminated'}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "DOMAIN"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[n \\in Node |-> 0]",
     "[Node -> BOOLEAN]",
-    "[Node -> Nat]"
+    "[Node -> Nat]",
+    "[n \\in Node |-> 0]"
   ],
   "FunctionApplication": [
-    "active[…]",
-    "pending[…]",
-    "hist[…]"
+    "active[i]",
+    "active[n]",
+    "pending[i]",
+    "pending[n]",
+    "pending[j]",
+    "hist[i]",
+    "hist[i].active[n]",
+    "hist[i].pending[n]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[active EXCEPT ![i] = FALSE]",
+    "[active EXCEPT ![i] = TRUE]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]"
+  ],
   "RecordConstructor": [],
-  "RecordAccess": [],
+  "RecordAccess": [
+    "hist[i].active[n]",
+    "hist[i].pending[n]"
+  ],
   "TupleConstructor": [
     "<<active, terminationDetected>>",
     "<<active, pending>>",
@@ -111,12 +127,11 @@
   ],
   "ComparisonOps": [
     ">",
-    "<",
-    ">=",
-    "<="
+    "<=",
+    ">="
   ],
   "RangeExpr": [
-    "0 .. "
+    "0 .. N-1"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -128,8 +143,7 @@
   "PrimedVariables": [
     "active",
     "pending",
-    "terminationDetected",
-    "terminated"
+    "terminationDetected"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<active, terminationDetected>>",
@@ -143,12 +157,12 @@
     "WF_vars(DetectTermination)"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[](terminated => []terminated)"
+    "[](terminated => []terminated)",
+    "[]terminated"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [
-    "Live == terminated ~> terminationDetected"
+    "~>"
   ],
   "FairnessConditions": [
     "WF_vars(DetectTermination)"
@@ -157,21 +171,22 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
+  "StateConstraint": [
+    "StateConstraint"
+  ],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
     "terminated",
-    "Init",
-    "Next",
     "StateConstraint",
     "Safe",
+    "IndInv",
     "QuiescenceAsTraceInv"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -184,9 +199,7 @@
   ],
   "OperatorDefNames_ValueDef": [
     "Node",
-    "vars",
-    "NextOrUnchanged",
-    "IndInv"
+    "vars"
   ],
   "FunctionConstructor_ByDomain": [
     "[n \\in Node |-> 0]"
@@ -204,7 +217,15 @@
     "UNCHANGED vars"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd998/AsyncTerminationDetection.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because Quiescence nests an always inside an always: [](terminated => []terminated).",
+    "Action operators (Terminate, SendMsg, RcvMsg, DetectTermination, Next, NextOrUnchanged, QuiescenceAsActionInv, StableActionInvariant) appear in ActionDefNames so they are excluded from OperatorDefNames partitions.",
+    "PrimedVariables corrected to the three declared VARIABLES; 'terminated' is a defined predicate, not a variable.",
+    "Apalache annotations (@type) and IndInv suggest Apalache as a verification tool in addition to TLC."
+  ]
 }

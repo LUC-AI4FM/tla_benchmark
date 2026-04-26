@@ -1,6 +1,6 @@
 {
-  "id": 94,
-  "Specification": "A specification of a replicated log system where nodes propose transactions to a shared log and execute them locally. It explores various liveness properties (convergence) under different fairness constraints, including weak fairness on specific actions and specific temporal progress requirements.",
+  "id": 93,
+  "Specification": "A specification of a replicated log system where nodes append transactions to a shared log and synchronize execution states.",
   "ModuleName": "ReplicatedLog",
   "ExtendsModules": [
     "Naturals",
@@ -17,7 +17,12 @@
     "executed"
   ],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => []Safety",
+    "Spec => []TypeOK",
+    "ExecFairSpec => Convergence",
+    "WriteFairSpec => Convergence"
+  ],
   "OperatorDefNames": [
     "vars",
     "TypeOK",
@@ -66,13 +71,15 @@
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[n \\in Node |-> 0]",
-    "[Node -> Nat]"
+    "[Node -> Nat]",
+    "[n \\in Node |-> 0]"
   ],
   "FunctionApplication": [
-    "executed[…]"
+    "executed[n]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[executed EXCEPT ![n] = @ + 1]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -80,65 +87,53 @@
     "<<>>"
   ],
   "SequenceOps": [
-    "Append",
-    "Len"
+    "Seq",
+    "Len",
+    "Append"
   ],
   "ArithmeticOps": [
-    "+",
-    "-"
+    "+"
   ],
   "ComparisonOps": [
-    ">",
     "<",
     "<="
   ],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [
-    "Sequences"
-  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
   "ToolingModules": [],
   "PrimedVariables": [
     "log",
     "executed"
   ],
   "UnchangedExprs": [
-    "UNCHANGED log"
+    "log"
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
+    "WF_vars(ExecuteTx(n))",
+    "WF_vars(WriteTx(n, tx))",
+    "WF_vars(Next)",
     "[][ExecuteTx(n)]_vars",
-    "[][WriteTx(n, tx)]_vars",
-    "WF_vars(Next)"
+    "[][WriteTx(n, tx)]_vars"
   ],
   "AlwaysOp": [
-    "[]<>(\\A n \\in Node : executed[n] = Len(log))",
-    "[][Next]",
-    "[]Safety",
-    "[]TypeOK",
-    "[][ExecuteTx(n)]",
-    "[][WriteTx(n, tx)]"
+    "[]<>(\\A n \\in Node : executed[n] = Len(log))"
   ],
   "EventuallyOp": [
-    "<>(\\A n \\in Node : executed[n] = Len(log))",
-    "<>>",
-    "<>[][ExecuteTx(n)]",
-    "<>[][WriteTx(n, tx)]"
+    "<>[][ExecuteTx(n)]_vars",
+    "<>[][WriteTx(n, tx)]_vars"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [
-    "WF_vars(Next)"
-  ],
+  "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -148,12 +143,10 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "Safety",
-    "Next"
+    "Safety"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Convergence",
-    "Init",
     "Spec",
     "ExecFairSpec",
     "WriteFairSpec",
@@ -167,7 +160,10 @@
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
-    "vars"
+    "vars",
+    "WriteTx",
+    "ExecuteTx",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
     "[n \\in Node |-> 0]"
@@ -177,10 +173,16 @@
   ],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [
-    "UNCHANGED log"
+    "log"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ReplicatedLog/ReplicatedLog.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true due to formulas such as []<>... in Convergence and <>[][]... in the fairness specifications.",
+    "Operators WriteTx, ExecuteTx, and Next were placed in OperatorDefNames_ValueDef because they are action definitions containing primed variables and do not fit into the StatePredicate, TemporalProperty, or Init categories.",
+    "UnchangedExprs_VarRef contains 'log' because it appears as 'UNCHANGED log'."
+  ]
 }

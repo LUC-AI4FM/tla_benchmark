@@ -1,0 +1,217 @@
+{
+  "id": 100,
+  "Specification": "A TLA+ formalisation of Huang's algorithm for termination detection in distributed systems. It uses a weight-throwing scheme where a leader process tracks the global computation state by ensuring that the sum of weights (represented as dyadic rationals) distributed across active processes and in-transit messages always equals one.",
+  "ModuleName": "Huang",
+  "ExtendsModules": [
+    "Naturals",
+    "DyadicRationals",
+    "Sequences",
+    "SequencesExt",
+    "Functions"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Procs",
+    "Leader"
+  ],
+  "VariableNames": [
+    "active",
+    "weight",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "Leader \\in Procs"
+  ],
+  "TheoremNames": [
+    "Spec => Safe",
+    "Spec => Live"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "Sum",
+    "TypeOK",
+    "Init",
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next",
+    "Spec",
+    "TerminationDetected",
+    "Terminated",
+    "Safe",
+    "Live",
+    "StateConstraint",
+    "Alias"
+  ],
+  "ActionDefNames": [
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "Sum(fun, set)"
+  ],
+  "LocalOperatorNames": [
+    "p",
+    "M"
+  ],
+  "LetInNames": [
+    "p",
+    "M"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "~>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF set = {} THEN Zero ELSE LET p == CHOOSE p \\in set: TRUE IN Add(FoldFunction(Add, Zero, fun[p]), Sum(fun, set \\ {p})) (in Sum)",
+    "IF p = Leader THEN TRUE ELSE FALSE (in Init)",
+    "IF p = Leader THEN One ELSE Zero (in Init)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{<<>>}"
+  ],
+  "SetOperators": [
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Procs -> BOOLEAN ]",
+    "[ p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE ]",
+    "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]",
+    "[ Procs -> {<<>>} ]",
+    "[p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])]",
+    "[p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]"
+  ],
+  "FunctionApplication": [
+    "fun[p]",
+    "msgs[p]",
+    "msgs[p][i]",
+    "weight[p]",
+    "active[p]",
+    "weight[q]",
+    "msgs[q]"
+  ],
+  "FunctionOverride": [
+    "[weight EXCEPT ![p] = Half(weight[p])]",
+    "[msgs EXCEPT ![q] = Append(@, weight[p]')]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[weight EXCEPT ![p] = Add(@, msgs[p][i])]",
+    "[msgs EXCEPT ![p] = RemoveAt(@, i)]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[msgs EXCEPT ![Leader] = Append(@, weight[p])]",
+    "[weight EXCEPT ![p] = Zero]",
+    "[weight EXCEPT ![Leader] = Add(@, msgs[Leader][i])]"
+  ],
+  "RecordConstructor": [
+    "[active |-> {p \\in Procs : active[p]}, weights |-> ..., msgs |-> ...]"
+  ],
+  "RecordAccess": [
+    "weight[p].den"
+  ],
+  "TupleConstructor": [
+    "<<active, weight, msgs>>",
+    "<<>>",
+    "<<active>>",
+    "<<weight, msgs>>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "Append"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "1..Len(msgs[p])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE p \\in set: TRUE"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "Functions"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "weight",
+    "msgs",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active>>",
+    "UNCHANGED <<weight, msgs>>",
+    "UNCHANGED active",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](TerminationDetected => []Terminated)",
+    "[]Terminated"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Terminated ~> TerminationDetected"
+  ],
+  "FairnessConditions": [
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "\\A p \\in Procs : weight[p].den <= 8"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}
