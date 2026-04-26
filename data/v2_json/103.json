@@ -1,0 +1,230 @@
+{
+  "id": 103,
+  "Specification": "A TLA+ specification for a snapshot isolation key-value store. It models client-centric operations (read/write), snapshot management, and per-transaction state (read/write keys, missed updates), verifying properties like Snapshot Isolation and Serializability against a reference model defined in the ClientCentric module.",
+  "ModuleName": "KVsnap",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Util"
+  ],
+  "InstanceModules": [
+    "ClientCentric"
+  ],
+  "InstanceSubstitutions": [
+    "Keys <- Key",
+    "Values <- TxId \\union {NoVal}"
+  ],
+  "ConstantNames": [
+    "Key",
+    "TxId",
+    "NoVal"
+  ],
+  "VariableNames": [
+    "store",
+    "tx",
+    "missed",
+    "pc",
+    "snapshotStore",
+    "read_keys",
+    "write_keys",
+    "ops"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "CC",
+    "wOp",
+    "rOp",
+    "InitialState",
+    "SetToSeq",
+    "vars",
+    "ProcSet",
+    "Init",
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "t",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "SnapshotIsolation",
+    "TypeOK",
+    "Serialization"
+  ],
+  "ActionDefNames": [
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "t",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k]",
+    "IF missed[self] \\intersect write_keys[self] = {} THEN ... ELSE ...",
+    "IF o \\in tx' THEN missed[o] \\union write_keys[self] ELSE missed[o]",
+    "IF k \\in write_keys[self] THEN snapshotStore[self][k] ELSE store[k]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{NoVal}",
+    "{self}",
+    "{rOp(k, snapshotStore[self][k]): k \\in read_keys[self]}",
+    "{wOp(k, self): k \\in write_keys[self]}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\intersect",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality",
+    "SUBSET"
+  ],
+  "FunctionConstructor": [
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> {}]",
+    "[self \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[self \\in TxId |-> {}]",
+    "[self \\in TxId |-> <<>>]",
+    "[self \\in ProcSet |-> \"START\"]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k] ]",
+    "[o \\in TxId |-> IF o \\in tx' THEN missed[o] \\union write_keys[self] ELSE missed[o]]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN snapshotStore[self][k] ELSE store[k] ]",
+    "[1..Cardinality(S) -> S]",
+    "[Key -> TxId \\union {NoVal}]",
+    "[TxId -> SUBSET Key]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "snapshotStore[self]",
+    "read_keys[self]",
+    "write_keys[self]",
+    "ops[self]",
+    "snapshotStore[self][k]",
+    "missed[self]",
+    "missed[o]",
+    "store[k]"
+  ],
+  "FunctionOverride": [
+    "[snapshotStore EXCEPT ![self] = store]",
+    "[read_keys EXCEPT ![self] = rk]",
+    "[write_keys EXCEPT ![self] = wk]",
+    "[pc EXCEPT ![self] = \"READ\"]",
+    "[ops EXCEPT ![self] = ops[self] \\o SetToSeq({rOp(k, snapshotStore[self][k]): k \\in read_keys[self]})]",
+    "[pc EXCEPT ![self] = \"UPDATE\"]",
+    "[snapshotStore EXCEPT ![self] = [k \\in Key |-> IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k] ]]",
+    "[pc EXCEPT ![self] = \"COMMIT\"]",
+    "[ops EXCEPT ![self] = ops[self] \\o SetToSeq({wOp(k, self): k \\in write_keys[self]})]",
+    "[pc EXCEPT ![self] = \"Done\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< store, tx, missed, pc, snapshotStore, read_keys, write_keys, ops >>",
+    "<<>>",
+    "<< store, missed, ops >>",
+    "<< store, tx, missed, snapshotStore, read_keys, write_keys >>",
+    "<< store, tx, missed, read_keys, write_keys, ops >>",
+    "<< store, tx, missed, ops >>",
+    "<< snapshotStore, read_keys, write_keys >>"
+  ],
+  "SequenceOps": [
+    "\\o"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "1..Cardinality(S)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE f \\in [1..Cardinality(S) -> S] : IsInjective(f)"
+  ],
+  "StringLiterals": [
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "Done"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "tx",
+    "snapshotStore",
+    "read_keys",
+    "write_keys",
+    "pc",
+    "ops",
+    "missed",
+    "store"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << store, missed, ops >>",
+    "UNCHANGED << store, tx, missed, snapshotStore, read_keys, write_keys >>",
+    "UNCHANGED << store, tx, missed, read_keys, write_keys, ops >>",
+    "UNCHANGED << store, tx, missed, ops >>",
+    "UNCHANGED << snapshotStore, read_keys, write_keys >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(t(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "FairnessConditions": [
+    "WF_vars(t(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": "KVsnap",
+  "PlusCalProcesses": [
+    "t"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

@@ -1,0 +1,12 @@
+{
+  "system_overview": "This is a simulation and statistics-collection module for Dijkstra's self-stabilizing token ring algorithm (EWD426). It extends the TokenRing specification and adds instrumentation to measure how many steps it takes for the system to reach stabilization (exactly one token in the ring). It is designed to be run in TLC's trace-generation mode, collecting step counts into a CSV file and optionally invoking an R script to analyze the results.",
+  "actors_and_components": "Same as the TokenRing specification: N nodes arranged in a ring with node 0 as the special token creator. This module adds CSV logging infrastructure and an external R script invocation for statistical analysis.",
+  "state_variables": "Inherits all state variables from the TokenRing specification. No additional TLA+ state variables are introduced. The module uses TLC operator overrides to access simulation metadata (trace count, step level).",
+  "initial_state": "Same as the TokenRing specification: each node's counter begins at an arbitrary value in the valid range.",
+  "actions": "Inherits all actions from the TokenRing specification. Additionally, a state constraint is defined that triggers when the unique token property holds: it logs the number of steps taken to reach stabilization to a CSV file, periodically invokes an R script for analysis, and then forces the model checker to start a new trace by evaluating to false.",
+  "safety_properties": "Inherits type correctness from the TokenRing specification.",
+  "liveness_properties": "NOT_SPECIFIED. The stabilization property is not checked directly in simulation mode because the mode does not support liveness checking. Instead, stabilization is measured empirically through step counts.",
+  "model_bounds": "N is set to 7 and M is set to 7 in the configuration. The module requires TLC to run in generation mode (not standard model checking). Every 250 traces, an R script is invoked to process the accumulated CSV data.",
+  "expected_output_files": ["SimTokenRing.tla"],
+  "additional_assumptions": "This module requires TLC's generation mode and will fail if run in standard model-checking mode. It depends on external tools: the CSV and IOUtils community modules for file I/O, and an R script (SimTokenRing.R) for statistical analysis. The state constraint forces each trace to end when stabilization occurs, causing TLC to begin a new random trace."
+}

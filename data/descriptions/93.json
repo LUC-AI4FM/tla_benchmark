@@ -1,0 +1,14 @@
+{
+  "system_overview": "This is a model-checking configuration module for the replicated log specification. It extends the base replicated log specification and applies the finite monotonic technique: after each action, the execution counters and log are reduced by removing already-executed entries shared by all nodes. This uses an experimental action composition feature to combine base actions with the reduction step, keeping the state space finite.",
+  "actors_and_components": "Same as the base replicated log specification: a set of nodes sharing a global log of transactions. This module adds a reduction step that is composed with the original actions.",
+  "state_variables": "Inherits all state variables from the base replicated log specification. No additional state variables are introduced.",
+  "initial_state": "Same as the base replicated log specification: the log is empty and all execution counters are zero.",
+  "actions": "This module defines augmented versions of the base actions that compose each original action with a reduction step: (1) Write-transaction-and-reduction: after appending a transaction and incrementing the writer's execution counter, the minimum execution count across all nodes is computed, all execution counters are reduced by that minimum, and the corresponding prefix of the log is discarded. (2) Execute-transaction-and-reduction: after incrementing a node's execution counter, the same reduction is applied. The next-state relation includes both the original unmodified actions and the composed versions. A state constraint bounds the log length to less than five and each node's lag behind the log to less than five.",
+  "safety_properties": "Inherits from the base replicated log specification: type correctness and the invariant that no node's execution counter exceeds the log length.",
+  "liveness_properties": "Convergence: the system must repeatedly reach states where all nodes have executed every transaction in the log.",
+  "model_bounds": "The set of nodes is configured as three nodes. The set of transactions is configured as two transaction values. The log length is constrained to be less than five. Each node's lag (difference between log length and its execution count) is constrained to be less than five. The write-fair specification variant is used. The experimental action composition feature must be enabled in TLC.",
+  "expected_output_files": [
+    "MCReplicatedLog.tla"
+  ],
+  "additional_assumptions": "This module requires an experimental TLC feature for action composition. The reduction step removes entries from the log that all nodes have already executed, effectively transposing the system to its lowest values. The bounds on log length and per-node lag are described as educated guesses. The write-fair specification variant (with weak fairness on write actions and an assumption that eventually only write actions occur) is selected for model checking."
+}
