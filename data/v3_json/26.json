@@ -13,16 +13,7 @@
   "ConstantNames": [
     "Value",
     "Acceptor",
-    "Quorum",
-    "bb",
-    "QQ",
-    "CSpec",
-    "Init",
-    "Next",
-    "c",
-    "Ballot",
-    "v",
-    "a"
+    "Quorum"
   ],
   "VariableNames": [
     "maxBal",
@@ -39,6 +30,7 @@
     "PT1",
     "Invariance",
     "Implementation",
+    "Spec => [](chosen = V!chosen)",
     "Liveness"
   ],
   "OperatorDefNames": [
@@ -63,7 +55,6 @@
     "TypeOK",
     "chosen",
     "votes",
-    "V",
     "PAccInv",
     "P1bInv",
     "P1cInv",
@@ -78,9 +69,9 @@
     "leader",
     "Next",
     "Phase1a",
+    "Phase1b",
     "Phase1c",
     "Phase2a",
-    "Phase1b",
     "Phase2b",
     "TLANext"
   ],
@@ -113,54 +104,62 @@
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{-1}",
     "{\"1a\"}",
     "{\"1b\"}",
-    "{None}",
     "{\"1c\"}",
     "{\"2a\"}",
     "{\"2b\"}"
   ],
   "SetOperators": [
-    "\\subseteq",
-    "\\cap",
     "\\cup",
-    "\\notin"
-  ],
-  "FiniteSetOps": [
+    "\\cap",
+    "\\subseteq",
     "SUBSET"
   ],
+  "FiniteSetOps": [],
   "FunctionConstructor": [
     "[a \\in Acceptor |-> -1]",
     "[a \\in Acceptor |-> None]",
     "[Acceptor -> Ballot \\cup {-1}]",
-    "[Acceptor -> Value \\cup {None}]"
+    "[Acceptor -> Value \\cup {None}]",
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs : /\\ mm.type = \"2b\" /\\ mm.acc = a}}]"
   ],
   "FunctionApplication": [
-    "maxBal[…]",
-    "maxVBal[…]",
-    "maxVVal[…]"
+    "maxBal[self]",
+    "maxBal[a]",
+    "maxBal[m.acc]",
+    "maxVBal[self]",
+    "maxVBal[a]",
+    "maxVVal[self]",
+    "maxVVal[a]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![self] = b]",
+    "[maxVBal EXCEPT ![self] = b]",
+    "[maxVVal EXCEPT ![self] = m.val]"
+  ],
   "RecordConstructor": [
-    "[type |-> \"1c\", bal |-> m1c.bal, val |-> v]",
-    "[type |-> \"2b\", acc |-> self, bal |-> b, val |-> m.val]",
+    "[type : {\"1a\"}, bal : Ballot]",
+    "[type : {\"1b\"}, acc : Acceptor, bal : Ballot, mbal : Ballot \\cup {-1}, mval : Value \\cup {None}]",
+    "[type : {\"1c\"}, bal : Ballot, val : Value]",
+    "[type : {\"2a\"}, bal : Ballot, val : Value]",
+    "[type : {\"2b\"}, acc : Acceptor, bal : Ballot, val : Value]",
     "[type |-> \"1a\", bal |-> self]",
+    "[type |-> \"1b\", acc |-> self, bal |-> b, mbal |-> maxVBal[self], mval |-> maxVVal[self]]",
     "[type |-> \"1c\", bal |-> self, val |-> v]",
-    "[type |-> \"2a\", bal |-> self, val |-> v]"
+    "[type |-> \"2a\", bal |-> self, val |-> v]",
+    "[type |-> \"2b\", acc |-> self, bal |-> b, val |-> m.val]",
+    "[type |-> \"1c\", bal |-> m1c.bal, val |-> v]"
   ],
   "RecordAccess": [
-    "m.type",
-    "m.bal",
-    "m.acc",
-    "m.mbal",
-    "m1c.bal",
-    "m.mval",
-    "m.val",
-    "mm.type",
-    "mm.acc",
-    "m1c.type",
-    "m1c.val"
+    ".type",
+    ".bal",
+    ".val",
+    ".acc",
+    ".mbal",
+    ".mval"
   ],
   "TupleConstructor": [
     "<< maxBal, maxVBal, maxVVal, msgs >>",
@@ -175,14 +174,13 @@
   ],
   "ComparisonOps": [
     ">",
-    "<",
+    "\\geq",
     ">=",
-    "<=",
-    "\\geq"
+    "<"
   ],
   "RangeExpr": [
-    "1)..(",
-    "mbal+1)..("
+    "(maxVBal[a]+1)..(maxBal[a]-1)",
+    "(m.mbal+1)..(m.bal-1)"
   ],
   "ChoiceExpr": [
     "CHOOSE v : v \\notin Value"
@@ -203,9 +201,9 @@
   ],
   "PrimedVariables": [
     "maxBal",
-    "msgs",
     "maxVBal",
-    "maxVVal"
+    "maxVVal",
+    "msgs"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<maxVBal, maxVVal>>",
@@ -214,42 +212,54 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "[][~Phase1a(c)]_vars"
+    "[][~Phase1a(c)]_vars",
+    "WF_vars(Phase1a(b))",
+    "WF_vars(\\E v \\in Value : Phase2a(b, v))",
+    "WF_vars(Phase1b(a, b))",
+    "WF_vars(Phase2b(a, b))",
+    "WF_vars(Phase1a(bb))",
+    "WF_vars(\\E v \\in Value : Phase2a(bb, v))",
+    "WF_vars(Phase1bForBallot(a, bb))",
+    "WF_vars(Phase2bForBallot(a, bb))"
   ],
   "AlwaysOp": [
-    "[][Next]",
     "[]PInv",
     "[](chosen = V!chosen)",
-    "[][~Phase1a(c)]",
-    "[][ /\\ Next"
+    "[][Next]_vars",
+    "[][~Phase1a(c)]_vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [
-    "~> (chosen # {}) )",
-    "CLiveness == (\\A m \\in msgs : (m.type = \"1a\") => (m.bal < bb))~>(chosen # {})"
+    "( /\\ \\A m \\in msgs : (m.type = \"1a\") => (m.bal < b) /\\ \\A c \\in Ballot : (c > b) => [][~Phase1a(c)]_vars /\\ WF_vars(Phase1a(b)) /\\ WF_vars(\\E v \\in Value : Phase2a(b, v)) /\\ \\A a \\in Q : /\\ WF_vars(Phase1b(a, b)) /\\ WF_vars(Phase2b(a, b)) ) ~> (chosen # {})",
+    "(\\A m \\in msgs : (m.type = \"1a\") => (m.bal < bb))~>(chosen # {})"
   ],
   "FairnessConditions": [],
   "ProofHints": [
-    "BY <1>2, BallotAssump DEF acceptor, ProcSet, Phase1b, Phase2b",
-    "BY <1>3, BallotAssump, Zenon DEF leader, ProcSet, Phase1a, Phase1c, Phase2a",
-    "BY <1>2, <1>3 DEF Next, TLANext"
+    "Zenon"
   ],
   "ProofCommands": [
     "BY",
     "QED",
-    "DEF"
+    "DEF",
+    "ASSUME",
+    "PROVE"
   ],
   "ProofStructureSteps": [
-    "<1>2.",
-    "<1>3.",
-    "<1>4."
+    "<1>2",
+    "<1>3",
+    "<1>4"
   ],
   "AssumeProveBlocks": [
-    "ASSUME QA == /\\ \\A Q \\in Quorum : Q \\subseteq Acceptor \n             /\\ \\A Q1, Q2 \\in Quorum : Q1 \\cap Q2 # {} \n                                                                     \nBallot == Nat\n\n\n\n\n\n\n\n\n\nASSUME BallotAssump == (Ballot \\cup {-1}) \\cap Acceptor = {}\n\n\n\n\nNone == CHOOSE v : v \\notin Value\n \n\n\n\n\n\n\nMessage ==      [type : {\"1a\"}, bal : Ballot]\n           \\cup [type : {\"1b\"}, acc : Acceptor, bal : Ballot, \n                 mbal : Ballot \\cup {-1}, mval : Value \\cup {None}]\n           \\cup [type : {\"1c\"}, bal : Ballot, val : Value]\n           \\cup [type : {\"2a\"}, bal : Ballot, val : Value]\n           \\cup [type : {\"2b\"}, acc : Acceptor, bal : Ballot, val : Value]\n-----------------------------------------------------------------------------\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nVARIABLES maxBal, maxVBal, maxVVal, msgs\n\n\nsentMsgs(t, b) == {m \\in msgs : (m.type = t) /\\ (m.bal = b)}\n\nShowsSafeAt(Q, b, v) ==\n  LET Q1b == {m \\in sentMsgs(\"1b\", b) : m.acc \\in Q}\n  IN  /\\ \\A a \\in Q : \\E m \\in Q1b : m.acc = a\n      /\\ \\/ \\A m \\in Q1b : m.mbal = -1\n         \\/ \\E m1c \\in msgs :\n              /\\ m1c = [type |-> \"1c\", bal |-> m1c.bal, val |-> v]\n              /\\ \\A m \\in Q1b : /\\ m1c.bal \\geq m.mbal\n                                /\\ (m1c.bal = m.mbal) => (m.mval = v)\n\n\nvars == << maxBal, maxVBal, maxVVal, msgs >>\n\nProcSet == (Acceptor) \\cup (Ballot)\n\nInit == \n        /\\ maxBal = [a \\in Acceptor |-> -1]\n        /\\ maxVBal = [a \\in Acceptor |-> -1]\n        /\\ maxVVal = [a \\in Acceptor |-> None]\n        /\\ msgs = {}\n\nacceptor(self) == \\E b \\in Ballot:\n                    \\/ /\\ (b > maxBal[self]) /\\ (sentMsgs(\"1a\", b) # {})\n                       /\\ maxBal' = [maxBal EXCEPT ![self] = b]\n                       /\\ msgs' = (msgs \\cup {([type |-> \"1b\", acc |-> self, bal |-> b,\n                                                       mbal |-> maxVBal[self], mval |-> maxVVal[self]])})\n                       /\\ UNCHANGED <<maxVBal, maxVVal>>\n                    \\/ /\\ b \\geq maxBal[self]\n                       /\\ \\E m \\in sentMsgs(\"2a\", b):\n                            /\\ maxBal' = [maxBal EXCEPT ![self] = b]\n                            /\\ maxVBal' = [maxVBal EXCEPT ![self] = b]\n                            /\\ maxVVal' = [maxVVal EXCEPT ![self] = m.val]\n                            /\\ msgs' = (msgs \\cup {([type |-> \"2b\", acc |-> self, bal |-> b, val |-> m.val])})\n\n\nleader(self) == /\\ \\/ /\\ msgs' = (msgs \\cup {([type |-> \"1a\", bal |-> self])})\n                   \\/ /\\ \\E S \\in SUBSET Value:\n                           /\\ \\A v \\in S : \\E Q \\in Quorum : ShowsSafeAt(Q, self, v)\n                           /\\ msgs' = (msgs \\cup ({[type |-> \"1c\", bal |-> self, val |-> v] : v \\in S}))\n                   \\/ /\\ \\E v \\in Value:\n                           /\\ /\\ sentMsgs(\"2a\", self) = {}\n                              /\\ [type |-> \"1c\", bal |-> self, val |-> v] \\in msgs\n                           /\\ msgs' = (msgs \\cup {([type |-> \"2a\", bal |-> self, val |-> v])})\n                /\\ UNCHANGED << maxBal, maxVBal, maxVVal >>\n\n\nNext == (\\E self \\in Acceptor: acceptor(self))\n           \\/ (\\E self \\in Ballot: leader(self))\n\nSpec == Init /\\ [][Next]_vars\n\n\n-----------------------------------------------------------------------------\n\n\n\n\n\n\n\nPhase1a(self) ==\n  /\\ msgs' = (msgs \\cup {[type |-> \"1a\", bal |-> self]})\n  /\\ UNCHANGED << maxBal, maxVBal, maxVVal >>\n\nPhase1c(self, S) ==\n  /\\ \\A v \\in S : \\E Q \\in Quorum : ShowsSafeAt(Q, self, v)\n  /\\ msgs' = (msgs \\cup {[type |-> \"1c\", bal |-> self, val |-> v] : v \\in S})\n  /\\ UNCHANGED << maxBal, maxVBal, maxVVal >>\n\nPhase2a(self, v) ==\n  /\\ sentMsgs(\"2a\", self) = {}\n  /\\ [type |-> \"1c\", bal |-> self, val |-> v] \\in msgs\n  /\\ msgs' = (msgs \\cup {[type |-> \"2a\", bal |-> self, val |-> v]})\n  /\\ UNCHANGED << maxBal, maxVBal, maxVVal >>\n\nPhase1b(self, b) ==\n  /\\ b > maxBal[self]\n  /\\ sentMsgs(\"1a\", b) # {}\n  /\\ maxBal' = [maxBal EXCEPT ![self] = b]\n  /\\ msgs' = msgs \\cup {[type |-> \"1b\", acc |-> self, bal |-> b,\n                         mbal |-> maxVBal[self], mval |-> maxVVal[self]]}\n  /\\ UNCHANGED <<maxVBal, maxVVal>>\n\nPhase2b(self, b) ==\n  /\\ b \\geq maxBal[self]\n  /\\ \\E m \\in sentMsgs(\"2a\", b):\n       /\\ maxBal' = [maxBal EXCEPT ![self] = b]\n       /\\ maxVBal' = [maxVBal EXCEPT ![self] = b]\n       /\\ maxVVal' = [maxVVal EXCEPT ![self] = m.val]\n       /\\ msgs' = (msgs \\cup {[type |-> \"2b\", acc |-> self,\n                               bal |-> b, val |-> m.val]})\n\nTLANext ==\n  \\/ \\E self \\in Acceptor : \n        \\E b \\in Ballot : \\/ Phase1b(self, b) \n                          \\/ Phase2b(self,b) \n  \\/ \\E self \\in Ballot :\n        \\/ Phase1a(self)\n        \\/ \\E S \\in SUBSET Value : Phase1c(self, S)\n        \\/ \\E v \\in Value : Phase2a(self, v)\n\n\n\n\n\n\nTHEOREM NextDef == (Next <=> TLANext) \n<1>2. ASSUME NEW self \\in Acceptor PROVE  acceptor(self) <=> TLANext!1!(self)",
-    "ASSUME NEW self \\in Ballot PROVE  leader(self) <=> TLANext!2!(self)"
+    "ASSUME NEW self \\in Acceptor PROVE acceptor(self) <=> TLANext!1!(self)",
+    "ASSUME NEW self \\in Ballot PROVE leader(self) <=> TLANext!2!(self)"
   ],
-  "PlusCalAlgorithm": "PCon",
-  "PlusCalProcesses": [],
+  "PlusCalAlgorithm": [
+    "PCon"
+  ],
+  "PlusCalProcesses": [
+    "acceptor",
+    "leader"
+  ],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
@@ -258,18 +268,16 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "ShowsSafeAt",
-    "Init",
-    "Next",
-    "TLANext",
     "TypeOK",
-    "votes",
     "PAccInv",
     "P1bInv",
     "P1cInv",
-    "P2aInv"
+    "P2aInv",
+    "PInv"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec",
+    "AbstractSpec",
     "CSpec",
     "CLiveness"
   ],
@@ -283,14 +291,22 @@
     "sentMsgs",
     "vars",
     "ProcSet",
+    "acceptor",
+    "leader",
+    "Next",
+    "Phase1a",
+    "Phase1c",
+    "Phase2a",
+    "Phase1b",
+    "Phase2b",
+    "TLANext",
     "chosen",
-    "V",
-    "PInv",
-    "AbstractSpec"
+    "votes"
   ],
   "FunctionConstructor_ByDomain": [
     "[a \\in Acceptor |-> -1]",
-    "[a \\in Acceptor |-> None]"
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs : /\\ mm.type = \"2b\" /\\ mm.acc = a}}]"
   ],
   "FunctionConstructor_SetType": [
     "[Acceptor -> Ballot \\cup {-1}]",
@@ -301,8 +317,15 @@
     "UNCHANGED << maxBal, maxVBal, maxVVal >>"
   ],
   "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/Paxos/PConProof.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because the leads-to operator (~>) in theorem Liveness and CLiveness wraps nested temporal formulas including box ([]) and weak fairness (WF).",
+    "Action operators (acceptor, leader, Next, Phase1a, Phase1c, Phase2a, Phase1b, Phase2b, TLANext) were placed in OperatorDefNames_ValueDef because they contain primed variables and thus do not fit StatePredicate or TemporalProperty.",
+    "Non-Boolean value definitions (Ballot, None, Message, sentMsgs, vars, ProcSet, chosen, votes) are placed in OperatorDefNames_ValueDef."
+  ]
 }

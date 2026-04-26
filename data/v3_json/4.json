@@ -26,10 +26,6 @@
     "SpecNB"
   ],
   "ActionDefNames": [
-    "TypeInvParticipantNB",
-    "TypeInvNB",
-    "InitParticipantNB",
-    "InitNB",
     "forward",
     "decideOnForward",
     "abortOnTimeout",
@@ -76,34 +72,42 @@
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[ participants -> [ vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [ participants -> {notsent, commit, abort} ] ] ]",
+    "[ participants -> [ vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [ participants -> {notsent} ] ] ]",
     "[ participants -> {notsent, commit, abort} ]",
     "[ participants -> {notsent} ]"
   ],
   "FunctionApplication": [
-    "participant[…]",
-    "forward[…]",
-    "broadcast[…]"
+    "participant[i]",
+    "participant[j]",
+    "participant[k]",
+    "participant[i].forward[j]",
+    "participant[j].forward[i]",
+    "participant[j].forward[k]",
+    "coordinator.broadcast[j]"
   ],
   "FunctionOverride": [
-    "[@ EXCEPT !.decision = abort]"
+    "[participant EXCEPT ![i] = [@ EXCEPT !.forward = [@ EXCEPT ![j] = participant[i].decision] ] ]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = participant[j].forward[i]] ]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = abort]]"
   ],
-  "RecordConstructor": [],
+  "RecordConstructor": [
+    "[vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [participants -> {notsent, commit, abort}]]",
+    "[vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [participants -> {notsent}]]"
+  ],
   "RecordAccess": [
-    "coordinator.alive",
-    "coordinator.broadcast"
+    ".alive",
+    ".forward",
+    ".decision",
+    ".broadcast"
   ],
   "TupleConstructor": [
-    "<<coordinator>>",
-    "<<coordinator, participant>>"
+    "<<coordinator, participant>>",
+    "<<coordinator>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -113,20 +117,29 @@
   "PrimedVariables": [
     "participant"
   ],
-  "UnchangedExprs": [],
+  "UnchangedExprs": [
+    "UNCHANGED<<coordinator>>"
+  ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[][progNNB]_<<coordinator, participant>>",
+    "WF_<<coordinator, participant>>(\\E j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)"
+  ],
   "AlwaysOp": [
-    "[][progNNB]"
+    "[][progNNB]_<<coordinator, participant>>"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_<<coordinator, participant>>(\u000bE j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -136,8 +149,7 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeInvParticipantNB",
-    "InitParticipantNB",
-    "parProgNNB"
+    "TypeInvNB"
   ],
   "OperatorDefNames_TemporalProperty": [
     "fairnessNB",
@@ -148,20 +160,30 @@
     "InitNB"
   ],
   "OperatorDefNames_ValueDef": [
-    "TypeInvNB",
-    "InitNB",
+    "forward",
+    "decideOnForward",
+    "abortOnTimeout",
     "parProgNB",
+    "parProgNNB",
     "progNNB"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
+    "[ participants -> [ vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [ participants -> {notsent, commit, abort} ] ] ]",
+    "[ participants -> [ vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [ participants -> {notsent} ] ] ]",
     "[ participants -> {notsent, commit, abort} ]",
     "[ participants -> {notsent} ]"
   ],
-  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED<<coordinator>>"
+  ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/atomic-commitment/ACP_NB_WRONG_TLC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "The operators forward, decideOnForward, abortOnTimeout, parProgNB, parProgNNB, and progNNB were placed in OperatorDefNames_ValueDef because they define actions containing primed variables and do not fit into the StatePredicate, TemporalProperty, or Init categories."
+  ]
 }

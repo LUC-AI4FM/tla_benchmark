@@ -18,13 +18,15 @@
     "initiator",
     "state"
   ],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "/\\ N \\in Nat \\ {0} /\\ Id \\in Seq(Nat) /\\ Len(Id) = N /\\ \\A m,n \\in Node : m # n => Id[m] # Id[n]"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "Node",
     "succ",
-    "vars",
     "ProcSet",
+    "vars",
     "Init",
     "n0",
     "n1",
@@ -38,12 +40,10 @@
     "Liveness"
   ],
   "ActionDefNames": [
-    "Init",
     "n0",
     "n1",
     "node",
-    "Next",
-    "TypeOK"
+    "Next"
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
@@ -70,79 +70,95 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF n=N THEN 1 ELSE n+1  ",
-    "IF initiator[self] THEN \"cand\" ELSE \"lost\"]"
+    "IF n = N THEN 1 ELSE n + 1",
+    "IF initiator THEN \"cand\" ELSE \"lost\"",
+    "IF initiator[self] THEN /\\ msgs' = [msgs EXCEPT ![succ(self)] = @ \\cup {Id[self]}] ELSE /\\ TRUE /\\ msgs' = msgs",
+    "IF initiator[self] THEN \"cand\" ELSE \"lost\"",
+    "IF state[self] = \"lost\" THEN /\\ msgs' = [_msgs EXCEPT ![succ(self)] = @ \\cup {id}] /\\ state' = state ELSE ...",
+    "IF id < Id[self] THEN /\\ state' = [state EXCEPT ![self] = \"lost\"] /\\ msgs' = [_msgs EXCEPT ![succ(self)] = @ \\cup {id}] ELSE /\\ msgs' = _msgs /\\ ...",
+    "IF id = Id[self] THEN /\\ state' = [state EXCEPT ![self] = \"won\"] ELSE /\\ TRUE /\\ state' = state"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{0}",
+    "{}",
     "{Id[self]}",
     "{id}",
+    "{n}",
     "{\"n0\", \"n1\", \"Done\"}",
     "{\"cand\", \"lost\", \"won\"}",
-    "{n}"
+    "{Id[n] : n \\in Node}"
   ],
   "SetOperators": [
-    "\\cup"
-  ],
-  "FiniteSetOps": [
+    "\\cup",
+    "\\",
     "SUBSET"
   ],
+  "FiniteSetOps": [],
   "FunctionConstructor": [
     "[n \\in Node |-> {}]",
-    "[self \\in ProcSet |-> \"n0\"]",
     "[Node -> BOOLEAN]",
+    "[self \\in Node |-> IF initiator[self] THEN \"cand\" ELSE \"lost\"]",
+    "[self \\in ProcSet |-> \"n0\"]",
     "[Node -> {\"n0\", \"n1\", \"Done\"}]",
+    "[Node -> SUBSET {Id[n] : n \\in Node}]",
     "[Node -> {\"cand\", \"lost\", \"won\"}]"
   ],
   "FunctionApplication": [
-    "Id[…]",
-    "initiator[…]",
-    "pc[…]",
-    "msgs[…]",
-    "state[…]"
+    "msgs[self]",
+    "msgs[n]",
+    "pc[self]",
+    "state[self]",
+    "initiator[self]",
+    "Id[self]",
+    "Id[m]",
+    "Id[n]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![succ(self)] = @ \\cup {Id[self]}]",
+    "[msgs EXCEPT ![self] = @ \\ {id}]",
+    "[_msgs EXCEPT ![succ(self)] = @ \\cup {id}]",
+    "[state EXCEPT ![self] = \"lost\"]",
+    "[state EXCEPT ![self] = \"won\"]",
+    "[pc EXCEPT ![self] = \"n1\"]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
-    "<< msgs, pc, initiator, state >>",
-    "<< initiator, state >>"
+    "<< msgs, pc, initiator, state >>"
   ],
   "SequenceOps": [
-    "Len"
+    "Len",
+    "Seq"
   ],
   "ArithmeticOps": [
-    "+",
-    "-"
+    "+"
   ],
   "ComparisonOps": [
-    ">",
-    "<"
+    "<",
+    ">"
   ],
   "RangeExpr": [
-    "1 .. "
+    "1..N"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
     "cand",
     "lost",
+    "won",
     "n0",
     "n1",
-    "won",
     "Done"
   ],
   "ArithmeticModules": [
     "Naturals"
   ],
-  "DataStructureModules": [
-    "Sequences"
-  ],
+  "DataStructureModules": [],
   "ToolingModules": [],
   "PrimedVariables": [
     "msgs",
     "pc",
-    "state"
+    "state",
+    "initiator"
   ],
   "UnchangedExprs": [
     "UNCHANGED << initiator, state >>",
@@ -151,23 +167,29 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(node(self))"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_vars"
   ],
   "EventuallyOp": [
-    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")",
-    "<>(\\E n \\in Node : state[n] = \"won\")"
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "ChangRoberts",
-  "PlusCalProcesses": [],
+  "PlusCalAlgorithm": [
+    "ChangRoberts"
+  ],
+  "PlusCalProcesses": [
+    "node"
+  ],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
@@ -175,10 +197,6 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "succ",
-    "Init",
-    "Terminating",
-    "Next",
     "TypeOK",
     "Correctness"
   ],
@@ -192,17 +210,24 @@
   ],
   "OperatorDefNames_ValueDef": [
     "Node",
-    "vars",
+    "succ",
     "ProcSet",
-    "node"
+    "vars",
+    "n0",
+    "n1",
+    "node",
+    "Terminating",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
     "[n \\in Node |-> {}]",
+    "[self \\in Node |-> IF initiator[self] THEN \"cand\" ELSE \"lost\"]",
     "[self \\in ProcSet |-> \"n0\"]"
   ],
   "FunctionConstructor_SetType": [
     "[Node -> BOOLEAN]",
     "[Node -> {\"n0\", \"n1\", \"Done\"}]",
+    "[Node -> SUBSET {Id[n] : n \\in Node}]",
     "[Node -> {\"cand\", \"lost\", \"won\"}]"
   ],
   "UnchangedExprs_Explicit": [
@@ -213,7 +238,12 @@
     "UNCHANGED vars"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ChangRoberts/ChangRoberts.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Operators n0, n1, node, Terminating, and Next were placed in OperatorDefNames_ValueDef because they are actions or transition predicates (containing primed variables or UNCHANGED) and do not fit into the StatePredicate, TemporalProperty, or Init categories.",
+    "Operators Node, succ, ProcSet, and vars were placed in OperatorDefNames_ValueDef as they define structural values."
+  ]
 }

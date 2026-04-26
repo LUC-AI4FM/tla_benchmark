@@ -42,25 +42,12 @@
     "MinReadSequence",
     "MinClaimedSequence",
     "IsPublished",
-    "index",
-    "round",
-    "is_even",
     "Publish",
     "AvailablePublishedSequence",
-    "candidate_sequences",
     "BeginWrite",
-    "seq",
-    "index",
-    "min_read",
     "EndWrite",
-    "seq",
-    "index",
     "BeginRead",
-    "next",
-    "index",
     "EndRead",
-    "next",
-    "index",
     "Init",
     "Next",
     "Fairness",
@@ -72,26 +59,24 @@
   ],
   "ActionDefNames": [
     "Transition",
-    "index",
-    "is_even",
     "Publish",
-    "index",
-    "min_read",
-    "index",
-    "index",
-    "index"
+    "BeginWrite",
+    "EndWrite",
+    "BeginRead",
+    "EndRead",
+    "Next"
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
   "LetInNames": [
+    "seq",
     "index",
-    "round",
-    "is_even",
+    "min_read",
+    "next",
     "guaranteed_published",
     "candidate_sequences",
-    "seq",
-    "min_read",
-    "next"
+    "round",
+    "is_even"
   ],
   "LambdaParams": [],
   "Implication": [
@@ -124,30 +109,50 @@
     "{Access, Advance}"
   ],
   "SetOperators": [
-    "\\union"
+    "\\union",
+    "\\",
+    "DOMAIN"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ w \\in Writers                |-> -1      ]",
-    "[ i \\in 0..Buffer!LastIndex    |-> FALSE   ]",
-    "[ r \\in Readers                |-> -1      ]",
-    "[ r \\in Readers                |-> << >>   ]",
+    "[ w \\in Writers |-> -1 ]",
+    "[ i \\in 0..Buffer!LastIndex |-> FALSE ]",
+    "[ r \\in Readers |-> -1 ]",
+    "[ r \\in Readers |-> << >> ]",
     "[ a \\in Writers \\union Readers |-> Advance ]",
-    "[ Writers                -> Int                 ]",
-    "[ 0..Buffer!LastIndex    -> { TRUE, FALSE }     ]",
-    "[ Readers                -> Int                 ]",
-    "[ Readers                -> Seq(Nat)            ]",
-    "[ Writers \\union Readers -> { Access, Advance } ]"
+    "[ Writers -> Int ]",
+    "[ 0..Buffer!LastIndex -> { TRUE, FALSE } ]",
+    "[ Readers -> Int ]",
+    "[ Readers -> Seq(Nat) ]",
+    "[ Writers \\union Readers -> { Access, Advance } ]",
+    "{ f[x] : x \\in DOMAIN(f) }"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "f[…]",
-    "read[…]",
-    "claimed_sequence[…]",
-    "published[…]",
-    "consumed[…]"
+    "Buffer!IndexOf(sequence)",
+    "Buffer!IndexOf(seq)",
+    "Buffer!IndexOf(next)",
+    "Buffer!LastIndex",
+    "Buffer!Read(index)",
+    "Buffer!Write(index, writer, seq)",
+    "Buffer!EndWrite(index, writer)",
+    "Buffer!BeginRead(index, reader)",
+    "Buffer!EndRead(index, reader)",
+    "Buffer!Init",
+    "Buffer!NoDataRaces",
+    "Buffer!TypeOk",
+    "Len(consumed[r])",
+    "Append(@, Buffer!Read(index))",
+    "Range(read)",
+    "Range(claimed_sequence)",
+    "Range(f)"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[ pc EXCEPT ![t] = to ]",
+    "[ claimed_sequence EXCEPT ![writer] = seq ]",
+    "[ published EXCEPT ![index] = Xor(TRUE, @) ]",
+    "[ consumed EXCEPT ![reader] = Append(@, Buffer!Read(index)) ]",
+    "[ read EXCEPT ![reader] = next ]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -155,11 +160,12 @@
     "<< claimed_sequence, next_sequence, consumed, read >>",
     "<< claimed_sequence, next_sequence, published, read >>",
     "<< claimed_sequence, next_sequence, consumed, published >>",
-    "<< >>"
+    "<< ringbuffer, next_sequence, claimed_sequence, published, read, consumed, pc >>"
   ],
   "SequenceOps": [
     "Append",
-    "Len"
+    "Len",
+    "Seq"
   ],
   "ArithmeticOps": [
     "+",
@@ -168,21 +174,18 @@
     "%"
   ],
   "ComparisonOps": [
-    ">",
-    "<",
     ">=",
     "<="
   ],
   "RangeExpr": [
-    "in 0..Buffer",
-    "0..Buffer",
-    "in 0..(",
-    "in 0..AvailablePublishedSequence"
+    "0..Buffer!LastIndex",
+    "0..(MaxPublished - 1)",
+    "0..AvailablePublishedSequence"
   ],
   "ChoiceExpr": [
-    "CHOOSE min \\in Range(read) :",
-    "CHOOSE min \\in Range(claimed_sequence) :",
-    "CHOOSE max \\in candidate_sequences :"
+    "CHOOSE min \\in Range(read) : \\A r \\in Readers : min <= read[r]",
+    "CHOOSE min \\in Range(claimed_sequence) : \\A w \\in Writers : min <= claimed_sequence[w]",
+    "CHOOSE max \\in candidate_sequences : IsPublished(max) => ~ \\E w \\in Writers : /\\ claimed_sequence[w] = max + 1 /\\ IsPublished(claimed_sequence[w])"
   ],
   "StringLiterals": [
     "Access",
@@ -197,11 +200,11 @@
   ],
   "ToolingModules": [],
   "PrimedVariables": [
+    "claimed_sequence",
+    "consumed",
+    "next_sequence",
     "pc",
     "published",
-    "claimed_sequence",
-    "next_sequence",
-    "consumed",
     "read"
   ],
   "UnchangedExprs": [
@@ -215,36 +218,35 @@
     "[][Next]_vars"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[](i \\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)"
+    "[]"
   ],
   "EventuallyOp": [
-    "<>[](i \\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)"
+    "<>"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(BeginRead(r))",
+    "WF_vars(EndRead(r))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
+  "StateConstraint": [
+    "next_sequence <= MaxPublished"
+  ],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "Xor",
-    "MinReadSequence",
-    "MinClaimedSequence",
-    "is_even",
-    "AvailablePublishedSequence",
-    "index",
-    "Init",
-    "Next",
+    "IsPublished",
     "StateConstraint",
+    "NoDataRaces",
     "TypeOk"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -261,30 +263,23 @@
     "Advance",
     "Buffer",
     "Range",
-    "IsPublished",
-    "index",
-    "round",
-    "candidate_sequences",
-    "BeginWrite",
-    "seq",
-    "EndWrite",
-    "BeginRead",
-    "next",
-    "EndRead",
-    "NoDataRaces"
+    "MinReadSequence",
+    "MinClaimedSequence",
+    "AvailablePublishedSequence"
   ],
   "FunctionConstructor_ByDomain": [
-    "[ w \\in Writers                |-> -1      ]",
-    "[ i \\in 0..Buffer!LastIndex    |-> FALSE   ]",
-    "[ r \\in Readers                |-> -1      ]",
-    "[ r \\in Readers                |-> << >>   ]",
-    "[ a \\in Writers \\union Readers |-> Advance ]"
+    "[ w \\in Writers |-> -1 ]",
+    "[ i \\in 0..Buffer!LastIndex |-> FALSE ]",
+    "[ r \\in Readers |-> -1 ]",
+    "[ r \\in Readers |-> << >> ]",
+    "[ a \\in Writers \\union Readers |-> Advance ]",
+    "{ f[x] : x \\in DOMAIN(f) }"
   ],
   "FunctionConstructor_SetType": [
-    "[ Writers                -> Int                 ]",
-    "[ 0..Buffer!LastIndex    -> { TRUE, FALSE }     ]",
-    "[ Readers                -> Int                 ]",
-    "[ Readers                -> Seq(Nat)            ]",
+    "[ Writers -> Int ]",
+    "[ 0..Buffer!LastIndex -> { TRUE, FALSE } ]",
+    "[ Readers -> Int ]",
+    "[ Readers -> Seq(Nat) ]",
     "[ Writers \\union Readers -> { Access, Advance } ]"
   ],
   "UnchangedExprs_Explicit": [
@@ -295,7 +290,16 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": true,
-  "CorpusSource": "",
+  "CorpusSource": "specifications/Disruptor/Disruptor_MPMC.tla",
   "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "TemporalNesting=true: Liveliness uses <>[](...) which nests an Always operator inside an Eventually operator.",
+    "ActionDefNames covers Transition, Publish, BeginWrite, EndWrite, BeginRead, EndRead, Next; these all use primed variables.",
+    "StatePredicate: Xor (Boolean equality), IsPublished (Boolean predicate), StateConstraint (Boolean bound), NoDataRaces (Boolean invariant), TypeOk (Boolean type invariant). None contain primes or temporal operators.",
+    "TemporalProperty: Fairness (\\A WF_vars(...)), Spec (Init /\\ [][Next]_vars /\\ Fairness), Liveliness (uses <>[]).",
+    "ValueDef: vars (tuple), Access/Advance (string constants), Buffer (INSTANCE), Range (set), MinReadSequence/MinClaimedSequence/AvailablePublishedSequence (numeric values via CHOOSE).",
+    "{ f[x] : x \\in DOMAIN(f) } in FunctionConstructor is a set comprehension (function image), kept as-is from v2.",
+    "FunctionConstructor partition: [x \\in S |-> e] forms go to ByDomain; [S -> T] forms go to SetType. The set-comprehension entry is not a function constructor in either subcategory and is omitted from both partitions.",
+    "VerificationTools=[]: this module does not use Print/Assert/MC and has no proofs."
+  ]
 }

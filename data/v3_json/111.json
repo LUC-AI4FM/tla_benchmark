@@ -2,27 +2,12 @@
   "id": 111,
   "Specification": "A TLA+ formalisation of Lamport's distributed mutual exclusion algorithm. It models process clocks, a request/acknowledgement network, and a priority-based 'beats' relation to manage access to a critical section, defining safety properties like mutual exclusion and network bounds.",
   "ModuleName": "LamportMutex",
-  "ExtendsModules": [
-    "Naturals",
-    "Sequences"
-  ],
+  "ExtendsModules": ["Naturals", "Sequences"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "N",
-    "maxClock"
-  ],
-  "VariableNames": [
-    "clock",
-    "req",
-    "ack",
-    "network",
-    "crit"
-  ],
-  "AssumptionNames": [
-    "NType",
-    "maxClockType"
-  ],
+  "ConstantNames": ["N", "maxClock"],
+  "VariableNames": ["clock", "req", "ack", "network", "crit"],
+  "AssumptionNames": ["NType", "maxClockType"],
   "TheoremNames": [],
   "OperatorDefNames": [
     "Proc",
@@ -37,7 +22,6 @@
     "Broadcast",
     "Request",
     "ReceiveRequest",
-    "c",
     "ReceiveAck",
     "Enter",
     "Exit",
@@ -50,11 +34,8 @@
     "Mutex"
   ],
   "ActionDefNames": [
-    "ReqMessage",
-    "Message",
-    "TypeOK",
     "Request",
-    "c",
+    "ReceiveRequest",
     "ReceiveAck",
     "Enter",
     "Exit",
@@ -63,116 +44,89 @@
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
-  "LetInNames": [
-    "m",
-    "c"
-  ],
+  "LetInNames": ["m", "c"],
   "LambdaParams": [],
   "Implication": [],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [
-    "IF s=r THEN network[s][r] ELSE Append(network[s][r], m)]",
-    "IF c > clock[p] THEN c + 1 ELSE @ + 1]"
+    "IF s=r THEN network[s][r] ELSE Append(network[s][r], m)",
+    "IF c > clock[p] THEN c + 1 ELSE @ + 1"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{0}",
     "{AckMessage, RelMessage}",
+    "{ReqMessage(c) : c \\in Clock}",
+    "{0}",
+    "{}",
     "{p}",
     "{q}"
   ],
-  "SetOperators": [
-    "\\union"
-  ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
+  "SetOperators": ["\\", "\\union"],
+  "FiniteSetOps": ["SUBSET"],
   "FunctionConstructor": [
-    "[p \\in Proc |-> 1]",
-    "[q \\in Proc |-> 0]",
-    "[p \\in Proc |-> {}]",
-    "[q \\in Proc |-> <<>> ]",
     "[Proc -> Clock]",
-    "[Proc -> Nat]",
+    "[Proc -> [Proc -> Nat]]",
     "[Proc -> SUBSET Proc]",
-    "[Proc -> Seq(Message)]"
+    "[Proc -> [Proc -> Seq(Message)]]",
+    "[p \\in Proc |-> 1]",
+    "[p \\in Proc |-> [q \\in Proc |-> 0]]",
+    "[p \\in Proc |-> {}]",
+    "[p \\in Proc |-> [q \\in Proc |-> <<>> ]]",
+    "[r \\in Proc |-> IF s=r THEN network[s][r] ELSE Append(network[s][r], m)]"
   ],
   "FunctionApplication": [
-    "req[…]",
-    "network[…]",
-    "clock[…]",
-    "ack[…]"
+    "network[s][r]",
+    "req[p][q]",
+    "req[p][p]",
+    "clock[p]",
+    "network[q][p]",
+    "ack[p]",
+    "network[p][q]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[req EXCEPT ![p][p] = clock[p]]",
+    "[network EXCEPT ![p] = Broadcast(p, ReqMessage(clock[p]))]",
+    "[ack EXCEPT ![p] = {p}]",
+    "[req EXCEPT ![p][q] = c]",
+    "[clock EXCEPT ![p] = IF c > clock[p] THEN c + 1 ELSE @ + 1]",
+    "[network EXCEPT ![q][p] = Tail(@), ![p][q] = Append(@, AckMessage)]",
+    "[ack EXCEPT ![p] = @ \\union {q}]",
+    "[network EXCEPT ![q][p] = Tail(@)]",
+    "[network EXCEPT ![p] = Broadcast(p, RelMessage)]",
+    "[req EXCEPT ![p][p] = 0]",
+    "[ack EXCEPT ![p] = {}]",
+    "[req EXCEPT ![p][q] = 0]"
+  ],
   "RecordConstructor": [
     "[type |-> \"req\", clock |-> c]",
     "[type |-> \"ack\", clock |-> 0]",
     "[type |-> \"rel\", clock |-> 0]"
   ],
-  "RecordAccess": [
-    "m.clock",
-    "m.type"
-  ],
+  "RecordAccess": ["m.clock", "m.type"],
   "TupleConstructor": [
     "<<>>",
-    "<<clock, crit>>",
     "<< >>",
+    "<<clock, crit>>",
     "<<ack, crit>>",
     "<<clock, req, crit>>",
     "<<clock, req, ack, network>>",
     "<<clock, ack, crit>>",
     "<<req, network, clock, ack, crit>>"
   ],
-  "SequenceOps": [
-    "Append",
-    "Head",
-    "Tail",
-    "Len"
-  ],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    "<="
-  ],
-  "RangeExpr": [
-    "1 .. "
-  ],
+  "SequenceOps": ["Seq", "Append", "Head", "Tail", "Len"],
+  "ArithmeticOps": ["+"],
+  "ComparisonOps": ["<", "<=", ">"],
+  "RangeExpr": ["1 .. N"],
   "ChoiceExpr": [],
-  "StringLiterals": [
-    "req",
-    "ack",
-    "rel"
-  ],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [
-    "Sequences"
-  ],
+  "StringLiterals": ["req", "ack", "rel"],
+  "ArithmeticModules": ["Naturals"],
+  "DataStructureModules": ["Sequences"],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "req",
-    "network",
-    "ack",
-    "clock",
-    "crit"
-  ],
+  "PrimedVariables": ["req", "network", "ack", "clock", "crit"],
   "UnchangedExprs": [
     "UNCHANGED <<clock, crit>>",
     "UNCHANGED <<ack, crit>>",
@@ -182,22 +136,16 @@
     "UNCHANGED <<clock, ack, crit>>"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][Next]_vars"
-  ],
-  "AlwaysOp": [
-    "[][Next]"
-  ],
-  "EventuallyOp": [
-    "<>> ]]"
-  ],
+  "TemporalSubscript": ["[][Next]_vars"],
+  "AlwaysOp": ["[][Next]_vars"],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -208,20 +156,12 @@
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
     "beats",
-    "Broadcast",
-    "ReceiveRequest",
-    "Next",
     "ClockConstraint",
     "BoundedNetwork",
     "Mutex"
   ],
-  "OperatorDefNames_TemporalProperty": [
-    "Init",
-    "Spec"
-  ],
-  "OperatorDefNames_Init": [
-    "Init"
-  ],
+  "OperatorDefNames_TemporalProperty": ["Spec"],
+  "OperatorDefNames_Init": ["Init"],
   "OperatorDefNames_ValueDef": [
     "Proc",
     "Clock",
@@ -229,19 +169,21 @@
     "AckMessage",
     "RelMessage",
     "Message",
+    "Broadcast",
     "vars"
   ],
   "FunctionConstructor_ByDomain": [
     "[p \\in Proc |-> 1]",
-    "[q \\in Proc |-> 0]",
+    "[p \\in Proc |-> [q \\in Proc |-> 0]]",
     "[p \\in Proc |-> {}]",
-    "[q \\in Proc |-> <<>> ]"
+    "[p \\in Proc |-> [q \\in Proc |-> <<>> ]]",
+    "[r \\in Proc |-> IF s=r THEN network[s][r] ELSE Append(network[s][r], m)]"
   ],
   "FunctionConstructor_SetType": [
     "[Proc -> Clock]",
-    "[Proc -> Nat]",
+    "[Proc -> [Proc -> Nat]]",
     "[Proc -> SUBSET Proc]",
-    "[Proc -> Seq(Message)]"
+    "[Proc -> [Proc -> Seq(Message)]]"
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED <<clock, crit>>",
@@ -250,11 +192,16 @@
     "UNCHANGED <<clock, req, ack, network>>",
     "UNCHANGED <<clock, ack, crit>>"
   ],
-  "UnchangedExprs_VarRef": [
-    "UNCHANGED clock"
-  ],
+  "UnchangedExprs_VarRef": ["UNCHANGED clock"],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/lamport_mutex/LamportMutex.tla",
+  "VerificationTools": ["TLC", "TLAPS"],
+  "DivisionNotes": [
+    "Action operators (Request, ReceiveRequest, ReceiveAck, Enter, Exit, ReceiveRelease, Next) all contain primed variables and are placed in ActionDefNames.",
+    "TypeOK, beats, ClockConstraint, BoundedNetwork, Mutex are state predicates (Boolean over unprimed variables only).",
+    "Init is OperatorDefNames_Init.",
+    "Spec is the temporal property (Init /\\ [][Next]_vars).",
+    "ValueDef contains Proc, Clock (set of clocks), Broadcast (returns a function), the message constructors and value constants, and the vars tuple.",
+    "Module is verified by both TLC (via MCLamportMutex) and TLAPS (via LamportMutex_proofs)."
+  ]
 }

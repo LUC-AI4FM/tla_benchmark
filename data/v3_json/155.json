@@ -1,20 +1,11 @@
 {
   "id": 155,
-  "Specification": "",
+  "Specification": "TLC model-checking harness for the Paxos specification. Provides finite constants for acceptors, values, quorums and ballots, sets up symmetry, defines a refinement check (VotingSpecBar = V!Spec), liveness specs (MCLSpec, MCLiveness), and inductive invariant scaffolding (ITypeOK, IInv, MCISpec, MCIProp, plus per-conjunct invariants Inv1..Inv4).",
   "ModuleName": "MCPaxos",
-  "ExtendsModules": [
-    "Paxos",
-    "TLC"
-  ],
+  "ExtendsModules": ["Paxos", "TLC"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "a1",
-    "a2",
-    "a3",
-    "v1",
-    "v2"
-  ],
+  "ConstantNames": ["a1", "a2", "a3", "v1", "v2"],
   "VariableNames": [],
   "AssumptionNames": [],
   "TheoremNames": [],
@@ -45,31 +36,22 @@
   "Implication": [],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
     "{a1}",
     "{v1}",
+    "{{a1}}",
     "{a1, a2}",
     "{-1}",
-    "{None}"
+    "{None}",
+    "{}"
   ],
-  "SetOperators": [
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
+  "SetOperators": ["\\cup"],
+  "FiniteSetOps": ["SUBSET"],
   "FunctionConstructor": [
     "[Acceptor -> Ballot \\cup {-1}]",
     "[Acceptor -> Value \\cup {None}]"
@@ -82,13 +64,8 @@
     "<<votes, maxBal>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [
     "0..MCMaxBallot"
   ],
@@ -96,40 +73,52 @@
   "StringLiterals": [],
   "ArithmeticModules": [],
   "DataStructureModules": [],
-  "ToolingModules": [
-    "TLC"
-  ],
+  "ToolingModules": ["TLC"],
   "PrimedVariables": [],
   "UnchangedExprs": [],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "[][V!Next]_<<votes, maxBal>>",
+    "WF_vars(Phase1a(MCMaxBallot))",
+    "WF_vars(Phase2a(MCMaxBallot,v))",
+    "WF_vars(Phase1b(a) \\/ Phase2b(a))"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[][V!Next]"
+    "[][Next]_vars",
+    "[][V!Next]_<<votes, maxBal>>"
   ],
   "EventuallyOp": [
     "<>(V!chosen # {})"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(Phase1a(MCMaxBallot))",
+    "WF_vars(Phase2a(MCMaxBallot,v))",
+    "WF_vars(Phase1b(a) \\/ Phase2b(a))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
-  "SymmetrySet": [],
+  "SymmetrySet": ["MCSymmetry"],
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "ITypeOK"
+    "ITypeOK",
+    "IInv",
+    "Inv1",
+    "Inv2",
+    "Inv3",
+    "Inv4"
   ],
   "OperatorDefNames_TemporalProperty": [
+    "VotingSpecBar",
     "MCLSpec",
     "MCLiveness",
     "MCISpec",
@@ -142,13 +131,7 @@
     "MCQuorum",
     "MCMaxBallot",
     "MCBallot",
-    "MCSymmetry",
-    "VotingSpecBar",
-    "IInv",
-    "Inv1",
-    "Inv2",
-    "Inv3",
-    "Inv4"
+    "MCSymmetry"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
@@ -158,7 +141,12 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/Paxos/MCPaxos.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "MCAcceptor, MCValue, MCQuorum, MCMaxBallot, MCBallot, MCSymmetry are placed in OperatorDefNames_ValueDef as they define structural finite values for the model checker.",
+    "VotingSpecBar, MCLSpec, MCLiveness, MCISpec, MCIProp are temporal properties because they reference Spec, [][Next], [][V!Next], <>, and WF_vars fairness.",
+    "ITypeOK, IInv, Inv1..Inv4 are state predicates (no temporal operators); they are conjunctions of typing/safety constraints used as TLC invariants.",
+    "No ActionDefNames since this MC harness defines no new actions; the actions Phase1a, Phase1b, Phase2a, Phase2b, Next come from Paxos."
+  ]
 }

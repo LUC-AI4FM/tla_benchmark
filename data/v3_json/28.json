@@ -1,6 +1,6 @@
 {
   "id": 28,
-  "Specification": "c1cs: A crash-fault-tolerant consensus protocol for N processes with at most F crash failures and T Byzantine failures (assumption: 3*T < N). Processes broadcast proposed values, collect N-T proposal messages, then decide based on threshold conditions. Actions: Crash, Receive, Propose, Core_T1 (two-branch decision logic using CHOOSE), T2 (decide upon receiving a Decision message), DoNothing. Properties: TypeOK, Validity (decided value equals some process's initial value), Agreement (all non-bottom decided values agree, with CALL-DONE consistency), WeakAgreement, Termination (eventually all processes reach CRASH/DONE/CALL), IndStrengthens (inductive invariant strengthening).",
+  "Specification": "c1cs: A crash-fault-tolerant consensus protocol for N processes with at most F crash failures and T Byzantine failures (assumption: 3 *T < N). Processes broadcast proposed values, collect N-T proposal messages, then decide based on threshold conditions. Actions: Crash, Receive, Propose, Core_T1 (two-branch decision logic using CHOOSE), T2 (decide upon receiving a Decision message), DoNothing. Properties: TypeOK, Validity (decided value equals some process's initial value), Agreement (all non-bottom decided values agree, with CALL-DONE consistency), WeakAgreement, Termination (eventually all processes reach CRASH/DONE/CALL), IndStrengthens (inductive invariant strengthening).",
   "ModuleName": "c1cs",
   "ExtendsModules": [
     "Integers",
@@ -23,7 +23,9 @@
     "bcastMsg",
     "rcvdMsg"
   ],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "3 * T < N /\\ 0 <= F /\\ F <= T /\\ 0 < N"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "vars",
@@ -79,56 +81,65 @@
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF /\\ (\\E tV \\in Values : \\A msg \\in rcvdMsg[i] : msg.type = \"Proposed\" => msg.value = tV) THEN ... ELSE ...",
+    "IF \\E tV \\in Values : Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T THEN ... ELSE ..."
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{\"PROPOSE\", \"DECIDE\", \"CALL\", \"CRASH\", \"DONE\"}",
-    "{\"Proposed\"}",
-    "{\"Decision\"}",
-    "{msg}",
-    "{makeProposedMsg(v[i], i)}",
-    "{makeDecisionMsg(dValue'[i], i)}",
-    "{Bottom}"
+    "{ msg }",
+    "{ \"PROPOSE\", \"DECIDE\", \"CALL\", \"CRASH\", \"DONE\" }",
+    "{ \"Proposed\" }",
+    "{ \"Decision\" }",
+    "{ Bottom }"
   ],
   "SetOperators": [
     "\\cup",
-    "\\notin",
-    "\\subseteq"
-  ],
-  "FiniteSetOps": [
-    "Cardinality",
+    "\\subseteq",
     "SUBSET"
   ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
   "FunctionConstructor": [
-    "[ i \\in Proc |-> \"PROPOSE\" ]",
-    "[ i \\in Proc |-> Bottom ]",
-    "[ i \\in Proc |-> {} ]",
-    "[ Proc -> Values ]",
-    "[ Proc -> Location ]",
-    "[ Proc -> SUBSET (PMsg \\cup DMsg) ]",
-    "[ Proc -> { Bottom } \\cup Values ]"
+    "[i \\in Proc |-> \"PROPOSE\"]",
+    "[i \\in Proc |-> Bottom]",
+    "[i \\in Proc |-> {}]",
+    "[Proc -> Values]",
+    "[Proc -> Location]",
+    "[Proc -> SUBSET (PMsg \\cup DMsg)]",
+    "[Proc -> { Bottom } \\cup Values]"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "rcvdMsg[…]",
-    "v[…]",
-    "dValue[…]"
+    "pc[i]",
+    "pc[p]",
+    "pc[msg.sndr]",
+    "v[i]",
+    "v[j]",
+    "dValue[i]",
+    "dValue[j]",
+    "rcvdMsg[i]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[pc EXCEPT ![i] = \"CRASH\"]",
+    "[pc EXCEPT ![i] = \"DECIDE\"]",
+    "[pc EXCEPT ![i] = \"DONE\"]",
+    "[pc EXCEPT ![i] = \"CALL\"]",
+    "[dValue EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T)]",
+    "[v EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T)]",
+    "[dValue EXCEPT ![i] = msg.value]",
+    "[rcvdMsg EXCEPT ![i] = rcvdMsg[i] \\cup { msg }]"
+  ],
   "RecordConstructor": [
     "[ type |-> \"Proposed\", value |-> v_i, sndr |-> i ]",
-    "[ type |-> \"Decision\", value |-> v_i, sndr |-> i ]"
+    "[ type |-> \"Decision\", value |-> v_i, sndr |-> i ]",
+    "[ type : {\"Proposed\"}, value : Values, sndr : Proc ]",
+    "[ type : {\"Decision\"}, value : Values, sndr : Proc ]"
   ],
   "RecordAccess": [
-    "msg.type",
-    "msg.value",
-    "msg.sndr",
-    "msg1.sndr",
-    "msg2.sndr",
-    "msg1.type",
-    "msg2.type",
-    "msg1.value",
-    "msg2.value"
+    ".type",
+    ".value",
+    ".sndr"
   ],
   "TupleConstructor": [
     "<< pc, v, dValue, bcastMsg, rcvdMsg >>",
@@ -138,16 +149,16 @@
     "<< v >>",
     "<< dValue, bcastMsg >>",
     "<< dValue, v, bcastMsg >>",
-    "<< rcvdMsg >>",
-    "<< v, rcvdMsg >>"
+    "<< v, rcvdMsg >>",
+    "<< rcvdMsg >>"
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
+    "+",
     "-",
-    "*"
+    "* "
   ],
   "ComparisonOps": [
-    ">",
     "<",
     ">=",
     "<="
@@ -156,8 +167,8 @@
     "1..N"
   ],
   "ChoiceExpr": [
-    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T) ]",
-    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T) ]                    "
+    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T)",
+    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T)"
   ],
   "StringLiterals": [
     "PROPOSE",
@@ -179,10 +190,10 @@
   ],
   "PrimedVariables": [
     "pc",
-    "rcvdMsg",
-    "bcastMsg",
+    "v",
     "dValue",
-    "v"
+    "bcastMsg",
+    "rcvdMsg"
   ],
   "UnchangedExprs": [
     "UNCHANGED << dValue, v, bcastMsg, rcvdMsg >>",
@@ -196,20 +207,23 @@
     "UNCHANGED vars"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
-  "AlwaysOp": [
-    "[][Next]"
+  "TemporalSubscript": [
+    "[][Next]_<< pc, v, dValue, bcastMsg, rcvdMsg >>",
+    "WF_vars(\\E i \\in Proc : \\/ Receive(i) \\/ Propose(i) \\/ Core_T1(i) \\/ T2(i))"
   ],
+  "AlwaysOp": [],
   "EventuallyOp": [
     "<>(\\A i \\in Proc : pc[i] = \"CRASH\" \\/ pc[i] = \"DONE\" \\/ pc[i] = \"CALL\")"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(\\E i \\in Proc : \\/ Receive(i) \\/ Propose(i) \\/ Core_T1(i) \\/ T2(i))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -218,9 +232,6 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
-    "DoNothing",
-    "Next",
     "TypeOK",
     "Validity",
     "Agreement",
@@ -242,18 +253,25 @@
     "makeDecisionMsg",
     "PMsg",
     "DMsg",
-    "Msg"
+    "Msg",
+    "Crash",
+    "Receive",
+    "Propose",
+    "Core_T1",
+    "T2",
+    "DoNothing",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
-    "[ i \\in Proc |-> \"PROPOSE\" ]",
-    "[ i \\in Proc |-> Bottom ]",
-    "[ i \\in Proc |-> {} ]"
+    "[i \\in Proc |-> \"PROPOSE\"]",
+    "[i \\in Proc |-> Bottom]",
+    "[i \\in Proc |-> {}]"
   ],
   "FunctionConstructor_SetType": [
-    "[ Proc -> Values ]",
-    "[ Proc -> Location ]",
-    "[ Proc -> SUBSET (PMsg \\cup DMsg) ]",
-    "[ Proc -> { Bottom } \\cup Values ]"
+    "[Proc -> Values]",
+    "[Proc -> Location]",
+    "[Proc -> SUBSET (PMsg \\cup DMsg)]",
+    "[Proc -> { Bottom } \\cup Values]"
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED << dValue, v, bcastMsg, rcvdMsg >>",
@@ -269,7 +287,12 @@
     "UNCHANGED vars"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/c1cs/c1cs.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Action operators (Crash, Receive, Propose, Core_T1, T2, DoNothing, Next) and structural definitions (vars, Proc, etc.) were placed in OperatorDefNames_ValueDef because they did not fit the StatePredicate, TemporalProperty, or Init categories.",
+    "IndStrengthens is a complex state predicate containing multiple safety invariants and was categorized accordingly."
+  ]
 }

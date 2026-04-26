@@ -1,0 +1,258 @@
+{
+  "id": 73,
+  "Specification": "A TLA+ specification of the Dijkstra-Scholten (EWD998) termination detection algorithm using an asynchronous message-passing model with channels (inboxes). It verifies that the algorithm correctly detects termination by tracking node activation states and token-based probe cycles across a network of nodes, mapping the state to the original EWD998 specification via instantiation.",
+  "ModuleName": "EWD998Chan",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Utils"
+  ],
+  "InstanceModules": [
+    "EWD998"
+  ],
+  "InstanceSubstitutions": [
+    "token <- [pos |-> tpos, q |-> token.q, color |-> token.color]",
+    "pending <- [n \\in Node |-> Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "inbox"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [
+    "Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "Node",
+    "Color",
+    "vars",
+    "TokenMsg",
+    "BasicMsg",
+    "Message",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "NumberOfMsg",
+    "StateConstraint",
+    "tpos",
+    "token",
+    "EWD998Spec"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "tkn",
+    "idx"
+  ],
+  "LetInNames": [
+    "tkn",
+    "idx"
+  ],
+  "LambdaParams": [
+    "msg"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE tkn.color (in PassToken)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}",
+    "{\"tok\"}",
+    "{\"pl\"}",
+    "{<<>>, <<[type |-> \"tok\", q |-> 0, color |-> \"black\" ]>> }"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[Node -> Int]",
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Seq(Message)]",
+    "[i \\in Node |-> 0]",
+    "[ Node -> {<<>>, <<[type |-> \"tok\", q |-> 0, color |-> \"black\" ]>> } ]",
+    "[n \\in Node |-> Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "FunctionApplication": [
+    "counter[i]",
+    "active[i]",
+    "color[i]",
+    "inbox[i]",
+    "inbox[i][j]",
+    "inbox[N-1]",
+    "inbox",
+    "inbox[j]",
+    "inbox[tpos]",
+    "inbox[n]"
+  ],
+  "FunctionOverride": [
+    "[inbox EXCEPT ![N-1] = Append(@, ...), ! = RemoveAt(@, j)]",
+    "[ color EXCEPT ! = \"white\" ]",
+    "[inbox EXCEPT ![i-1] = Append(@, ...), ![i] = RemoveAt(@, j) ]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[inbox EXCEPT ![j] = Append(@, ...)]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[inbox EXCEPT ![i] = RemoveAt(@, j) ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"tok\"}, q : Int, color : Color]",
+    "[type : {\"pl\"}]",
+    "[type |-> \"tok\", q |-> 0, color |-> \"black\" ]",
+    "[type |-> \"pl\" ]",
+    "[pos |-> tpos, q |-> token.q, color |-> token.color]"
+  ],
+  "RecordAccess": [
+    "inbox[i][j].type",
+    "inbox[j].type",
+    "inbox[j].color",
+    "inbox[j].q",
+    "tkn.q",
+    "tkn.color",
+    "msg.type",
+    "token.q",
+    "token.color"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, inbox>>",
+    "<<[type |-> \"tok\", q |-> 0, color |-> \"black\" ]>>",
+    "<<active, counter>>",
+    "<<active, color>>",
+    "<<>>",
+    "<<color, inbox, counter>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len",
+    "Append",
+    "RemoveAt",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "1..Len(inbox[i])",
+    "1..Len(inbox)",
+    "1..Len(inbox[j])",
+    "1 .. Len(inbox[tpos])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Node : \\E j \\in 1..Len(inbox[i]) : inbox[i][j].type = \"tok\"",
+    "CHOOSE i \\in 1 .. Len(inbox[tpos]): inbox[tpos][i].type = \"tok\""
+  ],
+  "StringLiterals": [
+    "white",
+    "black",
+    "tok",
+    "pl"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "Utils"
+  ],
+  "PrimedVariables": [
+    "inbox",
+    "color",
+    "counter",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "\\A i \\in DOMAIN inbox : NumberOfMsg(inbox[i]) < 3",
+    "\\A i \\in DOMAIN counter : counter[i] <= 3"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

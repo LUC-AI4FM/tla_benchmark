@@ -1,134 +1,84 @@
 {
   "id": 178,
-  "Specification": "SpanTreeRandom",
+  "Specification": "A variant of the SpanTree spanning-tree algorithm in which the constant Edges is replaced by a defined set built from RandomElement (from the TLC module) so that each TLC run picks a random graph over the given Nodes. Carries the same Init/Next/Spec/PostCondition/Safety/Liveness structure as SpanTree, allowing repeated random testing of the algorithm.",
   "ModuleName": "SpanTreeRandom",
-  "ExtendsModules": [
-    "Integers",
-    "FiniteSets",
-    "TLC"
-  ],
+  "ExtendsModules": ["Integers", "FiniteSets", "TLC"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Nodes",
-    "Root",
-    "MaxCardinality"
+  "ConstantNames": ["Nodes", "Root", "MaxCardinality"],
+  "VariableNames": ["mom", "dist"],
+  "AssumptionNames": [
+    "/\\ Root \\in Nodes /\\ MaxCardinality \\in Nat /\\ MaxCardinality >= Cardinality(Nodes)"
   ],
-  "VariableNames": [
-    "mom",
-    "dist",
-    "vars"
-  ],
-  "AssumptionNames": [],
   "TheoremNames": [],
   "OperatorDefNames": [
-    "Edges",
-    "vars",
-    "Nbrs",
-    "TypeOK",
-    "Init",
-    "Next",
-    "Spec",
-    "PostCondition",
-    "Safety",
-    "Liveness"
+    "Edges", "vars", "Nbrs", "TypeOK", "Init", "Next", "Spec",
+    "PostCondition", "Safety", "Liveness"
   ],
-  "ActionDefNames": [
-    "Next"
-  ],
+  "ActionDefNames": ["Next"],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
+  "Implication": ["=>"],
+  "Negation": ["~"],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\E", "\\A"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [
-    "IF n = Root THEN 0 ELSE MaxCardinality]"
+    "IF n = Root THEN 0 ELSE MaxCardinality"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{n, m}",
+    "{{n, m} : m \\in RandomElement(SUBSET (Nodes\\{n}))}",
+    "{ {{n, m} : m \\in RandomElement(SUBSET (Nodes\\{n}))} : n \\in Nodes }",
     "{n}",
-    "{m, n}"
+    "{m \\in Nodes : {m, n} \\in Edges}",
+    "{m, n}",
+    "{n, m}"
   ],
-  "SetOperators": [
-    "\\subseteq"
-  ],
-  "FiniteSetOps": [
-    "Cardinality",
-    "SUBSET",
-    "UNION"
-  ],
+  "SetOperators": ["\\", "UNION", "\\subseteq", "SUBSET"],
+  "FiniteSetOps": ["Cardinality"],
   "FunctionConstructor": [
-    "[n \\in Nodes |-> n]",
-    "[n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]",
     "[Nodes -> Nodes]",
-    "[Nodes -> Nat]"
+    "[Nodes -> Nat]",
+    "[n \\in Nodes |-> n]",
+    "[n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]"
   ],
   "FunctionApplication": [
-    "dist[…]",
-    "mom[…]"
+    "dist[m]", "dist[n]", "mom[n]", "dist[mom[n]]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[dist EXCEPT ![n] = d]",
+    "[mom  EXCEPT ![n] = m]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
-  "TupleConstructor": [
-    "<<mom, dist>>"
-  ],
+  "TupleConstructor": ["<<mom, dist>>"],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">="
-  ],
+  "ArithmeticOps": ["+", "-"],
+  "ComparisonOps": [">=", "<"],
   "RangeExpr": [
-    "1) .. (",
-    "in 1..("
+    "(dist[m]+1) .. (dist[n] - 1)",
+    "1..(MaxCardinality-1)"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [],
-  "ArithmeticModules": [
-    "Integers"
-  ],
-  "DataStructureModules": [
-    "FiniteSets"
-  ],
-  "ToolingModules": [
-    "TLC"
-  ],
-  "PrimedVariables": [
-    "dist",
-    "mom"
-  ],
+  "ArithmeticModules": ["Integers"],
+  "DataStructureModules": ["FiniteSets"],
+  "ToolingModules": ["TLC"],
+  "PrimedVariables": ["dist", "mom"],
   "UnchangedExprs": [],
   "EnabledExprs": [
-    "ENABLED Next) => PostCondition)"
+    "ENABLED Next"
   ],
   "TemporalSubscript": [
     "[][Next]_vars",
     "WF_vars(Next)"
   ],
   "AlwaysOp": [
-    "[][Next]",
+    "[][Next]_vars",
     "[]((~ ENABLED Next) => PostCondition)"
   ],
   "EventuallyOp": [
@@ -142,7 +92,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -151,22 +101,16 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Edges",
-    "TypeOK",
-    "Init",
-    "PostCondition"
+    "TypeOK", "PostCondition"
   ],
   "OperatorDefNames_TemporalProperty": [
-    "Spec",
-    "Safety",
-    "Liveness"
+    "Spec", "Safety", "Liveness"
   ],
   "OperatorDefNames_Init": [
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
-    "vars",
-    "Nbrs"
+    "Edges", "vars", "Nbrs"
   ],
   "FunctionConstructor_ByDomain": [
     "[n \\in Nodes |-> n]",
@@ -178,10 +122,13 @@
   ],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "specifications/SpanTreeRandom/SpanTreeRandom.tla",
-  "VerificationTools": [
-    "TLC"
-  ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/SpanningTree/SpanTreeRandom.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "TemporalNesting is true because Safety expands to []((~ ENABLED Next) => PostCondition), nesting an implication under always, and WF_vars(Next) within Spec expands to nested temporal operators ([]<>).",
+    "Next is the only action operator (contains primed dist' and mom') and is listed in ActionDefNames.",
+    "Edges, vars, and Nbrs are placed in OperatorDefNames_ValueDef as structural value definitions; PostCondition and TypeOK are state predicates; Spec, Safety, and Liveness are temporal property definitions.",
+    "The TLC module is listed under ToolingModules because Edges uses TLC's RandomElement operator to generate a random graph at TLC startup."
+  ]
 }

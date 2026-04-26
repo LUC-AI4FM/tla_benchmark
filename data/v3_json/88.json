@@ -11,11 +11,15 @@
     "Node"
   ],
   "VariableNames": [
-    "counter",
-    "vars"
+    "counter"
   ],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "THEOREM Spec => []Safety",
+    "THEOREM Spec => []TypeOK",
+    "### THEOREM FairSpec => Convergence",
+    "THEOREM FairSpec => Monotonicity"
+  ],
   "OperatorDefNames": [
     "vars",
     "TypeOK",
@@ -25,6 +29,7 @@
     "Convergence",
     "Init",
     "Increment",
+    "Max",
     "Gossip",
     "Next",
     "Spec",
@@ -32,13 +37,15 @@
     "FairSpec"
   ],
   "ActionDefNames": [
-    "Monotonic",
     "Increment",
     "Gossip",
-    "Next"
+    "Next",
+    "Monotonic"
   ],
   "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
+  "LocalOperatorNames": [
+    "Max"
+  ],
   "LetInNames": [
     "Max"
   ],
@@ -59,32 +66,41 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF a > b THEN a ELSE b IN"
+    "IF a > b THEN a ELSE b (in Max)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [],
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[Node -> [Node -> Nat]]",
+    "[n \\in Node |-> [o \\in Node |-> 0]]",
     "[o \\in Node |-> 0]",
-    "[Node -> Nat]"
+    "[ nodeView \\in Node |-> Max(counter[n][nodeView], counter[o][nodeView]) ]"
   ],
   "FunctionApplication": [
-    "counter[…]"
+    "counter[n][n]",
+    "counter[o][n]",
+    "counter[n][o]",
+    "counter[n]",
+    "counter[o]",
+    "counter[n][nodeView]",
+    "counter[o][nodeView]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[counter EXCEPT ![n][n] = @ + 1]",
+    "[ counter EXCEPT ![o] = [ nodeView \\in Node |-> Max(...) ] ]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "+",
-    "-"
+    "+"
   ],
   "ComparisonOps": [
-    ">",
-    "<",
-    ">="
+    ">=",
+    ">"
   ],
   "RangeExpr": [],
   "ChoiceExpr": [],
@@ -102,19 +118,20 @@
   "TemporalSubscript": [
     "[][Monotonic]_counter",
     "[][Next]_counter",
+    "WF_vars(Gossip(n,o))",
     "[][\\E n, o \\in Node : Gossip(n,o)]_vars"
   ],
   "AlwaysOp": [
-    "[][Monotonic]",
+    "[][Monotonic]_counter",
     "[]<>(\\A n, o \\in Node : counter[n] = counter[o])",
-    "[][Next]",
     "[]Safety",
     "[]TypeOK",
-    "[][\\E n, o \\in Node : Gossip(n,o)]"
+    "[][Next]_counter",
+    "<>[][\\E n, o \\in Node : Gossip(n,o)]_vars"
   ],
   "EventuallyOp": [
-    "<>(\\A n, o \\in Node : counter[n] = counter[o])",
-    "<>[][\\E n, o \\in Node : Gossip(n,o)]"
+    "[]<>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "<>[][\\E n, o \\in Node : Gossip(n,o)]_vars"
   ],
   "LeadsToOp": [],
   "FairnessConditions": [],
@@ -122,7 +139,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -132,33 +149,44 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "Safety",
-    "Init",
-    "Next"
+    "Safety"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Monotonicity",
     "Convergence",
     "Spec",
-    "Fairness"
+    "Fairness",
+    "FairSpec"
   ],
   "OperatorDefNames_Init": [
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
     "vars",
-    "FairSpec"
+    "Monotonic",
+    "Increment",
+    "Max",
+    "Gossip",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
-    "[o \\in Node |-> 0]"
+    "[n \\in Node |-> [o \\in Node |-> 0]]",
+    "[o \\in Node |-> 0]",
+    "[ nodeView \\in Node |-> Max(counter[n][nodeView], counter[o][nodeView]) ]"
   ],
   "FunctionConstructor_SetType": [
-    "[Node -> Nat]"
+    "[Node -> [Node -> Nat]]"
   ],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/CRDT/CRDT.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because of nested temporal operators in Convergence ([]<>) and Fairness (<>[]).",
+    "Monotonic, Increment, Gossip, and Next were placed in OperatorDefNames_ValueDef because they are action definitions containing primed variables and thus do not fit the StatePredicate or TemporalProperty categories.",
+    "Max was placed in OperatorDefNames_ValueDef as it is a structural logic definition used within an action."
+  ]
 }

@@ -1,0 +1,145 @@
+{
+  "id": 40,
+  "Specification": "EnvironmentController: An environment controller for a failure-detector system combining an Age_Channel communication channel and an EPFailureDetector. Models N processes with up to T crash failures, per-process clocks, outgoing messages, and pause counters. Actions: Crash (fail a process), EnvTick (advance message ages and reset move flags), ProcTick (per-process predict/send/receive steps). Constraints DELTAConstraint and PHIConstraint bound message ages and process pause intervals. Properties: StrongCompleteness and EventuallyStrongAccuracy.",
+  "ModuleName": "EnvironmentController",
+  "ExtendsModules": ["Integers", "TLC"],
+  "InstanceModules": ["Age_Channel", "EPFailureDetector"],
+  "InstanceSubstitutions": [],
+  "ConstantNames": ["N", "T", "d0", "SendPoint", "PredictPoint", "DELTA", "PHI"],
+  "VariableNames": [
+    "inTransit", "inDelivery",
+    "suspected", "delta", "fromLastHeard",
+    "localClock", "outgoingMessages",
+    "procPause", "moved", "failed", "F"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc", "Messages", "Boxes", "K", "maxAge", "maxDelta",
+    "CommChan", "Detector",
+    "vars", "chanVars", "procVars", "envVars", "Actions",
+    "Init", "Crash", "SomeLocallyTicked", "EnvTick",
+    "OnlyMessagesForCorrectProcesses", "ProcTick",
+    "PHIConstraint", "PHIConstraint1", "DELTAConstraint",
+    "Next", "Spec", "TypeOK",
+    "StrongCompleteness", "EventuallyStrongAccuracy"
+  ],
+  "ActionDefNames": ["Crash", "EnvTick", "ProcTick", "Next"],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": ["=>"],
+  "Negation": [],
+  "BooleanConstants": ["TRUE", "FALSE"],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["=", "#", "<=>"],
+  "MembershipOps": ["\\in", "\\notin"],
+  "IfThenElse": [
+    "IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"alive\"}",
+    "{\"NO\", \"INIT\", \"SEND\", \"RECEIVE\", \"PREDICT\", \"CRASH\"}",
+    "{-1}",
+    "{m \\in msgs : failed[m.to] = FALSE}"
+  ],
+  "SetOperators": ["\\cup"],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[from : Proc, to : Proc, type : {\"alive\"}]",
+    "[content : Messages, age : Int]",
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> \"INIT\"]",
+    "[i \\in Proc |-> FALSE]",
+    "[i \\in Proc |-> \"NO\"]",
+    "[i \\in Proc |-> IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1]",
+    "[Proc -> {-1} \\cup 0..PHI]",
+    "[Proc -> BOOLEAN]",
+    "[Proc -> Actions]"
+  ],
+  "FunctionApplication": [
+    "failed[i]", "failed[j]", "failed[m.to]",
+    "moved[p]", "moved[i]",
+    "procPause[i]",
+    "suspected[i]",
+    "delta[i][j]",
+    "fromLastHeard[i][j]",
+    "outgoingMessages'[i]"
+  ],
+  "FunctionOverride": [
+    "[failed EXCEPT ![i] = TRUE]",
+    "[moved EXCEPT ![i] = \"CRASH\"]",
+    "[moved EXCEPT ![i] = \"NO\"]",
+    "[moved EXCEPT ![i] = \"PREDICT\"]",
+    "[moved EXCEPT ![i] = \"SEND\"]",
+    "[moved EXCEPT ![i] = \"RECEIVE\"]",
+    "[procPause EXCEPT ![i] = -1]",
+    "[procPause EXCEPT ![i] = 0]"
+  ],
+  "RecordConstructor": [
+    "[from : Proc, to : Proc, type : {\"alive\"}]",
+    "[content : Messages, age : Int]"
+  ],
+  "RecordAccess": [
+    "m.to",
+    "m.content.to",
+    "m.age",
+    "box.age"
+  ],
+  "TupleConstructor": [
+    "<< inTransit, inDelivery, suspected, delta, fromLastHeard, localClock, outgoingMessages, procPause, moved, failed, F >>",
+    "<< inTransit, inDelivery >>",
+    "<< suspected, delta, fromLastHeard, localClock, outgoingMessages >>",
+    "<< procPause, moved, failed, F >>",
+    "<< failed, F >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": ["%", "\\div", "*", "+", "-"],
+  "ComparisonOps": ["<", "<="],
+  "RangeExpr": ["1..N", "0..PHI", "0..T"],
+  "ChoiceExpr": [],
+  "StringLiterals": ["alive", "NO", "INIT", "SEND", "RECEIVE", "PREDICT", "CRASH"],
+  "ArithmeticModules": ["Integers"],
+  "DataStructureModules": [],
+  "ToolingModules": ["TLC"],
+  "PrimedVariables": [
+    "inTransit", "inDelivery",
+    "suspected", "delta", "fromLastHeard",
+    "localClock", "outgoingMessages",
+    "procPause", "moved", "failed", "F"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED chanVars",
+    "UNCHANGED procVars",
+    "UNCHANGED envVars",
+    "UNCHANGED << failed, F >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": ["[][ Next ]_vars"],
+  "AlwaysOp": [
+    "[]( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE \\/ j \\in suspected[i] ) )",
+    "[]( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE) => j \\notin suspected[i] )"
+  ],
+  "EventuallyOp": [
+    "<>[]( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE \\/ j \\in suspected[i] ) )",
+    "<>[]( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE) => j \\notin suspected[i] )"
+  ],
+  "LeadsToOp": [],
+  "FairnessConditions": [
+    "WF_vars( /\\ \\/ EnvTick \\/ ProcTick /\\ DELTAConstraint /\\ PHIConstraint )"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

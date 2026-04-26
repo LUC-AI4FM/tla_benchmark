@@ -1,6 +1,6 @@
 {
   "id": 58,
-  "Specification": "",
+  "Specification": "A simulation/statistics-collection wrapper around the TokenRing module. Uses TLCGet and IOExec to collect step counts when the system reaches a stable unique-token state, writes them to a CSV file, and periodically invokes an R script to render a plot.",
   "ModuleName": "SimTokenRing",
   "ExtendsModules": [
     "TokenRing",
@@ -18,9 +18,7 @@
     "CSVFile",
     "AtStabilization"
   ],
-  "ActionDefNames": [
-    "AtStabilization"
-  ],
+  "ActionDefNames": [],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
   "LetInNames": [],
@@ -43,14 +41,21 @@
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [],
-  "FunctionApplication": [],
+  "FunctionApplication": [
+    "TLCGet(\"config\")",
+    "TLCGet(\"level\")",
+    "TLCGet(\"stats\")",
+    "CSVRecords(CSVFile)",
+    "CSVWrite(\"steps\", <<>>, CSVFile)",
+    "CSVWrite(\"%1$s\", <<TLCGet(\"level\")>>, CSVFile)",
+    "IOExec(<<\"/usr/bin/env\", \"Rscript\", \"SimTokenRing.R\", CSVFile>>)"
+  ],
   "FunctionOverride": [],
   "RecordConstructor": [],
   "RecordAccess": [
-    "SimTokenRing.csv",
-    "SimTokenRing.R",
-    "tla2tools.jar",
-    "tlc2.TLC"
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"stats\").traces",
+    "IOExec(...).exitValue"
   ],
   "TupleConstructor": [
     "<<>>",
@@ -59,51 +64,43 @@
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "-",
-    "*",
     "%"
   ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [
-    "config",
-    "generate",
-    "SimTokenRing.csv",
-    "steps",
     "%1$s",
-    "level",
-    "stats",
     "/usr/bin/env",
     "Rscript",
-    "SimTokenRing.R"
+    "SimTokenRing.R",
+    "SimTokenRing.csv",
+    "config",
+    "generate",
+    "level",
+    "stats",
+    "steps"
   ],
   "ArithmeticModules": [],
   "DataStructureModules": [],
   "ToolingModules": [
     "TLC",
+    "CSV",
     "IOUtils"
   ],
-  "PrimedVariables": [
-    "TLC"
-  ],
+  "PrimedVariables": [],
   "UnchangedExprs": [],
   "EnabledExprs": [],
   "TemporalSubscript": [],
   "AlwaysOp": [],
-  "EventuallyOp": [
-    "<>>, CSVFile)"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -111,7 +108,9 @@
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_StatePredicate": [
+    "AtStabilization"
+  ],
   "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
@@ -122,7 +121,12 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/SimTokenRing/SimTokenRing.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "AtStabilization is a Boolean state predicate (a guarded conjunction without primes); CSVFile is a string value definition.",
+    "There is no Init/Spec/Next in this module — it is a simulation harness extending TokenRing."
+  ]
 }

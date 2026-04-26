@@ -1,0 +1,200 @@
+{
+  "id": 115,
+  "Specification": "A collection of formal proofs and theorems for sequence logic in TLA+. It formalises fundamental properties of sequences, including length, indexing, equality, concatenation, subsequences, and core sequence operators like Head, Tail, Append, Cons, and InsertAt.",
+  "ModuleName": "SequenceTheorems",
+  "ExtendsModules": [
+    "Sequences",
+    "Integers",
+    "WellFoundedInduction",
+    "Functions",
+    "TLAPS"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM ElementOfSeq == ASSUME NEW S, NEW seq \\in Seq(S), NEW n \\in 1..Len(seq) PROVE seq[n] \\in S",
+    "THEOREM EmptySeq == ASSUME NEW S PROVE /\\ << >> \\in Seq(S) /\\ \\A seq \\in Seq(S) : (seq = << >>) <=> (Len(seq) = 0)",
+    "THEOREM LenProperties == ASSUME NEW S, NEW seq \\in Seq(S) PROVE /\\ Len(seq) \\in Nat",
+    "THEOREM ExceptSeq == ASSUME NEW S, NEW seq \\in Seq(S), NEW i \\in 1 .. Len(seq), NEW e \\in S PROVE /\\ [seq EXCEPT ![i] = e] \\in Seq(S) /\\ Len([seq EXCEPT ![i] = e]) = Len(seq) /\\ \\A j \\in 1 .. Len(seq) : [seq EXCEPT ![i] = e][j] = IF j=i THEN e ELSE seq[j]",
+    "THEOREM IsASeq == ASSUME NEW n \\in Nat, NEW e(_), NEW S, \\A i \\in 1..n : e(i) \\in S PROVE [i \\in 1..n |-> e(i)] \\in Seq(S)",
+    "THEOREM SeqEqual == ASSUME NEW S, NEW s \\in Seq(S), NEW t \\in Seq(S), Len(s) = Len(t), \\A i \\in 1 .. Len(s) : s[i] = t[i] PROVE s = t",
+    "THEOREM ConcatProperties == ASSUME NEW S, NEW s1 \\in Seq(S), NEW s2 \\in Seq(S) PROVE /\\ s1 \\o s2 \\in Seq(S) /\\ Len(s1 \\o s2) = Len(s1) + Len(s2) /\\ \\A i \\in 1 .. Len(s1) + Len(s2) : (s1 \\o s2)[i] = IF i <= Len(s1) THEN s1[i] ELSE s2[i - Len(s1)]",
+    "THEOREM ConcatEmptySeq == ASSUME NEW S, NEW seq \\in Seq(S) PROVE /\\ seq \\o << >> = seq /\\ << >> \\o seq = seq",
+    "THEOREM ConcatAssociative == ASSUME NEW S, NEW s1 \\in Seq(S), NEW s2 \\in Seq(S), NEW s3 \\in Seq(S) PROVE (s1 \\o s2) \\o s3 = s1 \\o (s2 \\o s3)",
+    "THEOREM ConcatSimplifications == ASSUME NEW S PROVE /\\ \\A s,t \\in Seq(S) : s \\o t = s <=> t = <<>> /\\ \\A s,t \\in Seq(S) : s \\o t = t <=> s = <<>> /\\ \\A s,t \\in Seq(S) : s \\o t = <<>> <=> s = <<>> /\\ t = <<>> /\\ \\A s,t,u \\in Seq(S) : s \\o t = s \\o u <=> t = u /\\ \\A s,t,u \\in Seq(S) : s \\o u = t \\o u <=> s = t",
+    "THEOREM SubSeqProperties == ASSUME NEW S, NEW s \\in Seq(S), NEW m \\in 1 .. Len(s)+1, NEW n \\in m-1 .. Len(s) PROVE /\\ SubSeq(s,m,n) \\in Seq(S) /\\ Len(SubSeq(s, m, n)) = n-m+1",
+    "THEOREM SubSeqEmpty == ASSUME NEW s, NEW m \\in Int, NEW n \\in Int, n < m PROVE SubSeq(s,m,n) = << >>",
+    "THEOREM HeadTailProperties == ASSUME NEW S, NEW seq \\in Seq(S), seq # << >> PROVE /\\ Head(seq) \\in S /\\ Tail(seq) \\in Seq(S) /\\ Len(Tail(seq)) = Len(seq)-1 /\\ \\A i \\in 1 .. Len(Tail(seq)) : Tail(seq)[i] = seq[i+1]",
+    "THEOREM TailIsSubSeq == ASSUME NEW S, NEW seq \\in Seq(S), seq # << >> PROVE Tail(seq) = SubSeq(seq, 2, Len(seq))",
+    "THEOREM SubSeqRestrict == ASSUME NEW S, NEW seq \\in Seq(S), NEW n \\in 0 .. Len(seq) PROVE SubSeq(seq, 1, n) = Restrict(seq, 1 .. n)",
+    "THEOREM HeadTailOfSubSeq == ASSUME NEW S, NEW seq \\in Seq(S), NEW m \\in 1 .. Len(seq), NEW n \\in m .. Len(seq) PROVE /\\ Head(SubSeq(seq,m,n)) = seq[m] /\\ Tail(SubSeq(seq,m,n)) = SubSeq(seq, m+1, n)",
+    "THEOREM SubSeqRecursiveFirst == ASSUME NEW S, NEW seq \\in Seq(S), NEW m \\in 1 .. Len(seq), NEW n \\in m .. Len(seq) PROVE SubSeq(seq, m, n) = << seq[m] >> \\o SubSeq(seq, m+1, n)",
+    "THEOREM SubSeqRecursiveSecond == ASSUME NEW S, NEW seq \\in Seq(S), NEW m \\in 1 .. Len(seq), NEW n \\in m .. Len(seq) PROVE SubSeq(seq, m, n) = SubSeq(seq, m, n-1) \\o << seq[n] >>",
+    "LEMMA SubSeqOfSubSeq == ASSUME NEW S, NEW s \\in Seq(S), NEW m \\in 1 .. Len(s)+1, NEW n \\in m-1 .. Len(s), NEW i \\in 1 .. n-m+2, NEW j \\in i-1 .. n-m+1 PROVE SubSeq( SubSeq(s,m,n), i, j ) = SubSeq(s, m+i-1, m+j-1)",
+    "THEOREM SubSeqFull == ASSUME NEW S, NEW seq \\in Seq(S) PROVE SubSeq(seq, 1, Len(seq)) = seq",
+    "THEOREM ConcatAdjacentSubSeq == ASSUME NEW S, NEW seq \\in Seq(S), NEW m \\in 1 .. Len(seq)+1, NEW k \\in m-1 .. Len(seq), NEW n \\in k .. Len(seq) PROVE SubSeq(seq, m, k) \\o SubSeq(seq, k+1, n) = SubSeq(seq, m, n)",
+    "THEOREM AppendProperties == ASSUME NEW S, NEW seq \\in Seq(S), NEW elt \\in S PROVE /\\ Append(seq, elt) \\in Seq(S) /\\ Append(seq, elt) # << >> /\\ Len(Append(seq, elt)) = Len(seq)+1 /\\ \\A i \\in 1.. Len(seq) : Append(seq, elt)[i] = seq[i] /\\ Append(seq, elt)[Len(seq)+1] = elt",
+    "THEOREM AppendIsConcat == ASSUME NEW S, NEW seq \\in Seq(S), NEW elt \\in S PROVE Append(seq, elt) = seq \\o <>",
+    "THEOREM HeadTailAppend == ASSUME NEW S, NEW seq \\in Seq(S), NEW elt PROVE /\\ Head(Append(seq, elt)) = IF seq = <<>> THEN elt ELSE Head(seq) /\\ Tail(Append(seq, elt)) = IF seq = <<>> THEN <<>> ELSE Append(Tail(seq), elt)",
+    "THEOREM ConsProperties == ASSUME NEW S, NEW seq \\in Seq(S), NEW elt \\in S PROVE /\\ Cons(elt, seq) \\in Seq(S) /\\ Cons(elt, seq) # <<>> /\\ Len(Cons(elt, seq)) = Len(seq)+1 /\\ Head(Cons(elt, seq)) = elt /\\ Tail(Cons(elt, seq)) = seq /\\ Cons(elt, seq) = elt /\\ \\A i \\in 1 .. Len(seq) : Cons(elt, seq)[i+1] = seq[i]",
+    "THEOREM ConsEmpty == \\A x : Cons(x, << >>) = << x >>",
+    "THEOREM ConsHeadTail == ASSUME NEW S, NEW seq \\in Seq(S), seq # << >> PROVE Cons(Head(seq), Tail(seq)) = seq",
+    "THEOREM ConsAppend == ASSUME NEW S, NEW seq \\in Seq(S), NEW x \\in S, NEW y \\in S PROVE Cons(x, Append(seq, y)) = Append(Cons(x,seq), y)",
+    "THEOREM ConsInjective == ASSUME NEW S, NEW e \\in S, NEW s \\in Seq(S), NEW f \\in S, NEW t \\in Seq(S) PROVE Cons(e,s) = Cons(f,t) <=> e = f /\\ s = t",
+    "THEOREM InsertAtProperties == ASSUME NEW S, NEW seq \\in Seq(S), NEW i \\in 1 .. Len(seq)+1, NEW elt \\in S PROVE /\\ InsertAt(seq,i,elt) \\in Seq(S) /\\ Len(InsertAt(seq,i,elt)) = Len(seq)+1 /\\ \\A j \\in 1 .. Len(seq)+1 : InsertAt(seq,i,elt)[j] = IF j < i THEN SubSeq(seq, 1, i-1)[j] ELSE IF j = i THEN elt ELSE SubSeq(seq, i, Len(seq))[j-i]"
+  ],
+  "OperatorDefNames": [
+    "SeqDef",
+    "Cons",
+    "InsertAt"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF j=i THEN e ELSE seq[j] (in ExceptSeq)",
+    "IF i <= Len(s1) THEN s1[i] ELSE s2[i - Len(s1)] (in ConcatProperties)",
+    "IF seq = <<>> THEN elt ELSE Head(seq) (in HeadTailAppend)",
+    "IF seq = <<>> THEN <<>> ELSE Append(Tail(seq), elt) (in HeadTailAppend)",
+    "IF j < i THEN SubSeq(seq, 1, i-1)[j] ELSE IF j = i THEN elt ELSE SubSeq(seq, i, Len(seq))[j-i] (in InsertAtProperties)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "UNION"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[1..n -> S]",
+    "[i \\in 1..n |-> e(i)]"
+  ],
+  "FunctionApplication": [
+    "seq[n]",
+    "e(i)",
+    "seq[j]",
+    "s[i]",
+    "t[i]",
+    "s1[i]",
+    "s2[i - Len(s1)]",
+    "SubSeq(s,m,n)[i]",
+    "s[m+i-1]",
+    "Tail(seq)[i]",
+    "seq[i+1]",
+    "seq[m]",
+    "seq[n]",
+    "Append(seq, elt)[i]",
+    "Cons(elt, seq)[i+1]",
+    "InsertAt(seq,i,elt)[j]"
+  ],
+  "FunctionOverride": [
+    "[seq EXCEPT ![i] = e]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< >>",
+    "<< seq[m] >>",
+    "<< seq[n] >>",
+    "<>",
+    "<< elt >>",
+    "<< x >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len",
+    "\\o",
+    "SubSeq",
+    "Head",
+    "Tail",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "1..n",
+    "1..Len(seq)",
+    "1 .. Len(seq)",
+    "1 .. Len(s1) + Len(s2)",
+    "1 .. Len(s)",
+    "1 .. Len(s)+1",
+    "m-1 .. Len(s)",
+    "1 .. n-m+1",
+    "1 .. Len(Tail(seq))",
+    "1 .. n",
+    "0 .. Len(seq)",
+    "m .. Len(seq)",
+    "m+1 .. Len(seq)",
+    "1 .. n-m+2",
+    "i-1 .. n-m+1",
+    "k .. Len(seq)",
+    "1 .. Len(seq)+1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [
+    "ASSUME NEW S, NEW seq \\in Seq(S), NEW n \\in 1..Len(seq) PROVE seq[n] \\in S",
+    "ASSUME NEW S PROVE /\\ << >> \\in Seq(S) /\\ \\A seq \\in Seq(S) : (seq = << >>) <=> (Len(seq) = 0)",
+    "ASSUME NEW S, NEW seq \\in Seq(S) PROVE /\\ Len(seq) \\in Nat",
+    "ASSUME NEW S, NEW seq \\in Seq(S), NEW i \\in 1 .. Len(seq), NEW e \\in S PROVE /\\ [seq EXCEPT ![i] = e] \\in Seq(S) /\\ Len([seq EXCEPT ![i] = e]) = Len(seq) /\\ \\A j \\in 1 .. Len(seq) : [seq EXCEPT ![i] = e][j] = IF j=i THEN e ELSE seq[j]",
+    "ASSUME NEW n \\in Nat, NEW e(_), NEW S, \\A i \\in 1..n : e(i) \\in S PROVE [i \\in 1..n |-> e(i)] \\in Seq(S)",
+    "ASSUME NEW S, NEW s \\in Seq(S), NEW t \\in Seq(S), Len(s) = Len(t), \\A i \\in 1 .. Len(s) : s[i] = t[i] PROVE s = t",
+    "ASSUME NEW S, NEW s1 \\in Seq(S), NEW s2 \\in Seq(S) PROVE /\\ s1 \\o s2 \\in Seq(S) /\\ Len(s1 \\o s2) = Len(s1) + Len(s2) /\\ \\A i \\in 1 .. Len(s1) + Len(s2) : (s1 \\o s2)[i] = IF i <= Len(s1) THEN s1[i] ELSE s2[i - Len(s1)]",
+    "ASSUME NEW S, NEW s \\in Seq(S), NEW m \\in 1 .. Len(s)+1, NEW n \\in m-1 .. Len(s) PROVE /\\ SubSeq(s,m,n) \\in Seq(S) /\\ Len(SubSeq(s, m, n)) = n-m+1",
+    "ASSUME NEW S, NEW seq \\in Seq(S), NEW i \\in 1 .. Len(seq)+1, NEW elt \\in S PROVE /\\ InsertAt(seq,i,elt) \\in Seq(S) /\\ Len(InsertAt(seq,i,elt)) = Len(seq)+1 /\\ \\A j \\in 1 .. Len(seq)+1 : InsertAt(seq,i,elt)[j] = IF j < i THEN SubSeq(seq, 1, i-1)[j] ELSE IF j = i THEN elt ELSE SubSeq(seq, i, Len(seq))[j-i]"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}
