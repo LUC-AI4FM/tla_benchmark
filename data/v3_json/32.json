@@ -1,6 +1,6 @@
 {
   "id": 32,
-  "Specification": "Chameneos: A concurrency puzzle where M color-changing creatures (chameneos) meet pairwise at a meeting place up to N times. Each meeting causes both creatures to adopt the complement color; a creature arriving when meetings are exhausted fades. Tracks numMeetings and per-chameneos meeting counts. Property SumMet: when all N meetings are done, the total individual meeting counts equal 2*N.",
+  "Specification": "Chameneos: A concurrency puzzle where M color-changing creatures (chameneos) meet pairwise at a meeting place up to N times. Each meeting causes both creatures to adopt the complement color; a creature arriving when meetings are exhausted fades. Tracks numMeetings and per-chameneos meeting counts. Property SumMet: when all N meetings are done, the total individual meeting counts equal 2 *N.",
   "ModuleName": "Chameneos",
   "ExtendsModules": [
     "Integers"
@@ -16,17 +16,21 @@
     "meetingPlace",
     "numMeetings"
   ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
+  "AssumptionNames": [
+    "N \\in (Nat \\ {0}) /\\ M \\in (Nat \\ {0})"
+  ],
+  "TheoremNames": [
+    "Spec => []SumMet"
+  ],
   "OperatorDefNames": [
     "Sum",
     "Color",
     "Faded",
     "Complement",
-    "vars",
     "ChameneosID",
     "MeetingPlaceEmpty",
     "TypeOK",
+    "vars",
     "Init",
     "Meet",
     "Next",
@@ -37,11 +41,18 @@
     "Meet",
     "Next"
   ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
+  "RecursiveOperatorNames": [
+    "Sum"
+  ],
+  "LocalOperatorNames": [
+    "x",
+    "newColor",
+    "f"
+  ],
   "LetInNames": [
     "x",
-    "newColor"
+    "newColor",
+    "f"
   ],
   "LambdaParams": [],
   "Implication": [
@@ -62,52 +73,61 @@
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF S = {} THEN 0 ELSE LET x == CHOOSE x \\in S : TRUE IN f[x] + Sum(f, S \\ {x})",
+    "IF meetingPlace = MeetingPlaceEmpty THEN IF numMeetings < N THEN ... ELSE ... ELSE ...",
+    "IF numMeetings < N THEN /\\ meetingPlace' = cid /\\ UNCHANGED <<chameneoses, numMeetings>> ELSE /\\ chameneoses' = [chameneoses EXCEPT ![cid] = <<Faded, @>>] /\\ UNCHANGED <<meetingPlace, numMeetings>>",
+    "IF c1 = c2 THEN c1 ELSE CHOOSE cid \\in Color \\ {c1, c2} : TRUE"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{x}",
     "{\"blue\", \"red\", \"yellow\"}",
-    "{c1, c2}",
     "{0}",
-    "{Faded}",
-    "{MeetingPlaceEmpty}"
+    "{x}",
+    "{}"
   ],
   "SetOperators": [
-    "\\notin",
-    "\\cup"
+    "\\cup",
+    "\\X",
+    "\\"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ]",
-    "[ChameneosID -> Color \\X {0}]"
+    " [ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ] ",
+    " [ChameneosID -> Color \\X {0}] ",
+    " f[c \\in ChameneosID] == chameneoses[c] "
   ],
   "FunctionApplication": [
-    "f[…]",
-    "chameneoses[…]"
+    "f[x]",
+    "f[c]",
+    "chameneoses[cid]",
+    "chameneoses[meetingPlace]",
+    "chameneoses[c]",
+    "chameneoses[x]",
+    "@"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[chameneoses EXCEPT ![cid] = <<Faded, @>>]",
+    "[chameneoses EXCEPT ![cid] = <<newColor, @ + 1>>, ![meetingPlace] = <<newColor, @ + 1>>]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
     "<<chameneoses, meetingPlace, numMeetings>>",
-    "<<chameneoses, numMeetings>>",
-    "<<Faded, @[2]>>",
-    "<<meetingPlace, numMeetings>>",
-    "<<newColor, @[2] + 1>>"
+    "<<Faded, @>>",
+    "<<newColor, @ + 1>>"
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
     "+",
-    "-",
     "*"
   ],
   "ComparisonOps": [
-    ">",
     "<"
   ],
   "RangeExpr": [
-    "1 .. ",
-    "X (0 .. "
+    "1 .. M",
+    "0 .. N"
   ],
   "ChoiceExpr": [
     "CHOOSE x \\in S : TRUE",
@@ -139,7 +159,6 @@
     "[][Next]_vars"
   ],
   "AlwaysOp": [
-    "[][Next]",
     "[]SumMet"
   ],
   "EventuallyOp": [],
@@ -149,7 +168,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -158,11 +177,7 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Sum",
-    "Complement",
     "TypeOK",
-    "Init",
-    "Next",
     "SumMet"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -172,16 +187,22 @@
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
+    "Sum",
     "Color",
     "Faded",
-    "vars",
+    "Complement",
     "ChameneosID",
-    "MeetingPlaceEmpty"
+    "MeetingPlaceEmpty",
+    "vars",
+    "Meet",
+    "Next"
   ],
-  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_ByDomain": [
+    " f[c \\in ChameneosID] == chameneoses[c] "
+  ],
   "FunctionConstructor_SetType": [
-    "[ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ]",
-    "[ChameneosID -> Color \\X {0}]"
+    " [ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ] ",
+    " [ChameneosID -> Color \\X {0}] "
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED <<chameneoses, numMeetings>>",
@@ -189,7 +210,12 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/Chameneos/Chameneos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Operators Meet and Next are classified under OperatorDefNames_ValueDef because they are actions containing primed variables and do not fit StatePredicate, TemporalProperty, or Init categories.",
+    "f[c \\in ChameneosID] == chameneoses[c] is classified as FunctionConstructor_ByDomain as it defines a function mapping over a set domain."
+  ]
 }

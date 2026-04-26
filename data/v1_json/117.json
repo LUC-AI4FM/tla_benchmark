@@ -1,0 +1,214 @@
+{
+  "id": 117,
+  "Specification": "A collection of formal definitions and theorems regarding well-founded induction in TLA+. It formalises concepts like well-founded relations, transitive closures, and inductive definitions, providing theorems for well-founded induction and the unique existence of inductively defined functions.",
+  "ModuleName": "WellFoundedInduction",
+  "ExtendsModules": [
+    "NaturalsInduction"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "LEMMA EmptyIsWellFounded == \\A S : IsWellFoundedOn({}, S)",
+    "LEMMA IsWellFoundedOnSubset == ASSUME NEW R, NEW S, NEW T \\in SUBSET S, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(R,T)",
+    "LEMMA IsWellFoundedOnSubrelation == ASSUME NEW S, NEW R, NEW RR, RR \\cap (S \\X S) \\subseteq R, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(RR,S)",
+    "THEOREM WFMin == ASSUME NEW R, NEW S, IsWellFoundedOn(R, S), NEW T, T \\subseteq S, T # {} PROVE  \\E x \\in T : \\A y \\in T : ~ (<<y, x>> \\in R)",
+    "THEOREM MinWF == ASSUME NEW R, NEW S, \\A T \\in SUBSET S : T # {} => \\E x \\in T : \\A y \\in T : ~ (<<y, x>> \\in R) PROVE  IsWellFoundedOn(R,S)",
+    "LEMMA WellFoundedIsIrreflexive == ASSUME NEW R, NEW S, NEW x \\in S, IsWellFoundedOn(R, S) PROVE  <<x, x>> \\notin R",
+    "LEMMA WellFoundedIsAsymmetric == ASSUME NEW R, NEW S, NEW x \\in S, NEW y \\in S, IsWellFoundedOn(R,S), <<x,y>> \\in R, <<y,x>> \\in R PROVE  FALSE",
+    "LEMMA WFSetLessThanIrreflexive == ASSUME NEW R, NEW S, NEW x \\in S, IsWellFoundedOn(R,S) PROVE  x \\notin SetLessThan(x,R,S)",
+    "LEMMA SetLessTransitive == ASSUME NEW R, NEW S, NEW x \\in S, NEW y \\in SetLessThan(x,R,S), IsTransitivelyClosedOn(R, S) PROVE  SetLessThan(y, R, S) \\subseteq SetLessThan(x, R, S)",
+    "THEOREM WFInduction == ASSUME NEW P(_), NEW R, NEW S, IsWellFoundedOn(R, S), \\A x \\in S : (\\A y \\in SetLessThan(x, R, S) : P(y)) => P(x) PROVE  \\A x \\in S : P(x)",
+    "THEOREM WFDefOnUnique == ASSUME NEW Def( *,* ), NEW R, NEW S, IsWellFoundedOn(R, S), WFDefOn(R, S, Def) PROVE  WFInductiveUnique(S, Def)",
+    "LEMMA WFInductiveDefLemma == ASSUME NEW Def( *,* ), NEW R, NEW S, NEW f, IsWellFoundedOn(R, S), IsTransitivelyClosedOn(R, S), WFDefOn(R, S, Def), OpDefinesFcn(f, S, Def) PROVE  WFInductiveDefines(f, S, Def)",
+    "LEMMA TransitiveClosureThm == \\A R, S : /\\ R \\cap S \\X S \\subseteq TransitiveClosureOn(R, S) /\\ IsTransitivelyClosedOn(TransitiveClosureOn(R, S), S)",
+    "LEMMA TransitiveClosureMinimal == ASSUME NEW R, NEW S, NEW U \\in SUBSET (S \\X S), R \\cap S \\X S \\subseteq U, IsTransitivelyClosedOn(U,S) PROVE  TransitiveClosureOn(R,S) \\subseteq U",
+    "LEMMA TCTCTC == ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in TransitiveClosureOn(R,S), <<j,k>> \\in TransitiveClosureOn(R,S) PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "LEMMA TCRTC == ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in TransitiveClosureOn(R,S), <<j,k>> \\in R PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "LEMMA RTCTC == ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in R, <<j,k>> \\in TransitiveClosureOn(R,S) PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "LEMMA TransitiveClosureChopLast == ASSUME NEW R, NEW S, NEW i \\in S, NEW k \\in S, <<i,k>> \\in TransitiveClosureOn(R,S) PROVE  \\E j \\in S : /\\ <<j,k>> \\in R /\\ i = j / <<i,j>> \\in TransitiveClosureOn(R,S)",
+    "THEOREM TransitiveClosureWF == ASSUME NEW R, NEW S, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(TransitiveClosureOn(R, S), S)",
+    "THEOREM WFInductiveDef == ASSUME NEW Def( *,* ), NEW R, NEW S, NEW f, IsWellFoundedOn(R, S), WFDefOn(R, S, Def), OpDefinesFcn(f, S, Def) PROVE  WFInductiveDefines(f, S, Def)",
+    "THEOREM WFInductiveDefType == ASSUME NEW Def( *,* ), NEW f, NEW R, NEW S, NEW T, T # {}, IsWellFoundedOn(R, S), WFDefOn(R, S, Def), WFInductiveDefines(f, S, Def), \\A g \\in [S -> T], s \\in S : Def(g, s) \\in T PROVE  f \\in [S -> T]",
+    "THEOREM NatLessThanWellFounded == IsWellFoundedOn(OpToRel(<,Nat), Nat)",
+    "THEOREM PreImageWellFounded == ASSUME NEW S, NEW T, NEW R, NEW f(_), \\A s \\in S : f(s) \\in T, IsWellFoundedOn(R, T) PROVE  IsWellFoundedOn(PreImage(f, S, R), S)",
+    "THEOREM WFLexPairOrdering == ASSUME NEW R1, NEW R2, NEW S1, NEW S2, IsWellFoundedOn(R1, S1), IsWellFoundedOn(R2, S2) PROVE  IsWellFoundedOn(LexPairOrdering(R1, R2, S1, S2), S1 \\X S2)",
+    "THEOREM WFLexProductOrdering == ASSUME NEW R, NEW S, NEW n \\in Nat, IsWellFoundedOn(R, S) PROVE  IsWellFoundedOn(LexProductOrdering(R, S, n), [1..n -> S])"
+  ],
+  "OperatorDefNames": [
+    "IsTransitivelyClosedOn",
+    "IsWellFoundedOn",
+    "EmptyIsWellFounded",
+    "IsWellFoundedOnSubset",
+    "IsWellFoundedOnSubrelation",
+    "SetLessThan",
+    "WellFoundedIsIrreflexive",
+    "WellFoundedIsAsymmetric",
+    "WFSetLessThanIrreflexive",
+    "SetLessTransitive",
+    "WFDefOn",
+    "OpDefinesFcn",
+    "WFInductiveDefines",
+    "WFInductiveUnique",
+    "WFInductiveDefLemma",
+    "TransitiveClosureOn",
+    "TransitiveClosureThm",
+    "TransitiveClosureMinimal",
+    "TCTCTC",
+    "TCRTC",
+    "RTCTC",
+    "TransitiveClosureChopLast",
+    "OpToRel",
+    "PreImage",
+    "LexPairOrdering",
+    "LexProductOrdering"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{y \\in S : <<y, x>> \\in R}",
+    "{ ss \\in S \\X S : \\A U \\in SUBSET (S \\X S) : /\\ R \\cap S \\X S \\subseteq U /\\ IsTransitivelyClosedOn(U, S) => ss \\in U }",
+    "{ss \\in S \\X S : ss \\prec ss}",
+    "{ss \\in S \\X S : <<f(ss), f(ss)>> \\in R}",
+    "{ss \\in (S1 \\X S2) \\X (S1 \\X S2) : / <<ss, ss>> \\in R1 / /\\ ss = ss /\\ <<ss, ss>> \\in R2}",
+    "{ ff \\in [1..n -> S] \\X [1..n -> S] : \\E j \\in 1..n : /\\ \\A i \\in 1..(j-1) : ff[i] = ff[i] /\\ <<ff[j], ff[j]>> \\in R }"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cap",
+    "\\subseteq",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Nat -> S]",
+    "[x \\in S |-> Def(g, x)]",
+    "[x \\in S |-> Def(f, x)]",
+    "[S -> T]",
+    "[1..n -> S]"
+  ],
+  "FunctionApplication": [
+    "f[n+1]",
+    "f[n]",
+    "g[y]",
+    "h[y]",
+    "ss",
+    "ss",
+    "ff[i]",
+    "ff[i]",
+    "ff[j]",
+    "ff[j]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<i, j>>",
+    "<<j, k>>",
+    "<<i, k>>",
+    "<<f[n+1], f[n]>>",
+    "<<y, x>>",
+    "<<x, x>>",
+    "<<x, y>>",
+    "<<f(ss), f(ss)>>",
+    "<<ss, ss>>",
+    "<<ss, ss>>",
+    "<<ff[j], ff[j]>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "1..n",
+    "1..(j-1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE g : g = [x \\in S |-> Def(g, x)]"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [
+    "NaturalsInduction"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME",
+    "PROVE"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [
+    "ASSUME NEW R, NEW S, NEW T \\in SUBSET S, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(R,T)",
+    "ASSUME NEW S, NEW R, NEW RR, RR \\cap (S \\X S) \\subseteq R, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(RR,S)",
+    "ASSUME NEW R, NEW S, IsWellFoundedOn(R, S), NEW T, T \\subseteq S, T # {} PROVE  \\E x \\in T : \\A y \\in T : ~ (<<y, x>> \\in R)",
+    "ASSUME NEW R, NEW S, \\A T \\in SUBSET S : T # {} => \\E x \\in T : \\A y \\in T : ~ (<<y, x>> \\in R) PROVE  IsWellFoundedOn(R,S)",
+    "ASSUME NEW R, NEW S, NEW x \\in S, IsWellFoundedOn(R, S) PROVE  <<x, x>> \\notin R",
+    "ASSUME NEW R, NEW S, NEW x \\in S, NEW y \\in S, IsWellFoundedOn(R,S), <<x,y>> \\in R, <<y,x>> \\in R PROVE  FALSE",
+    "ASSUME NEW R, NEW S, NEW x \\in S, IsWellFoundedOn(R,S) PROVE  x \\notin SetLessThan(x,R,S)",
+    "ASSUME NEW R, NEW S, NEW x \\in S, NEW y \\in SetLessThan(x,R,S), IsTransitivelyClosedOn(R, S) PROVE  SetLessThan(y, R, S) \\subseteq SetLessThan(x, R, S)",
+    "ASSUME NEW P(_), NEW R, NEW S, IsWellFoundedOn(R, S), \\A x \\in S : (\\A y \\in SetLessThan(x, R, S) : P(y)) => P(x) PROVE  \\A x \\in S : P(x)",
+    "ASSUME NEW Def( *,* ), NEW R, NEW S, IsWellFoundedOn(R, S), WFDefOn(R, S, Def) PROVE  WFInductiveUnique(S, Def)",
+    "ASSUME NEW Def( *,* ), NEW R, NEW S, NEW f, IsWellFoundedOn(R, S), IsTransitivelyClosedOn(R, S), WFDefOn(R, S, Def), OpDefinesFcn(f, S, Def) PROVE  WFInductiveDefines(f, S, Def)",
+    "ASSUME NEW R, NEW S, NEW U \\in SUBSET (S \\X S), R \\cap S \\X S \\subseteq U, IsTransitivelyClosedOn(U,S) PROVE  TransitiveClosureOn(R,S) \\subseteq U",
+    "ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in TransitiveClosureOn(R,S), <<j,k>> \\in TransitiveClosureOn(R,S) PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in TransitiveClosureOn(R,S), <<j,k>> \\in R PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "ASSUME NEW R, NEW S, NEW i \\in S, NEW j \\in S, NEW k \\in S, <<i,j>> \\in R, <<j,k>> \\in TransitiveClosureOn(R,S) PROVE  <<i,k>> \\in TransitiveClosureOn(R,S)",
+    "ASSUME NEW R, NEW S, NEW i \\in S, NEW k \\in S, <<i,k>> \\in TransitiveClosureOn(R,S) PROVE  \\E j \\in S : /\\ <<j,k>> \\in R /\\ i = j / <<i,j>> \\in TransitiveClosureOn(R,S)",
+    "ASSUME NEW R, NEW S, IsWellFoundedOn(R,S) PROVE  IsWellFoundedOn(TransitiveClosureOn(R, S), S)",
+    "ASSUME NEW Def( *,* ), NEW R, NEW S, NEW f, IsWellFoundedOn(R, S), WFDefOn(R, S, Def), OpDefinesFcn(f, S, Def) PROVE  WFInductiveDefines(f, S, Def)",
+    "ASSUME NEW Def( *,* ), NEW f, NEW R, NEW S, NEW T, T # {}, IsWellFoundedOn(R, S), WFDefOn(R, S, Def), WFInductiveDefines(f, S, Def), \\A g \\in [S -> T], s \\in S : Def(g, s) \\in T PROVE  f \\in [S -> T]",
+    "ASSUME NEW S, NEW T, NEW R, NEW f(_), \\A s \\in S : f(s) \\in T, IsWellFoundedOn(R, T) PROVE  IsWellFoundedOn(PreImage(f, S, R), S)",
+    "ASSUME NEW R1, NEW R2, NEW S1, NEW S2, IsWellFoundedOn(R1, S1), IsWellFoundedOn(R2, S2) PROVE  IsWellFoundedOn(LexPairOrdering(R1, R2, S1, S2), S1 \\X S2)",
+    "ASSUME NEW R, NEW S, NEW n \\in Nat, IsWellFoundedOn(R, S) PROVE  IsWellFoundedOn(LexProductOrdering(R, S, n), [1..n -> S])"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

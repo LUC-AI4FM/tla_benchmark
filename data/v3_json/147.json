@@ -1,11 +1,9 @@
 {
   "id": 147,
-  "Specification": "",
+  "Specification": "A model-checking wrapper around Nano.tla. Adds a finite hash-function variable, overrides CalculateHash with a constructive operator, and uses VIEW plus a stutter action to make the blockchain spec tractable in TLC.",
   "ModuleName": "MCNano",
-  "ExtendsModules": [],
-  "InstanceModules": [
-    "Nano"
-  ],
+  "ExtendsModules": ["Naturals", "FiniteSets"],
+  "InstanceModules": ["Nano"],
   "InstanceSubstitutions": [],
   "ConstantNames": [
     "CalculateHash",
@@ -17,15 +15,12 @@
     "GenesisBalance",
     "NoBlockVal"
   ],
-  "VariableNames": [
-    "hashFunction",
-    "lastHash",
-    "distributedLedger",
-    "received"
+  "VariableNames": ["hashFunction", "lastHash", "distributedLedger", "received"],
+  "AssumptionNames": [
+    "/\\ Cardinality(PrivateKey) = Cardinality(PublicKey) /\\ Cardinality(PrivateKey) <= Cardinality(Node) /\\ GenesisBalance \\in Nat"
   ],
-  "AssumptionNames": [],
   "TheoremNames": [
-    "Safety"
+    "Safety == Spec => TypeInvariant /\\ SafetyInvariant"
   ],
   "OperatorDefNames": [
     "Vars",
@@ -44,51 +39,44 @@
     "Spec"
   ],
   "ActionDefNames": [
-    "CalculateHashImpl"
+    "CalculateHashImpl",
+    "StutterWhenHashesDepleted",
+    "Next"
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
-  "LetInNames": [
-    "hash"
-  ],
+  "LetInNames": ["hash"],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
+  "Implication": ["=>"],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
+  "IfThenElse": [
+    "IF \\E hash \\in Hash : hashFunction[hash] = block THEN CHOOSE hash \\in Hash : hashFunction[hash] = block ELSE CHOOSE hash \\in Hash : hashFunction[hash] = N!NoBlock",
+    "IF UndefinedHashesExist THEN N!Next ELSE StutterWhenHashesDepleted"
   ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
     "{N!NoBlock}"
   ],
-  "SetOperators": [
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "Cardinality"
-  ],
+  "SetOperators": ["\\cup"],
+  "FiniteSetOps": ["Cardinality"],
   "FunctionConstructor": [
-    "[hash \\in Hash |-> N!NoBlock]",
     "[PrivateKey -> PublicKey]",
     "[Node -> PrivateKey]",
-    "[Hash -> N!Block \\cup {N!NoBlock}]"
+    "[Hash -> N!Block \\cup {N!NoBlock}]",
+    "[hash \\in Hash |-> N!NoBlock]"
   ],
   "FunctionApplication": [
-    "mapping[…]",
-    "hashFunction[…]"
+    "mapping[privateKey]",
+    "mapping[node]",
+    "hashFunction[hash]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[hashFunction EXCEPT ![hash] = block]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -96,28 +84,20 @@
     "<<distributedLedger, received>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    "<="
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": ["<="],
   "RangeExpr": [],
   "ChoiceExpr": [
-    "CHOOSE mapping \\in [PrivateKey -> PublicKey] :",
-    "CHOOSE mapping \\in [Node -> PrivateKey] :",
+    "CHOOSE mapping \\in [PrivateKey -> PublicKey] : /\\ \\A publicKey \\in PublicKey : /\\ \\E privateKey \\in PrivateKey : /\\ mapping[privateKey] = publicKey",
+    "CHOOSE mapping \\in [Node -> PrivateKey] : /\\ \\A privateKey \\in PrivateKey : /\\ \\E node \\in Node : /\\ mapping[node] = privateKey",
     "CHOOSE hash \\in Hash : hashFunction[hash] = block",
     "CHOOSE hash \\in Hash : hashFunction[hash] = N!NoBlock"
   ],
   "StringLiterals": [],
-  "ArithmeticModules": [],
-  "DataStructureModules": [],
+  "ArithmeticModules": ["Naturals"],
+  "DataStructureModules": ["FiniteSets"],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "hashFunction"
-  ],
+  "PrimedVariables": ["hashFunction", "lastHash", "distributedLedger", "received"],
   "UnchangedExprs": [
     "UNCHANGED hashFunction",
     "UNCHANGED lastHash",
@@ -129,7 +109,7 @@
     "[][Next]_Vars"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_Vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
@@ -138,20 +118,18 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
   "StateConstraint": [],
   "ActionConstraint": [],
-  "ViewExpr": [],
+  "ViewExpr": ["<<distributedLedger, received>>"],
   "OperatorDefNames_StatePredicate": [
-    "KeyPair",
-    "Ownership",
     "UndefinedHashesExist",
-    "HashOf",
     "TypeInvariant",
+    "SafetyInvariant",
     "Init"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -163,10 +141,10 @@
   "OperatorDefNames_ValueDef": [
     "Vars",
     "View",
+    "KeyPair",
+    "Ownership",
     "N",
-    "SafetyInvariant",
-    "StutterWhenHashesDepleted",
-    "Next"
+    "HashOf"
   ],
   "FunctionConstructor_ByDomain": [
     "[hash \\in Hash |-> N!NoBlock]"
@@ -184,7 +162,11 @@
     "UNCHANGED received"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/Nano/MCNano.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "OperatorDefNames_StatePredicate includes UndefinedHashesExist (boolean state predicate), TypeInvariant, SafetyInvariant (both type/safety predicates without primes), and Init.",
+    "Vars, View, N, KeyPair, Ownership, and HashOf placed in OperatorDefNames_ValueDef as they are non-Boolean structural value definitions (tuples, instance handles, CHOOSE-mappings, lookups).",
+    "ActionDefNames covers CalculateHashImpl (uses hashFunction'), StutterWhenHashesDepleted (UNCHANGED conjunction), and Next (action disjunction)."
+  ]
 }

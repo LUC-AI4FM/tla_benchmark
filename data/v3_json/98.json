@@ -9,7 +9,11 @@
   "InstanceModules": [
     "stages"
   ],
-  "InstanceSubstitutions": [],
+  "InstanceSubstitutions": [
+    "template <- sumList(templates)",
+    "hybrid <- sumList(hybrids)",
+    "dna <- sumList(doubles)"
+  ],
   "ConstantNames": [
     "DNA",
     "PRIMER"
@@ -48,7 +52,6 @@
     "Spec",
     "TypeOK",
     "thirdCycleProduct",
-    "stagesInstance",
     "stagesSpec",
     "primerDepleted"
   ],
@@ -80,26 +83,35 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF i < j THEN i ELSE j ",
-    "IF s = <<>> THEN 0 ELSE Head(s) + sumList(Tail(s))"
+    "IF i < j THEN i ELSE j (in natMin)",
+    "IF s = <<>> THEN 0 ELSE Head(s) + sumList(Tail(s)) (in sumList)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
     "{\"Warm\", \"Hot\", \"TooHot\"}",
     "{\"init\",\"ready\",\"annealed\",\"extended\",\"denatured\"}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\X",
+    "\\"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [],
   "FunctionApplication": [
-    "tup[…]"
+    "tup",
+    "tup",
+    "tup"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
-    "<<>>",
-    "<<cycle, primer>>"
+    "<>",
+    "<>",
+    "<>",
+    "<>",
+    "<>",
+    "<< >>"
   ],
   "SequenceOps": [
     "Head",
@@ -107,28 +119,27 @@
   ],
   "ArithmeticOps": [
     "+",
-    "-",
-    "*"
+    "*",
+    "-"
   ],
   "ComparisonOps": [
-    ">",
     "<"
   ],
   "RangeExpr": [
-    "in 1..natMin",
-    "in ((0..longTemplate",
-    "X (0..shortTemplate",
-    "X (0..tinyTemplate"
+    "1..natMin(primer, sumList(templates))",
+    "0..longTemplate",
+    "0..shortTemplate",
+    "0..tinyTemplate"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
     "Hot",
     "TooHot",
+    "Warm",
     "init",
     "extended",
     "denatured",
     "ready",
-    "Warm",
     "annealed"
   ],
   "ArithmeticModules": [
@@ -140,28 +151,30 @@
   "ToolingModules": [],
   "PrimedVariables": [
     "tee",
+    "stage",
+    "cycle",
     "primer",
-    "longLongDouble",
-    "shortLongDouble",
-    "tinyShortDouble",
-    "product",
-    "longHybrid",
-    "shortHybrid",
-    "tinyHybrid",
     "longTemplate",
     "shortTemplate",
     "tinyTemplate",
-    "stage",
-    "cycle"
+    "longHybrid",
+    "shortHybrid",
+    "tinyHybrid",
+    "longLongDouble",
+    "shortLongDouble",
+    "tinyShortDouble",
+    "product"
   ],
   "UnchangedExprs": [
     "UNCHANGED cycle",
-    "UNCHANGED <<cycle, primer>>",
+    "UNCHANGED <>",
     "UNCHANGED doubles",
     "UNCHANGED templates",
     "UNCHANGED hybrids",
     "UNCHANGED primer",
-    "UNCHANGED longLongDouble"
+    "UNCHANGED templates",
+    "UNCHANGED longLongDouble",
+    "UNCHANGED vars"
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
@@ -172,11 +185,9 @@
     "WF_vars(extend)"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_vars"
   ],
-  "EventuallyOp": [
-    "<>> THEN 0 ELSE Head(s) + sumList(Tail(s))"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [
     "WF_vars(anneal)",
@@ -188,7 +199,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -197,14 +208,13 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
     "TypeOK",
     "thirdCycleProduct",
     "primerDepleted"
   ],
   "OperatorDefNames_TemporalProperty": [
-    "sumList",
-    "Spec"
+    "Spec",
+    "stagesSpec"
   ],
   "OperatorDefNames_Init": [
     "Init"
@@ -215,14 +225,17 @@
     "hybrids",
     "doubles",
     "natMin",
-    "Next",
-    "stagesInstance",
-    "stagesSpec"
+    "sumList",
+    "heat",
+    "cool",
+    "anneal",
+    "extend",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [],
   "UnchangedExprs_Explicit": [
-    "UNCHANGED <<cycle, primer>>"
+    "UNCHANGED <>"
   ],
   "UnchangedExprs_VarRef": [
     "UNCHANGED cycle",
@@ -230,10 +243,17 @@
     "UNCHANGED templates",
     "UNCHANGED hybrids",
     "UNCHANGED primer",
-    "UNCHANGED longLongDouble"
+    "UNCHANGED templates",
+    "UNCHANGED longLongDouble",
+    "UNCHANGED vars"
   ],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/pcr/product.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because the Weak Fairness (WF) conditions in the Spec involve nested temporal operators (implicitly []<>).",
+    "Operators heat, cool, anneal, extend, and Next were placed in ValueDef because they contain primed variables and thus do not fit the StatePredicate category, nor do they fit Init or TemporalProperty."
+  ]
 }

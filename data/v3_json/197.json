@@ -1,92 +1,104 @@
 {
   "id": 197,
-  "Specification": "TransitiveClosure",
+  "Specification": "Defines the transitive closure of a relation R (a set of ordered pairs) using five increasingly efficient definitions: TC via paths in Seq(S), TC1 via bounded sequences, TC2 via algebraic composition, TC3 via recursive squaring, TC4 implementing Warshall's algorithm, and TC5 representing relations as Boolean operators. Two ASSUMEs check the definitions agree.",
   "ModuleName": "TransitiveClosure",
-  "ExtendsModules": [
-    "Integers",
-    "Sequences",
-    "FiniteSets",
-    "TLC"
-  ],
+  "ExtendsModules": ["Integers", "Sequences", "FiniteSets", "TLC"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
   "ConstantNames": [],
   "VariableNames": [],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "\\A N \\in 0..3 : \\A R \\in SUBSET ((1..N) \\X (1..N)) : /\\ TC1(R) = TC2(R) /\\ TC2(R) = TC3(R) /\\ TC3(R) = TC4(R)",
+    "\\A N \\in 0..3 : \\A R \\in SUBSET ((1..N) \\X (1..N)) : LET RR(s, t) == <<s, t>> \\in R S == Support(R) IN \\A s, t \\in S : TC5(RR, S, s, t) <=> (<<s, t>> \\in TC1(R))"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "Support",
     "TC",
     "TC1",
-    "S",
-    "ST",
+    "**",
     "TC2",
     "TC3",
     "TC4",
-    "TCR",
-    "RR",
-    "S"
+    "TC5"
   ],
   "ActionDefNames": [],
   "RecursiveOperatorNames": [
+    "Max",
     "TC3",
-    "TCR"
+    "C",
+    "TCR",
+    "CR"
   ],
-  "LocalOperatorNames": [],
+  "LocalOperatorNames": [
+    "S",
+    "BoundedSeq",
+    "SR",
+    "ST",
+    "C",
+    "RR",
+    "TCR",
+    "r",
+    "CR"
+  ],
   "LetInNames": [
     "S",
     "BoundedSeq",
     "SR",
     "ST",
+    "C",
     "RR",
     "TCR",
-    "r"
+    "r",
+    "CR"
   ],
   "LambdaParams": [],
-  "Implication": [
-    "=>",
-    "<=>"
-  ],
+  "Implication": ["<=>"],
   "Negation": [],
-  "BooleanConstants": [
-    "TRUE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "BooleanConstants": ["TRUE"],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [
-    "IF R = {} THEN {} ELSE C[Cardinality(Support(R)) - 1] ",
-    "IF RR \\subseteq R THEN R ELSE TC3(R \\cup RR)"
+    "IF n = 0 THEN R ELSE C[n-1] \\cup (C[n-1] ** R)",
+    "IF R = {} THEN {} ELSE C[Cardinality(Support(R)) - 1]",
+    "IF RR \\subseteq R THEN R ELSE TC3(R \\cup RR)",
+    "IF T = {} THEN R ELSE LET r == CHOOSE s \\in T : TRUE RR == TCR(T \\ {r}) IN RR \\cup {<<s, t>> \\in S \\X S : <<s, r>> \\in RR /\\ <<r, t>> \\in RR}",
+    "IF n = 0 THEN R(s, v) ELSE \\/ CR[n-1, v] \\/ \\E u \\in S : CR[n-1, u] /\\ R(u, v)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{r}"
+    "{}",
+    "{r}",
+    "{n}"
   ],
   "SetOperators": [
     "\\cup",
+    "UNION",
+    "\\X",
     "\\cap",
-    "\\subseteq"
+    "\\subseteq",
+    "\\",
+    "SUBSET"
   ],
   "FiniteSetOps": [
-    "Cardinality",
-    "SUBSET",
-    "UNION"
+    "Cardinality"
   ],
   "FunctionConstructor": [
     "[1..i -> S]"
   ],
   "FunctionApplication": [
-    "r[…]",
-    "p[…]",
-    "C[…]",
-    "CR[…]"
+    "r[1]",
+    "r[2]",
+    "p[1]",
+    "p[Len(p)]",
+    "p[i]",
+    "p[i+1]",
+    "C[n-1]",
+    "C[Cardinality(Support(R)) - 1]",
+    "CR[n-1, v]",
+    "CR[n-1, u]",
+    "CR[Cardinality(S)-1, t]"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [],
@@ -98,41 +110,23 @@
     "<<r, s>>",
     "<<s, r>>"
   ],
-  "SequenceOps": [
-    "Len"
-  ],
-  "ArithmeticOps": [
-    "+",
-    "-",
-    "*"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    "<="
-  ],
+  "SequenceOps": ["Seq", "Len"],
+  "ArithmeticOps": ["+", "-"],
+  "ComparisonOps": [">"],
   "RangeExpr": [
-    "in  1..(",
-    "1..i",
-    "in 0..n",
-    "in 0..3",
-    "in SUBSET ((1..N",
-    "X (1..N"
+    "1..(Len(p)-1)",
+    "0..n",
+    "0..3",
+    "1..N",
+    "1..i"
   ],
   "ChoiceExpr": [
     "CHOOSE s \\in T : TRUE"
   ],
   "StringLiterals": [],
-  "ArithmeticModules": [
-    "Integers"
-  ],
-  "DataStructureModules": [
-    "Sequences",
-    "FiniteSets"
-  ],
-  "ToolingModules": [
-    "TLC"
-  ],
+  "ArithmeticModules": ["Integers"],
+  "DataStructureModules": ["Sequences", "FiniteSets"],
+  "ToolingModules": ["TLC"],
   "PrimedVariables": [],
   "UnchangedExprs": [],
   "EnabledExprs": [],
@@ -145,7 +139,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -153,21 +147,18 @@
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "TC",
-    "TC1",
-    "S",
-    "ST",
-    "TC2",
-    "TC3",
-    "TC4",
-    "TCR",
-    "RR"
-  ],
+  "OperatorDefNames_StatePredicate": [],
   "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
-    "Support"
+    "Support",
+    "TC",
+    "TC1",
+    "**",
+    "TC2",
+    "TC3",
+    "TC4",
+    "TC5"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
@@ -177,8 +168,11 @@
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
   "CorpusSource": "specifications/TransitiveClosure/TransitiveClosure.tla",
-  "VerificationTools": [
-    "TLC"
-  ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "All operators (Support, TC, TC1, **, TC2, TC3, TC4, TC5) define non-Boolean structural values (sets/relations) and contain no primed variables, so they go in OperatorDefNames_ValueDef.",
+    "There are no Init operators, no temporal properties, and no Boolean state predicates that fit the StatePredicate category at module level.",
+    "TemporalNesting is false: the module contains no temporal operators at all.",
+    "The module is checked via TLC ASSUME equivalence checks; no TLAPS proofs are present in the file."
+  ]
 }

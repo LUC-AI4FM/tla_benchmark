@@ -13,22 +13,24 @@
     "Proc",
     "d0",
     "SendPoint",
-    "PredictPoint"
+    "PredictPoint",
+    "Messages"
   ],
   "VariableNames": [
     "suspected",
     "delta",
     "fromLastHeard",
     "localClock",
-    "outgoingMessages",
-    "vars"
+    "outgoingMessages"
   ],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "/\\ 0 < PredictPoint /\\ 0 < SendPoint /\\ PredictPoint % SendPoint # 0 /\\ SendPoint % PredictPoint # 0"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
-    "vars",
     "NULL",
     "MakeAliveMsgsForAll",
+    "vars",
     "Init",
     "LocallyTick",
     "SendAlive",
@@ -61,34 +63,56 @@
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
-  "CaseExpr": [],
-  "SetEnumeration": [],
-  "SetOperators": [
-    "\\notin",
-    "\\cup"
+  "IfThenElse": [
+    "IF /\\ \\A j \\in Proc : delta[i][j] < localClock[i] /\\ SendPoint < localClock[i] /\\ PredictPoint < localClock[i] THEN 0 ELSE localClock[i] + 1",
+    "IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j]",
+    "IF \\E m \\in incomingMessages : m.from = j THEN 0 ELSE IF j \\notin suspected[i] THEN IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j] ELSE fromLastHeard[i][j]",
+    "IF /\\ j \\in suspected[i] /\\ \\E m \\in incomingMessages : m.from = j THEN delta[i][j] + 1 ELSE delta[i][j]"
   ],
-  "FiniteSetOps": [
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{ [from |-> snder, to |-> rcver, type |-> \"alive\"] : rcver \\in Proc }",
+    "{ j \\in Proc : (\\E msg \\in incomingMessages : msg.from = j) }",
+    "{ j \\in Proc : fromLastHeard[i][j] > delta[i][j] }"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\",
     "SUBSET"
   ],
+  "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ i \\in Proc |-> {} ]",
-    "[ j \\in Proc |-> d0 ]",
-    "[ j \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> 0 ]",
-    "[ Proc -> Int ]",
-    "[ Proc -> SUBSET Proc ]",
-    "[ Proc -> SUBSET Messages ]"
+    "[i \\in Proc |-> {}]",
+    "[i \\in Proc |-> [j \\in Proc |-> d0]]",
+    "[i \\in Proc |-> [j \\in Proc |-> 0]]",
+    "[i \\in Proc |-> 0]",
+    "[j \\in Proc |-> IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j]]",
+    "[j \\in Proc |-> IF \\E m \\in incomingMessages : m.from = j THEN 0 ELSE IF j \\notin suspected[i] THEN IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j] ELSE fromLastHeard[i][j]]",
+    "[j \\in Proc |-> IF /\\ j \\in suspected[i] /\\ \\E m \\in incomingMessages : m.from = j THEN delta[i][j] + 1 ELSE delta[i][j]]",
+    "[Proc -> [Proc -> Int]]",
+    "[Proc -> SUBSET Proc]",
+    "[Proc -> SUBSET Messages]"
   ],
   "FunctionApplication": [
-    "delta[…]",
-    "localClock[…]",
-    "fromLastHeard[…]",
-    "suspected[…]"
+    "localClock[i]",
+    "delta[i][j]",
+    "fromLastHeard[i][j]",
+    "fromLastHeard[p][q]",
+    "suspected[i]",
+    "outgoingMessages[i]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[localClock EXCEPT ![i] = IF /\\ \\A j \\in Proc : delta[i][j] < localClock[i] /\\ SendPoint < localClock[i] /\\ PredictPoint < localClock[i] THEN 0 ELSE localClock[i] + 1]",
+    "[outgoingMessages EXCEPT ![i] = MakeAliveMsgsForAll(i)]",
+    "[fromLastHeard EXCEPT ![i] = [j \\in Proc |-> IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j]]]",
+    "[fromLastHeard EXCEPT ![i] = [j \\in Proc |-> IF \\E m \\in incomingMessages : m.from = j THEN 0 ELSE IF j \\notin suspected[i] THEN IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j] ELSE fromLastHeard[i][j]]]",
+    "[delta EXCEPT ![i] = [j \\in Proc |-> IF /\\ j \\in suspected[i] /\\ \\E m \\in incomingMessages : m.from = j THEN delta[i][j] + 1 ELSE delta[i][j]]]",
+    "[suspected EXCEPT ![i] = suspected[i] \\ { j \\in Proc : (\\E msg \\in incomingMessages : msg.from = j) }]",
+    "[suspected EXCEPT ![i] = suspected[i] \\cup { j \\in Proc : fromLastHeard[i][j] > delta[i][j] }]"
+  ],
   "RecordConstructor": [
-    "[ from |-> snder, to |-> rcver, type |-> \"alive\" ]"
+    "[from |-> snder, to |-> rcver, type |-> \"alive\"]"
   ],
   "RecordAccess": [
     "m.from",
@@ -101,14 +125,14 @@
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
+    "%",
     "+",
-    "-",
-    "%"
+    "-"
   ],
   "ComparisonOps": [
-    ">",
     "<",
-    "<="
+    "<=",
+    ">"
   ],
   "RangeExpr": [],
   "ChoiceExpr": [],
@@ -146,7 +170,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -155,7 +179,6 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
     "TypeOK"
   ],
   "OperatorDefNames_TemporalProperty": [],
@@ -163,20 +186,27 @@
     "Init"
   ],
   "OperatorDefNames_ValueDef": [
-    "vars",
     "NULL",
-    "MakeAliveMsgsForAll"
+    "MakeAliveMsgsForAll",
+    "vars",
+    "LocallyTick",
+    "SendAlive",
+    "Receive",
+    "Predict"
   ],
   "FunctionConstructor_ByDomain": [
-    "[ i \\in Proc |-> {} ]",
-    "[ j \\in Proc |-> d0 ]",
-    "[ j \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> 0 ]"
+    "[i \\in Proc |-> {}]",
+    "[i \\in Proc |-> [j \\in Proc |-> d0]]",
+    "[i \\in Proc |-> [j \\in Proc |-> 0]]",
+    "[i \\in Proc |-> 0]",
+    "[j \\in Proc |-> IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j]]",
+    "[j \\in Proc |-> IF \\E m \\in incomingMessages : m.from = j THEN 0 ELSE IF j \\notin suspected[i] THEN IF fromLastHeard[i][j] <= delta[i][j] THEN fromLastHeard[i][j] + 1 ELSE fromLastHeard[i][j] ELSE fromLastHeard[i][j]]",
+    "[j \\in Proc |-> IF /\\ j \\in suspected[i] /\\ \\E m \\in incomingMessages : m.from = j THEN delta[i][j] + 1 ELSE delta[i][j]]"
   ],
   "FunctionConstructor_SetType": [
-    "[ Proc -> Int ]",
-    "[ Proc -> SUBSET Proc ]",
-    "[ Proc -> SUBSET Messages ]"
+    "[Proc -> [Proc -> Int]]",
+    "[Proc -> SUBSET Proc]",
+    "[Proc -> SUBSET Messages]"
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED << suspected, delta >>",
@@ -186,7 +216,11 @@
     "UNCHANGED outgoingMessages"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/EPFailureDetector/EPFailureDetector.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "The operators LocallyTick, SendAlive, Receive, and Predict were placed in OperatorDefNames_ValueDef because they are action definitions containing primed variables and do not fit into StatePredicate, TemporalProperty, or Init."
+  ]
 }

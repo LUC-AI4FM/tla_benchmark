@@ -1,25 +1,12 @@
 {
   "id": 150,
-  "Specification": "",
+  "Specification": "Parameterized TLA+ encoding of Guerraoui 2001's failure-sensitive non-blocking atomic commitment with a perfect failure detector. Counts YES/NO messages from correct vs faulty processes; verifies agreement, abort/commit validity, and termination under weak fairness.",
   "ModuleName": "nbacg_guer01",
-  "ExtendsModules": [
-    "Naturals",
-    "FiniteSets"
-  ],
+  "ExtendsModules": ["Naturals", "FiniteSets"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "N"
-  ],
-  "VariableNames": [
-    "nSntNo",
-    "nSntYes",
-    "nSntNoF",
-    "nSntYesF",
-    "nRcvdYes",
-    "nRcvdNo",
-    "someFail"
-  ],
+  "ConstantNames": ["N"],
+  "VariableNames": ["nSntNo", "nSntYes", "nSntNoF", "nSntYesF", "nRcvdYes", "nRcvdNo", "someFail", "pc"],
   "AssumptionNames": [],
   "TheoremNames": [],
   "OperatorDefNames": [
@@ -60,34 +47,22 @@
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
+  "Implication": ["=>"],
+  "Negation": ["~"],
+  "BooleanConstants": ["FALSE", "TRUE"],
+  "Quantifiers": ["\\E", "\\A"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
+  "IfThenElse": [
+    "IF pc[i] = \"YES\" THEN nSntYesF' = nSntYesF + 1 ELSE nSntYesF' = nSntYesF",
+    "IF pc[i] = \"NO\" THEN nSntNoF' = nSntNoF + 1 ELSE nSntNoF' = nSntNoF"
   ],
-  "Negation": [
-    "~"
-  ],
-  "BooleanConstants": [
-    "TRUE",
-    "FALSE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{\"YES\", \"NO\", \"SENT\", \"ABORT\", \"COMMIT\", \"BYZ\"}",
-    "{\"NO\", \"YES\"}",
-    "{\"YES\"}",
-    "{\"NO\"}"
+    "{ \"YES\", \"NO\", \"SENT\", \"ABORT\", \"COMMIT\", \"BYZ\" }",
+    "{ \"NO\", \"YES\" }",
+    "{ \"YES\" }",
+    "{ \"NO\" }"
   ],
   "SetOperators": [],
   "FiniteSetOps": [],
@@ -102,12 +77,20 @@
     "[ Proc -> Status ]"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "nRcvdYes[…]",
-    "nRcvdNo[…]",
-    "someFail[…]"
+    "pc[i]",
+    "nRcvdYes[i]",
+    "nRcvdNo[i]",
+    "someFail[i]",
+    "pc[j]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[ pc EXCEPT ![i] = \"BYZ\" ]",
+    "[ nRcvdYes EXCEPT ![i] = nRcvdYes[i] + 1 ]",
+    "[ nRcvdNo EXCEPT ![i] = nRcvdNo[i] + 1 ]",
+    "[ pc EXCEPT ![i] = \"SENT\" ]",
+    "[ pc EXCEPT ![i] = \"ABORT\" ]",
+    "[ pc EXCEPT ![i] = \"COMMIT\" ]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -120,35 +103,18 @@
     "<< nSntNo, nSntYes, nSntYesF, nSntNoF, nRcvdNo, nRcvdYes, someFail >>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">="
-  ],
+  "ArithmeticOps": ["+"],
+  "ComparisonOps": ["<", ">", ">="],
   "RangeExpr": [
-    "1 .. ",
-    "in 0..N",
-    "0..("
+    "1 .. N",
+    "0..N",
+    "0..(nSntYes + nSntYesF)",
+    "0..(nSntNo + nSntNoF)"
   ],
   "ChoiceExpr": [],
-  "StringLiterals": [
-    "YES",
-    "NO",
-    "SENT",
-    "ABORT",
-    "COMMIT",
-    "BYZ"
-  ],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [
-    "FiniteSets"
-  ],
+  "StringLiterals": ["YES", "NO", "SENT", "ABORT", "COMMIT", "BYZ"],
+  "ArithmeticModules": ["Naturals"],
+  "DataStructureModules": ["FiniteSets"],
   "ToolingModules": [],
   "PrimedVariables": [
     "pc",
@@ -170,25 +136,28 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Proc : \\/ Receive(self) \\/ SendYes(self) \\/ SendNo(self) \\/ AbortNoYes(self) \\/ AbortSent(self) \\/ Commit(self))"
   ],
   "AlwaysOp": [
-    "[][Next]",
+    "[][Next]_vars",
     "[](~(\\E i \\in Proc, j \\in Proc :  pc[i] = \"COMMIT\" /\\ pc[j] = \"ABORT\"))",
     "[](\\A i \\in Proc : pc[i] # \"COMMIT\")",
     "[](\\A i \\in Proc : pc[i] = \"BYZ\" \\/ pc[i] # \"ABORT\")",
-    "[](\\A i \\in Proc : pc[i] # \"BYZ\" /\\ someFail[i] = FALSE)) => <>(\\A i \\in Proc : pc[i] = \"COMMIT\" \\/ pc[i] = \"ABORT\")"
+    "[](\\A i \\in Proc : pc[i] # \"BYZ\" /\\ someFail[i] = FALSE)"
   ],
   "EventuallyOp": [
     "<>(\\A i \\in Proc : pc[i] = \"COMMIT\" \\/ pc[i] = \"ABORT\")"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Proc : \\/ Receive(self) \\/ SendYes(self) \\/ SendNo(self) \\/ AbortNoYes(self) \\/ AbortSent(self) \\/ Commit(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -200,7 +169,6 @@
     "Init",
     "InitYes",
     "InitNo",
-    "Next",
     "TypeOK"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -245,8 +213,12 @@
   "UnchangedExprs_VarRef": [
     "UNCHANGED vars"
   ],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/NonBlockingAtomicCommit/nbacg_guer01.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "TemporalNesting set to true: TerminationLtl nests <> inside [] via the form ([] X) => <> Y, and CommitValidityLtl/AbortValidityLtl have similar nested structures.",
+    "Action operators (Crash, Receive, SendYes, SendNo, AbortNoYes, AbortSent, Commit, Next) excluded from OperatorDefNames_ValueDef per partition rule.",
+    "Three Spec variants (Spec, SpecYes, SpecNo) classified as TemporalProperty since they conjoin [][Next]_vars with fairness."
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "id": 106,
-  "Specification": "A utility module providing common set and sequence operations. It defines operators for checking set intersection, finding minimum and maximum elements in a set, reducing sets and sequences via a binary operator, and finding the index of an element within a sequence.",
+  "Specification": "A utility module providing common set and sequence operations. It defines operators for checking set intersection, finding minimum and maximum elements in a set, reducing sets and sequences via a binary operator, finding the index of an element within a sequence, generating permutations, and a test helper that prints failing assertions.",
   "ModuleName": "Util",
   "ExtendsModules": [
     "Sequences",
@@ -18,6 +18,8 @@
     "intersects",
     "max",
     "min",
+    "ReduceSet",
+    "ReduceSeq",
     "Index",
     "SeqToSet",
     "Last",
@@ -29,9 +31,16 @@
   ],
   "ActionDefNames": [],
   "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [
+  "LocalOperatorNames": [
+    "iter",
     "x",
+    "perms",
+    "ps"
+  ],
+  "LetInNames": [
+    "iter",
+    "x",
+    "perms",
     "ps"
   ],
   "LambdaParams": [
@@ -58,27 +67,38 @@
   "MembershipOps": [
     "\\in"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF s = {} THEN base ELSE LET x == CHOOSE x \\in s: TRUE IN op(x, iter[s \\ {x}])",
+    "IF ss = {} THEN { << >> } ELSE LET ps == [ x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] } ] IN UNION { ps[x] : x \\in ss }"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{x}",
-    "{<< >>}"
+    "{}",
+    "{<< >>}",
+    "{x}"
   ],
   "SetOperators": [
     "\\cap",
-    "\\intersect"
+    "\\intersect",
+    "DOMAIN",
+    "\\"
   ],
   "FiniteSetOps": [
     "SUBSET",
     "UNION"
   ],
-  "FunctionConstructor": [],
+  "FunctionConstructor": [
+    "[ x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] } ]"
+  ],
   "FunctionApplication": [
-    "iter[…]",
-    "seq[…]",
-    "s[…]",
-    "perms[…]",
-    "ps[…]"
+    "iter[s \\ {x}]",
+    "iter[set]",
+    "seq[i]",
+    "seq[Len(seq)]",
+    "perms[ss \\ {x}]",
+    "perms[S]",
+    "ps[x]",
+    "s[i]"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [],
@@ -88,19 +108,17 @@
     "<<lhs, \" IS NOT \", rhs>>"
   ],
   "SequenceOps": [
-    "Append",
     "Len",
+    "Append",
     "SelectSeq"
   ],
-  "ArithmeticOps": [
-    "-"
-  ],
+  "ArithmeticOps": [],
   "ComparisonOps": [
     ">",
     "<"
   ],
   "RangeExpr": [
-    "in 1..Len"
+    "1..Len(seq)"
   ],
   "ChoiceExpr": [
     "CHOOSE i \\in s : (~\\E j \\in s : j > i)",
@@ -133,7 +151,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -143,27 +161,40 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "intersects",
-    "max",
-    "min",
-    "Index",
     "IsEmpty",
-    "Remove",
-    "INTERSECTION",
-    "PermSeqs",
     "test"
   ],
   "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
+    "max",
+    "min",
+    "ReduceSet",
+    "ReduceSeq",
+    "Index",
     "SeqToSet",
-    "Last"
+    "Last",
+    "Remove",
+    "INTERSECTION",
+    "PermSeqs"
   ],
-  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_ByDomain": [
+    "[ x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] } ]"
+  ],
   "FunctionConstructor_SetType": [],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/KeyValueStore/Util.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "intersects (a \\cap b # {}) and IsEmpty (Len = 0) are non-temporal Boolean predicates -> StatePredicate.",
+    "test returns the result of Print(...) which TLC evaluates as a Boolean side-effect -> StatePredicate.",
+    "max, min, Index, SeqToSet, Last, Remove, INTERSECTION, PermSeqs return values (set elements, indices, sequences, sets) -> ValueDef.",
+    "ReduceSet and ReduceSeq are higher-order operators returning a value (the fold accumulator) -> ValueDef.",
+    "Util has no Init/Next/Spec; ActionDefNames is empty.",
+    "VerificationTools includes TLC because Print and Assert (TLC operators) are used and TLC is in EXTENDS."
+  ]
 }

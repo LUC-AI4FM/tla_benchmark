@@ -47,7 +47,6 @@
     "DeadlockFreedom"
   ],
   "ActionDefNames": [
-    "Init",
     "Li0",
     "Li1",
     "Li2",
@@ -62,8 +61,7 @@
     "Li6",
     "ncs",
     "P",
-    "Next",
-    "MutualExclusion"
+    "Next"
   ],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
@@ -91,15 +89,21 @@
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF k # self THEN /\\ pc' = [pc EXCEPT ![self] = \"Li2\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4a\"]",
+    "IF b[temp[self]] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li3c\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li3d\"]",
+    "IF temp[self] # {} THEN /\\ \\E j \\in temp[self] : /\\ temp' = [temp EXCEPT ![self] = temp[self] \\ {j}] /\\ IF ~c[j] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4b\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"] /\\ temp' = temp",
+    "IF ~c[j] THEN /\\ pc' = [pc EXCEPT ![self] = \"Li1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Li4b\"]"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
     "{self}",
     "{j}",
+    "{}",
     "{\"Li5\", \"Li6\", \"ncs\"}"
   ],
   "SetOperators": [
-    "\\notin"
+    "\\"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
@@ -108,11 +112,35 @@
     "[self \\in ProcSet |-> \"Li0\"]"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "temp[…]",
-    "c[…]"
+    "pc[self]",
+    "pc[i]",
+    "pc[j]",
+    "b[temp[self]]",
+    "c[j]",
+    "temp[self]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[b EXCEPT ![self] = FALSE]",
+    "[b EXCEPT ![self] = TRUE]",
+    "[c EXCEPT ![self] = TRUE]",
+    "[c EXCEPT ![self] = FALSE]",
+    "[temp EXCEPT ![self] = k]",
+    "[temp EXCEPT ![self] = Proc \\ {self}]",
+    "[temp EXCEPT ![self] = temp[self] \\ {j}]",
+    "[pc EXCEPT ![self] = \"Li0\"]",
+    "[pc EXCEPT ![self] = \"Li1\"]",
+    "[pc EXCEPT ![self] = \"Li2\"]",
+    "[pc EXCEPT ![self] = \"Li3a\"]",
+    "[pc EXCEPT ![self] = \"Li3b\"]",
+    "[pc EXCEPT ![self] = \"Li3c\"]",
+    "[pc EXCEPT ![self] = \"Li3d\"]",
+    "[pc EXCEPT ![self] = \"Li4a\"]",
+    "[pc EXCEPT ![self] = \"Li4b\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[pc EXCEPT ![self] = \"Li5\"]",
+    "[pc EXCEPT ![self] = \"Li6\"]",
+    "[pc EXCEPT ![self] = \"ncs\"]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -125,24 +153,19 @@
     "<< b, k >>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [
     "Li0",
     "Li1",
     "Li2",
-    "Li4a",
     "Li3a",
     "Li3b",
     "Li3c",
     "Li3d",
+    "Li4a",
     "Li4b",
     "cs",
     "Li5",
@@ -156,10 +179,10 @@
   "ToolingModules": [],
   "PrimedVariables": [
     "b",
-    "pc",
     "c",
-    "temp",
-    "k"
+    "k",
+    "pc",
+    "temp"
   ],
   "UnchangedExprs": [
     "UNCHANGED << c, k, temp >>",
@@ -171,18 +194,20 @@
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(P(self))",
+    "WF_vars((pc[self] # \"ncs\") /\\ P(self))"
   ],
-  "AlwaysOp": [
-    "[][Next]"
-  ],
+  "AlwaysOp": [],
   "EventuallyOp": [],
   "LeadsToOp": [
     "(pc[i] = \"Li0\") ~> (\\E j \\in Proc : pc[j] = \"cs\")",
     "(pc[i] = \"Li0\") ~> (pc[i] = \"cs\")",
     "(pc[i] \\notin {\"Li5\", \"Li6\", \"ncs\"}) ~> (\\E j \\in Proc : pc[j] = \"cs\")"
   ],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(P(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
@@ -198,8 +223,6 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
-    "Next",
     "MutualExclusion"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -214,8 +237,7 @@
   ],
   "OperatorDefNames_ValueDef": [
     "vars",
-    "ProcSet",
-    "P"
+    "ProcSet"
   ],
   "FunctionConstructor_ByDomain": [
     "[i \\in Proc |-> TRUE]",
@@ -233,7 +255,13 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/DijkstraMutex/DijkstraMutex.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "vars and ProcSet are non-Boolean structural value defs (tuple and set), placed in OperatorDefNames_ValueDef.",
+    "Spec, LSpec are temporal because they conjoin [][Next]_vars; DeadlockFree, StarvationFree, DeadlockFreedom use leads-to (~>).",
+    "TemporalNesting is false: ~> is a top-level temporal operator with no nested temporal sub-formula in its operands."
+  ]
 }

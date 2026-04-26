@@ -16,7 +16,9 @@
     "T",
     "d0",
     "SendPoint",
-    "PredictPoint"
+    "PredictPoint",
+    "DELTA",
+    "PHI"
   ],
   "VariableNames": [
     "inTransit",
@@ -27,9 +29,13 @@
     "localClock",
     "outgoingMessages",
     "procPause",
-    "moved"
+    "moved",
+    "failed",
+    "F"
   ],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "/\\ 0 < PredictPoint /\\ 0 < SendPoint /\\ PredictPoint % SendPoint # 0 /\\ SendPoint % PredictPoint # 0"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "Proc",
@@ -64,9 +70,6 @@
     "Crash",
     "EnvTick",
     "ProcTick",
-    "PHIConstraint",
-    "PHIConstraint1",
-    "DELTAConstraint",
     "Next"
   ],
   "RecursiveOperatorNames": [],
@@ -74,8 +77,7 @@
   "LetInNames": [],
   "LambdaParams": [],
   "Implication": [
-    "=>",
-    "<=>"
+    "=>"
   ],
   "Negation": [],
   "BooleanConstants": [
@@ -88,50 +90,67 @@
   ],
   "EqualityOps": [
     "=",
-    "#"
+    "#",
+    "<=>"
   ],
   "MembershipOps": [
     "\\in",
     "\\notin"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
     "{\"alive\"}",
     "{\"NO\", \"INIT\", \"SEND\", \"RECEIVE\", \"PREDICT\", \"CRASH\"}",
-    "{-1}"
+    "{-1}",
+    "{m \\in msgs : failed[m.to] = FALSE}"
   ],
   "SetOperators": [
-    "\\cup",
-    "\\notin"
+    "\\cup"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"INIT\" ]",
-    "[ i \\in Proc |-> FALSE ]",
-    "[ i \\in Proc |-> \"NO\" ]",
-    "[ Proc -> { -1 } \\cup 0..PHI ]",
-    "[ Proc -> BOOLEAN ]",
-    "[ Proc -> Actions]"
+    "[from : Proc, to : Proc, type : {\"alive\"}]",
+    "[content : Messages, age : Int]",
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> \"INIT\"]",
+    "[i \\in Proc |-> FALSE]",
+    "[i \\in Proc |-> \"NO\"]",
+    "[i \\in Proc |-> IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1]",
+    "[Proc -> {-1} \\cup 0..PHI]",
+    "[Proc -> BOOLEAN]",
+    "[Proc -> Actions]"
   ],
   "FunctionApplication": [
-    "failed[…]",
-    "moved[…]",
-    "procPause[…]",
-    "delta[…]",
-    "fromLastHeard[…]",
-    "suspected[…]"
+    "failed[i]",
+    "failed[j]",
+    "failed[m.to]",
+    "moved[p]",
+    "moved[i]",
+    "procPause[i]",
+    "suspected[i]",
+    "delta[i][j]",
+    "fromLastHeard[i][j]"
   ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
+  "FunctionOverride": [
+    "[failed EXCEPT ![i] = TRUE]",
+    "[moved EXCEPT ![i] = \"CRASH\"]",
+    "[procPause EXCEPT ![i] = -1]"
+  ],
+  "RecordConstructor": [
+    "[from : Proc, to : Proc, type : {\"alive\"}]",
+    "[content : Messages, age : Int]"
+  ],
   "RecordAccess": [
     "m.to",
-    "m.content",
+    "m.content.to",
     "m.age",
     "box.age"
   ],
   "TupleConstructor": [
+    "<< inTransit, inDelivery, suspected, delta, fromLastHeard, localClock, outgoingMessages, procPause, moved, failed, F >>",
     "<< inTransit, inDelivery >>",
     "<< suspected, delta, fromLastHeard, localClock, outgoingMessages >>",
     "<< procPause, moved, failed, F >>",
@@ -139,21 +158,20 @@
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "+",
-    "-",
-    "*",
+    "%",
     "\\div",
-    "%"
+    "*",
+    "+",
+    "-"
   ],
   "ComparisonOps": [
-    ">",
     "<",
     "<="
   ],
   "RangeExpr": [
     "1..N",
-    "cup 0..PHI",
-    "in 0..T"
+    "0..PHI",
+    "0..T"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -173,40 +191,42 @@
     "TLC"
   ],
   "PrimedVariables": [
-    "failed",
-    "F",
-    "moved",
-    "procPause",
-    "outgoingMessages",
+    "inTransit",
     "inDelivery",
-    "inTransit"
+    "suspected",
+    "delta",
+    "fromLastHeard",
+    "localClock",
+    "outgoingMessages",
+    "procPause",
+    "moved",
+    "failed",
+    "F"
   ],
   "UnchangedExprs": [
     "UNCHANGED chanVars",
     "UNCHANGED procVars",
-    "UNCHANGED << failed, F >>",
-    "UNCHANGED envVars"
+    "UNCHANGED << failed, F >>"
   ],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][ Next ]_vars"
+    "[][ Next ]_vars",
+    "WF_vars( /\\ / EnvTick / ProcTick /\\ DELTAConstraint /\\ PHIConstraint )"
   ],
-  "AlwaysOp": [
-    "[][ Next ]",
-    "[] ( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE",
-    "[] ( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE)"
-  ],
+  "AlwaysOp": [],
   "EventuallyOp": [
-    "<>[] ( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE",
-    "<>[] ( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE)"
+    "<>[]( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE \\/ j \\in suspected[i] ) )",
+    "<>[]( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE) => j \\notin suspected[i] )"
   ],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars( /\\ / EnvTick / ProcTick /\\ DELTAConstraint /\\ PHIConstraint )"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -215,7 +235,6 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Init",
     "SomeLocallyTicked",
     "TypeOK"
   ],
@@ -241,30 +260,44 @@
     "procVars",
     "envVars",
     "Actions",
+    "Crash",
+    "EnvTick",
     "OnlyMessagesForCorrectProcesses",
+    "ProcTick",
+    "PHIConstraint",
+    "PHIConstraint1",
+    "DELTAConstraint",
     "Next"
   ],
   "FunctionConstructor_ByDomain": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"INIT\" ]",
-    "[ i \\in Proc |-> FALSE ]",
-    "[ i \\in Proc |-> \"NO\" ]"
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> \"INIT\"]",
+    "[i \\in Proc |-> FALSE]",
+    "[i \\in Proc |-> \"NO\"]",
+    "[i \\in Proc |-> IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1]"
   ],
   "FunctionConstructor_SetType": [
-    "[ Proc -> { -1 } \\cup 0..PHI ]",
-    "[ Proc -> BOOLEAN ]",
-    "[ Proc -> Actions]"
+    "[from : Proc, to : Proc, type : {\"alive\"}]",
+    "[content : Messages, age : Int]",
+    "[Proc -> {-1} \\cup 0..PHI]",
+    "[Proc -> BOOLEAN]",
+    "[Proc -> Actions]"
   ],
   "UnchangedExprs_Explicit": [
     "UNCHANGED << failed, F >>"
   ],
   "UnchangedExprs_VarRef": [
     "UNCHANGED chanVars",
-    "UNCHANGED procVars",
-    "UNCHANGED envVars"
+    "UNCHANGED procVars"
   ],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/EnvironmentController/EnvironmentController.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true due to the use of eventually-always (<>[]) in StrongCompleteness and EventuallyStrongAccuracy.",
+    "Actions (Crash, EnvTick, ProcTick, Next) and action-level constraints (PHIConstraint, PHIConstraint1, DELTAConstraint) were placed in OperatorDefNames_ValueDef because they contain primed variables and are not state predicates.",
+    "OnlyMessagesForCorrectProcesses was placed in OperatorDefNames_ValueDef because it returns a set rather than a Boolean value."
+  ]
 }
