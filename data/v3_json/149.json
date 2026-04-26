@@ -1,23 +1,13 @@
 {
   "id": 149,
-  "Specification": "",
+  "Specification": "TLA+ encoding of Raynal's 1997 non-blocking atomic commitment algorithm with crash failures and a failure-detector. Processes vote YES or NO; commits only if all vote YES and no process is suspected. Verifies validity under weak fairness.",
   "ModuleName": "nbacc_ray97",
-  "ExtendsModules": [
-    "Naturals",
-    "FiniteSets"
-  ],
+  "ExtendsModules": ["Naturals", "FiniteSets"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "N"
-  ],
-  "VariableNames": [
-    "pc",
-    "rcvd",
-    "sent",
-    "fd"
-  ],
-  "AssumptionNames": [],
+  "ConstantNames": ["N"],
+  "VariableNames": ["pc", "rcvd", "sent", "fd"],
+  "AssumptionNames": ["N \\in Nat"],
   "TheoremNames": [],
   "OperatorDefNames": [
     "Proc",
@@ -53,56 +43,51 @@
   "LambdaParams": [],
   "Implication": [],
   "Negation": [],
-  "BooleanConstants": [
-    "TRUE",
-    "FALSE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "BooleanConstants": ["FALSE", "TRUE"],
+  "Quantifiers": ["\\E", "\\A"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{\"YES\", \"NO\"}",
-    "{<<self, \"YES\">>}",
-    "{<<self, \"NO\">>}",
+    "{ \"YES\", \"NO\" }",
+    "{ <<self, \"YES\">> }",
+    "{ <<self, \"NO\">> }",
+    "{ p \\in Proc : ( \\E msg \\in rcvd'[self] : msg[1] = p /\\ msg[2] = \"YES\") }",
+    "{}",
     "{FALSE, TRUE}",
     "{TRUE}",
     "{\"NO\", \"YES\", \"ABORT\", \"COMMIT\", \"SENT\", \"CRASH\"}"
   ],
-  "SetOperators": [
-    "\\subseteq",
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
+  "SetOperators": ["SUBSET", "\\times", "\\subseteq", "\\cup"],
+  "FiniteSetOps": [],
   "FunctionConstructor": [
     "[ i \\in Proc |-> {} ]",
-    "[ i \\in Proc |-> {TRUE} ]",
     "[ Proc -> {\"YES\", \"NO\"} ]",
     "[ Proc -> {FALSE, TRUE} ]",
+    "[ Proc |-> \"YES\" ]",
+    "[ i \\in Proc |-> {TRUE} ]",
     "[ Proc -> {\"NO\", \"YES\", \"ABORT\", \"COMMIT\", \"SENT\", \"CRASH\"} ]",
     "[ Proc -> SUBSET (Proc \\times M) ]",
     "[ Proc -> BOOLEAN ]"
   ],
   "FunctionApplication": [
-    "rcvd[…]",
-    "pc[…]",
-    "msg[…]"
+    "rcvd[self]",
+    "pc[self]",
+    "msg[2]",
+    "msg[1]",
+    "pc[i]"
   ],
-  "FunctionOverride": [],
-  "RecordConstructor": [
-    "[ Proc |-> \"YES\" ]"
+  "FunctionOverride": [
+    "[rcvd EXCEPT ![self] = r ]",
+    "[fd EXCEPT ![self] = FALSE ]",
+    "[fd EXCEPT ![self] = TRUE ]",
+    "[pc EXCEPT ![self] = \"CRASH\"]",
+    "[pc EXCEPT ![self] = \"SENT\"]",
+    "[pc EXCEPT ![self] = \"ABORT\"]",
+    "[pc EXCEPT ![self] = \"COMMIT\"]"
   ],
+  "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
     "<< pc, rcvd, sent, fd >>",
@@ -110,16 +95,9 @@
     "<<self, \"NO\">>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
-  "RangeExpr": [
-    "1 .. "
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": ["1 .. N"],
   "ChoiceExpr": [],
   "StringLiterals": [
     "YES",
@@ -129,35 +107,29 @@
     "ABORT",
     "COMMIT"
   ],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [
-    "FiniteSets"
-  ],
+  "ArithmeticModules": ["Naturals"],
+  "DataStructureModules": ["FiniteSets"],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "rcvd",
-    "fd",
-    "pc",
-    "sent"
-  ],
+  "PrimedVariables": ["rcvd", "fd", "pc", "sent"],
   "UnchangedExprs": [],
   "EnabledExprs": [],
   "TemporalSubscript": [
-    "[][Next]_vars"
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Proc : /\\ Receive(self) /\\ \\/ UponYes(self) \\/ UponNo(self) \\/ UponSent(self))"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Proc : /\\ Receive(self) /\\ \\/ UponYes(self) \\/ UponNo(self) \\/ UponSent(self))"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -168,7 +140,6 @@
   "OperatorDefNames_StatePredicate": [
     "Init",
     "InitAllYes",
-    "Next",
     "TypeOK",
     "Validity"
   ],
@@ -186,6 +157,7 @@
   ],
   "FunctionConstructor_ByDomain": [
     "[ i \\in Proc |-> {} ]",
+    "[ Proc |-> \"YES\" ]",
     "[ i \\in Proc |-> {TRUE} ]"
   ],
   "FunctionConstructor_SetType": [
@@ -198,7 +170,11 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/NonBlockingAtomicCommit/nbacc_ray97.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "Action operators (Receive, UpdateFailureDetector, UponCrash, UponYes, UponNo, UponSent, Step, Next) excluded from OperatorDefNames_ValueDef per partition rule.",
+    "Validity is a state predicate (Boolean disjunction over current state, no primes).",
+    "[ Proc |-> \"YES\" ] is a function with implicit domain, classified as ByDomain alongside the explicit |-> forms."
+  ]
 }

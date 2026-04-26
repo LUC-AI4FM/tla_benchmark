@@ -1,19 +1,16 @@
 {
   "id": 195,
-  "Specification": "TCommit",
+  "Specification": "Abstract Transaction Commit specification: a set of resource managers each transition through working/prepared/committed/aborted states. The next-state action is the disjunction of Prepare and Decide, with a consistency invariant that no two RMs reach conflicting commit/abort decisions.",
   "ModuleName": "TCommit",
   "ExtendsModules": [],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "RM"
-  ],
-  "VariableNames": [
-    "rmState",
-    "TCTypeOK"
-  ],
+  "ConstantNames": ["RM"],
+  "VariableNames": ["rmState"],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "TCSpec => [](TCTypeOK /\\ TCConsistent)"
+  ],
   "OperatorDefNames": [
     "TCTypeOK",
     "TCInit",
@@ -34,24 +31,12 @@
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
+  "Implication": ["=>"],
+  "Negation": ["~"],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
@@ -66,19 +51,21 @@
     "[RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]"
   ],
   "FunctionApplication": [
-    "rmState[…]"
+    "rmState[rm]",
+    "rmState[rm1]",
+    "rmState[rm2]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[rmState EXCEPT ![rm] = \"prepared\"]",
+    "[rmState EXCEPT ![rm] = \"committed\"]",
+    "[rmState EXCEPT ![rm] = \"aborted\"]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -90,16 +77,13 @@
   "ArithmeticModules": [],
   "DataStructureModules": [],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "rmState"
-  ],
+  "PrimedVariables": ["rmState"],
   "UnchangedExprs": [],
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][TCNext]_rmState"
   ],
   "AlwaysOp": [
-    "[][TCNext]",
     "[](TCTypeOK /\\ TCConsistent)"
   ],
   "EventuallyOp": [],
@@ -109,7 +93,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -119,10 +103,8 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TCTypeOK",
-    "TCInit",
     "canCommit",
     "notCommitted",
-    "TCNext",
     "TCConsistent"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -141,9 +123,13 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "specifications/TCommit/TCommit.tla",
-  "VerificationTools": [
-    "TLC"
-  ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/transaction_commit/TCommit.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "Prepare, Decide, TCNext are action operators with primed variables; placed only in ActionDefNames per the partition rule.",
+    "TCInit is the initial predicate (defines initial values of variables) — placed in OperatorDefNames_Init.",
+    "TCTypeOK, canCommit, notCommitted, TCConsistent are Boolean state predicates without primed variables.",
+    "TCSpec is the temporal specification formula (Init /\\ [][Next]_vars).",
+    "TemporalNesting is false: only one [] appears in the theorem [](TCTypeOK /\\ TCConsistent), and [][TCNext]_rmState in TCSpec — no nested temporal operators."
+  ]
 }

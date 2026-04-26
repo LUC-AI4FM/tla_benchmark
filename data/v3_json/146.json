@@ -1,104 +1,80 @@
 {
   "id": 146,
-  "Specification": "",
+  "Specification": "Model-checking driver for the MultiPaxos specification: defines symmetry sets over Replicas/Writes/Reads, a TypeOK invariant on messages, node states, and observed event sequences, and a Linearizability property over a global linear order of commands consistent with real-time request/ack ordering.",
   "ModuleName": "MultiPaxos_MC",
-  "ExtendsModules": [
-    "MultiPaxos"
-  ],
+  "ExtendsModules": ["MultiPaxos"],
   "InstanceModules": [],
   "InstanceSubstitutions": [],
   "ConstantNames": [],
   "VariableNames": [],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => []TypeOK",
+    "Spec => Linearizability"
+  ],
   "OperatorDefNames": [
-    "ConditionalPerm",
-    "SymmetricPerms",
-    "ConstMaxBallot",
-    "TypeOK",
-    "ReqPosOfCmd",
-    "AckPosOfCmd",
-    "ResultOfCmd",
-    "OrderIdxOfCmd",
-    "LastWriteBefore",
-    "IsLinearOrder",
-    "ObeysRealTime",
-    "Linearizability"
+    "ConditionalPerm", "SymmetricPerms", "ConstMaxBallot",
+    "TypeOK", "ReqPosOfCmd", "AckPosOfCmd", "ResultOfCmd", "OrderIdxOfCmd",
+    "LastWriteBefore", "IsLinearOrder", "ObeysRealTime", "Linearizability"
   ],
   "ActionDefNames": [],
   "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [
-    "k"
-  ],
+  "LocalOperatorNames": ["k"],
+  "LetInNames": ["k"],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
+  "Implication": ["=>"],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [
+    "IF Cardinality(set) > 1 THEN Permutations(set) ELSE {}",
     "IF k = 0 THEN \"nil\" ELSE order[k]"
   ],
   "CaseExpr": [],
-  "SetEnumeration": [],
-  "SetOperators": [
-    "\\cup"
+  "SetEnumeration": [
+    "{}",
+    "{order[j]: j \\in 1..Len(order)}"
   ],
-  "FiniteSetOps": [
-    "Cardinality"
-  ],
+  "SetOperators": ["\\cup"],
+  "FiniteSetOps": ["Cardinality", "Permutations"],
   "FunctionConstructor": [
     "[1..NumCommands -> Commands]"
   ],
   "FunctionApplication": [
-    "node[…]",
-    "observed[…]",
-    "order[…]"
+    "node[s]",
+    "observed[i]",
+    "observed[AckPosOfCmd(c)]",
+    "order[j]",
+    "order[k]",
+    "order[l]"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [],
-  "RecordAccess": [],
+  "RecordAccess": [
+    "observed[i].type",
+    "observed[i].cmd",
+    "observed[AckPosOfCmd(c)].val"
+  ],
   "TupleConstructor": [],
-  "SequenceOps": [
-    "Len"
-  ],
-  "ArithmeticOps": [
-    "+",
-    "-",
-    "*"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">="
-  ],
+  "SequenceOps": ["Len"],
+  "ArithmeticOps": ["*", "-", "+"],
+  "ComparisonOps": [">", "=<", ">=", "<"],
   "RangeExpr": [
-    "in 1..Len",
-    "in 0..(",
-    "in (k+1)..(",
+    "1..Len(observed)",
+    "1..Len(order)",
+    "0..(j-1)",
+    "(k+1)..(j-1)",
     "1..NumCommands"
   ],
   "ChoiceExpr": [
-    "CHOOSE i \\in 1..Len(observed):",
+    "CHOOSE i \\in 1..Len(observed): /\\ observed[i].type = \"Req\" /\\ observed[i].cmd = c",
+    "CHOOSE i \\in 1..Len(observed): /\\ observed[i].type = \"Ack\" /\\ observed[i].cmd = c",
     "CHOOSE j \\in 1..Len(order): order[j] = c",
-    "CHOOSE k \\in 0..(j-1):"
+    "CHOOSE k \\in 0..(j-1): /\\ (k = 0 \\/ order[k] \\in Writes) /\\ \\A l \\in (k+1)..(j-1): order[l] \\in Reads"
   ],
-  "StringLiterals": [
-    "Req",
-    "Ack",
-    "nil"
-  ],
+  "StringLiterals": ["Req", "Ack", "nil"],
   "ArithmeticModules": [],
   "DataStructureModules": [],
   "ToolingModules": [],
@@ -116,31 +92,25 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
-  "SymmetrySet": [],
+  "SymmetrySet": [
+    "SymmetricPerms"
+  ],
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "TypeOK",
-    "ReqPosOfCmd",
-    "AckPosOfCmd",
-    "OrderIdxOfCmd",
-    "LastWriteBefore",
-    "IsLinearOrder",
-    "ObeysRealTime",
-    "Linearizability"
+    "TypeOK", "IsLinearOrder", "ObeysRealTime", "Linearizability"
   ],
   "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
-    "ConditionalPerm",
-    "SymmetricPerms",
-    "ConstMaxBallot",
-    "ResultOfCmd"
+    "ConditionalPerm", "SymmetricPerms", "ConstMaxBallot",
+    "ReqPosOfCmd", "AckPosOfCmd", "ResultOfCmd", "OrderIdxOfCmd",
+    "LastWriteBefore"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [
@@ -149,7 +119,14 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/MultiPaxos/MultiPaxos_MC.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "TypeOK, IsLinearOrder, ObeysRealTime, Linearizability are state predicates over the (extended) MultiPaxos state.",
+    "ConditionalPerm/SymmetricPerms/ConstMaxBallot are constant value definitions used for TLC config.",
+    "ReqPosOfCmd/AckPosOfCmd/ResultOfCmd/OrderIdxOfCmd/LastWriteBefore are pure operator definitions on the observed sequence and the order; they read state but compute values, classified as value definitions (no boolean predicate signature).",
+    "There are no Init, action, or temporal-property operators in this MC driver module.",
+    "TemporalNesting is false: only []TypeOK appears at top-level theorem.",
+    "VerificationTools is TLC because this module is the TLC model-checking driver (defines symmetry, ConstMaxBallot, etc.)."
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "id": 169,
-  "Specification": "",
+  "Specification": "Simplified specification of Leslie Lamport's Fast Paxos protocol with a unique coordinator (Phase 1 omitted), all-to-all communication, and stable storage. The coordinator may start a fast round (FastAny/FastPropose/FastDecide using FastQuorums of size at least 3/4 of replicas) and may fall back to a classic round (ClassicAccept/ClassicAccepted/ClassicDecide) on collision. FastNontriviality asserts that only proposed values can be learnt.",
   "ModuleName": "FastPaxos",
   "ExtendsModules": [
     "Paxos"
@@ -14,7 +14,9 @@
   "VariableNames": [
     "cValue"
   ],
-  "AssumptionNames": [],
+  "AssumptionNames": [
+    "PaxosAssume /\\ FastAssume"
+  ],
   "TheoremNames": [],
   "OperatorDefNames": [
     "ClassicBallots",
@@ -23,9 +25,7 @@
     "FastAny",
     "FastPropose",
     "FastDecide",
-    "V",
     "ClassicAccept",
-    "V",
     "ClassicAccepted",
     "ClassicDecide",
     "FastTypeOK",
@@ -35,10 +35,11 @@
     "FastNontriviality"
   ],
   "ActionDefNames": [
+    "FastAny",
     "FastPropose",
-    "V",
+    "FastDecide",
     "ClassicAccept",
-    "V",
+    "ClassicAccepted",
     "ClassicDecide",
     "FastNext"
   ],
@@ -65,12 +66,20 @@
   "MembershipOps": [
     "\\in"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF \\E w \\in V : IsMajorityValue(M, w) THEN IsMajorityValue(M, v) ELSE v \\in V"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{none}"
+    "{}",
+    "{m \\in M : m.value = v}",
+    "{none}",
+    "{m \\in p2bMessages : m.ballot = b /\\ m.acceptor \\in q}",
+    "{w \\in Values : \\E m \\in M : w = m.value}",
+    "{m \\in p2bMessages : m.ballot = f /\\ m.acceptor \\in q}"
   ],
   "SetOperators": [
+    "\\",
     "\\subseteq",
     "\\intersect",
     "\\union"
@@ -80,11 +89,19 @@
   ],
   "FunctionConstructor": [],
   "FunctionApplication": [
-    "maxBallot[…]",
-    "maxValue[…]"
+    "maxBallot[a]",
+    "maxValue[a]"
   ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
+  "FunctionOverride": [
+    "[maxBallot EXCEPT ![a] = m.ballot]",
+    "[maxVBallot EXCEPT ![a] = m.ballot]",
+    "[maxValue EXCEPT ![a] = v]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"P2a\", ballot |-> f, value |-> any]",
+    "[type |-> \"P2b\", ballot |-> m.ballot, acceptor |-> a, value |-> v]",
+    "[type |-> \"P2a\", ballot |-> b, value |-> v]"
+  ],
   "RecordAccess": [
     "m.value",
     "m.ballot",
@@ -102,14 +119,12 @@
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "-",
     "*",
     "\\div"
   ],
   "ComparisonOps": [
-    ">",
-    "<",
-    "<="
+    "<=",
+    "<"
   ],
   "RangeExpr": [],
   "ChoiceExpr": [],
@@ -127,20 +142,33 @@
     "decision",
     "cValue"
   ],
-  "UnchangedExprs": [],
+  "UnchangedExprs": [
+    "UNCHANGED<<decision, maxBallot, maxVBallot, maxValue, cValue>>",
+    "UNCHANGED<<decision, cValue>>",
+    "UNCHANGED<<messages, maxBallot, maxVBallot, maxValue, cValue>>",
+    "UNCHANGED<<decision, maxBallot, maxVBallot, maxValue>>",
+    "UNCHANGED<<cValue>>"
+  ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[][FastNext]_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>",
+    "SF_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>(FastDecide)",
+    "SF_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>(ClassicDecide)"
+  ],
   "AlwaysOp": [
-    "[][FastNext]"
+    "[][FastNext]_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": [
+    "SF_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>(FastDecide)",
+    "SF_<<messages, decision, maxBallot, maxVBallot, maxValue, cValue>>(ClassicDecide)"
+  ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -151,10 +179,7 @@
   "OperatorDefNames_StatePredicate": [
     "FastAssume",
     "IsMajorityValue",
-    "FastAny",
-    "FastDecide",
     "FastTypeOK",
-    "FastInit",
     "FastNontriviality"
   ],
   "OperatorDefNames_TemporalProperty": [
@@ -164,19 +189,28 @@
     "FastInit"
   ],
   "OperatorDefNames_ValueDef": [
-    "ClassicBallots",
-    "V",
-    "ClassicAccepted",
-    "FastNext"
+    "ClassicBallots"
   ],
   "FunctionConstructor_ByDomain": [],
   "FunctionConstructor_SetType": [],
-  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED<<decision, maxBallot, maxVBallot, maxValue, cValue>>",
+    "UNCHANGED<<decision, cValue>>",
+    "UNCHANGED<<messages, maxBallot, maxVBallot, maxValue, cValue>>",
+    "UNCHANGED<<decision, maxBallot, maxVBallot, maxValue>>",
+    "UNCHANGED<<cValue>>"
+  ],
   "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
+  "TemporalNesting": true,
   "CorpusSource": "specifications/FastPaxos/FastPaxos.tla",
   "VerificationTools": [
     "TLC"
   ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "TemporalNesting is true: SF_<<...>>(...) expands to []<>(ENABLED ... ) => []<>... so contains nested temporal operators in FastSpec.",
+    "Action operators FastAny, FastPropose, FastDecide, ClassicAccept, ClassicAccepted, ClassicDecide, FastNext are placed in ActionDefNames per the partition rule and excluded from the four OperatorDefNames buckets.",
+    "FastAssume is a Boolean conjunction (state-level predicate) used in ASSUME, hence StatePredicate.",
+    "IsMajorityValue and FastNontriviality are Boolean-valued non-temporal predicates, hence StatePredicate.",
+    "FastTypeOK is a type invariant, hence StatePredicate. FastInit is the initial-state predicate."
+  ]
 }

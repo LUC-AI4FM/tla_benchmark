@@ -1,6 +1,6 @@
 {
   "id": 18,
-  "Specification": "",
+  "Specification": "A buffered random access file implementation that maintains an in-memory buffer over a disk-backed file. Proves refinement of the RandomAccessFile abstraction via INSTANCE with substitutions mapping logical file content and cursor. Specifies invariants relating buffer contents to logical file state, correctness of each operation, and conditions under which Inv2 can always be restored.",
   "ModuleName": "BufferedRandomAccessFile",
   "ExtendsModules": [
     "Naturals",
@@ -11,12 +11,12 @@
   "InstanceModules": [
     "RandomAccessFile"
   ],
-  "InstanceSubstitutions": [],
+  "InstanceSubstitutions": [
+    "file_content <- LogicalFileContent",
+    "file_pointer <- curr"
+  ],
   "ConstantNames": [
-    "BuffSz",
-    "Symbols",
-    "ArbitrarySymbol",
-    "MaxOffset"
+    "BuffSz"
   ],
   "VariableNames": [
     "dirty",
@@ -50,11 +50,7 @@
     "Read1",
     "Write1",
     "Read",
-    "numToRead",
-    "buffOff",
     "WriteAtMost",
-    "numWriteableWithoutSeeking",
-    "buffOff",
     "Next",
     "Spec",
     "RAF",
@@ -73,37 +69,7 @@
     "SeekCurrRestoresInv2",
     "Inv2CanAlwaysBeRestored",
     "Symmetry",
-    "Alias",
-    "vars",
-    "TypeOK",
-    "Init",
-    "Seek",
-    "SetLength",
-    "Read",
-    "Write",
-    "Next",
-    "Spec",
-    "Offset",
-    "SymbolOrArbitrary",
-    "Min",
-    "Max",
-    "ArrayOfAnyLength",
-    "Array",
-    "ConstArray",
-    "MkArray",
-    "EmptyArray",
-    "ArrayLen",
-    "ArrayToSeq",
-    "SeqToArray",
-    "ArrayGet",
-    "ArraySet",
-    "ArraySlice",
-    "ArrayConcat",
-    "WriteToFile",
-    "file_len",
-    "data_len",
-    "length",
-    "TruncateOrExtendFile"
+    "Alias"
   ],
   "ActionDefNames": [
     "FlushBuffer",
@@ -113,18 +79,7 @@
     "Read1",
     "Write1",
     "Read",
-    "buffOff",
-    "buffOff",
-    "Next",
-    "SeekEstablishesInv2",
-    "FlushBufferPossibleWhenDirty",
-    "FlushBufferMakesProgress",
-    "SeekCurrPossibleWhenNotDirty",
-    "SeekCurrRestoresInv2",
-    "Seek",
-    "SetLength",
-    "Read",
-    "Write",
+    "WriteAtMost",
     "Next"
   ],
   "RecursiveOperatorNames": [],
@@ -132,14 +87,10 @@
   "LetInNames": [
     "len",
     "diskPosA",
-    "fileOffset",
     "numReadableWithoutSeeking",
     "numToRead",
     "buffOff",
-    "numWriteableWithoutSeeking",
-    "file_len",
-    "data_len",
-    "length"
+    "numWriteableWithoutSeeking"
   ],
   "LambdaParams": [],
   "Implication": [
@@ -165,59 +116,44 @@
     "\\notin"
   ],
   "IfThenElse": [
-    "IF a <= b THEN a ELSE b",
-    "IF a <= b THEN b ELSE a",
-    "IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol"
+    "IF ArrayLen(RelevantBufferContent) > 0 THEN WriteToFile(file_content, lo, RelevantBufferContent) ELSE file_content",
+    "IF i >= 0 /\\ i < ArrayLen(file_content) THEN ArrayGet(file_content, i) ELSE ArbitrarySymbol",
+    "IF len > 0 THEN LET diskPosA == lo IN ... ELSE UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "IF pos < lo \\/ pos >= (lo + BuffSz) THEN /\\ ~dirty /\\ lo' = (pos \\div BuffSz) * BuffSz /\\ FillBuffer ELSE UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "IF ArrayLen(file_content) > newLength /\\ file_pointer > newLength THEN file_pointer' = newLength ELSE file_pointer' \\in Offset",
+    "IF curr > newLength THEN curr' = newLength ELSE UNCHANGED curr",
+    "IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol",
+    "IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{ArbitrarySymbol}"
+    "{ArbitrarySymbol}",
+    "BOOLEAN"
   ],
-  "SetOperators": [
-    "\\notin",
-    "\\union"
-  ],
+  "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[i \\in 1..len |-> x]",
-    "[1..len -> T]"
+    "[i \\in 0..BuffSz |-> ...]",
+    "[i \\in 0..(BuffSz-1) |-> ...]"
   ],
-  "FunctionApplication": [
-    "f[…]",
-    "elems[…]"
-  ],
+  "FunctionApplication": [],
   "FunctionOverride": [],
   "RecordConstructor": [
-    "[elems |-> <<>>]",
-    "[elems |-> seq]",
-    "[elems |-> SubSeq(a.elems, startInclusive + 1, endExclusive)]",
-    "[elems |-> a1.elems \\o a2.elems]"
+    "[BuffSz |-> BuffSz, MaxOffset |-> MaxOffset, dirty |-> dirty, ...]"
   ],
-  "RecordAccess": [
-    "a.elems",
-    "a1.elems",
-    "a2.elems"
-  ],
+  "RecordAccess": [],
   "TupleConstructor": [
+    "<< dirty, length, curr, lo, buff, diskPos, file_content, file_pointer >>",
     "<<diskPos, file_pointer, file_content>>",
     "<<length, curr, lo, buff>>",
     "<<lo, diskPos, file_pointer, buff>>",
     "<<dirty, length, file_content>>",
     "<<dirty, lo>>",
     "<<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
-    "<<lo, diskPos, file_pointer, file_content>>",
     "<<buff, dirty, diskPos, file_content, file_pointer, length, lo>>",
-    "<<lo, diskPos, file_content, file_pointer>>",
-    "<<symbol>>",
-    "<<file_content, file_pointer>>",
-    "<<file_content>>",
-    "<<>>"
+    "<<lo, diskPos, file_content, file_pointer>>"
   ],
-  "SequenceOps": [
-    "Len",
-    "SubSeq",
-    "\\o"
-  ],
+  "SequenceOps": [],
   "ArithmeticOps": [
     "+",
     "-",
@@ -226,19 +162,14 @@
   ],
   "ComparisonOps": [
     ">",
-    "<",
     ">=",
+    "<",
     "<="
   ],
   "RangeExpr": [
-    "lo .. (",
-    "in 0 .. (",
-    "in 0..BuffSz",
-    "in 0..(",
-    "in 1..MaxOffset",
-    "in 1..len",
-    "0..MaxOffset",
-    "1..len"
+    "0..BuffSz",
+    "0..(BuffSz-1)",
+    "1..MaxOffset"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -252,15 +183,14 @@
     "TLC"
   ],
   "PrimedVariables": [
-    "file_content",
-    "file_pointer",
-    "diskPos",
     "dirty",
+    "length",
+    "curr",
     "lo",
     "buff",
-    "curr",
-    "length",
-    "Inv2"
+    "diskPos",
+    "file_content",
+    "file_pointer"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<diskPos, file_pointer, file_content>>",
@@ -270,11 +200,8 @@
     "UNCHANGED curr",
     "UNCHANGED <<dirty, lo>>",
     "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
-    "UNCHANGED <<lo, diskPos, file_pointer, file_content>>",
     "UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>",
-    "UNCHANGED <<lo, diskPos, file_content, file_pointer>>",
-    "UNCHANGED RAF",
-    "UNCHANGED <<file_content>>"
+    "UNCHANGED <<lo, diskPos, file_content, file_pointer>>"
   ],
   "EnabledExprs": [
     "ENABLED FlushBuffer",
@@ -294,70 +221,50 @@
     "[][Seek(curr) => Inv2']_vars"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[][FlushBuffer => UNCHANGED RAF!vars]",
-    "[][\\A offset \\in Offset: Seek(offset) => RAF!Seek(offset)]",
-    "[][\\A offset \\in Offset: SetLength(offset) => RAF!SetLength(offset)]",
-    "[][\\A offset \\in Offset: Seek(offset) => Inv2']",
-    "[][\\A symbol \\in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]",
-    "[][\\A symbol \\in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]",
-    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \\E written \\in 1..len: RAF!W",
-    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]",
-    "[][FlushBuffer => ~dirty']",
-    "[][Seek(curr) => Inv2']",
     "[]FlushBufferPossibleWhenDirty",
     "[]SeekCurrPossibleWhenNotDirty"
   ],
-  "EventuallyOp": [
-    "<>>]"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
-  "SymmetrySet": [],
+  "SymmetrySet": [
+    "Permutations(Symbols)"
+  ],
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "DiskF",
     "Inv1",
     "Inv2",
     "Inv3",
     "Inv4",
     "Inv5",
-    "Init",
-    "Read",
-    "Next",
     "FlushBufferPossibleWhenDirty",
-    "SeekCurrPossibleWhenNotDirty",
-    "Alias",
-    "Min",
-    "Max",
-    "ConstArray",
-    "MkArray",
-    "ArraySet",
-    "TruncateOrExtendFile"
+    "SeekCurrPossibleWhenNotDirty"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec",
+    "Safety",
     "FlushBufferCorrect",
     "SeekCorrect",
     "SetLengthCorrect",
+    "SeekEstablishesInv2",
     "Write1Correct",
     "Read1Correct",
     "WriteAtMostCorrect",
     "ReadCorrect",
-    "Inv2CanAlwaysBeRestored",
-    "EmptyArray",
-    "length"
+    "FlushBufferMakesProgress",
+    "SeekCurrRestoresInv2",
+    "Inv2CanAlwaysBeRestored"
   ],
   "OperatorDefNames_Init": [
     "Init"
@@ -366,33 +273,26 @@
     "vars",
     "RelevantBufferContent",
     "LogicalFileContent",
+    "DiskF",
     "BufferedIndexes",
-    "numToRead",
+    "FlushBuffer",
+    "FillBuffer",
+    "Seek",
+    "SetLength",
+    "Read1",
+    "Write1",
+    "Read",
     "WriteAtMost",
-    "numWriteableWithoutSeeking",
+    "Next",
     "RAF",
-    "Safety",
     "Symmetry",
-    "Offset",
-    "SymbolOrArbitrary",
-    "ArrayOfAnyLength",
-    "Array",
-    "ArrayLen",
-    "ArrayToSeq",
-    "SeqToArray",
-    "ArrayGet",
-    "ArraySlice",
-    "ArrayConcat",
-    "WriteToFile",
-    "file_len",
-    "data_len"
+    "Alias"
   ],
   "FunctionConstructor_ByDomain": [
-    "[i \\in 1..len |-> x]"
+    "[i \\in 0..BuffSz |-> ...]",
+    "[i \\in 0..(BuffSz-1) |-> ...]"
   ],
-  "FunctionConstructor_SetType": [
-    "[1..len -> T]"
-  ],
+  "FunctionConstructor_SetType": [],
   "UnchangedExprs_Explicit": [
     "UNCHANGED <<diskPos, file_pointer, file_content>>",
     "UNCHANGED <<length, curr, lo, buff>>",
@@ -400,17 +300,18 @@
     "UNCHANGED <<dirty, length, file_content>>",
     "UNCHANGED <<dirty, lo>>",
     "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
-    "UNCHANGED <<lo, diskPos, file_pointer, file_content>>",
     "UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>",
-    "UNCHANGED <<lo, diskPos, file_content, file_pointer>>",
-    "UNCHANGED <<file_content>>"
+    "UNCHANGED <<lo, diskPos, file_content, file_pointer>>"
   ],
   "UnchangedExprs_VarRef": [
-    "UNCHANGED curr",
-    "UNCHANGED RAF"
+    "UNCHANGED curr"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/BufferedRandomAccessFile/BufferedRandomAccessFile.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Actions (FlushBuffer, Seek, etc.) and the instance definition RAF are categorized under ValueDef as they define transitions or substitution structures rather than pure state predicates or temporal properties."
+  ]
 }

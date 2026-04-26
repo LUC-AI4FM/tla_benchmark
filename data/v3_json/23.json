@@ -3,26 +3,15 @@
   "Specification": "Voucher transfer transaction protocol (VTP). Models a source holder (SH), destination holder (DH), and voucher (V) coordinating through prepared/transfer/abort messages. The voucher state remains valid throughout the transfer; only participant states change. Proves type safety, consistency (no source holder transferred while destination holder aborted or vice versa), and refinement of the VoucherLifeCycle specification.",
   "ModuleName": "VoucherTransfer",
   "ExtendsModules": [],
-  "InstanceModules": [
-    "VoucherLifeCycle"
-  ],
+  "InstanceModules": ["VoucherLifeCycle"],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "V",
-    "SH",
-    "DH"
-  ],
-  "VariableNames": [
-    "vState",
-    "vlcState",
-    "shState",
-    "dhState",
-    "vtpState",
-    "vtpTPrepared",
-    "msgs"
-  ],
+  "ConstantNames": ["V", "SH", "DH"],
+  "VariableNames": ["vState", "vlcState", "shState", "dhState", "vtpState", "vtpTPrepared", "msgs"],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "VTPSpec => [](VTPTypeOK /\\ VTPConsistent)",
+    "VTPSpec => VSpec()"
+  ],
   "OperatorDefNames": [
     "Messages",
     "VTPTypeOK",
@@ -61,26 +50,16 @@
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
+  "Implication": ["=>"],
+  "Negation": ["~"],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{\"Prepared\"}",
     "{\"Transfer\", \"Abort\"}",
     "{\"valid\"}",
@@ -88,12 +67,13 @@
     "{\"holding\", \"prepared\", \"transferred\", \"aborted\"}",
     "{\"waiting\", \"prepared\", \"holding\", \"aborted\"}",
     "{\"init\", \"done\"}",
-    "{sh,dh}"
+    "{sh, dh}",
+    "{[type |-> \"Transfer\"]}",
+    "{[type |-> \"Abort\"]}",
+    "{[type |-> \"Prepared\", vsh |-> sh]}",
+    "{[type |-> \"Prepared\", vdh |-> dh]}"
   ],
-  "SetOperators": [
-    "\\cup",
-    "\\subseteq"
-  ],
+  "SetOperators": ["\\cup", "\\subseteq"],
   "FiniteSetOps": [],
   "FunctionConstructor": [
     "[v \\in V |-> \"valid\"]",
@@ -105,21 +85,27 @@
     "[SH -> {\"holding\", \"prepared\", \"transferred\", \"aborted\"}]",
     "[DH -> {\"waiting\", \"prepared\", \"holding\", \"aborted\"}]"
   ],
-  "FunctionApplication": [
-    "vState[…]",
-    "vlcState[…]",
-    "shState[…]",
-    "dhState[…]"
+  "FunctionApplication": ["vState[v]", "vlcState[v]", "shState[sh]", "dhState[dh]"],
+  "FunctionOverride": [
+    "[shState EXCEPT ![sh] = \"prepared\"]",
+    "[shState EXCEPT ![sh] = \"aborted\"]",
+    "[shState EXCEPT ![sh] = \"transferred\"]",
+    "[dhState EXCEPT ![dh] = \"prepared\"]",
+    "[dhState EXCEPT ![dh] = \"aborted\"]",
+    "[dhState EXCEPT ![dh] = \"holding\"]"
   ],
-  "FunctionOverride": [],
   "RecordConstructor": [
     "[type |-> \"Prepared\", vsh |-> sh]",
     "[type |-> \"Prepared\", vdh |-> dh]",
     "[type |-> \"Transfer\"]",
-    "[type |-> \"Abort\"]"
+    "[type |-> \"Abort\"]",
+    "[ type : {\"Prepared\"}, vsh : SH ]",
+    "[ type : {\"Prepared\"}, vdh : DH ]",
+    "[ type : {\"Transfer\", \"Abort\"} ]"
   ],
   "RecordAccess": [],
   "TupleConstructor": [
+    "<<shState, dhState, vState, vlcState, vtpState, vtpTPrepared, msgs>>",
     "<<vState, vlcState, shState, dhState, vtpState, msgs>>",
     "<<shState, dhState, vState, vlcState, vtpTPrepared>>",
     "<<vState, vlcState, shState, dhState, vtpTPrepared>>",
@@ -128,17 +114,11 @@
     "<<vtpState, vlcState, vState, dhState, vtpTPrepared, msgs>>",
     "<<vState, vlcState, vtpState, shState, vtpTPrepared>>",
     "<<vState, vlcState, vtpState, shState, vtpTPrepared, msgs>>",
-    "<<vtpState, vState, vlcState, shState, vtpTPrepared, msgs>>",
-    "<<shState, dhState, vState, vlcState, vtpState, vtpTPrepared, msgs>>"
+    "<<vtpState, vState, vlcState, shState, vtpTPrepared, msgs>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -159,11 +139,13 @@
   "DataStructureModules": [],
   "ToolingModules": [],
   "PrimedVariables": [
-    "vtpTPrepared",
-    "vtpState",
-    "msgs",
+    "vState",
+    "vlcState",
     "shState",
-    "dhState"
+    "dhState",
+    "vtpState",
+    "vtpTPrepared",
+    "msgs"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<vState, vlcState, shState, dhState, vtpState, msgs>>",
@@ -177,13 +159,8 @@
     "UNCHANGED <<vtpState, vState, vlcState, shState, vtpTPrepared, msgs>>"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][VTPNext]_VTPVars"
-  ],
-  "AlwaysOp": [
-    "[][VTPNext]",
-    "[](VTPTypeOK /\\ VTPConsistent)"
-  ],
+  "TemporalSubscript": ["[][VTPNext]_VTPVars"],
+  "AlwaysOp": ["[](VTPTypeOK /\\ VTPConsistent)"],
   "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
@@ -191,7 +168,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -199,20 +176,23 @@
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "VTPTypeOK",
-    "VTPInit",
-    "VTPNext",
-    "VTPConsistent"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "VTPSpec"
-  ],
-  "OperatorDefNames_Init": [
-    "VTPInit"
-  ],
+  "OperatorDefNames_StatePredicate": ["VTPTypeOK", "VTPInit", "VTPConsistent"],
+  "OperatorDefNames_TemporalProperty": ["VTPSpec"],
+  "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
     "Messages",
+    "VTPRcvPrepared",
+    "VTPTransfer",
+    "VTPAbort",
+    "SHPrepare",
+    "SHChooseToAbort",
+    "SHRcvTransferMsg",
+    "SHRcvAbortMsg",
+    "DHPrepare",
+    "DHChooseToAbort",
+    "DHRcvTransferMsg",
+    "DHRcvAbortMsg",
+    "VTPNext",
     "VTPVars"
   ],
   "FunctionConstructor_ByDomain": [
@@ -240,7 +220,11 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/VoucherTransfer/VoucherTransfer.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "VTPInit was placed in OperatorDefNames_StatePredicate because it does not begin with the exact string 'Init'.",
+    "Action operators (VTPRcvPrepared, VTPTransfer, VTPAbort, SHPrepare, SHChooseToAbort, SHRcvTransferMsg, SHRcvAbortMsg, DHPrepare, DHChooseToAbort, DHRcvTransferMsg, DHRcvAbortMsg, VTPNext) were placed in OperatorDefNames_ValueDef because they contain primed variables and thus are not state predicates, and are not temporal properties.",
+    "Messages and VTPVars were placed in OperatorDefNames_ValueDef because they define structural values (sets and tuples) rather than Boolean predicates."
+  ]
 }

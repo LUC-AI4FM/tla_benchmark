@@ -12,8 +12,9 @@
   "VariableNames": [],
   "AssumptionNames": [],
   "TheoremNames": [
-    "TypeCorrect",
-    "Safety"
+    "TypeCorrect == Spec => []TypeOK",
+    "Safety == Spec => []TerminationDetection",
+    "Inv => TerminationDetection"
   ],
   "OperatorDefNames": [],
   "ActionDefNames": [],
@@ -38,21 +39,19 @@
     "\\in"
   ],
   "IfThenElse": [],
-  "CaseExpr": [
-    "CASE InitiateProbe",
-    "CASE UNCHANGED vars",
-    "CASE i = 0  BY <2>1, <1>1, <2>3",
-    "CASE i \\in 1 .. N-1"
-  ],
+  "CaseExpr": [],
   "SetEnumeration": [
     "{0}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [],
   "FunctionApplication": [
-    "color[…]",
-    "active[…]"
+    "color[0]",
+    "active[0]",
+    "active[i]"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [],
@@ -63,11 +62,10 @@
     "-"
   ],
   "ComparisonOps": [
-    ">",
     "<"
   ],
   "RangeExpr": [
-    "in 1 .. "
+    "1 .. N-1"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -86,7 +84,9 @@
     "UNCHANGED vars"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[Next]_vars"
+  ],
   "AlwaysOp": [
     "[]TypeOK",
     "[]TerminationDetection"
@@ -95,58 +95,44 @@
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [
-    "BY DEF Init, TypeOK, Color",
-    "BY <2>1 DEF InitiateProbe",
-    "BY <2>2 DEF PassToken",
-    "BY <2>3 DEF SendMsg",
-    "BY <2>4 DEF Deactivate",
-    "BY <2>5 DEF vars",
-    "BY <2>1, <2>2, <2>3, <2>4, <2>5 DEF Environment, Next, System",
-    "BY <1>1, <1>2, PTL DEF Spec",
-    "BY NAssumption DEF Init, Inv, Node",
-    "BY NAssumption",
-    "BY NAssumption DEF Inv, TerminationDetection, terminationDetected, Node",
-    "BY <1>1, <1>2, <1>3, TypeCorrect, PTL DEF Spec",
-    "BY <1>1 DEF TerminationDetection, terminationDetected",
-    "BY tcolor = \"white\" DEF Inv",
-    "BY <1>1 DEF Inv",
-    "BY Inv, <1>2, <1>3 DEF Inv",
-    "BY <2>1, <1>1, <2>3",
-    "BY tpos=0, <2>4, NAssumption",
-    "BY NAssumption, <2>4",
-    "BY <3>1, <3>2, <2>1",
-    "BY <2>3, <2>4 DEF Node"
+    "PTL"
   ],
   "ProofCommands": [
     "BY",
-    "QED",
-    "OBVIOUS",
+    "DEF",
     "USE",
-    "DEF"
+    "SUFFICES",
+    "TAKE",
+    "CASE",
+    "OBVIOUS",
+    "ASSUME",
+    "PROVE",
+    "QED",
+    "NEW"
   ],
   "ProofStructureSteps": [
-    "<1>1.",
-    "<1>2.",
-    "<2>.",
-    "<2>1.",
-    "<2>2.",
-    "<2>3.",
-    "<2>4.",
-    "<2>5.",
+    "<1>1",
+    "<1>2",
+    "<1>3",
     "<1>.",
-    "<1>3.",
-    "<3>1.",
-    "<3>2.",
+    "<2>.",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<3>1",
+    "<3>2",
     "<3>."
   ],
   "AssumeProveBlocks": [
-    "ASSUME TypeOK,\n                      [Next]_vars PROVE  TypeOK'\n    OBVIOUS\n  <2>. USE NAssumption DEF TypeOK, Node, Color\n  <2>1. CASE InitiateProbe",
-    "ASSUME NEW i \\in Node \\ {0},\n               PassToken(i) PROVE  TypeOK'",
-    "ASSUME NEW i \\in Node,\n               SendMsg(i) PROVE  TypeOK'",
-    "ASSUME NEW i \\in Node,\n               Deactivate(i) PROVE  TypeOK'",
-    "ASSUME tpos = 0, tcolor = \"white\", \n                      color[0] = \"white\", ~ active[0],\n                      Inv PROVE  \\A i \\in Node : ~ active[i]"
+    "ASSUME TypeOK, [Next]_vars PROVE TypeOK'",
+    "ASSUME NEW i \\in Node \\ {0}, PassToken(i) PROVE TypeOK'",
+    "ASSUME NEW i \\in Node, SendMsg(i) PROVE TypeOK'",
+    "ASSUME NEW i \\in Node, Deactivate(i) PROVE TypeOK'",
+    "SUFFICES ASSUME tpos = 0, tcolor = \"white\", color[0] = \"white\", ~ active[0], Inv PROVE \\A i \\in Node : ~ active[i]"
   ],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -165,7 +151,15 @@
     "UNCHANGED vars"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd840/EWD840_proof.tla",
+  "VerificationTools": [
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "This module contains only LEMMA/THEOREM declarations (no operator definitions via X == Y), so the OperatorDefNames partition fields are all empty.",
+    "VerificationTools=[TLAPS] because the module contains hierarchical proofs (PROOF/QED/BY/DEF) and EXTENDS TLAPS.",
+    "PrimedVariables: TypeOK and Inv appear primed (TypeOK', Inv') in proof obligations; the underlying state variables themselves come from EXTENDS EWD840.",
+    "TemporalNesting is false because []TypeOK and []TerminationDetection are top-level [] applied to a state predicate, with no nested temporal operators.",
+    "ProofStructureSteps lists the hierarchical proof labels actually used (<1>1..<1>3, <2>1..<2>5, <3>1..<3>2)."
+  ]
 }

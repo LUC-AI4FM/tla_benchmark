@@ -1,6 +1,6 @@
 {
   "id": 79,
-  "Specification": "An implementation of Dijkstra’s EWD998 termination detection algorithm for an asynchronous ring of N nodes. The protocol tracks node activity and global message counts using a rotating token and node colors to handle out-of-order message delivery, verifying that termination is correctly detected even in the presence of pending messages.",
+  "Specification": "An implementation of Dijkstra's EWD998 termination detection algorithm for an asynchronous ring of N nodes. The protocol tracks node activity and global message counts using a rotating token and node colors to handle out-of-order message delivery, verifying that termination is correctly detected even in the presence of pending messages.",
   "ModuleName": "EWD998",
   "ExtendsModules": [
     "Integers",
@@ -21,13 +21,14 @@
     "color",
     "counter",
     "pending",
-    "token",
-    "vars"
+    "token"
   ],
   "AssumptionNames": [
     "NAssumption"
   ],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => TDSpec"
+  ],
   "OperatorDefNames": [
     "Node",
     "Color",
@@ -72,7 +73,8 @@
   "LetInNames": [],
   "LambdaParams": [],
   "Implication": [
-    "=>"
+    "=>",
+    "~>"
   ],
   "Negation": [
     "~"
@@ -86,39 +88,56 @@
     "\\E"
   ],
   "EqualityOps": [
-    "="
+    "=",
+    "#"
   ],
   "MembershipOps": [
     "\\in"
   ],
   "IfThenElse": [
-    "IF color[i] = \"black\" THEN \"black\" ELSE token.color]"
+    "IF color[i] = \"black\" THEN \"black\" ELSE token.color (in PassToken)",
+    "IF token.pos = N-1 THEN token.q = 0 ELSE token.q = Sum(counter, Rng(token.pos+1,N-1)) (in Inv)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{0}",
     "{\"white\", \"black\"}",
     "{\"black\"}",
-    "{i}"
+    "{0}"
   ],
-  "SetOperators": [],
+  "SetOperators": [
+    "\\"
+  ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[i \\in Node |-> 0]",
     "[Node -> BOOLEAN]",
     "[Node -> Color]",
     "[Node -> Int]",
-    "[Node -> Nat]"
+    "[Node -> Nat]",
+    "[i \\in Node |-> 0]"
   ],
   "FunctionApplication": [
-    "color[…]",
-    "counter[…]",
-    "active[…]",
-    "pending[…]"
+    "active[i]",
+    "color[i]",
+    "counter[i]",
+    "pending[i]",
+    "pending[j]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
   "RecordConstructor": [
-    "[pos |-> N-1, q |-> 0, color |-> \"white\"]"
+    "[pos : Node, q : Int, color : Color]",
+    "[ pos: Node, q: {0}, color: {\"black\"} ]",
+    "[pos |-> N-1, q |-> 0, color |-> \"white\"]",
+    "[pos |-> token.pos - 1, q |-> token.q + counter[i], color |-> IF color[i] = \"black\" THEN \"black\" ELSE token.color]"
   ],
   "RecordAccess": [
     "token.pos",
@@ -139,16 +158,16 @@
   ],
   "ComparisonOps": [
     ">",
-    "<",
-    "<="
+    "<=",
+    "<"
   ],
   "RangeExpr": [
-    "0 .. "
+    "0 .. N-1"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
-    "white",
-    "black"
+    "black",
+    "white"
   ],
   "ArithmeticModules": [
     "Integers"
@@ -156,17 +175,16 @@
   "DataStructureModules": [
     "FiniteSets",
     "Functions",
-    "SequencesExt"
-  ],
-  "ToolingModules": [
+    "SequencesExt",
     "Randomization"
   ],
+  "ToolingModules": [],
   "PrimedVariables": [
-    "token",
+    "active",
     "color",
     "counter",
     "pending",
-    "active"
+    "token"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<active, counter, pending>>",
@@ -180,7 +198,7 @@
     "WF_vars(System)"
   ],
   "AlwaysOp": [
-    "[][Next]"
+    "[][Next]_vars"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [
@@ -193,45 +211,42 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
-  "StateConstraint": [],
+  "StateConstraint": [
+    "StateConstraint"
+  ],
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
-    "Init",
-    "System",
-    "Environment",
-    "StateConstraint",
     "terminationDetected",
     "Termination",
     "TerminationDetection",
-    "Inv"
+    "Inv",
+    "TypedInv",
+    "StateConstraint"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec",
-    "Liveness"
+    "Liveness",
+    "TDSpec"
   ],
   "OperatorDefNames_Init": [
-    "Init",
-    "InitiateProbe"
+    "Init"
   ],
   "OperatorDefNames_ValueDef": [
     "Node",
     "Color",
     "Token",
     "vars",
-    "Next",
     "Sum",
     "B",
     "Rng",
-    "TypedInv",
-    "TD",
-    "TDSpec"
+    "TD"
   ],
   "FunctionConstructor_ByDomain": [
     "[i \\in Node |-> 0]"
@@ -250,7 +265,16 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd998/EWD998.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "OperatorDefNames partitioned into ActionDefNames (InitiateProbe, PassToken, System, SendMsg, RecvMsg, Deactivate, Environment, Next), StatePredicate (TypeOK, terminationDetected, Termination, TerminationDetection, Inv, TypedInv, StateConstraint), TemporalProperty (Spec, Liveness, TDSpec), Init (Init), and ValueDef (Node, Color, Token, vars, Sum, B, Rng, TD).",
+    "TemporalNesting is false: Spec uses standard [][Next]_vars without nested temporal operators; Liveness uses ~> which is desugared but does not nest [] inside <> or vice versa.",
+    "FunctionConstructor partitioned into ByDomain ([i \\in Node |-> 0]) and SetType ([Node -> BOOLEAN], etc.).",
+    "All UnchangedExprs are Explicit tuple form; no UNCHANGED vars references.",
+    "Apalache annotations (@type:) appear on CONSTANT and VARIABLES, justifying Apalache as a verification tool alongside TLC."
+  ]
 }

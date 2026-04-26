@@ -8,7 +8,9 @@
   "InstanceModules": [
     "Graphs"
   ],
-  "InstanceSubstitutions": [],
+  "InstanceSubstitutions": [
+    "[edge |-> E, node |-> N]"
+  ],
   "ConstantNames": [
     "Procs",
     "Leader",
@@ -18,10 +20,17 @@
     "active",
     "sentUnacked",
     "rcvdUnacked",
-    "upEdge"
+    "upEdge",
+    "msgs",
+    "acks"
   ],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "Spec => CountersConsistent",
+    "Spec => TreeWithRoot",
+    "Spec => []DT1Inv",
+    "Spec => DT2"
+  ],
   "OperatorDefNames": [
     "InEdges",
     "OutEdges",
@@ -39,9 +48,6 @@
     "Spec",
     "CountersConsistent",
     "TreeWithRoot",
-    "N",
-    "G",
-    "O",
     "DT1Inv",
     "Terminated",
     "DT2",
@@ -53,11 +59,15 @@
     "SendAck",
     "RcvMsg",
     "Idle",
-    "Next",
-    "StableUpEdge"
+    "Next"
   ],
   "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
+  "LocalOperatorNames": [
+    "E",
+    "N",
+    "G",
+    "O"
+  ],
   "LetInNames": [
     "E",
     "N",
@@ -86,35 +96,58 @@
   "MembershipOps": [
     "\\in"
   ],
-  "IfThenElse": [],
+  "IfThenElse": [
+    "IF neutral(p)' THEN [upEdge EXCEPT ![p] = NotAnEdge] ELSE upEdge",
+    "IF neutral(p) THEN [upEdge EXCEPT ![p] = e] ELSE upEdge"
+  ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{Leader}",
+    "{e}",
     "{NotAnEdge}",
-    "{e}"
+    "{Leader}",
+    "{upEdge[p] : p \\in DOMAIN upEdge}",
+    "{e[1] : e \\in E}",
+    "{e[2] : e \\in E}"
   ],
   "SetOperators": [
-    "\\cup"
+    "\\cup",
+    "\\",
+    "\\X",
+    "DOMAIN"
   ],
   "FiniteSetOps": [],
   "FunctionConstructor": [
     "[p \\in Procs |-> p = Leader]",
     "[e \\in Edges |-> 0]",
-    "[p \\in Procs \\ {Leader} |-> NotAnEdge]",
-    "[Procs -> BOOLEAN]",
-    "[Edges -> Nat]",
-    "[Procs \\ {Leader} -> Edges \\cup {NotAnEdge}]"
+    "[p \\in Procs \\ {Leader} |-> NotAnEdge]"
   ],
   "FunctionApplication": [
-    "e[…]",
-    "upEdge[…]",
-    "active[…]",
-    "rcvdUnacked[…]",
-    "sentUnacked[…]",
-    "acks[…]",
-    "msgs[…]"
+    "active[p]",
+    "msgs[e]",
+    "acks[e]",
+    "sentUnacked[e]",
+    "rcvdUnacked[e]",
+    "upEdge[p]",
+    "upEdge[p][2]",
+    "InEdges(p)",
+    "OutEdges(p)",
+    "neutral(p)",
+    "InEdges(Leader)"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[sentUnacked EXCEPT ![e] = @ + 1]",
+    "[msgs EXCEPT ![e] = @ + 1]",
+    "[acks EXCEPT ![e] = @ - 1]",
+    "[sentUnacked EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ - 1]",
+    "[acks EXCEPT ![e] = @ + 1]",
+    "[msgs EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ + 1]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[upEdge EXCEPT ![p] = e]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[upEdge EXCEPT ![p] = NotAnEdge]"
+  ],
   "RecordConstructor": [
     "[edge |-> E, node |-> N]"
   ],
@@ -123,13 +156,8 @@
     "O.node"
   ],
   "TupleConstructor": [
-    "<< >>",
     "<<active, msgs, acks, sentUnacked, rcvdUnacked, upEdge>>",
-    "<<active, acks, rcvdUnacked, upEdge>>",
-    "<<active, msgs, rcvdUnacked, upEdge>>",
-    "<<active, msgs, sentUnacked>>",
-    "<<acks, sentUnacked>>",
-    "<<msgs, acks, sentUnacked, rcvdUnacked, upEdge>>"
+    "<< >>"
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
@@ -137,8 +165,7 @@
     "-"
   ],
   "ComparisonOps": [
-    ">",
-    "<"
+    ">"
   ],
   "RangeExpr": [],
   "ChoiceExpr": [],
@@ -149,12 +176,12 @@
   "DataStructureModules": [],
   "ToolingModules": [],
   "PrimedVariables": [
+    "active",
     "sentUnacked",
     "msgs",
     "acks",
     "rcvdUnacked",
-    "upEdge",
-    "active"
+    "upEdge"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<active, acks, rcvdUnacked, upEdge>>",
@@ -166,18 +193,17 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "WF_vars(Next)"
+    "WF_vars(Next)",
+    "[][ \\A p \\in Procs \\ {Leader} : (upEdge[p] # NotAnEdge) => upEdge[p] = upEdge'[p] ]_upEdge"
   ],
   "AlwaysOp": [
-    "[][Next]",
     "[] \\A e \\in Edges: sentUnacked[e] = rcvdUnacked[e] + acks[e] + msgs[e]",
-    "[](",
     "[]DT1Inv",
-    "[][ \\A p \\in Procs \\ {Leader} :"
+    "[][ \\A p \\in Procs \\ {Leader} : (upEdge[p] # NotAnEdge) => upEdge[p] = upEdge'[p] ]_upEdge"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [
-    "DT2 == Terminated ~> neutral(Leader)"
+    "Terminated ~> neutral(Leader)"
   ],
   "FairnessConditions": [
     "WF_vars(Next)"
@@ -186,7 +212,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -197,17 +223,15 @@
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
     "neutral",
-    "Init",
-    "Next",
-    "TreeWithRoot",
     "DT1Inv",
     "Terminated"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec",
     "CountersConsistent",
-    "O",
-    "DT2"
+    "TreeWithRoot",
+    "DT2",
+    "StableUpEdge"
   ],
   "OperatorDefNames_Init": [
     "Init"
@@ -217,19 +241,19 @@
     "OutEdges",
     "NotAnEdge",
     "vars",
-    "N",
-    "G"
+    "SendMsg",
+    "RcvAck",
+    "SendAck",
+    "RcvMsg",
+    "Idle",
+    "Next"
   ],
   "FunctionConstructor_ByDomain": [
     "[p \\in Procs |-> p = Leader]",
     "[e \\in Edges |-> 0]",
     "[p \\in Procs \\ {Leader} |-> NotAnEdge]"
   ],
-  "FunctionConstructor_SetType": [
-    "[Procs -> BOOLEAN]",
-    "[Edges -> Nat]",
-    "[Procs \\ {Leader} -> Edges \\cup {NotAnEdge}]"
-  ],
+  "FunctionConstructor_SetType": [],
   "UnchangedExprs_Explicit": [
     "UNCHANGED <<active, acks, rcvdUnacked, upEdge>>",
     "UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>",
@@ -238,8 +262,14 @@
     "UNCHANGED <<msgs, acks, sentUnacked, rcvdUnacked, upEdge>>"
   ],
   "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/EWD687a/EWD687a.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true because CountersConsistent and TreeWithRoot wrap a state predicate inside [], and StableUpEdge has [][...]_upEdge nested in a property where upEdge' appears inside.",
+    "InEdges, OutEdges, NotAnEdge, vars are pure value definitions; SendMsg, RcvAck, SendAck, RcvMsg, Idle, Next are actions and placed in OperatorDefNames_ValueDef in addition to ActionDefNames.",
+    "neutral is a Boolean state predicate over a process p (returns Boolean from unprimed state)."
+  ]
 }
