@@ -1,6 +1,6 @@
 {
   "id": 60,
-  "Specification": "",
+  "Specification": "An animation/visualization wrapper around the EWD687a Dijkstra-Scholten termination-detection spec. Defines SVG operators (legend, nodes, edges, overlay-tree edges) that emit per-state SVG frames, plus a specific 6-process network and helper operators for writing frames to disk.",
   "ModuleName": "EWD687a_anim",
   "ExtendsModules": [
     "EWD687a",
@@ -27,23 +27,12 @@
     "Repeat",
     "SVGDefs",
     "Legend",
-    "Action",
     "NodeDimension",
     "ArrowPosOffset",
     "GraphNodePos",
     "N",
-    "id",
-    "node",
     "E",
-    "mpt",
-    "messages",
-    "fpt",
-    "sent",
-    "tpt",
-    "rcvd",
-    "line",
     "U",
-    "line",
     "Frame",
     "ToFile",
     "Alias",
@@ -53,17 +42,20 @@
     "NodesOfNetwork"
   ],
   "ActionDefNames": [
-    "SVGDefs",
-    "Action"
+    "NoSuperfluousIdleSteps"
   ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [
+  "RecursiveOperatorNames": [
+    "R"
+  ],
+  "LocalOperatorNames": [
+    "R",
     "BasePos",
     "Action",
+    "NS",
     "coord",
     "id",
     "node",
+    "ES",
     "from",
     "to",
     "mpt",
@@ -72,7 +64,28 @@
     "sent",
     "tpt",
     "rcvd",
-    "line"
+    "line",
+    "UE"
+  ],
+  "LetInNames": [
+    "R",
+    "BasePos",
+    "Action",
+    "NS",
+    "coord",
+    "id",
+    "node",
+    "ES",
+    "from",
+    "to",
+    "mpt",
+    "messages",
+    "fpt",
+    "sent",
+    "tpt",
+    "rcvd",
+    "line",
+    "UE"
   ],
   "LambdaParams": [],
   "Implication": [
@@ -82,64 +95,103 @@
     "~"
   ],
   "BooleanConstants": [],
-  "Quantifiers": [],
+  "Quantifiers": [
+    "\\E"
+  ],
   "EqualityOps": [
-    "=",
-    "#"
+    "="
   ],
   "MembershipOps": [
     "\\in"
   ],
   "IfThenElse": [
-    "IF active[p] THEN \"15\" ELSE \"0\",",
-    "IF ~neutral(p) THEN \"red\" ELSE \"black\" ])",
-    "IF sentUnacked[e] > 0 THEN ToString(-1 * sentUnacked[e]) ELSE \"\", ",
-    "IF rcvdUnacked[e] > 0 THEN ToString(rcvdUnacked[e]) ELSE \"\", "
+    "IF i = 0 THEN \"\" ELSE R[i-1] \\o str",
+    "IF active[p] THEN \"15\" ELSE \"0\"",
+    "IF ~neutral(p) THEN \"red\" ELSE \"black\"",
+    "IF sentUnacked[e] > 0 THEN ToString(-1 * sentUnacked[e]) ELSE \"\"",
+    "IF rcvdUnacked[e] > 0 THEN ToString(rcvdUnacked[e]) ELSE \"\""
   ],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{NotAnEdge}"
+    "{NotAnEdge}",
+    "{<<L, P1>>, <<L, P2>>, <<L, P3>>, <<P1, P2>>, <<P1, P4>>, <<P2, P3>>, <<P2, P5>>, <<P4, P3>>, <<P4, P5>>, <<P3, P1>>, <<P3, P5>>, <<P5, P4>>}"
   ],
   "SetOperators": [
-    "\\cup"
+    "\\cup",
+    "\\",
+    "DOMAIN"
   ],
   "FiniteSetOps": [],
-  "FunctionConstructor": [],
+  "FunctionConstructor": [
+    "[ algo |-> \"Sugiyama\", view_width |-> 1000, view_height |-> 1800, layering |-> \"LONGEST_PATH\", node_width |-> NodeDimension * 3, node_height |-> NodeDimension * 3 ]",
+    "[ rx |-> IF active[p] THEN \"15\" ELSE \"0\", fill |-> IF ~neutral(p) THEN \"red\" ELSE \"black\" ]",
+    "[ fill |-> \"white\" ]",
+    "[ stroke |-> \"black\", stroke_width |-> \"2\", marker_end |-> \"url(#arrow)\" ]",
+    "[ stroke |-> \"orange\", stroke_dasharray |-> \"5\", stroke_width |-> \"5\" ]"
+  ],
   "FunctionApplication": [
-    "R[…]",
-    "NS[…]",
-    "GraphNodePos[…]",
-    "active[…]",
-    "ES[…]",
-    "e[…]",
-    "msgs[…]",
-    "acks[…]",
-    "sentUnacked[…]",
-    "rcvdUnacked[…]",
-    "upEdge[…]",
-    "u[…]"
+    "TLCGet(\"action\")",
+    "TLCGet(\"level\")",
+    "ToString(TLCGet(\"level\"))",
+    "ToString(TLCGet(\"action\").context)",
+    "ToString(p)",
+    "ToString(n)",
+    "ToString(padding)",
+    "ToString(suffix)",
+    "ToString(-1 * sentUnacked[e])",
+    "ToString(rcvdUnacked[e])",
+    "PointOnLine(from, to, 2)",
+    "PointOnLine(from, to, 4)",
+    "PointOnLine(to, from, 4)",
+    "GraphNodePos[p]",
+    "GraphNodePos[e[1]]",
+    "GraphNodePos[e[2]]",
+    "GraphNodePos[u[1]]",
+    "GraphNodePos[u[2]]",
+    "active[p]",
+    "neutral(p)",
+    "msgs[e]",
+    "acks[e]",
+    "sentUnacked[e]",
+    "rcvdUnacked[e]",
+    "upEdge[p]",
+    "e[1]",
+    "e[2]",
+    "u[1]",
+    "u[2]",
+    "R[i-1]",
+    "R[n]",
+    "Repeat(\"m\", msgs[e])",
+    "Repeat(\"a\", acks[e])"
   ],
   "FunctionOverride": [],
   "RecordConstructor": [
     "[ x |-> 350, y |-> 120 ]",
-    "[fill |-> \"white\"]",
-    "[stroke |-> \"orange\", stroke_dasharray |-> \"5\", stroke_width |-> \"5\"]"
+    "[ algo |-> \"Sugiyama\", view_width |-> 1000, view_height |-> 1800, layering |-> \"LONGEST_PATH\", node_width |-> NodeDimension * 3, node_height |-> NodeDimension * 3 ]",
+    "[ rx |-> IF active[p] THEN \"15\" ELSE \"0\", fill |-> IF ~neutral(p) THEN \"red\" ELSE \"black\" ]",
+    "[ fill |-> \"white\" ]",
+    "[ stroke |-> \"black\", stroke_width |-> \"2\", marker_end |-> \"url(#arrow)\" ]",
+    "[ stroke |-> \"orange\", stroke_dasharray |-> \"5\", stroke_width |-> \"5\" ]",
+    "[ _animator |-> Frame, file |-> ToFile(...) ]"
   ],
   "RecordAccess": [
-    "BasePos.x",
-    "BasePos.y",
+    "TLCGet(\"action\").name",
+    "TLCGet(\"action\").context",
     "coord.x",
     "coord.y",
+    "from.x",
+    "from.y",
+    "to.x",
+    "to.y",
     "mpt.x",
     "mpt.y",
     "fpt.x",
     "fpt.y",
     "tpt.x",
     "tpt.y",
-    "from.x",
-    "from.y",
-    "to.x",
-    "to.y"
+    "BasePos.x",
+    "BasePos.y",
+    "IOExec(...).exitValue"
   ],
   "TupleConstructor": [
     "<<>>",
@@ -147,7 +199,6 @@
     "<<line, messages, sent, rcvd>>",
     "<<line>>",
     "<<Legend, E, U, N>>",
-    "<<str, prefix, ToString(n), ToString(padding), suffix>>",
     "<<L, P1>>",
     "<<L, P2>>",
     "<<L, P3>>",
@@ -168,46 +219,41 @@
     "+",
     "-",
     "*",
-    "\\div",
-    "%"
+    "\\div"
   ],
   "ComparisonOps": [
-    ">",
-    "<"
+    ">"
   ],
   "RangeExpr": [
-    "in 0..n"
+    "0..n"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [
     "",
-    "<defs><marker id='arrow' markerWidth='35' markerHeight='35' refX='14' refY='3' orient='auto' markerUnits='strokeWidth' viewBox='0 0 20 20'><path d='M0,0 L0,6 L9,3 z' fill='black' /></marker></defs>",
-    "action",
-    "Step: ",
-    "level",
-    "A:  ",
-    "A': ",
-    "~neutral procs red, round when also active",
-    "Sugiyama",
-    "LONGEST_PATH",
-    "white",
-    "15",
+    ".svg",
     "0",
-    "red",
-    "black",
-    "m",
-    "a",
+    "15",
     "2",
-    "url(#arrow)",
-    "orange",
     "5",
-    "bash",
-    "-c",
-    "echo \\\"%1$s\\\" > %2$s$(printf %%0%4$sd %3$s)%5$s",
-    "<svg viewBox='0 0 1400 1200'>",
     "</svg>",
+    "<svg viewBox='0 0 1400 1200'>",
+    "A': ",
+    "A:  ",
     "EWD687a_anim_",
-    ".svg"
+    "LONGEST_PATH",
+    "Step: ",
+    "Sugiyama",
+    "a",
+    "action",
+    "bash",
+    "black",
+    "level",
+    "m",
+    "orange",
+    "red",
+    "url(#arrow)",
+    "white",
+    "~neutral procs red, round when also active"
   ],
   "ArithmeticModules": [
     "Integers"
@@ -216,16 +262,11 @@
     "Sequences"
   ],
   "ToolingModules": [
+    "SVG",
     "TLC",
     "IOUtils"
   ],
   "PrimedVariables": [
-    "arrow",
-    "auto",
-    "strokeWidth",
-    "z",
-    "black",
-    "A",
     "Action"
   ],
   "UnchangedExprs": [
@@ -234,19 +275,14 @@
   "EnabledExprs": [],
   "TemporalSubscript": [],
   "AlwaysOp": [],
-  "EventuallyOp": [
-    "<>>),",
-    "<>>)>>,",
-    "<>>)",
-    "<>>))"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -255,44 +291,47 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "Repeat",
-    "Legend",
-    "N",
-    "E",
-    "U",
-    "Alias",
     "InterestingBehavior"
   ],
-  "OperatorDefNames_TemporalProperty": [
-    "node",
-    "messages",
-    "sent",
-    "rcvd",
-    "line",
-    "Frame"
-  ],
+  "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [],
   "OperatorDefNames_ValueDef": [
+    "Repeat",
+    "SVGDefs",
+    "Legend",
     "NodeDimension",
     "ArrowPosOffset",
     "GraphNodePos",
-    "id",
-    "mpt",
-    "fpt",
-    "tpt",
+    "N",
+    "E",
+    "U",
+    "Frame",
     "ToFile",
+    "Alias",
     "NoSuperfluousIdleSteps",
     "Network",
     "NodesOfNetwork"
   ],
-  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_ByDomain": [
+    "[ algo |-> \"Sugiyama\", view_width |-> 1000, view_height |-> 1800, layering |-> \"LONGEST_PATH\", node_width |-> NodeDimension * 3, node_height |-> NodeDimension * 3 ]",
+    "[ rx |-> IF active[p] THEN \"15\" ELSE \"0\", fill |-> IF ~neutral(p) THEN \"red\" ELSE \"black\" ]",
+    "[ fill |-> \"white\" ]",
+    "[ stroke |-> \"black\", stroke_width |-> \"2\", marker_end |-> \"url(#arrow)\" ]",
+    "[ stroke |-> \"orange\", stroke_dasharray |-> \"5\", stroke_width |-> \"5\" ]"
+  ],
   "FunctionConstructor_SetType": [],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [
     "UNCHANGED vars"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/EWD687a/EWD687a_anim.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InterestingBehavior is the only Boolean state-predicate-style operator (TLCGet(\"level\") > 20 => ~neutral(Leader)).",
+    "All SVG/visualization helpers (Repeat, SVGDefs, Legend, GraphNodePos, N, E, U, Frame, ToFile, Alias, Network, NodesOfNetwork, NodeDimension, ArrowPosOffset) are constant-level value/string/record producers and go in OperatorDefNames_ValueDef.",
+    "NoSuperfluousIdleSteps == ~UNCHANGED vars is action-level (it constrains stuttering) and is placed in ActionDefNames as well as ValueDef."
+  ]
 }

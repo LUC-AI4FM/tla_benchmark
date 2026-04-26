@@ -1,23 +1,17 @@
 {
   "id": 196,
-  "Specification": "TwoPhase",
+  "Specification": "Two-Phase Commit protocol: a transaction manager (TM) coordinates resource managers (RMs) using Prepared, Commit, and Abort messages stored in a single message-set variable. Specifies safety only and proves the protocol implements TCommit.",
   "ModuleName": "TwoPhase",
   "ExtendsModules": [],
-  "InstanceModules": [
-    "TCommit"
-  ],
+  "InstanceModules": ["TCommit"],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "RM"
-  ],
-  "VariableNames": [
-    "rmState",
-    "tmState",
-    "tmPrepared",
-    "msgs"
-  ],
+  "ConstantNames": ["RM"],
+  "VariableNames": ["rmState", "tmState", "tmPrepared", "msgs"],
   "AssumptionNames": [],
-  "TheoremNames": [],
+  "TheoremNames": [
+    "TPSpec => []TPTypeOK",
+    "TPSpec => TC!TCSpec"
+  ],
   "OperatorDefNames": [
     "Message",
     "TPTypeOK",
@@ -47,20 +41,12 @@
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
+  "Implication": ["=>"],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\E"],
+  "EqualityOps": ["="],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
@@ -68,22 +54,26 @@
     "{\"Commit\", \"Abort\"}",
     "{\"working\", \"prepared\", \"committed\", \"aborted\"}",
     "{\"init\", \"committed\", \"aborted\"}",
+    "{}",
     "{rm}"
   ],
-  "SetOperators": [
-    "\\cup",
-    "\\subseteq"
-  ],
+  "SetOperators": ["\\cup", "\\subseteq"],
   "FiniteSetOps": [],
   "FunctionConstructor": [
-    "[rm \\in RM |-> \"working\"]",
-    "[RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]"
+    "[RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]",
+    "[rm \\in RM |-> \"working\"]"
   ],
   "FunctionApplication": [
-    "rmState[…]"
+    "rmState[rm]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[rmState EXCEPT ![rm] = \"prepared\"]",
+    "[rmState EXCEPT ![rm] = \"aborted\"]",
+    "[rmState EXCEPT ![rm] = \"committed\"]"
+  ],
   "RecordConstructor": [
+    "[type : {\"Prepared\"}, rm : RM]",
+    "[type : {\"Commit\", \"Abort\"}]",
     "[type |-> \"Prepared\", rm |-> rm]",
     "[type |-> \"Commit\"]",
     "[type |-> \"Abort\"]"
@@ -97,13 +87,8 @@
     "<<rmState, tmState, tmPrepared, msgs>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
   "StringLiterals": [
@@ -119,12 +104,7 @@
   "ArithmeticModules": [],
   "DataStructureModules": [],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "tmPrepared",
-    "tmState",
-    "msgs",
-    "rmState"
-  ],
+  "PrimedVariables": ["rmState", "tmState", "tmPrepared", "msgs"],
   "UnchangedExprs": [
     "UNCHANGED <<rmState, tmState, msgs>>",
     "UNCHANGED <<rmState, tmPrepared>>",
@@ -132,9 +112,10 @@
     "UNCHANGED <<tmState, tmPrepared, msgs>>"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[][TPNext]_<<rmState, tmState, tmPrepared, msgs>>"
+  ],
   "AlwaysOp": [
-    "[][TPNext]",
     "[]TPTypeOK"
   ],
   "EventuallyOp": [],
@@ -144,7 +125,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -153,9 +134,7 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "TPTypeOK",
-    "TPInit",
-    "TPNext"
+    "TPTypeOK"
   ],
   "OperatorDefNames_TemporalProperty": [
     "TPSpec"
@@ -181,9 +160,13 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "specifications/TwoPhase/TwoPhase.tla",
-  "VerificationTools": [
-    "TLC"
-  ],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/transaction_commit/TwoPhase.tla",
+  "VerificationTools": ["TLC"],
+  "DivisionNotes": [
+    "All TM/RM action operators are placed only in ActionDefNames.",
+    "TPInit defines the initial predicate and is placed in OperatorDefNames_Init.",
+    "TPTypeOK is a Boolean state predicate; TPSpec is the temporal specification formula.",
+    "Message is a non-Boolean structural set definition; TC is an INSTANCE alias - both placed in ValueDef.",
+    "TemporalNesting is false: only one outer [] in the theorem and [][TPNext]_vars in TPSpec; no nesting."
+  ]
 }

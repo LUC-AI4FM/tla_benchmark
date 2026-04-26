@@ -2,33 +2,17 @@
   "id": 136,
   "Specification": "A TLA+ specification for a parallel graph reachability algorithm. It models multiple processes concurrently exploring a graph from a root node using marking and frontier sets, employing a refinement mapping to relate the parallel execution to a high-level reachability specification.",
   "ModuleName": "ParReach",
-  "ExtendsModules": [
-    "Reachability",
-    "Integers",
-    "FiniteSets"
+  "ExtendsModules": ["Reachability", "Integers", "FiniteSets"],
+  "InstanceModules": ["Reachable"],
+  "InstanceSubstitutions": ["vroot <- vrootBar", "pc <- pcBar"],
+  "ConstantNames": ["Root", "Procs"],
+  "VariableNames": ["marked", "vroot", "pc", "u", "toVroot"],
+  "AssumptionNames": ["RootAssump", "ProcsAssump"],
+  "TheoremNames": [
+    "Spec => Refines",
+    "Spec => R!Init /\\ [][R!Next]_R!vars",
+    "Spec => WF_R!vars(R!Next)"
   ],
-  "InstanceModules": [
-    "Reachable"
-  ],
-  "InstanceSubstitutions": [
-    "vroot <- vrootBar, pc <- pcBar"
-  ],
-  "ConstantNames": [
-    "Root",
-    "Procs"
-  ],
-  "VariableNames": [
-    "marked",
-    "vroot",
-    "pc",
-    "u",
-    "toVroot"
-  ],
-  "AssumptionNames": [
-    "RootAssump",
-    "ProcsAssump"
-  ],
-  "TheoremNames": [],
   "OperatorDefNames": [
     "Reachable",
     "vars",
@@ -48,58 +32,34 @@
     "R",
     "Refines"
   ],
-  "ActionDefNames": [
-    "Init",
-    "a",
-    "b",
-    "c",
-    "p",
-    "Next",
-    "Inv",
-    "pcBar"
-  ],
+  "ActionDefNames": ["a", "b", "c", "p", "Terminating", "Next"],
   "RecursiveOperatorNames": [],
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
+  "Implication": ["=>"],
   "Negation": [],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#",
-    "/="
-  ],
-  "MembershipOps": [
-    "\\in",
-    "\\notin"
-  ],
+  "Quantifiers": ["\\E", "\\A"],
+  "EqualityOps": ["=", "#", "/="],
+  "MembershipOps": ["\\in", "\\notin"],
   "IfThenElse": [
-    "IF \\A q \\in Procs : pc[q] = \"Done\" THEN \"Done\" ELSE \"a\""
+    "IF vroot /= {} THEN ... ELSE ... (in a)",
+    "IF u[self] \\notin marked THEN ... ELSE ... (in b)",
+    "IF toVroot[self] /= {} THEN ... ELSE ... (in c)",
+    "IF \\A q \\in Procs : pc[q] = \"Done\" THEN \"Done\" ELSE \"a\" (in pcBar)"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
     "{Root}",
+    "{}",
     "{u[self]}",
     "{w}",
     "{\"a\", \"b\", \"c\", \"Done\"}",
     "{\"a\", \"b\", \"Done\"}"
   ],
-  "SetOperators": [
-    "\\notin",
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "IsFiniteSet",
-    "SUBSET",
-    "UNION"
-  ],
+  "SetOperators": ["SUBSET", "\\cup", "\\", "UNION"],
+  "FiniteSetOps": ["IsFiniteSet"],
   "FunctionConstructor": [
     "[self \\in Procs |-> Root]",
     "[self \\in Procs |-> {}]",
@@ -109,11 +69,23 @@
     "[Procs -> {\"a\", \"b\", \"c\", \"Done\"}]"
   ],
   "FunctionApplication": [
-    "pc[…]",
-    "u[…]",
-    "toVroot[…]"
+    "pc[self]",
+    "u[self]",
+    "toVroot[self]",
+    "pc[q]",
+    "u[q]",
+    "toVroot[i]",
+    "Succ[u[self]]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[u EXCEPT ![self] = v]",
+    "[pc EXCEPT ![self] = \"b\"]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[toVroot EXCEPT ![self] = Succ[u[self]]]",
+    "[pc EXCEPT ![self] = \"c\"]",
+    "[pc EXCEPT ![self] = \"a\"]",
+    "[toVroot EXCEPT ![self] = toVroot[self] \\ {w}]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -124,35 +96,15 @@
     "<< marked, u >>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
   "RangeExpr": [],
   "ChoiceExpr": [],
-  "StringLiterals": [
-    "a",
-    "b",
-    "Done",
-    "c"
-  ],
-  "ArithmeticModules": [
-    "Integers"
-  ],
-  "DataStructureModules": [
-    "FiniteSets"
-  ],
+  "StringLiterals": ["a", "b", "c", "Done"],
+  "ArithmeticModules": ["Integers"],
+  "DataStructureModules": ["FiniteSets"],
   "ToolingModules": [],
-  "PrimedVariables": [
-    "u",
-    "pc",
-    "marked",
-    "toVroot",
-    "vroot"
-  ],
+  "PrimedVariables": ["marked", "vroot", "pc", "u", "toVroot"],
   "UnchangedExprs": [
     "UNCHANGED << marked, vroot, toVroot >>",
     "UNCHANGED << marked, toVroot >>",
@@ -163,53 +115,36 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "[][R!Next]_R"
+    "WF_vars(p(self))",
+    "[][R!Next]_R!vars",
+    "WF_R!vars(R!Next)"
   ],
-  "AlwaysOp": [
-    "[][Next]",
-    "[][R!Next]"
-  ],
-  "EventuallyOp": [
-    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
-  ],
+  "AlwaysOp": ["[][Next]_vars", "[][R!Next]_R!vars"],
+  "EventuallyOp": ["<>(\\A self \\in ProcSet: pc[self] = \"Done\")"],
   "LeadsToOp": [],
-  "FairnessConditions": [],
+  "FairnessConditions": ["WF_vars(p(self))"],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "ParallelReachability",
-  "PlusCalProcesses": [
-    "p"
-  ],
+  "PlusCalAlgorithm": ["ParallelReachability"],
+  "PlusCalProcesses": ["p"],
   "ModelValues": [],
   "OperatorOverrides": [],
   "SymmetrySet": [],
   "StateConstraint": [],
   "ActionConstraint": [],
   "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "Init",
-    "Terminating",
-    "Next",
-    "Inv",
-    "vrootBar",
-    "pcBar"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "Spec",
-    "Termination"
-  ],
-  "OperatorDefNames_Init": [
-    "Init"
-  ],
+  "OperatorDefNames_StatePredicate": ["Inv"],
+  "OperatorDefNames_TemporalProperty": ["Spec", "Termination", "Refines"],
+  "OperatorDefNames_Init": ["Init"],
   "OperatorDefNames_ValueDef": [
     "Reachable",
     "vars",
     "ProcSet",
-    "p",
-    "R",
-    "Refines"
+    "vrootBar",
+    "pcBar",
+    "R"
   ],
   "FunctionConstructor_ByDomain": [
     "[self \\in Procs |-> Root]",
@@ -227,11 +162,18 @@
     "UNCHANGED << vroot, toVroot >>",
     "UNCHANGED << marked, u >>"
   ],
-  "UnchangedExprs_VarRef": [
-    "UNCHANGED vars"
-  ],
+  "UnchangedExprs_VarRef": ["UNCHANGED vars"],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ParReach/ParReach.tla",
+  "VerificationTools": ["TLC", "TLAPS"],
+  "DivisionNotes": [
+    "Operators a, b, c, p, Terminating, Next are placed in ActionDefNames because they prime variables or are disjunctions of such actions; they are therefore excluded from the OperatorDefNames_* partition.",
+    "Init is placed in OperatorDefNames_Init because it specifies the initial state of all variables.",
+    "Inv is placed in OperatorDefNames_StatePredicate because it is a boolean state predicate (the inductive type invariant) over unprimed variables.",
+    "Spec, Termination, and Refines are placed in OperatorDefNames_TemporalProperty because they involve temporal operators (Spec uses [][Next]_vars and WF; Termination uses <>; Refines = R!Spec which is also temporal).",
+    "Reachable, vars, ProcSet, vrootBar, pcBar, R are placed in OperatorDefNames_ValueDef because they define structural values (sets, tuples, the refinement-mapping expressions, and the INSTANCE alias).",
+    "FunctionConstructor entries with the [param \\in Domain |-> ...] syntax are placed in FunctionConstructor_ByDomain; entries with [Domain -> Codomain] set-typing syntax are placed in FunctionConstructor_SetType.",
+    "TemporalNesting is false: although [] and <> both occur, they are not nested within each other.",
+    "VerificationTools is [TLC, TLAPS] because the module is run through TLC via MCParReach and proven with TLAPS via ParReachProofs."
+  ]
 }

@@ -60,33 +60,42 @@
   "CaseExpr": [],
   "SetEnumeration": [
     "{0}",
-    "{writer}",
-    "{reader}",
-    "{NULL}"
+    "{}",
+    "{ writer }",
+    "{ reader }",
+    "{ NULL }"
   ],
   "SetOperators": [
-    "\\notin",
-    "\\union"
-  ],
-  "FiniteSetOps": [
-    "Cardinality",
+    "\\union",
+    "\\",
     "SUBSET",
     "UNION"
   ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
   "FunctionConstructor": [
     "[i \\in 0 .. LastIndex |-> NULL ]",
-    "[i \\in 0 .. LastIndex |-> {}   ]",
+    "[i \\in 0 .. LastIndex |-> {} ]",
     "[0 .. LastIndex -> Values \\union { NULL }]",
-    "[0 .. LastIndex -> SUBSET(Readers)       ]",
-    "[0 .. LastIndex -> SUBSET(Writers)       ]"
+    "[0 .. LastIndex -> SUBSET(Readers)]",
+    "[0 .. LastIndex -> SUBSET(Writers)]"
   ],
   "FunctionApplication": [
-    "readers[…]",
-    "writers[…]",
-    "slots[…]"
+    "ringbuffer.readers[i]",
+    "ringbuffer.writers[i]",
+    "ringbuffer.slots[index]"
   ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
+  "FunctionOverride": [
+    "[ ringbuffer EXCEPT !.writers[index] = @ \\union { writer }, !.slots[index] = value ]",
+    "[ ringbuffer EXCEPT !.writers[index] = @ \\ { writer } ]",
+    "[ ringbuffer EXCEPT !.readers[index] = @ \\union { reader } ]",
+    "[ ringbuffer EXCEPT !.readers[index] = @ \\ { reader } ]"
+  ],
+  "RecordConstructor": [
+    "[ slots |-> [i \\in 0 .. LastIndex |-> NULL ], readers |-> [i \\in 0 .. LastIndex |-> {} ], writers |-> [i \\in 0 .. LastIndex |-> {} ] ]",
+    "[ slots: UNION { [0 .. LastIndex -> Values \\union { NULL }] }, readers: UNION { [0 .. LastIndex -> SUBSET(Readers)] }, writers: UNION { [0 .. LastIndex -> SUBSET(Writers)] } ]"
+  ],
   "RecordAccess": [
     "ringbuffer.readers",
     "ringbuffer.writers",
@@ -99,13 +108,10 @@
     "%"
   ],
   "ComparisonOps": [
-    ">",
-    "<",
     "<="
   ],
   "RangeExpr": [
-    "in 0 .. ",
-    "0 .. "
+    "0 .. LastIndex"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [],
@@ -130,7 +136,7 @@
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -140,7 +146,6 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "NoDataRaces",
-    "Init",
     "TypeOk"
   ],
   "OperatorDefNames_TemporalProperty": [],
@@ -154,17 +159,25 @@
   ],
   "FunctionConstructor_ByDomain": [
     "[i \\in 0 .. LastIndex |-> NULL ]",
-    "[i \\in 0 .. LastIndex |-> {}   ]"
+    "[i \\in 0 .. LastIndex |-> {} ]"
   ],
   "FunctionConstructor_SetType": [
     "[0 .. LastIndex -> Values \\union { NULL }]",
-    "[0 .. LastIndex -> SUBSET(Readers)       ]",
-    "[0 .. LastIndex -> SUBSET(Writers)       ]"
+    "[0 .. LastIndex -> SUBSET(Readers)]",
+    "[0 .. LastIndex -> SUBSET(Writers)]"
   ],
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
+  "CorpusSource": "specifications/Disruptor/RingBuffer.tla",
   "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "DivisionNotes": [
+    "RingBuffer is a library module providing primitive operations; no Spec/Init/Next composition or temporal formulas are present.",
+    "ActionDefNames: Write, EndWrite, BeginRead, EndRead all prime ringbuffer.",
+    "StatePredicate: NoDataRaces (Boolean invariant), TypeOk (Boolean type invariant).",
+    "ValueDef: LastIndex (numeric value), IndexOf (numeric value via modulo), Read (returns slot value).",
+    "TemporalProperty: empty (no temporal operators in this module).",
+    "TemporalNesting=false: no temporal operators present.",
+    "VerificationTools=[]: no Print/Assert/MC, no proofs."
+  ]
 }

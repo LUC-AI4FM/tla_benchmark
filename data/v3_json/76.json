@@ -18,8 +18,6 @@
     "MCInit",
     "Inv",
     "host",
-    "lvl",
-    "trc",
     "Alias"
   ],
   "ActionDefNames": [],
@@ -45,7 +43,10 @@
     "\\in"
   ],
   "IfThenElse": [
-    "IF m = Initiator THEN 1 ELSE 0 ]"
+    "IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ]",
+    "IF m = Initiator THEN 1 ELSE 0",
+    "IF n = Initiator THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>",
+    "IF lvl = 1 THEN Initiator ELSE CHOOSE n \\in Node: trc[lvl].clock[n] # trc[lvl-1].clock[n]"
   ],
   "CaseExpr": [],
   "SetEnumeration": [
@@ -55,75 +56,72 @@
   "SetOperators": [],
   "FiniteSetOps": [],
   "FunctionConstructor": [
+    "[ n \\in Node |-> IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ] ]",
     "[ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ]",
     "[ m \\in Node |-> 0 ]",
     "[n \\in Node |-> 0]",
+    "[n \\in Node |-> IF n = Initiator THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>]",
     "[Node -> {TRUE}]",
     "[Node -> {\"white\"}]"
   ],
   "FunctionApplication": [
-    "clock[…]",
-    "trc[…]"
+    "clock[n]",
+    "trc[lvl]",
+    "trc[lvl-1]",
+    "clock[host]"
   ],
   "FunctionOverride": [],
-  "RecordConstructor": [],
+  "RecordConstructor": [
+    "[type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ]",
+    "[ Host |-> host ,Clock |-> ToJsonObject(clock[host]) ,active |-> active ,color |-> color ,counter |-> counter ,inbox |-> inbox ]"
+  ],
   "RecordAccess": [
-    "Dtlc2.value",
-    "Values.width",
-    "tla2tools.jar"
+    "trc[lvl].clock",
+    "trc[lvl-1].clock"
   ],
   "TupleConstructor": [
+    "<< [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >>",
     "<<>>"
   ],
   "SequenceOps": [],
   "ArithmeticOps": [
-    "+",
-    "-",
-    "*",
-    "%",
-    "^"
+    "-"
   ],
   "ComparisonOps": [
-    ">",
     "<"
   ],
   "RangeExpr": [],
   "ChoiceExpr": [
-    "CHOOSE n \\in Node:"
+    "CHOOSE n \\in Node: trc[lvl].clock[n] # trc[lvl-1].clock[n]"
   ],
   "StringLiterals": [
-    "noTE",
-    "generate",
-    "depth",
-    "(?<clock>.*)",
+    "--",
     "tok",
     "black",
     "white",
-    "level",
-    "--"
+    "level"
   ],
   "ArithmeticModules": [],
-  "DataStructureModules": [],
+  "DataStructureModules": [
+    "Json"
+  ],
   "ToolingModules": [
     "TLC",
-    "TLCExt",
-    "Json"
+    "TLCExt"
   ],
   "PrimedVariables": [],
   "UnchangedExprs": [],
   "EnabledExprs": [],
   "TemporalSubscript": [],
   "AlwaysOp": [],
-  "EventuallyOp": [
-    "<>>]"
-  ],
+  "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -132,24 +130,22 @@
   "ActionConstraint": [],
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
-    "host",
-    "trc",
-    "Alias"
+    "Inv"
   ],
-  "OperatorDefNames_TemporalProperty": [
-    "MCInit"
-  ],
+  "OperatorDefNames_TemporalProperty": [],
   "OperatorDefNames_Init": [
     "MCInit"
   ],
   "OperatorDefNames_ValueDef": [
-    "Inv",
-    "lvl"
+    "host",
+    "Alias"
   ],
   "FunctionConstructor_ByDomain": [
+    "[ n \\in Node |-> IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ] ]",
     "[ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ]",
     "[ m \\in Node |-> 0 ]",
-    "[n \\in Node |-> 0]"
+    "[n \\in Node |-> 0]",
+    "[n \\in Node |-> IF n = Initiator THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>]"
   ],
   "FunctionConstructor_SetType": [
     "[Node -> {TRUE}]",
@@ -158,7 +154,14 @@
   "UnchangedExprs_Explicit": [],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ewd998/EWD998ChanID_shiviz.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "OperatorDefNames cleaned up: lvl and trc are LET-IN locals inside host and were moved to LetInNames only.",
+    "MCInit is the alternative initial-state predicate (placed in OperatorDefNames_Init); Inv is a state-predicate invariant used during simulation.",
+    "host and Alias are ValueDefs: host computes a node identifier from TLC's level/Trace, and Alias is a record used as TLC's ALIAS for ShiViz output.",
+    "PrimedVariables corrected to empty; this module declares no VARIABLES and contains no primed expressions."
+  ]
 }

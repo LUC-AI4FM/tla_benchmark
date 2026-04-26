@@ -1,0 +1,186 @@
+{
+  "id": 109,
+  "Specification": "A simulation module for the Knuth-Yao random number generation algorithm, specifically modeling 'crooked' (biased) coins. It integrates with TLC's side-effect operators to log transitions and outcomes to a CSV file, utilizes external R scripts for statistical analysis, and performs a Chi-square statistical test in its post-condition to verify probability distributions.",
+  "ModuleName": "SimKnuthYao",
+  "ExtendsModules": [
+    "KnuthYao",
+    "Integers",
+    "Functions",
+    "CSV",
+    "TLC",
+    "TLCExt",
+    "IOUtils",
+    "Statistics"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "/\\ TLCGet(\"config\").mode = \"generate\" /\\ TLCGet(\"config\").depth >= 15 / TLCGet(\"config\").depth = -1 /\\ TLCGet(\"config\").deadlock = FALSE /\\ TLCGet(\"revision\").timestamp >= 1663720820",
+    "/\\ CSVRecords(CSVFile) = 0 => CSVWrite(\"side,p,flip\", <<>>, CSVFile) /\\ \\A i \\in Done: TLCSet(atoi(i), 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "StatelessCrookedCoin",
+    "StatefulCrookedCoin",
+    "SimInit",
+    "SimNext",
+    "IsDyadic",
+    "CSVFile",
+    "Stats",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "StatelessCrookedCoin",
+    "StatefulCrookedCoin",
+    "SimNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "uniform",
+    "samples",
+    "sum"
+  ],
+  "LetInNames": [
+    "uniform",
+    "samples",
+    "sum"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF RandomElement(1..8) \\in 1..3 THEN /\\ flip' = \"T\" ELSE /\\ flip' = \"H\" (in StatelessCrookedCoin)",
+    "IF RandomElement(1..p.den) = 1 THEN flip' = \"T\" ELSE flip' = \"H\" (in StatefulCrookedCoin)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ i \\in 1..6 |-> 6 ]",
+    "[ i \\in Done |-> TLCGet(atoi(i)) ]"
+  ],
+  "FunctionApplication": [
+    "RandomElement(1..8)",
+    "Transition[state][flip]",
+    "Half(p)",
+    "CSVRecords(CSVFile)",
+    "TLCSet(atoi(i), 0)",
+    "TLCGet(atoi(state))",
+    "atoi(i)",
+    "atoi(state)",
+    "IOExec(<<\"/usr/bin/env\", \"Rscript\", \"SimKnuthYao.R\", CSVFile>>)",
+    "FoldFunctionOnSet(+, 0, samples, Done)",
+    "Assert(TLCGet(\"config\").traces = sum, ...)",
+    "ChiSquare(uniform, samples, \"0.2\")"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"config\").depth",
+    "TLCGet(\"config\").deadlock",
+    "TLCGet(\"revision\").timestamp",
+    "p.den",
+    "TLCGet(\"stats\").traces",
+    "IOExec(...).exitValue"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<state, p.den, flip>>",
+    "<<\"/usr/bin/env\", \"Rscript\", \"SimKnuthYao.R\", CSVFile>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "%"
+  ],
+  "ComparisonOps": [
+    ">="
+  ],
+  "RangeExpr": [
+    "1..8",
+    "1..3",
+    "1..p.den",
+    "1..6"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "T",
+    "H",
+    "init",
+    "s0",
+    "side,p,flip",
+    "SimKnuthYao.csv",
+    "generate",
+    "config",
+    "depth",
+    "deadlock",
+    "revision",
+    "timestamp",
+    "stats",
+    "traces",
+    "0.2",
+    "Fewer samples than expected:",
+    "ChiSquare test failed:",
+    "/usr/bin/env",
+    "Rscript",
+    "SimKnuthYao.R",
+    "exitValue"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Functions",
+    "Statistics"
+  ],
+  "ToolingModules": [
+    "TLC",
+    "IOUtils"
+  ],
+  "PrimedVariables": [
+    "flip",
+    "state",
+    "p"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED p"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": []
+}

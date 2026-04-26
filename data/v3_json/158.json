@@ -1,34 +1,22 @@
 {
   "id": 158,
-  "Specification": "",
+  "Specification": "High-level TLA+ specification of a ballot-based voting algorithm in which a quorum of acceptors cooperatively choose a value. Defines votes/maxBal state, the actions IncreaseMaxBal and VoteFor, derived predicates ChosenAt/SafeAt/ShowsSafeAt, the inductive invariant Inv, and TLAPS theorems including AllSafeAtZero, ChoosableThm, ShowsSafety, Invariance (Spec => []Inv), and the refinement to Consensus (Spec => C!Spec).",
   "ModuleName": "Voting",
-  "ExtendsModules": [
-    "Integers",
-    "TLAPS"
-  ],
-  "InstanceModules": [
-    "Consensus"
-  ],
+  "ExtendsModules": ["Integers", "TLAPS"],
+  "InstanceModules": ["Consensus"],
   "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Value",
-    "Acceptor",
-    "Quorum"
-  ],
-  "VariableNames": [
-    "votes",
-    "maxBal"
-  ],
-  "AssumptionNames": [
-    "QuorumAssumption"
-  ],
+  "ConstantNames": ["Value", "Acceptor", "Quorum"],
+  "VariableNames": ["votes", "maxBal"],
+  "AssumptionNames": ["QuorumAssumption"],
   "TheoremNames": [
     "QuorumNonEmpty",
     "AllSafeAtZero",
     "ChoosableThm",
+    "OneValuePerBallot => OneVote",
     "VotesSafeImpliesConsistency",
     "ShowsSafety",
-    "Invariance"
+    "Invariance",
+    "Spec => C!Spec"
   ],
   "OperatorDefNames": [
     "Ballot",
@@ -61,52 +49,40 @@
   "LocalOperatorNames": [],
   "LetInNames": [],
   "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
+  "Implication": ["=>"],
+  "Negation": ["~"],
   "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
+  "Quantifiers": ["\\A", "\\E"],
+  "EqualityOps": ["=", "#"],
+  "MembershipOps": ["\\in"],
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
+    "{}",
     "{-1}",
-    "{v}",
-    "{a}",
-    "{<<b, v>>}"
+    "{v \\in Value : \\E b \\in Ballot : ChosenAt(b, v)}",
+    "{<<b, v>>}",
+    "{a}"
   ],
-  "SetOperators": [
-    "\\subseteq",
-    "\\cap",
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
+  "SetOperators": ["\\subseteq", "\\cap", "\\cup", "\\X", "\\"],
+  "FiniteSetOps": ["SUBSET"],
   "FunctionConstructor": [
-    "[a \\in Acceptor |-> {}]",
-    "[a \\in Acceptor |-> -1]",
     "[Acceptor -> SUBSET (Ballot \\X Value)]",
-    "[Acceptor -> Ballot \\cup {-1}]"
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[a \\in Acceptor |-> {}]",
+    "[a \\in Acceptor |-> -1]"
   ],
   "FunctionApplication": [
-    "votes[…]",
-    "maxBal[…]",
-    "vt[…]"
+    "votes[a]",
+    "maxBal[a]",
+    "vt[1]",
+    "vt[2]",
+    "votes[c]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![a] = b]",
+    "[votes EXCEPT ![a] = @ \\cup {<<b, v>>}]"
+  ],
   "RecordConstructor": [],
   "RecordAccess": [],
   "TupleConstructor": [
@@ -114,61 +90,42 @@
     "<<votes, maxBal>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    "\\leq",
-    "\\geq"
-  ],
+  "ArithmeticOps": ["+", "-"],
+  "ComparisonOps": [">", "\\leq", "\\geq"],
   "RangeExpr": [
-    "in 0..(",
-    "in -1..(",
-    "in (c+1)..("
+    "0..(b-1)",
+    "-1..(b-1)",
+    "(c+1)..(b-1)"
   ],
   "ChoiceExpr": [],
   "StringLiterals": [],
-  "ArithmeticModules": [
-    "Integers"
-  ],
+  "ArithmeticModules": ["Integers"],
   "DataStructureModules": [],
-  "ToolingModules": [
-    "TLAPS"
-  ],
-  "PrimedVariables": [
-    "maxBal",
-    "votes"
-  ],
+  "ToolingModules": ["TLAPS"],
+  "PrimedVariables": ["maxBal", "votes"],
   "UnchangedExprs": [
     "UNCHANGED votes"
   ],
   "EnabledExprs": [],
-  "TemporalSubscript": [],
+  "TemporalSubscript": [
+    "[][Next]_<<votes, maxBal>>"
+  ],
   "AlwaysOp": [
-    "[][Next]",
+    "[][Next]_<<votes, maxBal>>",
     "[]Inv"
   ],
   "EventuallyOp": [],
   "LeadsToOp": [],
   "FairnessConditions": [],
-  "ProofHints": [
-    "BY <1>1, <1>2, Invariance, PTL DEF Spec, C!Spec"
-  ],
-  "ProofCommands": [
-    "BY",
-    "QED",
-    "DEF"
-  ],
+  "ProofHints": ["PTL"],
+  "ProofCommands": ["BY", "QED", "DEF"],
   "ProofStructureSteps": [
-    "<1>1.",
-    "<1>2.",
-    "<1>3."
+    "<1>1",
+    "<1>2",
+    "<1>3"
   ],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -178,8 +135,10 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeOK",
+    "VotedFor",
     "ChosenAt",
     "DidNotVoteAt",
+    "CannotVoteAt",
     "NoneOtherChoosableAt",
     "SafeAt",
     "VotesSafe",
@@ -187,7 +146,7 @@
     "OneValuePerBallot",
     "ShowsSafeAt",
     "Init",
-    "Next"
+    "Inv"
   ],
   "OperatorDefNames_TemporalProperty": [
     "Spec"
@@ -197,10 +156,7 @@
   ],
   "OperatorDefNames_ValueDef": [
     "Ballot",
-    "VotedFor",
     "chosen",
-    "CannotVoteAt",
-    "Inv",
     "C"
   ],
   "FunctionConstructor_ByDomain": [
@@ -216,7 +172,14 @@
     "UNCHANGED votes"
   ],
   "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/Paxos/Voting.tla",
+  "VerificationTools": ["TLC", "TLAPS"],
+  "DivisionNotes": [
+    "IncreaseMaxBal, VoteFor, Next placed in ActionDefNames because they prime variables (maxBal', votes') and form the next-state action.",
+    "TypeOK, VotedFor, ChosenAt, DidNotVoteAt, CannotVoteAt, NoneOtherChoosableAt, SafeAt, VotesSafe, OneVote, OneValuePerBallot, ShowsSafeAt, Init, Inv are state predicates (boolean expressions over current state without temporal operators).",
+    "Spec = Init /\\ [][Next]_<<votes, maxBal>> is the temporal specification.",
+    "Ballot (= Nat), chosen (state function over Value), and C (INSTANCE Consensus) are placed in OperatorDefNames_ValueDef as they define values rather than state predicates or actions.",
+    "TemporalNesting is false: only [][Next]_<<votes, maxBal>> and []Inv appear; no <> nested inside [].",
+    "VerificationTools includes TLAPS (TLAPS proof of Invariance and Spec => C!Spec) and TLC (exercised by MCVoting harness)."
+  ]
 }

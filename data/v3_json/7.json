@@ -23,8 +23,18 @@
     "holding",
     "network"
   ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
+  "AssumptionNames": [
+    "IsFiniteSet(Resources)"
+  ],
+  "TheoremNames": [
+    "Specification => []TypeInvariant",
+    "Specification => []ResourceMutex",
+    "Specification => []Invariant",
+    "Specification => ClientsWillReturn",
+    "Specification => ClientsWillObtain",
+    "Specification => InfOftenSatisfied",
+    "Specification => SchedAllocator"
+  ],
   "OperatorDefNames": [
     "Sched",
     "Messages",
@@ -58,6 +68,7 @@
     "RAlloc",
     "Return",
     "RRet",
+    "Schedule",
     "Next"
   ],
   "RecursiveOperatorNames": [],
@@ -67,9 +78,7 @@
   "Implication": [
     "=>"
   ],
-  "Negation": [
-    "~"
-  ],
+  "Negation": [],
   "BooleanConstants": [],
   "Quantifiers": [
     "\\A",
@@ -85,41 +94,52 @@
   "IfThenElse": [],
   "CaseExpr": [],
   "SetEnumeration": [
-    "{\"request\", \"allocate\", \"return\"}",
-    "{m}"
+    "{}",
+    "{\"request\", \"allocate\", \"return\"}"
   ],
   "SetOperators": [
+    "SUBSET",
     "\\cup",
+    "\\",
+    "\\cap",
     "\\subseteq",
-    "\\cap"
+    "UNION"
   ],
   "FiniteSetOps": [
-    "Cardinality",
     "IsFiniteSet",
-    "SUBSET",
-    "UNION"
+    "Cardinality"
   ],
   "FunctionConstructor": [
     "[c \\in Clients |-> {}]",
     "[Clients -> SUBSET Resources]"
   ],
   "FunctionApplication": [
-    "requests[…]",
-    "holding[…]",
-    "alloc[…]",
-    "unsat[…]"
+    "requests[c]",
+    "holding[c]",
+    "alloc[c]",
+    "unsat[c]",
+    "holding[c1]",
+    "holding[c2]",
+    "alloc[m.clt]"
   ],
-  "FunctionOverride": [],
+  "FunctionOverride": [
+    "[requests EXCEPT ![c] = S]",
+    "[unsat EXCEPT ![m.clt] = m.rsrc]",
+    "[holding EXCEPT ![m.clt] = @ \\cup m.rsrc]",
+    "[requests EXCEPT ![m.clt] = @ \\ m.rsrc]",
+    "[holding EXCEPT ![c] = @ \\ S]",
+    "[alloc EXCEPT ![m.clt] = @ \\ m.rsrc]"
+  ],
   "RecordConstructor": [
+    "[type : {\"request\", \"allocate\", \"return\"}, clt : Clients, rsrc : SUBSET Resources]",
     "[type |-> \"request\", clt |-> c, rsrc |-> S]",
     "[type |-> \"allocate\", clt |-> c, rsrc |-> S]",
     "[type |-> \"return\", clt |-> c, rsrc |-> S]"
   ],
   "RecordAccess": [
-    "m.type",
-    "m.clt",
-    "m.rsrc",
-    "msg.rsrc"
+    ".type",
+    ".clt",
+    ".rsrc"
   ],
   "TupleConstructor": [
     "<<unsat,alloc,sched,holding>>",
@@ -132,12 +152,8 @@
     "<<unsat,alloc,sched,requests,holding,network>>"
   ],
   "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
+  "ArithmeticOps": [],
   "ComparisonOps": [
-    ">",
-    "<",
     "<="
   ],
   "RangeExpr": [],
@@ -157,10 +173,11 @@
   "ToolingModules": [],
   "PrimedVariables": [
     "requests",
+    "holding",
     "network",
     "unsat",
-    "holding",
-    "alloc"
+    "alloc",
+    "sched"
   ],
   "UnchangedExprs": [
     "UNCHANGED <<unsat,alloc,sched,holding>>",
@@ -174,30 +191,39 @@
   "EnabledExprs": [],
   "TemporalSubscript": [
     "[][Next]_vars",
-    "WF_vars(Schedule)"
+    "WF_vars(requests[c]={} /\\ Return(c,holding[c]))",
+    "WF_vars(\\E S \\in SUBSET Resources : Allocate(c, S))",
+    "WF_vars(Schedule)",
+    "WF_vars(RReq(m))",
+    "WF_vars(RAlloc(m))",
+    "WF_vars(RRet(m))"
   ],
   "AlwaysOp": [
-    "[][Next]",
-    "[]<>(requests[c] = {})",
     "[]TypeInvariant",
     "[]ResourceMutex",
-    "[]Invariant"
+    "[]Invariant",
+    "[]<>(requests[c] = {})"
   ],
   "EventuallyOp": [
     "<>(requests[c] = {})"
   ],
   "LeadsToOp": [
-    "\\A c \\in Clients: (requests[c]={} ~> holding[c]={})",
-    "\\A c \\in Clients, r \\in Resources : r \\in requests[c] ~> r \\in holding[c]"
+    "requests[c]={} ~> holding[c]={}",
+    "r \\in requests[c] ~> r \\in holding[c]"
   ],
   "FairnessConditions": [
-    "WF_vars(Schedule)"
+    "WF_vars(requests[c]={} /\\ Return(c,holding[c]))",
+    "WF_vars(\\E S \\in SUBSET Resources : Allocate(c, S))",
+    "WF_vars(Schedule)",
+    "WF_vars(RReq(m))",
+    "WF_vars(RAlloc(m))",
+    "WF_vars(RRet(m))"
   ],
   "ProofHints": [],
   "ProofCommands": [],
   "ProofStructureSteps": [],
   "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
+  "PlusCalAlgorithm": [],
   "PlusCalProcesses": [],
   "ModelValues": [],
   "OperatorOverrides": [],
@@ -207,8 +233,6 @@
   "ViewExpr": [],
   "OperatorDefNames_StatePredicate": [
     "TypeInvariant",
-    "Init",
-    "Next",
     "Invariant",
     "ResourceMutex"
   ],
@@ -225,7 +249,14 @@
   "OperatorDefNames_ValueDef": [
     "Sched",
     "Messages",
+    "Request",
+    "RReq",
+    "Allocate",
+    "RAlloc",
+    "Return",
+    "RRet",
     "Schedule",
+    "Next",
     "vars",
     "RequestsInTransit",
     "AllocsInTransit",
@@ -249,7 +280,12 @@
   ],
   "UnchangedExprs_VarRef": [],
   "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "CorpusSource": "specifications/ResourceAllocator/AllocatorImplementation.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TemporalNesting is true due to box-diamond nesting in InfOftenSatisfied: []<>(requests[c] = {}) and the standard Spec definition [][Next]_vars.",
+    "Action operators (Request, RReq, Allocate, etc.) were placed in OperatorDefNames_ValueDef because they contain primed variables and thus do not fit in the StatePredicate category, and do not contain temporal operators to fit in the TemporalProperty category."
+  ]
 }
