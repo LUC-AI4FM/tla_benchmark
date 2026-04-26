@@ -38,8 +38,7 @@ def _call_ollama(model_name: str, prompt: str, temperature: float, max_tokens: i
 
 
 def _call_openai(model_name: str, prompt: str, temperature: float, max_tokens: int) -> dict[str, Any]:
-    from openai import OpenAI
-    client = OpenAI()
+    client = openai.OpenAI()
     response = client.chat.completions.create(
         model=model_name,
         messages=[{"role": "user", "content": prompt}],
@@ -68,13 +67,21 @@ def _call_model(cfg: dict[str, Any], prompt: str) -> dict[str, Any]:
         raise ValueError(f"Unknown backend: {backend}")
 
 
-_STEP_PROMPTS = [
-    "Generate the MODULE header, EXTENDS clause, CONSTANTS declaration, and VARIABLES declaration for this TLA+ specification. Output only TLA+ code.",
-    "Generate the Init predicate for this TLA+ specification. Output only TLA+ code.",
-    "Generate all action operators and the Next operator for this TLA+ specification. Output only TLA+ code.",
-    "Generate the Spec temporal formula with all temporal properties and fairness conditions for this TLA+ specification. Output only TLA+ code.",
-    "Combine all previous steps into a single complete and valid TLA+ specification. Include MODULE header through the ==== terminator. Output only TLA+ code.",
-]
+def run_single_spec(spec_id: str, model_cfg: dict, prompt_name: str, condition: str, api_key: str, gpu_id: int):
+    os.environ["OPENAI_API_KEY"] = api_key
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    
+    logger.info(f"Running spec {spec_id} with model {model_cfg['model_name']} on GPU {gpu_id}")
+
+    run = wandb.init(
+        project="tla",
+        name=f"{spec_id}_{model_cfg['id']}",
+        config=model_cfg,
+    )
+
+    _call_model(model_cfg, prompt_name)
+
+    run.finish()
 
 
 def _build_progressive_messages(base_prompt: str, model_cfg: dict) -> tuple[list[dict[str, Any]], list[str]]:
@@ -132,126 +139,6 @@ def _get_cfg_path(spec_id: int, module_name: str) -> str | None:
     return None
 
 
-def run_single(
-    model_cfg: dict[str, Any],
-    spec_id: int,
-    condition: str,
-    prompt_template: str,
-    input_text: str,
-    module_name: str,
-) -> dict[str, Any]:
-    model_id = model_cfg["id"]
-    t_start = time.time()
-
-    logger.info("START spec=%s model=%s condition=%s module=%s", spec_id, model_id, condition, module_name)
-
-    raw_out = outputs_dir() / "raw" / model_id / condition
-    extracted_out = outputs_dir() / "extracted" / model_id / condition
-    validation_out = outputs_dir() / "validation" / model_id / condition
-    logs_out = outputs_dir() / "logs" / model_id / condition
-
-    for d in [raw_out, extracted_out, validation_out, logs_out]:
-        d.mkdir(parents=True, exist_ok=True)
-
-    base_prompt = prompt_template.format(
-        description=input_text, json_content=input_text
-    )
-
-    conversation, step_outputs = _build_progressive_messages(base_prompt, model_cfg)
-
-    ts = time.time()
-    raw_payload = {
-        "spec_id": spec_id,
-        "model_id": model_id,
-        "condition": condition,
-        "module_name": module_name,
-        "timestamp": ts,
-        "conversation": conversation,
-    }
-    save_json(raw_payload, raw_out / f"{spec_id}.json")
-
-    final_tla = extract_tla_from_response(step_outputs[-1])
-    if final_tla is None:
-        final_tla = merge_step_outputs(step_outputs)
-    extraction_used_fallback = final_tla is None
-    if final_tla is None:
-        final_tla = step_outputs[-1]
-        logger.warning(
-            "spec=%s model=%s condition=%s: extraction failed, saving raw last step (%d chars)",
-            spec_id, model_id, condition, len(final_tla),
-        )
-    else:
-        logger.info(
-            "spec=%s model=%s condition=%s: extracted %d chars (fallback=%s)",
-            spec_id, model_id, condition, len(final_tla), extraction_used_fallback,
-        )
-
-    extracted_path = str(extracted_out / f"{spec_id}.tla")
-    save_text(final_tla, extracted_path)
-
-    cfg_path = _get_cfg_path(spec_id, module_name)
-    validation_summary = validate_spec(
-        tla_path=extracted_path,
-        cfg_path=cfg_path,
-        validation_out_dir=str(validation_out),
-        spec_id=spec_id,
-        model_id=model_id,
-        condition=condition,
-    )
-
-    log_entry = {
-        **raw_payload,
-        "extracted_tla": final_tla,
-        "validation": validation_summary,
-    }
-    save_json(log_entry, logs_out / f"{spec_id}.json")
-
-    elapsed_total = round(time.time() - t_start, 2)
-    logger.info(
-        "FINISH spec=%s model=%s condition=%s sany=%s tlc=%s total_time=%.2fs",
-        spec_id, model_id, condition,
-        validation_summary.get("sany_pass"), validation_summary.get("tlc_pass"),
-        elapsed_total,
-    )
-
-    return validation_summary
-
-
-ALL_CONDITIONS = ["nlp_to_tla", "v2_to_tla", "v3_to_tla"]
-
-_PROMPT_TEMPLATE_FOR = {
-    "nlp_to_tla": "nlp_to_tla.txt",
-    "v2_to_tla": "json_to_tla.txt",
-    "v3_to_tla": "json_to_tla.txt",
-}
-
-
-def _resolve_input(spec_id: int, condition: str, v2_data: dict[str, Any]) -> str | None:
-    if condition == "nlp_to_tla":
-        desc_path = data_dir() / "descriptions" / f"{spec_id}.json"
-        if not desc_path.exists():
-            logger.warning("spec=%s: no description file, skipping nlp_to_tla", spec_id)
-            return None
-        return json.dumps(load_json(desc_path), ensure_ascii=False)
-
-    if condition == "v2_to_tla":
-        v2_path = data_dir() / "v2_json" / f"{spec_id}.json"
-        if not v2_path.exists():
-            logger.warning("spec=%s: no v2 JSON, skipping v2_to_tla", spec_id)
-            return None
-        return load_text(v2_path)
-
-    if condition == "v3_to_tla":
-        v3_path = data_dir() / "v3_json" / f"{spec_id}.json"
-        if not v3_path.exists():
-            logger.warning("spec=%s: no v3 JSON, skipping v3_to_tla", spec_id)
-            return None
-        return load_text(v3_path)
-
-    logger.warning("Unknown condition %s", condition)
-    return None
-
-
 def run_all(model_cfg: dict[str, Any], test_ids: list[int], conditions: list[str]) -> list[dict[str, Any]]:
     templates = {
         cond: load_text(repo_root() / "configs/prompts" / fname)
@@ -274,14 +161,7 @@ def run_all(model_cfg: dict[str, Any], test_ids: list[int], conditions: list[str
                 continue
 
             try:
-                summary = run_single(
-                    model_cfg=model_cfg,
-                    spec_id=spec_id,
-                    condition=condition,
-                    prompt_template=templates[condition],
-                    input_text=input_text,
-                    module_name=module_name,
-                )
+                summary = run_single_spec(spec_id, model_cfg, prompt_name, condition, api_key, gpu_id)
                 results.append(summary)
             except Exception as exc:
                 logger.error("spec=%s model=%s condition=%s: %s", spec_id, model_cfg["id"], condition, exc)
