@@ -1,248 +1,5090 @@
 {
-  "id": 22,
-  "Specification": "Voucher redemption transaction protocol (VTP). Models a voucher holder (H), consumer (C), and voucher (V) coordinating through prepared/redeem/abort messages. A voucher transitions from valid to redeemed upon successful redemption. Proves type safety, consistency (no holder redeemed while consumer aborted or vice versa), and refinement of the VoucherLifeCycle specification.",
-  "ModuleName": "VoucherRedeem",
-  "ExtendsModules": [],
-  "InstanceModules": [
-    "VoucherLifeCycle"
+  "type": "Module",
+  "name": "VoucherRedeem",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "V",
+        "V",
+        "H",
+        "C"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "vState",
+        "vlcState",
+        "vState",
+        "vlcState",
+        "hState",
+        "cState",
+        "vtpState",
+        "vtpRPrepared",
+        "msgs"
+      ]
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTypeOK",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "phantom"
+                      },
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      },
+                      {
+                        "type": "String",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "init"
+                      },
+                      {
+                        "type": "String",
+                        "value": "working"
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VInit",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "phantom"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "init"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Issue",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "phantom"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "working"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Transfer",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Redeem",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Cancel",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VNext",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_229",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_172",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_172",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "Issue",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "Redeem",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Transfer",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "v"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "Cancel",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VConsistent",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "done"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SUBSET",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "SetEnumerate",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "redeemed"
+                              },
+                              {
+                                "type": "String",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "init"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "phantom"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "working"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SUBSET",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "SetEnumerate",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "valid"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VSpec",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "VInit"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_263",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "VNext"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "vState"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "vlcState"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Messages",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "+",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "+",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_259",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "Prepared"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vh"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "H"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_259",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "Prepared"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "C"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_259",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "type"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "Redeem"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Abort"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPTypeOK",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "working"
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "hState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "H"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "holding"
+                      },
+                      {
+                        "type": "String",
+                        "value": "prepared"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "cState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "C"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "waiting"
+                      },
+                      {
+                        "type": "String",
+                        "value": "prepared"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpState"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "init"
+                  },
+                  {
+                    "type": "String",
+                    "value": "done"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "\\cup",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpRPrepared"
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "H"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "\\cup",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              },
+              {
+                "type": "Apply",
+                "operator": "Messages"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPInit",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "hState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "holding"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "cState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "waiting"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpState"
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpRPrepared"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPRcvPrepared",
+      "params": [
+        "h",
+        "c"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpState"
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Prepared"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vh"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "h"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Prepared"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "c"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "h"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "c"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPRedeem",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpState"
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpRPrepared"
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "H"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "done"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_249",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "type"
+                              },
+                              {
+                                "type": "String",
+                                "value": "Redeem"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPAbort",
+      "params": [
+        "UID_752"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_752"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_752"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vtpState"
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "done"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_533"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_533"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_249",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "type"
+                              },
+                              {
+                                "type": "String",
+                                "value": "Abort"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HPrepare",
+      "params": [
+        "h"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "h"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "holding"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "h"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "prepared"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_249",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "type"
+                              },
+                              {
+                                "type": "String",
+                                "value": "Prepared"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "vh"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "h"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HChooseToAbort",
+      "params": [
+        "h"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "h"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "holding"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "h"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HRcvRedeemMsg",
+      "params": [
+        "h"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "working"
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "h"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "holding"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Redeem"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "h"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HRcvAbortMsg",
+      "params": [
+        "h"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "h"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "holding"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Abort"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "h"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CPrepare",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "c"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "waiting"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "c"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "prepared"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_249",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "type"
+                              },
+                              {
+                                "type": "String",
+                                "value": "Prepared"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "vc"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "c"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CChooseToAbort",
+      "params": [
+        "UID_1012"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_1012"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "waiting"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_1012"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CRcvRedeemMsg",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "working"
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "c"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "waiting"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Redeem"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "c"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CRcvAbortMsg",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "valid"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "working"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "c"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "waiting"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "type"
+                      },
+                      {
+                        "type": "String",
+                        "value": "Abort"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "msgs"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "cState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "c"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "aborted"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "hState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vtpRPrepared"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "msgs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPNext",
+      "params": [],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_751",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "v"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "VTPAbort",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "v"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_693",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "h"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "c"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_172",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_172",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "HPrepare",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "h"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "HChooseToAbort",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "h"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_962",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "h"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "HRcvRedeemMsg",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "h"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_172",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_172",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_1011",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "c"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "CChooseToAbort",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "c"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "CRcvAbortMsg",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "c"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "CRcvRedeemMsg",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "c"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPConsistent",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_165",
+                    "operands": [
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "hState"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "h"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "redeemed"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "cState"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "c"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "aborted"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_165",
+                    "operands": [
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "hState"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "h"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "aborted"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "cState"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "c"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "redeemed"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPVars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "hState"
+          },
+          {
+            "type": "Apply",
+            "operator": "cState"
+          },
+          {
+            "type": "Apply",
+            "operator": "vState"
+          },
+          {
+            "type": "Apply",
+            "operator": "vlcState"
+          },
+          {
+            "type": "Apply",
+            "operator": "vtpState"
+          },
+          {
+            "type": "Apply",
+            "operator": "vtpRPrepared"
+          },
+          {
+            "type": "Apply",
+            "operator": "msgs"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTPSpec",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "VTPInit"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_263",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "VTPNext"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "VTPVars"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Cancel",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Transfer",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Issue",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "phantom"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "init"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "working"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Redeem",
+      "params": [
+        "v"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "valid"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "working"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vlcState"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VConsistent",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "done"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SUBSET",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "SetEnumerate",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "redeemed"
+                              },
+                              {
+                                "type": "String",
+                                "value": "cancelled"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "init"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "phantom"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vlcState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "working"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SUBSET",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "vState"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "v"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "SetEnumerate",
+                            "operands": [
+                              {
+                                "type": "String",
+                                "value": "valid"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VTypeOK",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "phantom"
+                      },
+                      {
+                        "type": "String",
+                        "value": "valid"
+                      },
+                      {
+                        "type": "String",
+                        "value": "redeemed"
+                      },
+                      {
+                        "type": "String",
+                        "value": "cancelled"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "V"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "init"
+                      },
+                      {
+                        "type": "String",
+                        "value": "working"
+                      },
+                      {
+                        "type": "String",
+                        "value": "done"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VSpec",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "VInit"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_263",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "VNext"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "vState"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "vlcState"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VNext",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_229",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_172",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_172",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "Issue",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "Redeem",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "v"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Transfer",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "v"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "Cancel",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "v"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VInit",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "phantom"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "vlcState"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "init"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_518",
+      "body": {
+        "type": "Apply",
+        "operator": "=>",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_511"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_169",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_326"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_502"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_1238",
+      "body": {
+        "type": "Apply",
+        "operator": "=>",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "VTPSpec"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_169",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "VTPTypeOK"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "VTPConsistent"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_1265",
+      "body": {
+        "type": "Apply",
+        "operator": "=>",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "VTPSpec"
+          },
+          {
+            "type": "Apply",
+            "operator": "VSpec"
+          }
+        ]
+      }
+    }
   ],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "V",
-    "H",
-    "C"
-  ],
-  "VariableNames": [
-    "vState",
-    "vlcState",
-    "hState",
-    "cState",
-    "vtpState",
-    "vtpRPrepared",
-    "msgs"
-  ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "Messages",
-    "VTPTypeOK",
-    "VTPInit",
-    "VTPRcvPrepared",
-    "VTPRedeem",
-    "VTPAbort",
-    "HPrepare",
-    "HChooseToAbort",
-    "HRcvRedeemMsg",
-    "HRcvAbortMsg",
-    "CPrepare",
-    "CChooseToAbort",
-    "CRcvRedeemMsg",
-    "CRcvAbortMsg",
-    "VTPNext",
-    "VTPConsistent",
-    "VTPVars",
-    "VTPSpec"
-  ],
-  "ActionDefNames": [
-    "VTPRcvPrepared",
-    "VTPRedeem",
-    "VTPAbort",
-    "HPrepare",
-    "HChooseToAbort",
-    "HRcvRedeemMsg",
-    "HRcvAbortMsg",
-    "CPrepare",
-    "CChooseToAbort",
-    "CRcvRedeemMsg",
-    "CRcvAbortMsg",
-    "VTPNext"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [],
-  "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
-  "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [],
-  "CaseExpr": [],
-  "SetEnumeration": [
-    "{\"Prepared\"}",
-    "{\"Redeem\", \"Abort\"}",
-    "{\"valid\", \"redeemed\"}",
-    "{\"working\", \"done\"}",
-    "{\"holding\", \"prepared\", \"redeemed\", \"aborted\"}",
-    "{\"waiting\", \"prepared\", \"redeemed\", \"aborted\"}",
-    "{\"init\", \"done\"}",
-    "{h,c}"
-  ],
-  "SetOperators": [
-    "\\cup",
-    "\\subseteq"
-  ],
-  "FiniteSetOps": [],
-  "FunctionConstructor": [
-    "[v \\in V |-> \"valid\"]",
-    "[v \\in V |-> \"working\"]",
-    "[h \\in H |-> \"holding\"]",
-    "[c \\in C |-> \"waiting\"]",
-    "[V -> {\"valid\", \"redeemed\"}]",
-    "[V -> {\"working\", \"done\"}]",
-    "[H -> {\"holding\", \"prepared\", \"redeemed\", \"aborted\"}]",
-    "[C -> {\"waiting\", \"prepared\", \"redeemed\", \"aborted\"}]"
-  ],
-  "FunctionApplication": [
-    "vState[…]",
-    "vlcState[…]",
-    "hState[…]",
-    "cState[…]"
-  ],
-  "FunctionOverride": [],
-  "RecordConstructor": [
-    "[type |-> \"Prepared\", vh |-> h]",
-    "[type |-> \"Prepared\", vc |-> c]",
-    "[type |-> \"Redeem\"]",
-    "[type |-> \"Abort\"]"
-  ],
-  "RecordAccess": [],
-  "TupleConstructor": [
-    "<<vState, vlcState, hState, cState, vtpState, msgs>>",
-    "<<hState, cState, vtpRPrepared>>",
-    "<<vState, vlcState, hState, cState, vtpRPrepared>>",
-    "<<vState, vlcState, vtpState, cState, vtpRPrepared>>",
-    "<<vState, vlcState, vtpState, cState, vtpRPrepared, msgs>>",
-    "<<vtpState, vState, vlcState, cState, vtpRPrepared, msgs>>",
-    "<<vState, vlcState, vtpState, hState, vtpRPrepared>>",
-    "<<vState, vlcState, vtpState, hState, vtpRPrepared, msgs>>",
-    "<<vtpState, vState, vlcState, hState, vtpRPrepared, msgs>>",
-    "<<hState, cState, vState, vlcState, vtpState, vtpRPrepared, msgs>>"
-  ],
-  "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<"
-  ],
-  "RangeExpr": [],
-  "ChoiceExpr": [],
-  "StringLiterals": [
-    "Prepared",
-    "Redeem",
-    "Abort",
-    "valid",
-    "redeemed",
-    "working",
-    "done",
-    "holding",
-    "prepared",
-    "aborted",
-    "waiting",
-    "init"
-  ],
-  "ArithmeticModules": [],
-  "DataStructureModules": [],
-  "ToolingModules": [],
-  "PrimedVariables": [
-    "vtpRPrepared",
-    "vtpState",
-    "vState",
-    "vlcState",
-    "msgs",
-    "hState",
-    "cState"
-  ],
-  "UnchangedExprs": [
-    "UNCHANGED <<vState, vlcState, hState, cState, vtpState, msgs>>",
-    "UNCHANGED <<hState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, hState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, cState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vtpState, vState, vlcState, cState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vtpState, vState, vlcState, hState, vtpRPrepared, msgs>>"
-  ],
-  "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][VTPNext]_VTPVars"
-  ],
-  "AlwaysOp": [
-    "[][VTPNext]",
-    "[](VTPTypeOK /\\ VTPConsistent)"
-  ],
-  "EventuallyOp": [],
-  "LeadsToOp": [],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "VTPTypeOK",
-    "VTPInit",
-    "VTPNext",
-    "VTPConsistent"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "VTPSpec"
-  ],
-  "OperatorDefNames_Init": [
-    "VTPInit"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "Messages",
-    "VTPVars"
-  ],
-  "FunctionConstructor_ByDomain": [
-    "[v \\in V |-> \"valid\"]",
-    "[v \\in V |-> \"working\"]",
-    "[h \\in H |-> \"holding\"]",
-    "[c \\in C |-> \"waiting\"]"
-  ],
-  "FunctionConstructor_SetType": [
-    "[V -> {\"valid\", \"redeemed\"}]",
-    "[V -> {\"working\", \"done\"}]",
-    "[H -> {\"holding\", \"prepared\", \"redeemed\", \"aborted\"}]",
-    "[C -> {\"waiting\", \"prepared\", \"redeemed\", \"aborted\"}]"
-  ],
-  "UnchangedExprs_Explicit": [
-    "UNCHANGED <<vState, vlcState, hState, cState, vtpState, msgs>>",
-    "UNCHANGED <<hState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, hState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, cState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, cState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vtpState, vState, vlcState, cState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpRPrepared>>",
-    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpRPrepared, msgs>>",
-    "UNCHANGED <<vtpState, vState, vlcState, hState, vtpRPrepared, msgs>>"
-  ],
-  "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 22,
+  "source_file": "VoucherRedeem.tla"
 }
