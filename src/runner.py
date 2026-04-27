@@ -67,16 +67,30 @@ def _call_model(cfg: dict[str, Any], prompt: str) -> dict[str, Any]:
         raise ValueError(f"Unknown backend: {backend}")
 
 
-def run_single_spec(spec_id: str, spec_version: str, model_cfg: dict, prompt_name: str, condition: str, api_key: str, gpu_id: int):
+def run_single_spec(
+    spec_id: str,
+    spec_version: str,
+    model_cfg: dict,
+    prompt_name: str,
+    condition: str,
+    api_key: str,
+    gpu_id: int,
+    wandb_project: str = "tla_bench",
+    wandb_entity: str = "",
+    wandb_api_key: str = "",
+):
     os.environ["OPENAI_API_KEY"] = api_key
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-    
+    if wandb_api_key:
+        os.environ["WANDB_API_KEY"] = wandb_api_key
+
     logger.info(f"Running spec {spec_id} with model {model_cfg['model_name']} on GPU {gpu_id}")
 
     run = wandb.init(
-        project="tla",
+        project=wandb_project or "tla_bench",
+        entity=wandb_entity or None,
         name=f"{spec_id}_{model_cfg['id']}",
-        config=model_cfg,
+        config={**model_cfg, "spec_id": spec_id, "spec_version": spec_version, "condition": condition},
     )
 
     _call_model(model_cfg, prompt_name)
