@@ -1,137 +1,461 @@
 {
-  "id": 39,
-  "Specification": "Age_Channel: A TLA+ model of an age-tracking message channel. Messages in transit carry a content field and an age counter incremented each step. Pickup adds messages with age 0; Deliver moves a subset addressed to a receiver into inDelivery; AttainAge increments the age of all in-transit messages. TypeOK constrains inTransit to Boxes and inDelivery to Messages.",
-  "ModuleName": "Age_Channel",
-  "ExtendsModules": [
-    "Integers",
-    "TLC"
+  "type": "Module",
+  "name": "Age_Channel",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "Messages",
+        "Boxes"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "inTransit",
+        "inDelivery"
+      ]
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Pack_WaitingTime",
+      "params": [
+        "msgs"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_257",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_249",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "content"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "m"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "age"
+                  },
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Unpack",
+      "params": [
+        "boxes"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_257",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "m"
+              },
+              {
+                "type": "String",
+                "value": "content"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "inTransit"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "inDelivery"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Pickup",
+      "params": [
+        "msgs"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "inTransit"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "inTransit"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Pack_WaitingTime",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "msgs"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "inDelivery"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Deliver",
+      "params": [
+        "rcver"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_229",
+        "operands": [
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "box"
+                              },
+                              {
+                                "type": "String",
+                                "value": "content"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "to"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "rcver"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "inDelivery"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Unpack",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "boxes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "inTransit"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "FcnApplication",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "inTransit"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "boxes"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AttainAge",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "inTransit"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_257",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_249",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "content"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "package"
+                              },
+                              {
+                                "type": "String",
+                                "value": "content"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "age"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_312",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "package"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "age"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Numeral",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "inDelivery"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeOK",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "\\cup",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "inTransit"
+              },
+              {
+                "type": "Apply",
+                "operator": "Boxes"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "\\cup",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "inDelivery"
+              },
+              {
+                "type": "Apply",
+                "operator": "Messages"
+              }
+            ]
+          }
+        ]
+      }
+    }
   ],
-  "InstanceModules": [],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Messages",
-    "Boxes"
-  ],
-  "VariableNames": [
-    "inTransit",
-    "inDelivery"
-  ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "Pack_WaitingTime",
-    "Unpack",
-    "Init",
-    "Pickup",
-    "Deliver",
-    "AttainAge",
-    "TypeOK"
-  ],
-  "ActionDefNames": [
-    "Pickup",
-    "Deliver",
-    "AttainAge"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [],
-  "LambdaParams": [],
-  "Implication": [],
-  "Negation": [],
-  "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [],
-  "CaseExpr": [],
-  "SetEnumeration": [],
-  "SetOperators": [
-    "\\cup",
-    "\\subseteq"
-  ],
-  "FiniteSetOps": [
-    "SUBSET"
-  ],
-  "FunctionConstructor": [],
-  "FunctionApplication": [],
-  "FunctionOverride": [],
-  "RecordConstructor": [
-    "[ content |-> m, age |-> 0 ]",
-    "[ content |-> package.content, age |-> package.age + 1 ]"
-  ],
-  "RecordAccess": [
-    "m.content",
-    "box.content",
-    "package.content",
-    "package.age"
-  ],
-  "TupleConstructor": [],
-  "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">"
-  ],
-  "RangeExpr": [],
-  "ChoiceExpr": [],
-  "StringLiterals": [],
-  "ArithmeticModules": [
-    "Integers"
-  ],
-  "DataStructureModules": [],
-  "ToolingModules": [
-    "TLC"
-  ],
-  "PrimedVariables": [
-    "inTransit",
-    "inDelivery"
-  ],
-  "UnchangedExprs": [],
-  "EnabledExprs": [],
-  "TemporalSubscript": [],
-  "AlwaysOp": [],
-  "EventuallyOp": [],
-  "LeadsToOp": [],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "Init",
-    "TypeOK"
-  ],
-  "OperatorDefNames_TemporalProperty": [],
-  "OperatorDefNames_Init": [
-    "Init"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "Pack_WaitingTime",
-    "Unpack"
-  ],
-  "FunctionConstructor_ByDomain": [],
-  "FunctionConstructor_SetType": [],
-  "UnchangedExprs_Explicit": [],
-  "UnchangedExprs_VarRef": [],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 39,
+  "source_file": "39.tla"
 }
