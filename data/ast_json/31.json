@@ -1,237 +1,2778 @@
 {
-  "id": 31,
-  "Specification": "cf1s_folklore: A threshold-based Byzantine fault-tolerant one-step consensus protocol. N processes with at most T Byzantine and F crash faults (N > 3T, T >= F). Processes track sent (nSnt0/nSnt1) and received (nRcvd0/nRcvd1) messages via integer counters, with nSnt0F/nSnt1F tracking faulty sends. Actions: Faulty (crash with IF-THEN-ELSE counter updates), Propose (increment sent count, move to S0/S1), Receive (increment received count if below sent+faulty bound), Decide (4-way branch: D0, D1, U0, or U1 based on thresholds). Alternative initial states Init0/Init1. LTL properties: OneStep0_Ltl and OneStep1_Ltl.",
-  "ModuleName": "cf1s_folklore",
-  "ExtendsModules": [
-    "Naturals",
-    "FiniteSets"
+  "type": "Module",
+  "name": "cf1s_folklore",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "N",
+        "T",
+        "F"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "nSnt0",
+        "nSnt1",
+        "nSnt0F",
+        "nSnt1F",
+        "nFaulty",
+        "pc",
+        "nRcvd0",
+        "nRcvd1"
+      ]
+    },
+    {
+      "type": "Assumption",
+      "name": "UID_654",
+      "body": null
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Proc",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_374",
+        "operands": [
+          {
+            "type": "Numeral",
+            "value": 1
+          },
+          {
+            "type": "Apply",
+            "operator": "N"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Status",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SetEnumerate",
+        "operands": [
+          {
+            "type": "String",
+            "value": "V0"
+          },
+          {
+            "type": "String",
+            "value": "V1"
+          },
+          {
+            "type": "String",
+            "value": "S0"
+          },
+          {
+            "type": "String",
+            "value": "S1"
+          },
+          {
+            "type": "String",
+            "value": "D0"
+          },
+          {
+            "type": "String",
+            "value": "D1"
+          },
+          {
+            "type": "String",
+            "value": "U0"
+          },
+          {
+            "type": "String",
+            "value": "U1"
+          },
+          {
+            "type": "String",
+            "value": "BYZ"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "vars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "nSnt0"
+          },
+          {
+            "type": "Apply",
+            "operator": "nSnt1"
+          },
+          {
+            "type": "Apply",
+            "operator": "nSnt0F"
+          },
+          {
+            "type": "Apply",
+            "operator": "nSnt1F"
+          },
+          {
+            "type": "Apply",
+            "operator": "nFaulty"
+          },
+          {
+            "type": "Apply",
+            "operator": "pc"
+          },
+          {
+            "type": "Apply",
+            "operator": "nRcvd0"
+          },
+          {
+            "type": "Apply",
+            "operator": "nRcvd1"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "pc"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Proc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "V0"
+                      },
+                      {
+                        "type": "String",
+                        "value": "V1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0F"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1F"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nFaulty"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd0"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd1"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Faulty",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_338",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nFaulty"
+              },
+              {
+                "type": "Apply",
+                "operator": "F"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "/=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "pc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "BYZ"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "pc"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "pc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "BYZ"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "nFaulty"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_312",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "nFaulty"
+                  },
+                  {
+                    "type": "Numeral",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_240",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V0"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      },
+                      {
+                        "type": "Numeral",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt0F"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_240",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V1"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      },
+                      {
+                        "type": "Numeral",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt1F"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt0"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt1"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nRcvd0"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nRcvd1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Propose",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V0"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "S0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      },
+                      {
+                        "type": "Numeral",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nFaulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V1"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "S1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      },
+                      {
+                        "type": "Numeral",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nFaulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Receive",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_338",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_312",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "nRcvd0"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Numeral",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nFaulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_338",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_312",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "nRcvd1"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Numeral",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt0F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nFaulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nSnt1F"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd0"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt0"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "nRcvd1"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "nSnt1"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "vars"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Decide",
+      "params": [
+        "UID_917"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Disjunction",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_625"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_917"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "S0"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_625"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_917"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "S1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_356",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_312",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_626"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_917"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_627"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_917"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_322",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_617"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_618"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Disjunction",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_356",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_626"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_917"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "D0"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_356",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_627"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_917"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "D1"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_338",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_626"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_338",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_627"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "S0"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_917"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U0"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_338",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_626"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_338",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_627"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_322",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_617"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_618"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_917"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "S1"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_917"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U1"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_620"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_621"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_622"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_623"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_624"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_626"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_627"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Next",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_916",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "self"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_840",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "self"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Decide",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "self"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_779",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "self"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "-+->",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_679"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Spec",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_169",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_715"
+              },
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_263",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "Next"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_679"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_282",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_679"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Disjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_916",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "self"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_840",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "self"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "Decide",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "self"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init0",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_625"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "V0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_620"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_621"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_622"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_623"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_624"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_626"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_627"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init1",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "pc"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "V1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0F"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1F"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nFaulty"
+              },
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd0"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd1"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeOK",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "pc"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Proc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Status"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_374",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "N"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_374",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "N"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt0F"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_374",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "N"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nSnt1F"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_374",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "N"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nFaulty"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_374",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "F"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd0"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Proc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_374",
+                    "operands": [
+                      {
+                        "type": "Numeral",
+                        "value": 0
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "N"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "nRcvd1"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Proc"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_374",
+                    "operands": [
+                      {
+                        "type": "Numeral",
+                        "value": 0
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "N"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "OneStep0_Ltl",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "=>",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_169",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_169",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "/=",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "pc"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U0"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "/=",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "pc"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U1"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "/=",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "pc"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "D1"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "OneStep1_Ltl",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "=>",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "pc"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "V1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": ">=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_169",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_169",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "/=",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "pc"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U0"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "/=",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "pc"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "U1"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "/=",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "pc"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "D0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   ],
-  "InstanceModules": [],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "N",
-    "T",
-    "F"
-  ],
-  "VariableNames": [
-    "nSnt0",
-    "nSnt1",
-    "nSnt0F",
-    "nSnt1F",
-    "nFaulty",
-    "pc",
-    "nRcvd0",
-    "nRcvd1"
-  ],
-  "AssumptionNames": [
-    "NTF"
-  ],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "Proc",
-    "Status",
-    "vars",
-    "Init",
-    "Faulty",
-    "Propose",
-    "Receive",
-    "Decide",
-    "Next",
-    "Spec",
-    "Init0",
-    "Init1",
-    "TypeOK",
-    "OneStep0_Ltl",
-    "OneStep1_Ltl"
-  ],
-  "ActionDefNames": [
-    "Faulty",
-    "Propose",
-    "Receive",
-    "Decide",
-    "Next"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [],
-  "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [],
-  "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [
-    "IF pc[i] = \"V0\" THEN nSnt0F' = nSnt0F + 1 ELSE nSnt0F' = nSnt0F",
-    "IF pc[i] = \"V1\" THEN nSnt0F' = nSnt1F + 1 ELSE nSnt1F' = nSnt1F"
-  ],
-  "CaseExpr": [],
-  "SetEnumeration": [
-    "{\"V0\", \"V1\", \"S0\", \"S1\", \"D0\", \"D1\", \"U0\", \"U1\", \"BYZ\"}",
-    "{\"V0\", \"V1\"}"
-  ],
-  "SetOperators": [],
-  "FiniteSetOps": [],
-  "FunctionConstructor": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"V0\" ]",
-    "[ i \\in Proc |-> \"V1\" ]",
-    "[ Proc -> { \"V0\", \"V1\" } ]",
-    "[ Proc -> Status ]",
-    "[ Proc -> 0..N ]"
-  ],
-  "FunctionApplication": [
-    "pc[…]",
-    "nRcvd0[…]",
-    "nRcvd1[…]"
-  ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
-  "RecordAccess": [],
-  "TupleConstructor": [
-    "<< nSnt0, nSnt1, nSnt0F, nSnt1F, nFaulty, pc, nRcvd0, nRcvd1 >>",
-    "<< nSnt0, nSnt1, nRcvd0, nRcvd1 >>",
-    "<< nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "<< nSnt0, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "<< nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd1 >>",
-    "<< nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd0 >>",
-    "<< nSnt0, nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>"
-  ],
-  "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-",
-    "*"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">="
-  ],
-  "RangeExpr": [
-    "1 .. ",
-    "in 0..N",
-    "in 0..F",
-    "0..N"
-  ],
-  "ChoiceExpr": [],
-  "StringLiterals": [
-    "V0",
-    "V1",
-    "S0",
-    "S1",
-    "D0",
-    "D1",
-    "U0",
-    "U1",
-    "BYZ"
-  ],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [
-    "FiniteSets"
-  ],
-  "ToolingModules": [],
-  "PrimedVariables": [
-    "pc",
-    "nFaulty",
-    "nSnt0F",
-    "nSnt1F",
-    "nSnt0",
-    "nSnt1",
-    "nRcvd0",
-    "nRcvd1"
-  ],
-  "UnchangedExprs": [
-    "UNCHANGED << nSnt0, nSnt1, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd0 >>",
-    "UNCHANGED vars",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>"
-  ],
-  "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][Next]_vars"
-  ],
-  "AlwaysOp": [
-    "[][Next]",
-    "[](\\A i \\in Proc : pc[i] # \"U0\" /\\ pc[i] # \"U1\" /\\ pc[i] # \"D1\")"
-  ],
-  "EventuallyOp": [
-    "<>(\\A i \\in Proc : pc[i] # \"U0\" /\\ pc[i] # \"U1\" /\\ pc[i] # \"D0\")"
-  ],
-  "LeadsToOp": [],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "Init",
-    "Next",
-    "Init0",
-    "Init1",
-    "TypeOK"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "Spec",
-    "OneStep0_Ltl",
-    "OneStep1_Ltl"
-  ],
-  "OperatorDefNames_Init": [
-    "Init",
-    "Init0",
-    "Init1"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "Proc",
-    "Status",
-    "vars"
-  ],
-  "FunctionConstructor_ByDomain": [
-    "[ i \\in Proc |-> 0 ]",
-    "[ i \\in Proc |-> \"V0\" ]",
-    "[ i \\in Proc |-> \"V1\" ]"
-  ],
-  "FunctionConstructor_SetType": [
-    "[ Proc -> { \"V0\", \"V1\" } ]",
-    "[ Proc -> Status ]",
-    "[ Proc -> 0..N ]"
-  ],
-  "UnchangedExprs_Explicit": [
-    "UNCHANGED << nSnt0, nSnt1, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd1 >>",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nFaulty, pc, nSnt1F, nRcvd0 >>",
-    "UNCHANGED << nSnt0, nSnt1, nSnt0F, nSnt1F, nFaulty, nRcvd0, nRcvd1 >>"
-  ],
-  "UnchangedExprs_VarRef": [
-    "UNCHANGED vars"
-  ],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 31,
+  "source_file": "31.tla"
 }

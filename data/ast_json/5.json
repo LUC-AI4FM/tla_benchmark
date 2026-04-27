@@ -1,275 +1,4700 @@
 {
-  "id": 5,
-  "Specification": "Simple blocking Atomic Commitment Protocol (ACP-SB). Models a coordinator-based two-phase commit with participant voting, coordinator decision-making, broadcast, fault detection, and timeout-based abort. Specifies AC1 through AC5 consistency and liveness properties, plus stability and stronger variants.",
-  "ModuleName": "ACP_SB",
-  "ExtendsModules": [],
-  "InstanceModules": [],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "participants",
-    "yes",
-    "no",
-    "undecided",
-    "commit",
-    "abort",
-    "waiting",
-    "notsent"
+  "type": "Module",
+  "name": "ACP_SB",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "participants",
+        "yes",
+        "no",
+        "undecided",
+        "commit",
+        "abort",
+        "waiting",
+        "notsent"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "participant",
+        "coordinator"
+      ]
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeInvParticipant",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SUBSET",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "participant"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_258",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "participants"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_259",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vote"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "yes"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "no"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "alive"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_153"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "decision"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "undecided"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "commit"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "abort"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_153"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "voteSent"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_153"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeInvCoordinator",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SUBSET",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "coordinator"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_259",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "request"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_153"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "vote"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "waiting"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "yes"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "no"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "broadcast"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "commit"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "abort"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "notsent"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "commit"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "abort"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "undecided"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "alive"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "faulty"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeInv",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "TypeInvParticipant"
+          },
+          {
+            "type": "Apply",
+            "operator": "TypeInvCoordinator"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "InitParticipant",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SUBSET",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "participant"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_258",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "participants"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_259",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "vote"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "yes"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "no"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "alive"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_152"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "decision"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "undecided"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_151"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "voteSent"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_151"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "InitCoordinator",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SUBSET",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "coordinator"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_259",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "request"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_151"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "vote"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "waiting"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "alive"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_152"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "broadcast"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_258",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participants"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "notsent"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "undecided"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "String",
+                    "value": "faulty"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "InitParticipant"
+          },
+          {
+            "type": "Apply",
+            "operator": "InitCoordinator"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "request",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordinator"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "request"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "request"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_152"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "getVote",
+      "params": [
+        "UID_476"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_314"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_308"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_314"
+                      },
+                      {
+                        "type": "String",
+                        "value": "request"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_486"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_314"
+                      },
+                      {
+                        "type": "String",
+                        "value": "vote"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_476"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_311"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_476"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "voteSent"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_476"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_236",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_313"
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_476"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "vote"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "detectFault",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordinator"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "undecided"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "request"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "j"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "vote"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "waiting"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participant"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "alive"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participant"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "voteSent"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "abort"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "makeDecision",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordinator"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "undecided"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "SUBSET",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "j"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "yes"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "no"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Disjunction",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_230",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "coordinator"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "vote"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "yes"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "commit"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_229",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "coordinator"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "vote"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "no"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "abort"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "coordBroadcast",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordinator"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "/=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "undecided"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "broadcast"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "notsent"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "broadcast"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "coordinator"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "coordDie",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordinator"
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "alive"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_152"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "sendVote",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "String",
+                    "value": "request"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "i"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "voteSent"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_152"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "abortOnVote",
+      "params": [
+        "UID_732"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_732"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_313"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_732"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_308"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_732"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "voteSent"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_313"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_732"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "vote"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_307"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_732"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_310"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "abortOnTimeoutRequest",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_313"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_308"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  },
+                  {
+                    "type": "String",
+                    "value": "alive"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_314"
+                      },
+                      {
+                        "type": "String",
+                        "value": "request"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_313"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_310"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_314"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "decide",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "participant"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "decision"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "undecided"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "/=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "broadcast"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "notsent"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_250",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "coordinator"
+                                      },
+                                      {
+                                        "type": "String",
+                                        "value": "broadcast"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "parDie",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_250",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "String",
+                "value": "alive"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "At"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "alive"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_151"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "faulty"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_152"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "parProg",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_172",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_172",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_731",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "abortOnVote",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "abortOnTimeoutRequest",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "decide",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "i"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "parProgN",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_229",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_172",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "parDie",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "parProg",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "coordProgA",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_172",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_172",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_172",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_475",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "getVote",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "detectFault",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_680",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "i"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "coordProgB",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_172",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "makeDecision"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "coordProgA",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "coordProgN",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_172",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_701"
+          },
+          {
+            "type": "Apply",
+            "operator": "coordProgB"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "progN",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_172",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "parProgN"
+          },
+          {
+            "type": "Apply",
+            "operator": "coordProgN"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "fairness",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_282",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "participant"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "parProg",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_282",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "participant"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "coordProgB"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Spec",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_169",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_169",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Init"
+              },
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_263",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "progN"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_275",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "participant"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "fairness"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC1",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "/=",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "commit"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "/=",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "abort"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC2",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "commit"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "yes"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC3_1",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_313"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_1013"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_310"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_229",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_313"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1023"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "vote"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_307"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_229",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_313"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_314"
+                      },
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC4",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "decision"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "commit"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": ">",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_236",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "participant"
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "i"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "commit"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "j"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "decision"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "abort"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": ">",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_236",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "participant"
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "j"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "decision"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "abort"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC3_2",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">=",
+        "operands": [
+          {
+            "type": "Disjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "SUBSET",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "abort"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "commit"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "participant"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "j"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "coordinator"
+                  },
+                  {
+                    "type": "String",
+                    "value": "faulty"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "FaultyStable",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": ">",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "faulty"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "=>",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": ">",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "VoteStable",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_230",
+        "operands": [
+          {
+            "type": "Disjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "yes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "no"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "StrongerAC2",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "commit"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_230",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "j"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "vote"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "yes"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "commit"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "StrongerAC3_1",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "abort"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_229",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "j"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "vote"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "no"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_229",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "j"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "faulty"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "coordinator"
+                              },
+                              {
+                                "type": "String",
+                                "value": "decision"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "abort"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "coordinator"
+                              },
+                              {
+                                "type": "String",
+                                "value": "decision"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "undecided"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NoRecovery",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "participant"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "alive"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_165",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "participant"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "faulty"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "coordinator"
+                      },
+                      {
+                        "type": "String",
+                        "value": "alive"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_165",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "coordinator"
+                          },
+                          {
+                            "type": "String",
+                            "value": "faulty"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "DecisionReachedNoFault",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "..",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_313"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_1265"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "String",
+                    "value": "alive"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_313"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_1273"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "decision"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_308"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AbortImpliesNoVote",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_313"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_310"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_313"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "j"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "vote"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_307"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AC5",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">=",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Disjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "SUBSET",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_313"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "String",
+                            "value": "decision"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_310"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_309"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_313"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "i"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "String",
+                        "value": "faulty"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   ],
-  "VariableNames": [
-    "participant",
-    "coordinator"
-  ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "TypeInvParticipant",
-    "TypeInvCoordinator",
-    "TypeInv",
-    "InitParticipant",
-    "InitCoordinator",
-    "Init",
-    "request",
-    "getVote",
-    "detectFault",
-    "makeDecision",
-    "coordBroadcast",
-    "coordDie",
-    "sendVote",
-    "abortOnVote",
-    "abortOnTimeoutRequest",
-    "decide",
-    "parDie",
-    "parProg",
-    "parProgN",
-    "coordProgA",
-    "coordProgB",
-    "coordProgN",
-    "progN",
-    "fairness",
-    "Spec",
-    "AC1",
-    "AC2",
-    "AC3_1",
-    "AC4",
-    "AC3_2",
-    "FaultyStable",
-    "VoteStable",
-    "StrongerAC2",
-    "StrongerAC3_1",
-    "NoRecovery",
-    "DecisionReachedNoFault",
-    "AbortImpliesNoVote",
-    "AC5"
-  ],
-  "ActionDefNames": [
-    "TypeInvCoordinator",
-    "TypeInv",
-    "InitCoordinator",
-    "Init",
-    "request",
-    "getVote",
-    "detectFault",
-    "makeDecision",
-    "coordBroadcast",
-    "coordDie",
-    "sendVote",
-    "abortOnVote",
-    "abortOnTimeoutRequest",
-    "decide",
-    "parDie",
-    "parProg",
-    "parProgN",
-    "coordProgA",
-    "coordProgB",
-    "coordProgN",
-    "progN"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [],
-  "LambdaParams": [],
-  "Implication": [
-    "=>",
-    "<=>"
-  ],
-  "Negation": [
-    "~"
-  ],
-  "BooleanConstants": [
-    "TRUE",
-    "FALSE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "#"
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [],
-  "CaseExpr": [],
-  "SetEnumeration": [
-    "{yes, no}",
-    "{undecided, commit, abort}",
-    "{waiting, yes, no}",
-    "{commit, abort, notsent}",
-    "{commit, abort, undecided}",
-    "{TRUE}",
-    "{undecided}",
-    "{FALSE}",
-    "{waiting}",
-    "{notsent}",
-    "{abort, commit}"
-  ],
-  "SetOperators": [],
-  "FiniteSetOps": [],
-  "FunctionConstructor": [
-    "[participants -> BOOLEAN]",
-    "[participants -> {waiting, yes, no}]",
-    "[participants -> {commit, abort, notsent}]",
-    "[participants -> {FALSE}]",
-    "[participants -> {waiting}]",
-    "[participants -> {notsent}]"
-  ],
-  "FunctionApplication": [
-    "request[…]",
-    "vote[…]",
-    "participant[…]",
-    "broadcast[…]"
-  ],
-  "FunctionOverride": [
-    "[coordinator EXCEPT !.decision = abort]",
-    "[coordinator EXCEPT !.decision = commit]",
-    "[coordinator EXCEPT !.alive = FALSE, !.faulty = TRUE]",
-    "[@ EXCEPT !.voteSent = TRUE]",
-    "[@ EXCEPT !.decision = abort]",
-    "[@ EXCEPT !.alive = FALSE, !.faulty = TRUE]"
-  ],
-  "RecordConstructor": [],
-  "RecordAccess": [
-    "coordinator.alive",
-    "coordinator.request",
-    "coordinator.decision",
-    "coordinator.vote",
-    "coordinator.broadcast",
-    "coordinator.faulty"
-  ],
-  "TupleConstructor": [
-    "<<participant>>",
-    "<<coordinator>>",
-    "<<coordinator, participant>>"
-  ],
-  "SequenceOps": [],
-  "ArithmeticOps": [
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    "<="
-  ],
-  "RangeExpr": [],
-  "ChoiceExpr": [],
-  "StringLiterals": [],
-  "ArithmeticModules": [],
-  "DataStructureModules": [],
-  "ToolingModules": [],
-  "PrimedVariables": [
-    "coordinator",
-    "participant"
-  ],
-  "UnchangedExprs": [],
-  "EnabledExprs": [],
-  "TemporalSubscript": [],
-  "AlwaysOp": [
-    "[][progN]",
-    "[] \\A i, j \\in participants :",
-    "[] (  (\\E i \\in participants : participant[i].decision = commit)",
-    "[] (  (\\E i \\in participants : participant[i].decision = abort)",
-    "[] /\\ (\\A i \\in participants : participant[i].decision = commit",
-    "[](participant[i].decision = commit))",
-    "[](participant[j].decision = abort))",
-    "[](participant[i].faulty => []participant[i].faulty)",
-    "[](coordinator.faulty => [] coordinator.faulty)",
-    "[](participant[i].vote = yes)",
-    "[](participant[i].vote = no)",
-    "[] /\\ \\A i \\in participants : participant[i].alive <=> ~participant[i].faulty"
-  ],
-  "EventuallyOp": [
-    "<> \\/ \\A i \\in participants : participant[i].decision \\in {abort, commit}",
-    "<> \\A i \\in participants : \\/ participant[i].decision \\in {abort, commit}"
-  ],
-  "LeadsToOp": [
-    "~> (\\A k \\in participants : participant[k].decision # undecided)"
-  ],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "TypeInvParticipant",
-    "TypeInvCoordinator",
-    "InitParticipant",
-    "InitCoordinator",
-    "parProgN",
-    "coordProgB"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "fairness",
-    "Spec",
-    "AC1",
-    "AC2",
-    "AC3_1",
-    "AC4",
-    "AC3_2",
-    "FaultyStable",
-    "VoteStable",
-    "StrongerAC2",
-    "StrongerAC3_1",
-    "NoRecovery",
-    "DecisionReachedNoFault",
-    "AbortImpliesNoVote",
-    "AC5"
-  ],
-  "OperatorDefNames_Init": [
-    "InitParticipant",
-    "InitCoordinator",
-    "Init"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "TypeInv",
-    "Init",
-    "parProg",
-    "coordProgA",
-    "coordProgN",
-    "progN"
-  ],
-  "FunctionConstructor_ByDomain": [],
-  "FunctionConstructor_SetType": [
-    "[participants -> BOOLEAN]",
-    "[participants -> {waiting, yes, no}]",
-    "[participants -> {commit, abort, notsent}]",
-    "[participants -> {FALSE}]",
-    "[participants -> {waiting}]",
-    "[participants -> {notsent}]"
-  ],
-  "UnchangedExprs_Explicit": [],
-  "UnchangedExprs_VarRef": [],
-  "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 5,
+  "source_file": "5.tla"
 }

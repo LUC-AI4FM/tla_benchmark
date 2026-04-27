@@ -1,352 +1,5906 @@
 {
-  "id": 35,
-  "Specification": "CheckpointCoordination: A fault-tolerant distributed checkpoint coordination protocol over a set of nodes with a majority quorum. Models node/network failures and recoveries, Paxos-style leader election, replicated log propagation, and checkpoint lifecycle (start/finish). A lease mechanism controls which node may take a checkpoint at any time. Temporal invariants ensure checkpoints are eventually taken and liveness is maintained under fairness assumptions.",
-  "ModuleName": "CheckpointCoordination",
-  "ExtendsModules": [],
-  "InstanceModules": [],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Node",
-    "Majority"
+  "type": "Module",
+  "name": "CheckpointCoordination",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "Node",
+        "Majority"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "IsNodeUp",
+        "NetworkPath",
+        "Leader",
+        "ReplicatedLog",
+        "ExecutionCounter",
+        "LastVotePayload",
+        "CurrentLease",
+        "CanTakeCheckpoint",
+        "IsTakingCheckpoint",
+        "TimeoutCounter",
+        "LatestCheckpoint"
+      ]
+    },
+    {
+      "type": "OperatorDef",
+      "name": "EnvironmentVars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "IsNodeUp"
+          },
+          {
+            "type": "Apply",
+            "operator": "NetworkPath"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "PaxosVars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "Leader"
+          },
+          {
+            "type": "Apply",
+            "operator": "ReplicatedLog"
+          },
+          {
+            "type": "Apply",
+            "operator": "ExecutionCounter"
+          },
+          {
+            "type": "Apply",
+            "operator": "LastVotePayload"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CheckpointVars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "CurrentLease"
+          },
+          {
+            "type": "Apply",
+            "operator": "CanTakeCheckpoint"
+          },
+          {
+            "type": "Apply",
+            "operator": "IsTakingCheckpoint"
+          },
+          {
+            "type": "Apply",
+            "operator": "TimeoutCounter"
+          },
+          {
+            "type": "Apply",
+            "operator": "LatestCheckpoint"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "AllVars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_275",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "IsNodeUp"
+          },
+          {
+            "type": "Apply",
+            "operator": "NetworkPath"
+          },
+          {
+            "type": "Apply",
+            "operator": "Leader"
+          },
+          {
+            "type": "Apply",
+            "operator": "ReplicatedLog"
+          },
+          {
+            "type": "Apply",
+            "operator": "ExecutionCounter"
+          },
+          {
+            "type": "Apply",
+            "operator": "LastVotePayload"
+          },
+          {
+            "type": "Apply",
+            "operator": "CurrentLease"
+          },
+          {
+            "type": "Apply",
+            "operator": "CanTakeCheckpoint"
+          },
+          {
+            "type": "Apply",
+            "operator": "IsTakingCheckpoint"
+          },
+          {
+            "type": "Apply",
+            "operator": "TimeoutCounter"
+          },
+          {
+            "type": "Apply",
+            "operator": "LatestCheckpoint"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NoNode",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_276",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "|->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "n"
+              },
+              {
+                "type": "Apply",
+                "operator": "Node"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Log",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_404",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "+",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Node"
+              },
+              {
+                "type": "Apply",
+                "operator": "SetEnumerate",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "LogIndex",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "FcnApplication",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_306"
+          },
+          {
+            "type": "Apply",
+            "operator": "SetEnumerate",
+            "operands": [
+              {
+                "type": "Numeral",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "MinLogIndex",
+      "params": [],
+      "body": {
+        "type": "Numeral",
+        "value": 1
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "BlankLog",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_239",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "NoNode"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "LogCheckpoint",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_259",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_246",
+            "operands": [
+              {
+                "type": "String",
+                "value": "log"
+              },
+              {
+                "type": "Apply",
+                "operator": "Log"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_246",
+            "operands": [
+              {
+                "type": "String",
+                "value": "counter"
+              },
+              {
+                "type": "Apply",
+                "operator": "LogIndex"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "CheckpointLease",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_259",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_246",
+            "operands": [
+              {
+                "type": "String",
+                "value": "node"
+              },
+              {
+                "type": "Apply",
+                "operator": "Node"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_246",
+            "operands": [
+              {
+                "type": "String",
+                "value": "counter"
+              },
+              {
+                "type": "Apply",
+                "operator": "LogIndex"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NoCheckpointLease",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_276",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "|->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "lease"
+              },
+              {
+                "type": "Apply",
+                "operator": "CheckpointLease"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "ReadLog",
+      "params": [
+        "node",
+        "index"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_240",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "index"
+              },
+              {
+                "type": "Apply",
+                "operator": "\\in",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "ReplicatedLog"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "node"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "node"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "index"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "NoNode"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "WriteLog",
+      "params": [
+        "node",
+        "index",
+        "value"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_235",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_239",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ReadLog",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_246",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_255",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "index"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "value"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "MergeLogs",
+      "params": [
+        "srcNode",
+        "dstNode"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_239",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_240",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReadLog",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "dstNode"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "ReadLog",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "dstNode"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "ReadLog",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "srcNode"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "i"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "OpenIndices",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_266",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReadLog",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "FirstOpenIndex",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_228",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_350",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "index"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "other"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeInvariant",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsNodeUp"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NetworkPath"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_231",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "Node"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "Node"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Leader"
+              },
+              {
+                "type": "Apply",
+                "operator": "+",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "SetEnumerate",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "NoNode"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ReplicatedLog"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Log"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ExecutionCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LogIndex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "LastVotePayload"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LogIndex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CurrentLease"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "+",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "CheckpointLease"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "SetEnumerate",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "NoCheckpointLease"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CanTakeCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsTakingCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_153"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "TimeoutCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "LogIndex"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "SUBSET",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "LatestCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "LogCheckpoint"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "SafetyInvariant",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "=>",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  }
+                ]
+              },
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_165",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "Leader"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_165",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "IsTakingCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "Leader"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "CurrentLease"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "Leader"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "NoCheckpointLease"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_230",
+                            "operands": [
+                              {
+                                "type": "Conjunction",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_165",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_236",
+                                        "operands": [
+                                          {
+                                            "type": "Apply",
+                                            "operator": "CanTakeCheckpoint"
+                                          },
+                                          {
+                                            "type": "Apply",
+                                            "operator": "n"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_165",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_236",
+                                        "operands": [
+                                          {
+                                            "type": "Apply",
+                                            "operator": "IsTakingCheckpoint"
+                                          },
+                                          {
+                                            "type": "Apply",
+                                            "operator": "n"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "/=",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "CurrentLease"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "Leader"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "NoCheckpointLease"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_230",
+                            "operands": [
+                              {
+                                "type": "Conjunction",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "=>",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_172",
+                                        "operands": [
+                                          {
+                                            "type": "Apply",
+                                            "operator": "UID_236",
+                                            "operands": [
+                                              {
+                                                "type": "Apply",
+                                                "operator": "CanTakeCheckpoint"
+                                              },
+                                              {
+                                                "type": "Apply",
+                                                "operator": "n"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "Apply",
+                                            "operator": "UID_236",
+                                            "operands": [
+                                              {
+                                                "type": "Apply",
+                                                "operator": "IsTakingCheckpoint"
+                                              },
+                                              {
+                                                "type": "Apply",
+                                                "operator": "n"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Conjunction",
+                                        "operands": [
+                                          {
+                                            "type": "Equality",
+                                            "operands": [
+                                              {
+                                                "type": "Apply",
+                                                "operator": "UID_250",
+                                                "operands": [
+                                                  {
+                                                    "type": "Apply",
+                                                    "operator": "UID_236",
+                                                    "operands": [
+                                                      {
+                                                        "type": "Apply",
+                                                        "operator": "CurrentLease"
+                                                      },
+                                                      {
+                                                        "type": "Apply",
+                                                        "operator": "Leader"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "String",
+                                                    "value": "node"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "Apply",
+                                                "operator": "n"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_169",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "CanTakeCheckpoint"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n1"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "CanTakeCheckpoint"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n2"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "n1"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n2"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_169",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "IsTakingCheckpoint"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n1"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "IsTakingCheckpoint"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n2"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Conjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "n1"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n2"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "IsTakingCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "/=",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "CurrentLease"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "NoCheckpointLease"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "CurrentLease"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "node"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "=>",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_356",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "CurrentLease"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "counter"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "TimeoutCounter"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_230",
+                    "operands": [
+                      {
+                        "type": "Disjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "ReadLog",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n1"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "NoNode"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "ReadLog",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n2"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "NoNode"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "ReadLog",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n1"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "ReadLog",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n2"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "i"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TemporalInvariant",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": ">=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_229",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_626"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_995"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "..",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_626"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_1002"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Disjunction",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_627"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_1002"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_165",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_619"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1002"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_338",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_236",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_625"
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_1002"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "counter"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_628"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Conjunction",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "..",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_627"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Disjunction",
+                        "operands": [
+                          {
+                            "type": "Equality",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_624"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_623"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_165",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_619"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_338",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_236",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_625"
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "n"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "counter"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_628"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": ">=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_629"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_683"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "ConnectedOneWay",
+      "params": [
+        "src",
+        "dst"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_619"
+              },
+              {
+                "type": "Apply",
+                "operator": "src"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_619"
+              },
+              {
+                "type": "Apply",
+                "operator": "dst"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_620"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "src"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "dst"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Connected",
+      "params": [
+        "src",
+        "dst"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "ConnectedOneWay",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "src"
+              },
+              {
+                "type": "Apply",
+                "operator": "dst"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "ConnectedOneWay",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "dst"
+              },
+              {
+                "type": "Apply",
+                "operator": "src"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HaveQuorumFrom",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_244",
+        "operands": [
+          {
+            "type": "LetIn",
+            "definitions": [
+              {
+                "name": "unknown",
+                "body": null
+              }
+            ],
+            "body": {
+              "type": "Conjunction",
+              "operands": [
+                {
+                  "type": "Apply",
+                  "operator": "UID_236",
+                  "operands": [
+                    {
+                      "type": "Apply",
+                      "operator": "UID_619"
+                    },
+                    {
+                      "type": "Apply",
+                      "operator": "leader"
+                    }
+                  ]
+                },
+                {
+                  "type": "Apply",
+                  "operator": "UID_356",
+                  "operands": [
+                    {
+                      "type": "Apply",
+                      "operator": "UID_611",
+                      "operands": [
+                        {
+                          "type": "Apply",
+                          "operator": "UID_1093"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Apply",
+                      "operator": "UID_618"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "available",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_266",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "Connected",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "leader"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "HaveQuorum",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "/=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_621"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_665"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "HaveQuorumFrom"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_621"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NodeFailure",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_240",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "Leader"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_678"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_678"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_705"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LatestCheckpoint"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NodeRecovery",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_152"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_441",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_493",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "LatestCheckpoint"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "log"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "MinLogIndex"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_322",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_250",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "LatestCheckpoint"
+                                      },
+                                      {
+                                        "type": "String",
+                                        "value": "counter"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Numeral",
+                                    "value": 1
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_493",
+                            "operands": [
+                              {
+                                "type": "At"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_250",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "LatestCheckpoint"
+                                  },
+                                  {
+                                    "type": "String",
+                                    "value": "counter"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_415",
+                                "operands": [
+                                  {
+                                    "type": "At"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "LatestCheckpoint"
+                          },
+                          {
+                            "type": "String",
+                            "value": "counter"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "MinLogIndex"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "NoCheckpointLease"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LatestCheckpoint"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NetworkFailure",
+      "params": [
+        "src",
+        "dst"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "/=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "src"
+              },
+              {
+                "type": "Apply",
+                "operator": "dst"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_275",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "src"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "dst"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "PaxosVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CheckpointVars"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "NetworkRecovery",
+      "params": [
+        "src",
+        "dst"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkPath"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_275",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "src"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "dst"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_152"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsNodeUp"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "PaxosVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CheckpointVars"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "ElectLeader",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Leader"
+              },
+              {
+                "type": "Apply",
+                "operator": "NoNode"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsNodeUp"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_165",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "HaveQuorumFrom"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "FirstOpenIndex"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "EnvironmentVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LatestCheckpoint"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "ShouldReplaceLease",
+      "params": [
+        "currentLease"
+      ],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_338",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_250",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "currentLease"
+                  },
+                  {
+                    "type": "String",
+                    "value": "counter"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "TimeoutCounter"
+              }
+            ]
+          },
+          {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Connected",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "currentLease"
+                      },
+                      {
+                        "type": "String",
+                        "value": "node"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_338",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_250",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "currentLease"
+                      },
+                      {
+                        "type": "String",
+                        "value": "counter"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "LastVotePayload"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_250",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "currentLease"
+                          },
+                          {
+                            "type": "String",
+                            "value": "node"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "currentLease",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_236",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "CurrentLease"
+          },
+          {
+            "type": "Apply",
+            "operator": "Leader"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "index",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "FirstOpenIndex"
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "SendReplicatedRequest",
+      "params": [
+        "prospect"
+      ],
+      "body": {
+        "type": "LetIn",
+        "definitions": [
+          {
+            "name": "unknown",
+            "body": null
+          }
+        ],
+        "body": {
+          "type": "LetIn",
+          "definitions": [
+            {
+              "name": "unknown",
+              "body": null
+            }
+          ],
+          "body": {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "HaveQuorum"
+              },
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "prospect"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "Connected",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "prospect"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "=>",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "/=",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "currentLease"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "NoCheckpointLease"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ShouldReplaceLease",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "currentLease"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "ReplicatedLog"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_239",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_240",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "ConnectedOneWay",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "Leader"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "WriteLog",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "index"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "prospect"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "ReplicatedLog"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "CurrentLease"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "CurrentLease"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "Leader"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_249",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_246",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "node"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "prospect"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_246",
+                                "operands": [
+                                  {
+                                    "type": "String",
+                                    "value": "counter"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "index"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "EnvironmentVars"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "Leader"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "ExecutionCounter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "LastVotePayload"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "CanTakeCheckpoint"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "IsTakingCheckpoint"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "TimeoutCounter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "LatestCheckpoint"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "PropagateReplicatedRequest",
+      "params": [
+        "src",
+        "dst"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "ConnectedOneWay",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "src"
+              },
+              {
+                "type": "Apply",
+                "operator": "dst"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "dst"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "MergeLogs",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "src"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "dst"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "EnvironmentVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CheckpointVars"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "request",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "ReadLog",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "n"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ExecutionCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "isTimedOut",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_338",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ExecutionCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "TimeoutCounter"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "ProcessReplicatedRequest",
+      "params": [
+        "UID_1499"
+      ],
+      "body": {
+        "type": "LetIn",
+        "definitions": [
+          {
+            "name": "unknown",
+            "body": null
+          }
+        ],
+        "body": {
+          "type": "LetIn",
+          "definitions": [
+            {
+              "name": "unknown",
+              "body": null
+            }
+          ],
+          "body": {
+            "type": "Conjunction",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_619"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_1499"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_165",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_627"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_1499"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_1505"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_665"
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_626"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_626"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_1499"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Conjunction",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "/=",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_621"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1499"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Equality",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1499"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1505"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_165",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1511"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_625"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_240",
+                    "operands": [
+                      {
+                        "type": "Equality",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_1499"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_621"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_625"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_235",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_625"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_246",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_255",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1499"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "UID_240",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_1511"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_705"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "UID_249",
+                                    "operands": [
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_246",
+                                        "operands": [
+                                          {
+                                            "type": "String",
+                                            "value": "node"
+                                          },
+                                          {
+                                            "type": "Apply",
+                                            "operator": "UID_1505"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Apply",
+                                        "operator": "UID_246",
+                                        "operands": [
+                                          {
+                                            "type": "String",
+                                            "value": "counter"
+                                          },
+                                          {
+                                            "type": "Apply",
+                                            "operator": "UID_236",
+                                            "operands": [
+                                              {
+                                                "type": "Apply",
+                                                "operator": "UID_623"
+                                              },
+                                              {
+                                                "type": "Apply",
+                                                "operator": "UID_1499"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Equality",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_163",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_623"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_235",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_623"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_246",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_255",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_1499"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_312",
+                            "operands": [
+                              {
+                                "type": "At"
+                              },
+                              {
+                                "type": "Numeral",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_633"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_621"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_622"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_624"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "-+->",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_275",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_627"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_628"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_629"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "StartCheckpoint",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_626"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_627"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_627"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_152"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_633"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_639"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_625"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_626"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_628"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_629"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "FinishCheckpoint",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_236",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsTakingCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "n"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LastVotePayload"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "ExecutionCounter"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_705"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_235",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_255",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_151"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "LatestCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "log"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_493",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_236",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "ReplicatedLog"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_678"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "UID_322",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "ExecutionCounter"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Numeral",
+                                "value": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "counter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "ExecutionCounter"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "EnvironmentVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Leader"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ReplicatedLog"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ExecutionCounter"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TriggerTimeout",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "/=",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "ReadLog",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "TimeoutCounter"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NoNode"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_312",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "TimeoutCounter"
+                  },
+                  {
+                    "type": "Numeral",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CanTakeCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "CanTakeCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_344",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "CurrentLease"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "counter"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "TimeoutCounter"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_163",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "IsTakingCheckpoint"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Conjunction",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "IsTakingCheckpoint"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_344",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_250",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "UID_236",
+                                "operands": [
+                                  {
+                                    "type": "Apply",
+                                    "operator": "CurrentLease"
+                                  },
+                                  {
+                                    "type": "Apply",
+                                    "operator": "n"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "String",
+                                "value": "counter"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "TimeoutCounter"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "EnvironmentVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "PaxosVars"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "-+->",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_275",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "CurrentLease"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "LatestCheckpoint"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsNodeUp"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_152"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NetworkPath"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_152"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Leader"
+              },
+              {
+                "type": "Apply",
+                "operator": "NoNode"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ReplicatedLog"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "BlankLog"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ExecutionCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "MinLogIndex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "LastVotePayload"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "MinLogIndex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CurrentLease"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "NoCheckpointLease"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "CanTakeCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_151"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "IsTakingCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_151"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "TimeoutCounter"
+              },
+              {
+                "type": "Apply",
+                "operator": "MinLogIndex"
+              }
+            ]
+          },
+          {
+            "type": "Equality",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "LatestCheckpoint"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_249",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "log"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "BlankLog"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_246",
+                    "operands": [
+                      {
+                        "type": "String",
+                        "value": "counter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "MinLogIndex"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Next",
+      "params": [],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NodeFailure",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NodeRecovery",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NetworkFailure",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "src"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "dst"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "NetworkRecovery",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "src"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "dst"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_1379",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_1471",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_1498",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "src"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "dst"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "ProcessReplicatedRequest",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "StartCheckpoint",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "FinishCheckpoint",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "TriggerTimeout"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TemporalAssumptions",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_282",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NodeRecovery",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_282",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "NetworkRecovery",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "src"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "dst"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ElectLeader",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_1471",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_1498",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "src"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "dst"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "ProcessReplicatedRequest",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "StartCheckpoint",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_260",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "FinishCheckpoint",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Spec",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "Init"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_263",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Next"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "AllVars"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "TemporalAssumptions"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_1953",
+      "body": null
+    }
   ],
-  "VariableNames": [
-    "IsNodeUp",
-    "NetworkPath",
-    "Leader",
-    "ReplicatedLog",
-    "ExecutionCounter",
-    "LastVotePayload",
-    "CurrentLease",
-    "CanTakeCheckpoint",
-    "IsTakingCheckpoint",
-    "TimeoutCounter",
-    "LatestCheckpoint"
-  ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "EnvironmentVars",
-    "PaxosVars",
-    "CheckpointVars",
-    "AllVars",
-    "NoNode",
-    "Log",
-    "LogIndex",
-    "MinLogIndex",
-    "BlankLog",
-    "LogCheckpoint",
-    "CheckpointLease",
-    "NoCheckpointLease",
-    "ReadLog",
-    "WriteLog",
-    "MergeLogs",
-    "OpenIndices",
-    "FirstOpenIndex",
-    "TypeInvariant",
-    "SafetyInvariant",
-    "TemporalInvariant",
-    "ConnectedOneWay",
-    "Connected",
-    "HaveQuorum",
-    "NodeFailure",
-    "NodeRecovery",
-    "NetworkFailure",
-    "NetworkRecovery",
-    "ElectLeader",
-    "ShouldReplaceLease",
-    "SendReplicatedRequest",
-    "PropagateReplicatedRequest",
-    "ProcessReplicatedRequest",
-    "StartCheckpoint",
-    "FinishCheckpoint",
-    "TriggerTimeout",
-    "Init",
-    "Next",
-    "TemporalAssumptions",
-    "Spec"
-  ],
-  "ActionDefNames": [
-    "NodeFailure",
-    "NodeRecovery",
-    "NetworkFailure",
-    "NetworkRecovery",
-    "ElectLeader",
-    "SendReplicatedRequest",
-    "PropagateReplicatedRequest",
-    "ProcessReplicatedRequest",
-    "StartCheckpoint",
-    "FinishCheckpoint",
-    "TriggerTimeout",
-    "Next"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [
-    "available",
-    "currentLease",
-    "index",
-    "request",
-    "isTimedOut"
-  ],
-  "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [
-    "~"
-  ],
-  "BooleanConstants": [
-    "TRUE",
-    "FALSE"
-  ],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "=",
-    "/="
-  ],
-  "MembershipOps": [
-    "\\in",
-    "\\notin"
-  ],
-  "IfThenElse": [
-    "IF n = Leader THEN NoNode ELSE Leader"
-  ],
-  "CaseExpr": [],
-  "SetEnumeration": [
-    "{NoNode}",
-    "{0}",
-    "{NoCheckpointLease}"
-  ],
-  "SetOperators": [
-    "\\notin",
-    "\\cup"
-  ],
-  "FiniteSetOps": [
-    "Cardinality"
-  ],
-  "FunctionConstructor": [
-    "[i \\in LogIndex |-> NoNode]",
-    "[i \\in LogIndex |-> ReadLog(node, i)]",
-    "[n \\in Node |-> TRUE]",
-    "[src, dst \\in Node |-> TRUE]",
-    "[n \\in Node |-> BlankLog]",
-    "[n \\in Node |-> MinLogIndex]",
-    "[n \\in Node |-> NoCheckpointLease]",
-    "[n \\in Node |-> FALSE]",
-    "[Node -> BOOLEAN]",
-    "[Node \\X Node -> BOOLEAN]",
-    "[Node -> Log]",
-    "[Node -> LogIndex]",
-    "[Node -> (CheckpointLease \\cup {NoCheckpointLease})]"
-  ],
-  "FunctionApplication": [
-    "ReplicatedLog[…]",
-    "CanTakeCheckpoint[…]",
-    "IsTakingCheckpoint[…]",
-    "CurrentLease[…]",
-    "IsNodeUp[…]",
-    "LastVotePayload[…]",
-    "ExecutionCounter[…]",
-    "NetworkPath[…]",
-    "HaveQuorumFrom[…]"
-  ],
-  "FunctionOverride": [],
-  "RecordConstructor": [
-    "[log |-> BlankLog, counter |-> MinLogIndex]"
-  ],
-  "RecordAccess": [
-    "LatestCheckpoint.log",
-    "LatestCheckpoint.counter",
-    "currentLease.counter",
-    "currentLease.node"
-  ],
-  "TupleConstructor": [
-    "<<NetworkPath>>",
-    "<<ReplicatedLog>>",
-    "<<TimeoutCounter, LatestCheckpoint>>",
-    "<<Leader>>",
-    "<<IsNodeUp>>",
-    "<<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
-    "<<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "<<Leader, ExecutionCounter, LastVotePayload>>",
-    "<<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "<<Leader, ReplicatedLog, LastVotePayload>>",
-    "<<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "<<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "<<Leader, ReplicatedLog, ExecutionCounter>>",
-    "<<TimeoutCounter>>",
-    "<<CurrentLease, LatestCheckpoint>>"
-  ],
-  "SequenceOps": [
-    "Len",
-    "SubSeq",
-    "\\o"
-  ],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">=",
-    "<="
-  ],
-  "RangeExpr": [],
-  "ChoiceExpr": [
-    "CHOOSE n : n \\notin Node",
-    "CHOOSE lease : lease \\notin CheckpointLease",
-    "CHOOSE index \\in OpenIndices :"
-  ],
-  "StringLiterals": [],
-  "ArithmeticModules": [],
-  "DataStructureModules": [],
-  "ToolingModules": [],
-  "PrimedVariables": [
-    "IsNodeUp",
-    "Leader",
-    "ExecutionCounter",
-    "LastVotePayload",
-    "CurrentLease",
-    "CanTakeCheckpoint",
-    "IsTakingCheckpoint",
-    "ReplicatedLog",
-    "NetworkPath",
-    "LatestCheckpoint",
-    "TimeoutCounter"
-  ],
-  "UnchangedExprs": [
-    "UNCHANGED <<NetworkPath>>",
-    "UNCHANGED <<ReplicatedLog>>",
-    "UNCHANGED <<TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader>>",
-    "UNCHANGED <<IsNodeUp>>",
-    "UNCHANGED PaxosVars",
-    "UNCHANGED CheckpointVars",
-    "UNCHANGED EnvironmentVars",
-    "UNCHANGED <<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
-    "UNCHANGED <<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ExecutionCounter, LastVotePayload>>",
-    "UNCHANGED <<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ReplicatedLog, LastVotePayload>>",
-    "UNCHANGED <<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ReplicatedLog, ExecutionCounter>>",
-    "UNCHANGED <<TimeoutCounter>>",
-    "UNCHANGED <<CurrentLease, LatestCheckpoint>>"
-  ],
-  "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][Next]_AllVars"
-  ],
-  "AlwaysOp": [
-    "[][Next]",
-    "[]TypeInvariant",
-    "[]SafetyInvariant",
-    "[]TemporalInvariant"
-  ],
-  "EventuallyOp": [
-    "<>(\\E n \\in Node : CanTakeCheckpoint[n])",
-    "<>(LatestCheckpoint /= BlankLog)"
-  ],
-  "LeadsToOp": [
-    "/\\ CanTakeCheckpoint[n] ~>",
-    "/\\ IsTakingCheckpoint[n] ~>"
-  ],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "BlankLog",
-    "ReadLog",
-    "WriteLog",
-    "MergeLogs",
-    "FirstOpenIndex",
-    "TypeInvariant",
-    "SafetyInvariant",
-    "Connected",
-    "HaveQuorum",
-    "Init",
-    "Next"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "TemporalInvariant",
-    "TemporalAssumptions",
-    "Spec"
-  ],
-  "OperatorDefNames_Init": [
-    "Init"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "EnvironmentVars",
-    "PaxosVars",
-    "CheckpointVars",
-    "AllVars",
-    "NoNode",
-    "Log",
-    "LogIndex",
-    "MinLogIndex",
-    "LogCheckpoint",
-    "CheckpointLease",
-    "NoCheckpointLease",
-    "OpenIndices",
-    "ConnectedOneWay",
-    "ShouldReplaceLease"
-  ],
-  "FunctionConstructor_ByDomain": [
-    "[i \\in LogIndex |-> NoNode]",
-    "[i \\in LogIndex |-> ReadLog(node, i)]",
-    "[n \\in Node |-> TRUE]",
-    "[src, dst \\in Node |-> TRUE]",
-    "[n \\in Node |-> BlankLog]",
-    "[n \\in Node |-> MinLogIndex]",
-    "[n \\in Node |-> NoCheckpointLease]",
-    "[n \\in Node |-> FALSE]"
-  ],
-  "FunctionConstructor_SetType": [
-    "[Node -> BOOLEAN]",
-    "[Node \\X Node -> BOOLEAN]",
-    "[Node -> Log]",
-    "[Node -> LogIndex]",
-    "[Node -> (CheckpointLease \\cup {NoCheckpointLease})]"
-  ],
-  "UnchangedExprs_Explicit": [
-    "UNCHANGED <<NetworkPath>>",
-    "UNCHANGED <<ReplicatedLog>>",
-    "UNCHANGED <<TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader>>",
-    "UNCHANGED <<IsNodeUp>>",
-    "UNCHANGED <<ReplicatedLog, ExecutionCounter, LastVotePayload>>",
-    "UNCHANGED <<CurrentLease, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ExecutionCounter, LastVotePayload>>",
-    "UNCHANGED <<CanTakeCheckpoint, IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ReplicatedLog, LastVotePayload>>",
-    "UNCHANGED <<IsTakingCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<CurrentLease, CanTakeCheckpoint, TimeoutCounter, LatestCheckpoint>>",
-    "UNCHANGED <<Leader, ReplicatedLog, ExecutionCounter>>",
-    "UNCHANGED <<TimeoutCounter>>",
-    "UNCHANGED <<CurrentLease, LatestCheckpoint>>"
-  ],
-  "UnchangedExprs_VarRef": [
-    "UNCHANGED PaxosVars",
-    "UNCHANGED CheckpointVars",
-    "UNCHANGED EnvironmentVars"
-  ],
-  "TemporalNesting": false,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 35,
+  "source_file": "35.tla"
 }

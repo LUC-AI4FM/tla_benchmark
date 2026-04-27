@@ -1,164 +1,734 @@
 {
-  "id": 88,
-  "Specification": "A G-Counter (Grow-only Counter) CRDT implementation for a distributed system. It tracks state as a vector of natural numbers where each node increments its own entry, and nodes merge states via gossip by taking the element-wise maximum, eventually converging to a consistent global count.",
-  "ModuleName": "CRDT",
-  "ExtendsModules": [
-    "Naturals"
+  "type": "Module",
+  "name": "CRDT",
+  "children": [
+    {
+      "type": "Constants",
+      "names": [
+        "Node"
+      ]
+    },
+    {
+      "type": "Variables",
+      "names": [
+        "counter"
+      ]
+    },
+    {
+      "type": "OperatorDef",
+      "name": "vars",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "counter"
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "TypeOK",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "SUBSET",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "counter"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_258",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Node"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_258",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Node"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_306"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Safety",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_230",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_356",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "counter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "counter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "o"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "n"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Monotonic",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_230",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_356",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_163",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "counter"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "o"
+                  }
+                ]
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_236",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_236",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "counter"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "o"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Monotonicity",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_263",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "Monotonic"
+              },
+              {
+                "type": "Apply",
+                "operator": "counter"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Convergence",
+      "params": [],
+      "body": {
+        "type": "Apply",
+        "operator": ">",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": ">=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_230",
+                "operands": [
+                  {
+                    "type": "Equality",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "counter"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_236",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "counter"
+                          },
+                          {
+                            "type": "Apply",
+                            "operator": "o"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Init",
+      "params": [],
+      "body": {
+        "type": "Equality",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "counter"
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_239",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_239",
+                "operands": [
+                  {
+                    "type": "Numeral",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Increment",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "type": "Equality",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_163",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "counter"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_235",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "counter"
+              },
+              {
+                "type": "Apply",
+                "operator": "UID_246",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_255",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_312",
+                    "operands": [
+                      {
+                        "type": "At"
+                      },
+                      {
+                        "type": "Numeral",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Max",
+      "params": [
+        "a",
+        "b"
+      ],
+      "body": {
+        "type": "Apply",
+        "operator": "UID_240",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_344",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "a"
+              },
+              {
+                "type": "Apply",
+                "operator": "b"
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "a"
+          },
+          {
+            "type": "Apply",
+            "operator": "b"
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Gossip",
+      "params": [
+        "n",
+        "o"
+      ],
+      "body": {
+        "type": "LetIn",
+        "definitions": [
+          {
+            "name": "unknown",
+            "body": null
+          }
+        ],
+        "body": {
+          "type": "Equality",
+          "operands": [
+            {
+              "type": "Apply",
+              "operator": "UID_163",
+              "operands": [
+                {
+                  "type": "Apply",
+                  "operator": "counter"
+                }
+              ]
+            },
+            {
+              "type": "Apply",
+              "operator": "UID_235",
+              "operands": [
+                {
+                  "type": "Apply",
+                  "operator": "counter"
+                },
+                {
+                  "type": "Apply",
+                  "operator": "UID_246",
+                  "operands": [
+                    {
+                      "type": "Apply",
+                      "operator": "UID_255",
+                      "operands": [
+                        {
+                          "type": "Apply",
+                          "operator": "o"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Apply",
+                      "operator": "UID_239",
+                      "operands": [
+                        {
+                          "type": "Apply",
+                          "operator": "Max",
+                          "operands": [
+                            {
+                              "type": "Apply",
+                              "operator": "UID_236",
+                              "operands": [
+                                {
+                                  "type": "Apply",
+                                  "operator": "UID_236",
+                                  "operands": [
+                                    {
+                                      "type": "Apply",
+                                      "operator": "counter"
+                                    },
+                                    {
+                                      "type": "Apply",
+                                      "operator": "n"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "Apply",
+                                  "operator": "nodeView"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "Apply",
+                              "operator": "UID_236",
+                              "operands": [
+                                {
+                                  "type": "Apply",
+                                  "operator": "UID_236",
+                                  "operands": [
+                                    {
+                                      "type": "Apply",
+                                      "operator": "counter"
+                                    },
+                                    {
+                                      "type": "Apply",
+                                      "operator": "o"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "Apply",
+                                  "operator": "nodeView"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Next",
+      "params": [],
+      "body": {
+        "type": "Disjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_467",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_504"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": "UID_229",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_502",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_509"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_510"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Spec",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_453"
+          },
+          {
+            "type": "Apply",
+            "operator": ">",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_263",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "Next"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_381"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "Fairness",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "UID_230",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": "UID_282",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_383"
+                  },
+                  {
+                    "type": "Apply",
+                    "operator": "UID_502",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "n"
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "o"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Apply",
+            "operator": ">=",
+            "operands": [
+              {
+                "type": "Apply",
+                "operator": ">",
+                "operands": [
+                  {
+                    "type": "Apply",
+                    "operator": "UID_263",
+                    "operands": [
+                      {
+                        "type": "Apply",
+                        "operator": "UID_229",
+                        "operands": [
+                          {
+                            "type": "Apply",
+                            "operator": "UID_502",
+                            "operands": [
+                              {
+                                "type": "Apply",
+                                "operator": "n"
+                              },
+                              {
+                                "type": "Apply",
+                                "operator": "o"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Apply",
+                        "operator": "UID_383"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "OperatorDef",
+      "name": "FairSpec",
+      "params": [],
+      "body": {
+        "type": "Conjunction",
+        "operands": [
+          {
+            "type": "Apply",
+            "operator": "Spec"
+          },
+          {
+            "type": "Apply",
+            "operator": "Fairness"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_528",
+      "body": null
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_533",
+      "body": null
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_563",
+      "body": null
+    },
+    {
+      "type": "Theorem",
+      "name": "UID_567",
+      "body": null
+    }
   ],
-  "InstanceModules": [],
-  "InstanceSubstitutions": [],
-  "ConstantNames": [
-    "Node"
-  ],
-  "VariableNames": [
-    "counter",
-    "vars"
-  ],
-  "AssumptionNames": [],
-  "TheoremNames": [],
-  "OperatorDefNames": [
-    "vars",
-    "TypeOK",
-    "Safety",
-    "Monotonic",
-    "Monotonicity",
-    "Convergence",
-    "Init",
-    "Increment",
-    "Gossip",
-    "Next",
-    "Spec",
-    "Fairness",
-    "FairSpec"
-  ],
-  "ActionDefNames": [
-    "Monotonic",
-    "Increment",
-    "Gossip",
-    "Next"
-  ],
-  "RecursiveOperatorNames": [],
-  "LocalOperatorNames": [],
-  "LetInNames": [
-    "Max"
-  ],
-  "LambdaParams": [],
-  "Implication": [
-    "=>"
-  ],
-  "Negation": [],
-  "BooleanConstants": [],
-  "Quantifiers": [
-    "\\A",
-    "\\E"
-  ],
-  "EqualityOps": [
-    "="
-  ],
-  "MembershipOps": [
-    "\\in"
-  ],
-  "IfThenElse": [
-    "IF a > b THEN a ELSE b IN"
-  ],
-  "CaseExpr": [],
-  "SetEnumeration": [],
-  "SetOperators": [],
-  "FiniteSetOps": [],
-  "FunctionConstructor": [
-    "[o \\in Node |-> 0]",
-    "[Node -> Nat]"
-  ],
-  "FunctionApplication": [
-    "counter[…]"
-  ],
-  "FunctionOverride": [],
-  "RecordConstructor": [],
-  "RecordAccess": [],
-  "TupleConstructor": [],
-  "SequenceOps": [],
-  "ArithmeticOps": [
-    "+",
-    "-"
-  ],
-  "ComparisonOps": [
-    ">",
-    "<",
-    ">="
-  ],
-  "RangeExpr": [],
-  "ChoiceExpr": [],
-  "StringLiterals": [],
-  "ArithmeticModules": [
-    "Naturals"
-  ],
-  "DataStructureModules": [],
-  "ToolingModules": [],
-  "PrimedVariables": [
-    "counter"
-  ],
-  "UnchangedExprs": [],
-  "EnabledExprs": [],
-  "TemporalSubscript": [
-    "[][Monotonic]_counter",
-    "[][Next]_counter",
-    "[][\\E n, o \\in Node : Gossip(n,o)]_vars"
-  ],
-  "AlwaysOp": [
-    "[][Monotonic]",
-    "[]<>(\\A n, o \\in Node : counter[n] = counter[o])",
-    "[][Next]",
-    "[]Safety",
-    "[]TypeOK",
-    "[][\\E n, o \\in Node : Gossip(n,o)]"
-  ],
-  "EventuallyOp": [
-    "<>(\\A n, o \\in Node : counter[n] = counter[o])",
-    "<>[][\\E n, o \\in Node : Gossip(n,o)]"
-  ],
-  "LeadsToOp": [],
-  "FairnessConditions": [],
-  "ProofHints": [],
-  "ProofCommands": [],
-  "ProofStructureSteps": [],
-  "AssumeProveBlocks": [],
-  "PlusCalAlgorithm": "",
-  "PlusCalProcesses": [],
-  "ModelValues": [],
-  "OperatorOverrides": [],
-  "SymmetrySet": [],
-  "StateConstraint": [],
-  "ActionConstraint": [],
-  "ViewExpr": [],
-  "OperatorDefNames_StatePredicate": [
-    "TypeOK",
-    "Safety",
-    "Init",
-    "Next"
-  ],
-  "OperatorDefNames_TemporalProperty": [
-    "Monotonicity",
-    "Convergence",
-    "Spec",
-    "Fairness"
-  ],
-  "OperatorDefNames_Init": [
-    "Init"
-  ],
-  "OperatorDefNames_ValueDef": [
-    "vars",
-    "FairSpec"
-  ],
-  "FunctionConstructor_ByDomain": [
-    "[o \\in Node |-> 0]"
-  ],
-  "FunctionConstructor_SetType": [
-    "[Node -> Nat]"
-  ],
-  "UnchangedExprs_Explicit": [],
-  "UnchangedExprs_VarRef": [],
-  "TemporalNesting": true,
-  "CorpusSource": "",
-  "VerificationTools": [],
-  "DivisionNotes": "AST-extracted V4 (deterministic regex-based AST extraction)"
+  "spec_id": 88,
+  "source_file": "88.tla"
 }
