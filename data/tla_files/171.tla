@@ -1,13 +1,13 @@
----- MODULE MC ----
+--------------------- MODULE AllocatorRefinement ----------------------
+(*********************************************************************)
+(* The scheduling allocator is a refinement of the simple allocator. *)
+(*********************************************************************)
 
-EXTENDS ReadersWriters, TLC
+EXTENDS SchedulingAllocator
 
-n == 3
+Simple == INSTANCE SimpleAllocator
+SimpleAllocator == Simple!SimpleAllocator
 
-\* The following invariants are all violated:
-\* - Cardinality(readers) < n
-\* - Cardinality(WaitingToWrite) < n
-\* - WaitingToRead /= {} => WaitingToWrite = {}
-\* - WaitingToWrite /= {} => WaitingToRead = {}
-
-===================
+THEOREM
+  Allocator => SimpleAllocator
+=======================================================================

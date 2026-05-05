@@ -1,106 +1,118 @@
------------------------------ MODULE TestGraphs -----------------------------
-EXTENDS Sequences, Integers
-(***************************************************************************)
-(* The definitions of some graphs, paths, etc.  used for testing the       *)
-(* definitions and the algorithm with the TLC model checker.               *)
-(***************************************************************************)
+------------------------ MODULE SimpleAllocator -------------------------
+(***********************************************************************)
+(* Specification of an allocator managing a set of resources:          *)
+(* - Clients can request sets of resources whenever all their previous *)
+(*   requests have been satisfied.                                     *)
+(* - Requests can be partly fulfilled, and resources can be returned   *)
+(*   even before the full request has been satisfied. However, clients *)
+(*   only have an obligation to return resources after they have       *)
+(*   obtained all resources they requested.                            *)
+(***********************************************************************)
 
-\* Graph 1.
-G1 == [states |-> 1..4,
-       initials |-> {1,2},
-       actions  |-> << {1,2}, {1,3}, {4}, {3} >>
-       ]
-V1 == {4}
+EXTENDS FiniteSets, TLC
 
-\* Graph 1a.
-G1a == [states |-> 1..4,
-       initials |-> {3},
-       actions  |-> << {1, 2}, {1, 3}, {4}, {3} >>]
-\* Graph-wise it's impossible to reach state 1 from state 3
-V1a == {1}
+CONSTANTS
+  Clients,     \* set of all clients
+  Resources    \* set of all resources
 
-\* Graph 2. This graph is actually a forest of two graphs
-\*    {1,2} /\ {3,4,5}. {1,2} are an SCC.
-G2 == [states |-> 1..5,
-       initials |-> {1,3},
-       actions  |-> << {1, 2}, {1}, {4, 5}, {}, {} >> ]
-V2 == {2,5}      
+ASSUME
+  IsFiniteSet(Resources)
 
-\* Graph 3.       
-G3 == [states |-> 1..4,
-       initials |-> {2},
-       actions  |-> << {1,2}, {2,3}, {3,4}, {1,4} >> ]
-V3 == {1}
-      
-\* Graph 4.
-G4 == [states |-> 1..9,
-       initials |-> {1,2,3},
-       actions  |-> << {3}, {4}, {5}, {6}, {7}, {7}, {8, 9}, {}, {4} >> ]
-V4 == {8}
-      
-\* Graph 5.
-G5 == [states |-> 1..9,
-       initials |-> {9},
-       actions  |-> << {4,2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {2} >> ]
-V5 == {8}
+VARIABLES
+  unsat,       \* set of all outstanding requests per process
+  alloc        \* set of resources allocated to given process
 
-\* Graph 6.
-G6 == [states |-> 1..5,
-       initials |-> {5},
-       actions  |-> << {2,4,5}, {2}, {1}, {4}, {3} >> ]
-V6 == {2}
+TypeInvariant ==
+  /\ unsat \in [Clients -> SUBSET Resources]
+  /\ alloc \in [Clients -> SUBSET Resources]
 
-\* Graph Medium (node 22 is a sink)
-G7 == [states |-> 1..50,
-       initials |-> {1},
-       actions  |-> << {8,35},{15,46,22,23,50},{20,26,34},{5,18,28,37,43},{18,28},{44},{14,29},{42,45},{20,49},{10,12,31,47},
-       {1,8,29,30,35,42},{22,31},{10,12,22,27},{23,24,48},{9,22,49},{9,35,50},{10},{21,25,39},{7,29,33,43},{16,41},{},
-       {4,36,39,47},{7},{12,22,23},{5,6,39,44},{3,35},{10,13,17},{6,25,33,32,43},{23,30,40,45},{23,50},{24,38},
-       {19,33},{6,7,14,38,48},{3,9,20},{3,20,41},{10,38,47},{21,43},{6,10,36,48},{36,38,39},{19,43},{16},
-       {29,45},{32},{38,39},{40},{9,15,16,50},{17},{24,31},{13,22,34},{35,23,50} >> ]
-V7 == {50}
+-------------------------------------------------------------------------
 
-\* Graph 8.
-G8 == [states |-> 1..4,
-       initials |-> {1},
-       actions |-> <<{1,2},{2,3},{3,4},{4}>>]
-V8 == {}
+(* Resources are available iff they have not been allocated. *)
+available == Resources \ (UNION {alloc[c] : c \in Clients})
 
-\* Graph 9.
-G9 == [states |-> {1},
-       initials |-> {1},
-       actions |-> <<{1}>>]
-V9 == {1}
+(* Initially, no resources have been requested or allocated. *)
+Init == 
+  /\ unsat = [c \in Clients |-> {}]
+  /\ alloc = [c \in Clients |-> {}]
 
-\* Graph 10.
-G10 == [states |-> {},
-       initials |-> {},
-       actions |-> <<{}>>]
-V10 == {}
+(* A client c may request a set of resources provided that all of its  *)
+(* previous requests have been satisfied and that it doesn't hold any  *)
+(* resources.                                                          *)
+Request(c,S) ==
+  /\ unsat[c] = {} /\ alloc[c] = {}
+  /\ S # {} /\ unsat' = [unsat EXCEPT ![c] = S]
+  /\ UNCHANGED alloc
 
-\* Graph 11.
-G11 == [states |-> 1..10,
-       initials |-> {},
-       actions |-> <<{}>>]
-V11 == {}
+(* Allocation of a set of available resources to a client that         *)
+(* requested them (the entire request does not have to be filled).     *)
+Allocate(c,S) ==
+  /\ S # {} /\ S \subseteq available \cap unsat[c]
+  /\ alloc' = [alloc EXCEPT ![c] = @ \cup S]
+  /\ unsat' = [unsat EXCEPT ![c] = @ \ S]
 
-\* Graph 12.
-G12 == [states |-> 1..3,
-       initials |-> {1,2,3},
-       actions |-> <<{},{},{}>>]
-V12 == {1}
+(* Client c returns a set of resources that it holds. It may do so     *)
+(* even before its full request has been honored.                      *)
+Return(c,S) ==
+  /\ S # {} /\ S \subseteq alloc[c]
+  /\ alloc' = [alloc EXCEPT ![c] = @ \ S]
+  /\ UNCHANGED unsat
 
-\* Graph 13 (simple sequence.
-G13 == [states |-> 1..3,
-       initials |-> {1},
-       actions |-> <<{2},{3},{}>>]
-V13 == {}
+(* The next-state relation. *)
+Next == 
+  \E c \in Clients, S \in SUBSET Resources :
+     Request(c,S) \/ Allocate(c,S) \/ Return(c,S)
 
------------------------------------------------------------------------------
+vars == <<unsat,alloc>>
 
-CONSTANT null
-VARIABLES S, C, state, successors, i, counterexample, T, pc
+-------------------------------------------------------------------------
 
-INSTANCE TLCMC WITH StateGraph <- G7, ViolationStates <- V7
+(* The complete high-level specification. *)
+SimpleAllocator == 
+  /\ Init /\ [][Next]_vars
+  /\ \A c \in Clients: WF_vars(Return(c, alloc[c]))
+  /\ \A c \in Clients: SF_vars(\E S \in SUBSET Resources: Allocate(c,S))
 
-=============================================================================
+-------------------------------------------------------------------------
+
+ResourceMutex ==
+  \A c1,c2 \in Clients : c1 # c2 => alloc[c1] \cap alloc[c2] = {}
+
+ClientsWillReturn ==
+  \A c \in Clients : unsat[c]={} ~> alloc[c]={}
+
+ClientsWillObtain ==
+  \A c \in Clients, r \in Resources : r \in unsat[c] ~> r \in alloc[c]
+
+InfOftenSatisfied == 
+  \A c \in Clients : []<>(unsat[c] = {})
+
+-------------------------------------------------------------------------
+
+(* Used for symmetry reduction with TLC *)
+Symmetry == Permutations(Clients) \cup Permutations(Resources)
+
+-------------------------------------------------------------------------
+
+(* The following version states a weaker fairness requirement for the  *)
+(* clients: resources need be returned only if the entire request has  *)
+(* been satisfied.                                                     *)
+
+SimpleAllocator2 == 
+  /\ Init /\ [][Next]_vars
+  /\ \A c \in Clients: WF_vars(unsat[c] = {} /\ Return(c, alloc[c]))
+  /\ \A c \in Clients: SF_vars(\E S \in SUBSET Resources: Allocate(c,S))
+
+
+-------------------------------------------------------------------------
+
+THEOREM SimpleAllocator => []TypeInvariant
+THEOREM SimpleAllocator => []ResourceMutex
+THEOREM SimpleAllocator => ClientsWillReturn
+THEOREM SimpleAllocator2 => ClientsWillReturn
+THEOREM SimpleAllocator => ClientsWillObtain
+THEOREM SimpleAllocator => InfOftenSatisfied
+(** The following do not hold:                          **)
+(** THEOREM SimpleAllocator2 => ClientsWillObtain       **)
+(** THEOREM SimpleAllocator2 => InfOftenSatisfied       **)
+=========================================================================

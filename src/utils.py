@@ -93,3 +93,100 @@ def outputs_dir() -> Path:
 
 def results_dir() -> Path:
     return repo_root() / "results"
+
+
+def load_specs_from_consolidated_json():
+    """Load all specifications from the new consolidated JSON files.
+    
+    Returns:
+        dict: Mapping of spec_id to extracted spec data
+    """
+    spec_data = {}
+    base_file = data_dir() / "TLA_Bench_BASE_Version.json"
+    
+    if not base_file.exists():
+        logger = get_logger("utils")
+        logger.warning("Consolidated BASE JSON not found at %s", base_file)
+        return spec_data
+    
+    data = load_json(base_file)
+    records = data.get("records", [])
+    
+    for record in records:
+        spec_id = record.get("id")
+        if spec_id is not None:
+            spec_data[spec_id] = record
+    
+    return spec_data
+
+
+def get_spec_by_id(spec_id):
+    """Get a single specification by ID from consolidated JSON.
+    
+    Args:
+        spec_id: The specification ID
+        
+    Returns:
+        dict: Specification data or None if not found
+    """
+    base_file = data_dir() / "TLA_Bench_BASE_Version.json"
+    
+    if not base_file.exists():
+        return None
+    
+    data = load_json(base_file)
+    records = data.get("records", [])
+    
+    for record in records:
+        if record.get("id") == spec_id:
+            return record
+    
+    return None
+
+
+def load_description_by_index(index):
+    """Load description from consolidated description JSON by list index.
+    
+    Args:
+        index: Index in the TLA_Description.json list
+        
+    Returns:
+        dict: Description data or None if not found
+    """
+    desc_file = data_dir() / "TLA_Description.json"
+    
+    if not desc_file.exists():
+        return None
+    
+    data = load_json(desc_file)
+    
+    if isinstance(data, list) and 0 <= index < len(data):
+        return data[index].get("description") if isinstance(data[index], dict) else None
+    
+    return None
+
+
+
+def get_ast_spec_by_id(spec_id):
+    """Get a single specification AST by ID from consolidated AST JSON.
+    
+    Args:
+        spec_id: The specification ID
+        
+    Returns:
+        dict: AST specification data or None if not found
+    """
+    ast_file = data_dir() / "TLA_Bench_AST_Version.json"
+    
+    if not ast_file.exists():
+        return None
+    
+    data = load_json(ast_file)
+    records = data.get("records", [])
+    
+    for record in records:
+        if record.get("id") == spec_id:
+            return record
+    
+    return None
+

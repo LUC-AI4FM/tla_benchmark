@@ -1,14 +1,20 @@
----- MODULE MCParReach ----
-EXTENDS ParReach
+---- MODULE MC ----
+EXTENDS Hanoi, TLC
 
-ConnectedToSomeButNotAll ==
-  CHOOSE succ \in [Nodes -> SUBSET Nodes]
-  : \A n \in Nodes : Cardinality(succ[n]) = 2
+\* CONSTANT definitions @modelParameterConstants:0D
+const_146427254081039000 == 
+5
+----
 
-LimitedSeq(S) == UNION {
-  [1 .. len -> S]
-  : len \in 0 .. Cardinality(Nodes)
-}
+\* CONSTANT definitions @modelParameterConstants:1N
+const_146427254082040000 == 
+3
+----
 
-============================
-
+\* SPECIFICATION definition @modelBehaviorSpec:0
+spec_146427254083041000 ==
+Spec
+----
+=============================================================================
+\* Modification History
+\* Created Thu May 26 16:22:20 CEST 2016 by markus

@@ -1,447 +1,237 @@
-\* Copyright (c) 2024, Oracle and/or its affiliates.
+----------------------------- MODULE Consensus ------------------------------ 
+(***************************************************************************)
+(* The consensus problem requires a set of processes to choose a single    *)
+(* value.  This module specifies the problem by specifying exactly what    *)
+(* the requirements are for choosing a value.                              *)
+(***************************************************************************)
+EXTENDS Naturals, FiniteSets, FiniteSetTheorems, TLAPS
 
------------------------ MODULE BufferedRandomAccessFile -----------------------
-\* This is a model-checkable specification for BufferedRandomAccessFile.java.
-\* It covers the core fields as well as the seek, read, write, flush, and
-\* setLength operations.
-\*
-\* There are three major correctess conditions:
-\*
-\*   (1) the internal invariants V1-V5 should hold
-\*   (2) the behavior should refine a general RandomAccessFile
-\*   (3) each operation should refine its RandomAccessFile counterpart
-\*
-\* Readers will probably want to start with the general RandomAccessFile spec
-\* before reading this one.
+(***************************************************************************)
+(* We let the constant parameter Value be the set of all values that can   *)
+(* be chosen.                                                              *)
+(***************************************************************************)
+CONSTANT Value  
 
-EXTENDS Naturals, Sequences, TLC, Common
+(****************************************************************************
+We now specify the safety property of consensus as a trivial algorithm
+that describes the allowed behaviors of a consensus algorithm.  It uses
+the variable `chosen' to represent the set of all chosen values.  The
+algorithm is trivial; it allows only behaviors that contain a single
+state-change in which the variable `chosen' is changed from its initial
+value {} to the value {v} for an arbitrary value v in Value.  The
+algorithm itself does not specify any fairness properties, so it also
+allows a behavior in which `chosen' is not changed.  We could use a
+translator option to have the translation include a fairness
+requirement, but we don't bother because it is easy enough to add it by
+hand to the safety specification that the translator produces.
 
-CONSTANT BuffSz
+A real specification of consensus would also include additional
+variables and actions.  In particular, it would have Propose actions in
+which clients propose values and Learn actions in which clients learn
+what value has been chosen.  It would allow only a proposed value to be
+chosen.  However, the interesting part of a consensus algorithm is the
+choosing of a single value.  We therefore restrict our attention to
+that aspect of consensus algorithms.  In practice, given the algorithm
+for choosing a value, it is obvious how to implement the Propose and
+Learn actions.
 
-VARIABLES
-    \* in-memory variables (BufferedRandomAccessFile class fields)
-    dirty,
-    length,
-    curr,
-    lo,
-    buff,
-    diskPos,
+For convenience, we define the macro Choose() that describes the action
+of changing the value of `chosen' from {} to {v}, for a
+nondeterministically chosen v in the set Value.  (There is little
+reason to encapsulate such a simple action in a macro; however our
+other specs are easier to read when written with such macros, so we
+start using them now.) The `when' statement can be executed only when
+its condition, chosen = {}, is true.  Hence, at most one Choose()
+action can be performed in any execution.  The `with' statement
+executes its body for a nondeterministically chosen v in Value.
+Execution of this statement is enabled only if Value is
+non-empty--something we do not assume at this point because it is not
+required for the safety part of consensus, which is satisfied if no
+value is chosen.
 
-    \* the underlying file
-    file_content,
-    file_pointer
+We put the Choose() action inside a `while' statement that loops
+forever.  Of course, only a single Choose() action can be executed.
+The algorithm stops after executing a Choose() action.  Technically,
+the algorithm deadlocks after executing a Choose() action because
+control is at a statement whose execution is never enabled.  Formally,
+termination is simply deadlock that we want to happen.  We could just
+as well have omitted the `while' and let the algorithm terminate.
+However, adding the `while' loop makes the TLA+ representation of the
+algorithm a tiny bit simpler.
 
-vars == <<
-    dirty, length, curr, lo, buff, diskPos,
-    file_content, file_pointer>>
+--algorithm Consensus {
+  variable chosen = {}; 
+  macro Choose() { when chosen = {};
+                   with (v \in Value) { chosen := {v} } }
+   { lbl: while (TRUE) { Choose() }
+   }  
+}
 
-TypeOK ==
-    /\ dirty \in BOOLEAN
-    /\ length \in Offset
-    /\ curr \in Offset
-    /\ lo \in Offset
-    /\ buff \in Array(SymbolOrArbitrary, BuffSz)
-    /\ diskPos \in Offset
+The PlusCal translator writes the TLA+ translation of this algorithm
+below.  The formula Spec is the TLA+ specification described by the
+algorithm's code.  For now, you should just understand its two
+subformulas Init and Next.  Formula Init is the initial predicate and
+describes all possible initial states of an execution.  Formula Next is
+the next-state relation; it describes the possible state changes
+(changes of the values of variables), where unprimed variables
+represent their values in the old state and primed variables represent
+their values in the new state.
+*****************************************************************************)
+\***** BEGIN TRANSLATION  
+VARIABLE chosen
 
-    /\ file_content \in ArrayOfAnyLength(SymbolOrArbitrary)
-    /\ ArrayLen(file_content) <= MaxOffset
-    /\ file_pointer \in Offset
+vars == << chosen >>
 
--------------------------------------------------------------------------------
-\* Internal invariants (copied from comment in BufferedRandomAccessFile.java)
+Init == (* Global variables *)
+        /\ chosen = {}
 
-RelevantBufferContent ==
-    ArraySlice(buff, 0, Min(BuffSz, length - lo))
-
-LogicalFileContent == \* denoted c(f) in .java file
-    IF ArrayLen(RelevantBufferContent) > 0
-    THEN WriteToFile(file_content, lo, RelevantBufferContent)
-    ELSE file_content
-
-DiskF(i) == \* denoted disk(f)[i] in .java file
-    IF i >= 0 /\ i < ArrayLen(file_content)
-    THEN ArrayGet(file_content, i)
-    ELSE ArbitrarySymbol
-
-BufferedIndexes == lo .. (Min(lo + BuffSz, length) - 1)
-
-Inv1 ==
-    \* /\ f.closed == closed(f) \* close() not described in this spec
-    \* /\ f.curr == curr(f)     \* by definition; see `file_pointer <- curr` in refinement mapping below
-    /\ length = ArrayLen(LogicalFileContent)
-    /\ diskPos = file_pointer
-
-\* Inv2 is a bit special.  Most methods restore it just before they return.  It
-\* is generally restored by calling `restoreInvariantsAfterIncreasingCurr()`.
-\* But, that behavior is difficult to model in straight TLA+ because each
-\* method may modify variables multiple times.  So instead, this spec treats
-\* Inv2 as a precondition for the methods and verifies that it is always
-\* restored by calling `restoreInvariantsAfterIncreasingCurr()`.
-\* See `Inv2CanAlwaysBeRestored` below.
-Inv2 ==
-    /\ lo <= curr
-    /\ curr < lo + BuffSz
-
-Inv3 ==
-    \A i \in BufferedIndexes:
-        ArrayGet(LogicalFileContent, i) = ArrayGet(buff, i - lo)
-
-Inv4 ==
-    \A i \in 0 .. (length - 1):
-        i \notin BufferedIndexes =>
-            ArrayGet(LogicalFileContent, i) = DiskF(i)
-
-Inv5 ==
-    (\E i \in BufferedIndexes: DiskF(i) /= ArrayGet(buff, i - lo)) =>
-    dirty
-
--------------------------------------------------------------------------------
-\* Behavior
-
-Init ==
-    /\ dirty = FALSE
-    /\ length = 0
-    /\ curr = 0
-    /\ lo = 0
-    /\ buff \in Array({ArbitrarySymbol}, BuffSz)
-    /\ diskPos = 0
-    /\ file_pointer = 0
-    /\ file_content = EmptyArray
-
-FlushBuffer ==
-    /\ dirty
-    /\ LET len == Min(length - lo, BuffSz) IN
-        /\ IF len > 0
-           THEN LET diskPosA == lo IN \* super.seek(this.lo)
-            /\ file_content' = WriteToFile(file_content, diskPosA, ArraySlice(buff, 0, len))
-            /\ file_pointer' = diskPosA + len
-            /\ diskPos' = lo + len
-           ELSE
-            UNCHANGED <<diskPos, file_pointer, file_content>>
-        /\ dirty' = FALSE
-    /\ UNCHANGED <<length, curr, lo, buff>>
-
-\* Helper for Seek (not a full action):
-\*  - reads lo'
-\*  - constrains diskPos', file_pointer', and buff'
-FillBuffer ==
-    LET diskPosA == lo' IN
-    /\ buff' = MkArray(BuffSz, [i \in 0..BuffSz |->
-            LET fileOffset == diskPosA + i IN
-            IF fileOffset < ArrayLen(file_content)
-            THEN ArrayGet(file_content, fileOffset)
-            ELSE ArbitrarySymbol])
-    /\ file_pointer' = Min(diskPosA + BuffSz, ArrayLen(file_content))
-    /\ diskPos' = Min(diskPosA + BuffSz, ArrayLen(file_content))
-
-Seek(pos) ==
-    /\ curr' = pos
-    /\ IF pos < lo \/ pos >= (lo + BuffSz) THEN
-        /\ ~dirty \* call to FlushBuffer
-        /\ lo' = (pos \div BuffSz) * BuffSz
-        /\ FillBuffer
-       ELSE
-        UNCHANGED <<lo, diskPos, file_pointer, buff>>
-    /\ UNCHANGED <<dirty, length, file_content>>
-
-SetLength(newLength) ==
-    /\ file_content' = TruncateOrExtendFile(file_content, newLength)
-    /\ IF ArrayLen(file_content) > newLength /\ file_pointer > newLength
-       THEN file_pointer' = newLength
-       ELSE file_pointer' \in Offset
-    /\ length' = newLength
-    /\ diskPos' = file_pointer'
-    /\ IF curr > newLength
-       THEN curr' = newLength
-       ELSE UNCHANGED curr
-    \* In reality the buffer doesn't change---but some of its bytes might no
-    \* longer be relevant and have to be marked as arbitrary.
-    /\ buff' = MkArray(BuffSz, [i \in 0..(BuffSz-1) |->
-            IF lo + i < newLength
-            THEN ArrayGet(buff, i)
-            ELSE ArbitrarySymbol])
-    /\ UNCHANGED <<dirty, lo>>
-
-Read1(byte) ==
-    /\ Inv2
-    /\ curr < length
-    /\ byte = ArrayGet(buff, curr - lo)
-    /\ curr' = curr + 1
-    /\ UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>
-
-Write1(byte) ==
-    /\ curr + 1 <= MaxOffset \* bound model checking
-    /\ Inv2
-    /\ buff' = ArraySet(buff, curr - lo, byte)
-    /\ curr' = curr + 1
-    /\ dirty' = TRUE
-    /\ length' = Max(length, curr')
-    /\ UNCHANGED <<lo, diskPos, file_pointer, file_content>>
-
-Read(data) ==
-    LET numReadableWithoutSeeking == Min(lo + BuffSz, length) - curr IN
-    /\ Inv2
-    /\ numReadableWithoutSeeking >= 0
-    /\ LET
-            numToRead == Min(ArrayLen(data), numReadableWithoutSeeking)
-            buffOff == curr - lo
-       IN
-        /\ data = ArraySlice(buff, buffOff, buffOff + numToRead)
-        /\ curr' = curr + numToRead
-    /\ UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>
-
-\* The `write()` method is composed of repeated calls to `writeAtMost()`, so
-\* verifying that the latter maintains all our invariants should be sufficient.
-WriteAtMost(data) ==
-    LET
-        numWriteableWithoutSeeking == Min(ArrayLen(data), lo + BuffSz - curr)
-        buffOff == curr - lo
-    IN
-    /\ Inv2
-    /\ curr + numWriteableWithoutSeeking <= MaxOffset
-    /\ buff' = ArrayConcat(ArrayConcat(
-            ArraySlice(buff, 0, buffOff),
-            ArraySlice(data, 0, numWriteableWithoutSeeking)),
-            ArraySlice(buff, buffOff + numWriteableWithoutSeeking, ArrayLen(buff)))
-    /\ dirty' = TRUE
-    /\ curr' = curr + numWriteableWithoutSeeking
-    /\ length' = Max(length, curr')
-    /\ UNCHANGED <<lo, diskPos, file_content, file_pointer>>
-
-Next ==
-    \/ FlushBuffer
-    \/ \E offset \in Offset:
-        \/ Seek(offset)
-        \/ SetLength(offset)
-    \/ \E symbol \in SymbolOrArbitrary:
-        \/ Read1(symbol)
-        \/ Write1(symbol)
-    \/ \E len \in 1..MaxOffset: \E data \in Array(SymbolOrArbitrary, len):
-        \/ WriteAtMost(data)
-        \/ Read(data)
+Next == /\ chosen = {}
+        /\ \E v \in Value:
+             chosen' = {v}
 
 Spec == Init /\ [][Next]_vars
 
--------------------------------------------------------------------------------
-\* Refinement of general RandomAccessFile
+\***** END TRANSLATION
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now prove the safety property that at most one value is chosen.  We  *)
+(* first define the type-correctness invariant TypeOK, and then define Inv *)
+(* to be the inductive invariant that asserts TypeOK and that the          *)
+(* cardinality of the set `chosen' is at most 1.  We then prove that, in   *)
+(* any behavior satisfying the safety specification Spec, the invariant    *)
+(* Inv is true in all states.  This means that at most one value is chosen *)
+(* in any behavior.                                                        *)
+(***************************************************************************)
+TypeOK == /\ chosen \subseteq Value
+          /\ IsFiniteSet(chosen) 
 
-RAF == INSTANCE RandomAccessFile WITH
-    file_content <- LogicalFileContent,
-    file_pointer <- curr
+Inv == /\ TypeOK
+       /\ Cardinality(chosen) \leq 1
 
-Safety == RAF!Spec
+(***************************************************************************)
+(* We now prove that Inv is an invariant, meaning that it is true in every *)
+(* state in every behavior.  Before trying to prove it, we should first    *)
+(* use TLC to check that it is true.  It's hardly worth bothering to       *)
+(* either check or prove the obvious fact that Inv is an invariant, but    *)
+(* it's a nice tiny exercise.  Model checking is instantaneous when Value  *)
+(* is set to any small finite set.                                         *)
+(*                                                                         *)
+(* To understand the following proof, you need to understand the formula   *)
+(* `Spec', which equals                                                    *)
+(*                                                                         *)
+(*    Init /\ [][Next]_vars                                                *)
+(*                                                                         *)
+(* where vars is the tuple <<chosen, pc>> of all variables.  It is a       *)
+(* temporal formula satisfied by a behavior iff the behavior starts in a   *)
+(* state satisfying Init and such that each step (sequence of states)      *)
+(* satisfies [Next]_vars, which equals                                     *)
+(*                                                                         *)
+(*   Next \/ (vars'=vars)                                                  *)
+(*                                                                         *)
+(* Thus, each step satisfies either Next (so it is a step allowed by the   *)
+(* next-state relation) or it is a "stuttering step" that leaves all the   *)
+(* variables unchanged.  The reason why a spec must allow stuttering steps *)
+(* will become apparent when we prove that a consensus algorithm satisfies *)
+(* this specification of consensus.                                        *)
+(***************************************************************************)
 
-\* Ensure that the various actions behave according to their abstract specifications.
-FlushBufferCorrect  == [][FlushBuffer => UNCHANGED RAF!vars]_vars
-SeekCorrect         == [][\A offset \in Offset: Seek(offset) => RAF!Seek(offset)]_vars
-SetLengthCorrect    == [][\A offset \in Offset: SetLength(offset) => RAF!SetLength(offset)]_vars
-SeekEstablishesInv2 == [][\A offset \in Offset: Seek(offset) => Inv2']_vars
-Write1Correct       == [][\A symbol \in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]_vars
-Read1Correct        == [][\A symbol \in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]_vars
-WriteAtMostCorrect  == [][\A len \in 1..MaxOffset: \A data \in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \E written \in 1..len: RAF!Write(ArraySlice(data, 0, written))]_vars
-ReadCorrect         == [][\A len \in 1..MaxOffset: \A data \in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]_vars
+(***************************************************************************)
+(* The following lemma asserts that Inv is an inductive invariant of the   *)
+(* next-state action Next.  It is the key step in proving that Inv is an   *)
+(* invariant of (true in every behavior allowed by) specification Spec.    *)
+(***************************************************************************)
+LEMMA InductiveInvariance ==
+           Inv /\ [Next]_vars => Inv'
+<1>. SUFFICES ASSUME Inv, [Next]_vars
+              PROVE  Inv'
+  OBVIOUS
+<1>1. CASE Next 
+  \* In the following BY proof, <1>1 denotes the case assumption Next 
+  BY <1>1, FS_EmptySet, FS_Singleton DEF Inv, TypeOK, Next
+<1>2. CASE vars' = vars
+  BY <1>2 DEF Inv, TypeOK, vars  
+<1>3. QED
+  BY <1>1, <1>2 DEF Next
 
-\* Inv2 is a precondition for many actions; it should always be possible to
-\* restore Inv2 by execuing `restoreInvariantsAfterIncreasingCurr()`.  That
-\* method calls `seeek(curr)`, which is composed of a FlushBuffer followed by a
-\* Seek, or just a Seek.
-\*
-\* To ensure that `restoreInvariantsAfterIncreasingCurr()` works as expected
-\* (without using the \cdot action composition operator), we'll verify a few
-\* things:
-\*  - dirty => ENABLED FlushBuffer
-\*  - FlushBuffer => ~dirty'
-\*  - ~dirty => ENABLED Seek(curr)
-\*  - Seek(curr) => Inv2'
-\* Together, those properties ensure that it is always possible to restore Inv2
-\* by taking a FlushBuffer action (if necessary) followed by a Seek(curr)
-\* action.
-FlushBufferPossibleWhenDirty == dirty => ENABLED FlushBuffer
-FlushBufferMakesProgress == [][FlushBuffer => ~dirty']_vars
-SeekCurrPossibleWhenNotDirty == ~dirty => ENABLED Seek(curr)
-SeekCurrRestoresInv2 == [][Seek(curr) => Inv2']_vars
-Inv2CanAlwaysBeRestored ==
-    /\ []FlushBufferPossibleWhenDirty
-    /\ FlushBufferMakesProgress
-    /\ []SeekCurrPossibleWhenNotDirty
-    /\ SeekCurrRestoresInv2
+THEOREM Invariance == Spec => []Inv 
+<1>1.  Init => Inv
+  BY FS_EmptySet DEF Init, Inv, TypeOK
+<1>2.  QED
+ BY PTL, <1>1, InductiveInvariance DEF Spec
 
--------------------------------------------------------------------------------
-\* Model checking helper definitions
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now define LiveSpec to be the algorithm's specification with the     *)
+(* added fairness condition of weak fairness of the next-state relation,   *)
+(* which asserts that execution does not stop if some action is enabled.   *)
+(* The temporal formula Success asserts that some value is chosen.         *)
+(* Below, we prove that LiveSpec implies that Success holds eventually.    *)
+(* This means that, in every behavior satisfying LiveSpec, some value will *)
+(* be chosen.                                                              *)
+(***************************************************************************)
+LiveSpec == Spec /\ WF_vars(Next)
+Success == <>(chosen # {})
 
-Symmetry == Permutations(Symbols)
+(***************************************************************************)
+(* For liveness, we need to assume that there exists at least one value.   *)
+(***************************************************************************)
+ASSUME ValueNonempty == Value # {}
 
-Alias == [
-    \* constants
-    BuffSz            |-> BuffSz,
-    MaxOffset         |-> MaxOffset,
+(***************************************************************************)
+(* Since fairness is defined in terms of the ENABLED operator, we must     *)
+(* characterize states at which an action is enabled. It is usually a good *)
+(* idea to prove a separate lemma for this.                                *)
+(***************************************************************************)
+LEMMA EnabledNext ==
+    (ENABLED <<Next>>_vars) <=> (chosen = {})
+BY ValueNonempty, ExpandENABLED DEF Next, vars
 
-    \* regular vars
-    dirty             |-> dirty,
-    length            |-> length,
-    curr              |-> curr,
-    lo                |-> lo,
-    buff              |-> buff,
-    diskPos           |-> diskPos,
-    file_content      |-> file_content,
-    file_pointer      |-> file_pointer,
+(***************************************************************************)
+(* Here is our proof that Livespec implies Success. The overall approach   *)
+(* to the proof follows the rule WF1 discussed in                          *)
+(*                                                                         *)
+(* `. AUTHOR  = "Leslie Lamport",                                          *)
+(*    TITLE   = "The Temporal Logic of Actions",                           *)
+(*    JOURNAL = toplas,                                                    *)
+(*    volume  = 16,                                                        *)
+(*    number  = 3,                                                         *)
+(*    YEAR    = 1994,                                                      *)
+(*    month   = may,                                                       *)
+(*    PAGES   = "872--923"         .'                                      *)
+(*                                                                         *)
+(* In the actual proof, use of this rule is subsumed by appealing to the   *)
+(* PTL decision procedure for propositional temporal logic. When reasoning *)
+(* about the liveness of more complex specifications, an additional        *)
+(* invariant would typically be required.                                  *)
+(***************************************************************************)
+THEOREM LiveSpec => Success
+<1>1. [][Next]_vars /\ WF_vars(Next) => [](Init => Success)
+  <2>1. Init' \/ (chosen # {})'
+    BY DEF Init
+  <2>2. Init /\ <<Next>>_vars => (chosen # {})'
+    BY DEF Init, Next, vars
+  <2>3. Init => ENABLED <<Next>>_vars
+    BY EnabledNext DEF Init
+  <2>. QED  BY <2>1, <2>2, <2>3, PTL DEF Success
+<1>2. QED  BY <1>1, PTL DEF LiveSpec, Spec, Success
 
-    \* abstract vars
-    abstract_contents |-> LogicalFileContent]
-
-===============================================================================
-
---------------------------- MODULE RandomAccessFile ---------------------------
-\* Specification of Java's RandomAccessFile class.
-\*
-\* A RandomAccessFile offers single-threaded access to some on-disk data
-\* (`file_content`) and has an internal "pointer" or "cursor" (`file_pointer`).
-\* Clients can move the pointer to an arbitrary position, or the client can
-\* read or write data linearly from its current position, which simultaneously
-\* advances the pointer.
-\*
-\* The core operations are:
-\*   - seek (to move the pointer)
-\*   - setLength (to resize the data)
-\*   - read (to copy bytes from disk to memory)
-\*   - write (to copy bytes from memory to disk)
-\*
-\* There are some cases where the general RandomAccessFile contract does not
-\* define the data contents, for instance when extending the file using
-\* setLength.  In this spec, undefined bytes in the file are explicitly marked
-\* with `ArbitrarySymbol`.  While not entirely accurate, that choice simplifies
-\* many definitions, since there is no need to nondeterministically choose
-\* contents for the file.  It also (incidentally) reduces state space explosion
-\* during model checking.
-
-EXTENDS Naturals, Sequences, Common
-
-VARIABLES
-    file_content,
-    file_pointer
-
-vars == <<file_content, file_pointer>>
-
-TypeOK ==
-    /\ file_content \in ArrayOfAnyLength(SymbolOrArbitrary)
-    /\ ArrayLen(file_content) <= MaxOffset
-    /\ file_pointer \in Offset
-
-Init ==
-    /\ file_content = EmptyArray
-    /\ file_pointer = 0
-
-Seek(new_offset) ==
-    /\ new_offset \in Offset
-    /\ file_pointer' = new_offset
-    /\ UNCHANGED <<file_content>>
-
-SetLength(new_length) ==
-    /\ file_content' = TruncateOrExtendFile(file_content, new_length)
-
-    \* The pointer's behavior is very strange.  Per RandomAccessFile docs [1]:
-    \*  > If the present length of the file as returned by the length method is
-    \*  > greater than the newLength argument then the file will be truncated.
-    \*  > In this case, if the file offset as returned by the getFilePointer
-    \*  > method is greater than newLength then after this method returns the
-    \*  > offset will be equal to newLength.
-    \*
-    \* The docs say NOTHING else about the file pointer.  So, we can assume
-    \* that there are no other formal restrictions on its behavior.
-    \*
-    \* [1]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/RandomAccessFile.html#setLength(long)
-    /\ IF ArrayLen(file_content) > new_length /\ file_pointer > new_length
-       THEN file_pointer' = new_length
-       ELSE file_pointer' \in Offset
-
-Read(output) ==
-    /\ output = ArraySlice(file_content, file_pointer, Min(file_pointer + ArrayLen(output), ArrayLen(file_content)))
-    /\ file_pointer' = file_pointer + ArrayLen(output)
-    /\ UNCHANGED <<file_content>>
-
-Write(data) ==
-    /\ file_pointer + ArrayLen(data) <= MaxOffset
-    /\ file_content' = WriteToFile(file_content, file_pointer, data)
-    /\ file_pointer' = file_pointer + ArrayLen(data)
-
-Next ==
-    \/ \E offset \in Offset:
-        \/ Seek(offset)
-        \/ SetLength(offset)
-    \/ \E len \in 1..MaxOffset: \E data \in Array(SymbolOrArbitrary, len):
-        \/ Write(data)
-        \/ Read(data)
-
-Spec == Init /\ [][Next]_vars
-
-===============================================================================
-
--------------------------------- MODULE Common --------------------------------
-\* This module contains constants and definitions common to both
-\* RandomAccessFile and BufferedRandomAccessFile.
-
-EXTENDS Naturals, Sequences
-
-CONSTANTS
-    Symbols, \* data stored in the file (in reality there are 256 symbols: bytes 0x00 to 0xFF)
-    ArbitrarySymbol, \* special token for an arbitrary symbol (to reduce the need for nondeterministic choice)
-    MaxOffset \* the highest possible offset (in reality this is 2^63 - 1)
-
-\* The set of legal offsets
-Offset == 0..MaxOffset
-
-\* The set of things that can appear at an offset in a file
-SymbolOrArbitrary == Symbols \union {ArbitrarySymbol}
-
-\* Minimum and maximum of two numbers
-Min(a, b) == IF a <= b THEN a ELSE b
-Max(a, b) == IF a <= b THEN b ELSE a
-
-\* Definitions for 0-indexed arrays (as opposed to TLA+ 1-indexed sequences).
-\* A major goal of the BufferedRandomAccessFile spec is to prevent off-by-one
-\* errors in the implementation; therefore it should use 0-indexed arrays like
-\* Java.
-\*
-\* The definitions are deliberately crafted so that the usual sequence
-\* operators do NOT work on them; this is to help avoid accidental mixing of
-\* sequences and arrays.
-ArrayOfAnyLength(T) == [elems: Seq(T)]
-Array(T, len) == [elems: [1..len -> T]]
-ConstArray(len, x) == [elems |-> [i \in 1..len |-> x]]
-MkArray(len, f) == [elems |-> [i \in 1..len |-> f[i - 1]]]
-EmptyArray == [elems |-> <<>>]
-ArrayLen(a) == Len(a.elems)
-ArrayToSeq(a) == a.elems
-SeqToArray(seq) == [elems |-> seq]
-ArrayGet(a, i) == a.elems[i+1]
-ArraySet(a, i, x) == [a EXCEPT !.elems[i+1] = x]
-ArraySlice(a, startInclusive, endExclusive) == [elems |-> SubSeq(a.elems, startInclusive + 1, endExclusive)]
-ArrayConcat(a1, a2) == [elems |-> a1.elems \o a2.elems]
-
-\* General contract of the file `write()` call: extend the file with
-\* ArbitrarySymbols if necessary, then overlay some `data_to_write` at the
-\* given offset.
-WriteToFile(file, offset, data_to_write) ==
-    LET
-       file_len == ArrayLen(file)
-       data_len == ArrayLen(data_to_write)
-       length == Max(file_len, offset + data_len)
-    IN
-    MkArray(
-        length,
-        [i \in 0..(length-1) |->
-            CASE
-                i < offset -> IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol
-                []
-                i >= offset /\ i < offset + data_len -> ArrayGet(data_to_write, i - offset)
-                []
-                i >= offset + data_len -> ArrayGet(file, i)])
-
-\* General contract of the file `setLength()` call: truncate the file or fill
-\* it with ArbitrarySymbol to reach the desired length.
-TruncateOrExtendFile(file, new_length) ==
-    IF new_length > ArrayLen(file)
-    THEN ArrayConcat(file, ConstArray(new_length - ArrayLen(file), ArbitrarySymbol))
-    ELSE ArraySlice(file, 0, new_length)
-
-===============================================================================
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* The following theorem is used in the refinement proof in module         *)
+(* VoteProof.                                                              *)
+(***************************************************************************)
+THEOREM LiveSpecEquals ==
+          LiveSpec <=> Spec /\ ([]<><<Next>>_vars \/ []<>(chosen # {}))
+<1>1. (chosen # {}) <=> ~(chosen = {})
+  OBVIOUS
+<1>2. ([]<>~ENABLED <<Next>>_vars) <=> []<>(chosen # {})
+  BY <1>1, EnabledNext, PTL
+<1>4. QED
+  BY <1>2, PTL DEF LiveSpec
+=============================================================================
+\* Modification History
+\* Last modified Mon May 11 18:36:27 CEST 2020 by merz
+\* Last modified Mon Aug 18 15:00:45 CEST 2014 by tomer
+\* Last modified Mon Aug 18 14:58:57 CEST 2014 by tomer
+\* Last modified Tue Feb 14 13:35:49 PST 2012 by lamport
+\* Last modified Mon Feb 07 14:46:59 PST 2011 by lamport

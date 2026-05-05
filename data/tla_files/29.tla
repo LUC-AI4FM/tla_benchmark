@@ -1,160 +1,286 @@
----------------------------- MODULE CarTalkPuzzle ---------------------------
+\* Copyright (c) 2018, Backyard Innovations Pte. Ltd., Singapore.
+\*
+\* Released under the terms of the Apache License 2.0
+\* See: file LICENSE that came with this software for details.
+\*
+\* This file contains Intellectual Property that belongs to
+\* Backyard Innovations Pte Ltd., Singapore.
+\*
+\* Authors: Santhosh Raju <santhosh@byisystems.com>
+\*          Cherry G. Mathew <cherry@byisystems.com>
+\*          Fransisca Andriani <sisca@byisystems.com>
+\*
+--------------------------- MODULE VoucherCancel ----------------------------
 (***************************************************************************)
-(* Car Talk is a U.S. radio program about car repair.  Each show includes  *)
-(* a puzzle, which is often a little mathematical problem.  Usually, those *)
-(* problems are easy for a mathematically sophisticated listener to solve. *)
-(* However, I was not able immediately to see how to solve the puzzle from *)
-(* the 22 October 2011 program.  I decided to specify the problem in TLA+  *)
-(* and let TLC (the TLA+ model checker) compute the solution.  This is the *)
-(* specification I wrote.  (I have tried to explain in comments all TLA+   *)
-(* notation that is not standard mathematical notation.) Once TLC had      *)
-(* found the solution, it was not hard to understand why it worked.        *)
+(* This specification describes the cancellation of Voucher between an     *)
+(* Issuer and a Holder. It is implemented over the Two-Phase Commit        *)
+(* protocol, in which a Voucher Transaction Provider (VTP) coordinates the *)
+(* Voucher Issuers (Is) to cancel vouchers (Vs) to Voucher Holders (Hs) as *)
+(* described in the VoucherLifeCycle specification module. In this         *)
+(* specification, Hs and Is spontaneously issue Prepared messages. We      *)
+(* ignore the Prepare messages that the VTP can send to the Hs and Is.     *)
 (*                                                                         *)
-(* Here is the problem.  A farmer has a 40 pound stone and a balance       *)
-(* scale.  How can he break the stone into 4 pieces so that, using those   *)
-(* pieces and the balance scale, he can weigh out any integral number of   *)
-(* pounds of corn from 1 pound through 40 pounds.                          *)
+(* For simplicity, we also eliminate Abort messages sent by an Hs / Is     *)
+(* when it decides to abort.  Such a message would cause the VTP to abort  *)
+(* the transaction, an event represented here by the VTP spontaneously     *)
+(* deciding to abort.                                                      *)
+(*                                                                         *)
+(* Note: This operation is an addendum to the operations described in RFC  *)
+(* 3506. This operation is not described in the RFC.                       *)
 (***************************************************************************)
+CONSTANT
+    V,             \* The set of Vouchers
+    H,             \* The set of Voucher Holders
+    I              \* The set of Voucher Issuers
 
-(***************************************************************************)
-(* The following statement imports the standard operators of arithmetic    *)
-(* such as + and =< (less than or equals).  It also defines the operator   *)
-(* ..  so that i..j is the set of all integers k with i =< k =< j.         *)
-(***************************************************************************)
-EXTENDS Integers 
+VARIABLES
+  vState,          \* vState[v] is the state of voucher v.
+  vlcState,        \* vlcState[v] is the state of the voucher life cycle
+                   \* machine.
+  hState,          \* hState[h] is the state of voucher holder h.
+  iState,          \* iState[i] is the state of voucher issuer i.
+  vtpState,        \* The state of the voucher transaction provider.
+  vtpCPrepared,    \* The set of Hs and Is from which the VTP has received
+                   \* "Prepared for Voucher Cancel" messages.
+  msgs
+    (***********************************************************************)
+    (* In the protocol, processes communicate with one another by sending  *)
+    (* messages.  For simplicity, we represent message passing with the    *)
+    (* variable msgs whose value is the set of all messages that have been *)
+    (* sent.  A message is sent by adding it to the set msgs.  An action   *)
+    (* that, in an implementation, would be enabled by the receipt of a    *)
+    (* certain message is here enabled by the presence of that message in  *)
+    (* msgs.  For simplicity, messages are never removed from msgs.  This  *)
+    (* allows a single message to be received by multiple receivers.       *)
+    (* Receipt of the same message twice is therefore allowed; but in this *)
+    (* particular protocol, that's not a problem.                          *)
+    (***********************************************************************)
 
-(***************************************************************************)
-(* For generality, I solve the problem of breaking an N pound stone into P *)
-(* pieces.  The following statement declares N and P to be unspecified     *)
-(* constant values.                                                        *)
-(***************************************************************************)
-CONSTANTS N, P
+Messages ==
+  (*************************************************************************)
+  (* The set of all possible messages.  Messages of type "Prepared" are    *)
+  (* sent from the H indicated by the message's vh field to the VTP.       *)
+  (* Similar "Prepared" is also sent from I indicated by message's vc      *)
+  (* field to the VTP. Messages of type "Cancel" and "Abort" are broadcast *)
+  (* by the VTPs, to be received by all Hs and Is.  The set msgs contains  *)
+  (* just a single copy of such a message.                                 *)
+  (*************************************************************************)
+  [type : {"Prepared"}, vh : H] \cup
+  [type : {"Prepared"}, vi : I] \cup
+  [type : {"Cancel", "Abort"}]
 
-(***************************************************************************)
-(* I define the operator Sum so that if f is any integer-valued function,  *)
-(* and S any finite subset of its domain, then Sum(f, S) is the sum of     *)
-(* f[x] for all x in S.  (In TLA+, function application is indicated by    *)
-(* square brackets instead of parentheses, as it is in ordinary math.)     *)
-(*                                                                         *)
-(* A RECURSIVE declaration must precede a recursively defined operator.    *)
-(* The operator CHOOSE is known to logicians as Hilbert's Epsilon.  It is  *)
-(* defined so that CHOOSE x \in S : P(x) equals some unspecified value v   *)
-(* such that P(v) is true, if such a value exists.                         *)
-(***************************************************************************)
-RECURSIVE Sum(_,_)
-Sum(f,S) == IF S = {} THEN 0
-                      ELSE LET x == CHOOSE x \in S : TRUE
-                           IN  f[x] + Sum(f, S \ {x})
+VTPTypeOK ==
+  (*************************************************************************)
+  (* The type-correctness invariant                                        *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"valid", "cancelled"}]
+  /\ vlcState \in [V -> {"working", "done"}]
+  /\ hState \in [H -> {"holding", "prepared", "cancelled", "aborted"}]
+  /\ iState \in [I -> {"waiting", "prepared", "cancelled", "aborted"}]
+  /\ vtpState \in {"init", "done"}
+  /\ vtpCPrepared \subseteq (H \cup I)
+  /\ msgs \subseteq Messages
 
-(***************************************************************************)
-(* I now define the set Break of all "breaks", where a break represents a  *)
-(* method of breaking the stone into P (integer-weight) pieces.  The       *)
-(* obvious definition of a break would be a set of weights.  However, that *)
-(* doesn't work because it doesn't handle the situation in which two of    *)
-(* pieces have the same weight.  Instead, I define a break of the N pound  *)
-(* stone into P pieces to be a function B from 1..P (the integers from 1   *)
-(* through P) into 1..N such that B[i] is the weight of piece number i.    *)
-(* To avoid solutions that differ only by how the pieces are numbered, I   *)
-(* consider only breaks in which the pieces are numbered in non-decreasing *)
-(* order of their weight.  This leads to the following definition of the   *)
-(* set Break of all breaks.                                                *)
-(*                                                                         *)
-(* In TLA+, [S -> T] is the set of all functions with domain S and range a *)
-(* subset of T.  \A and \E are the universal and existential quantifiers.  *)
-(***************************************************************************)
-Break == {B \in [1..P -> 1..N] :    Sum(B, 1..P) = N
-                                 /\ \A i \in 1..P : \A j \in (i+1)..P : B[i] =< B[j]}
-
-(***************************************************************************)
-(* To weigh a quantity of corn, we can put some of the weights on the same *)
-(* side of the balance scale as the corn and other weights on the other    *)
-(* side of the balance.  The following operator is true for a weight w, a  *)
-(* break B, and sets S and T of pieces if w plus the weight of the pieces  *)
-(* in S equals the weight of the pieces in T.  The elements of S and T are *)
-(* piece numbers (numbers in 1..P), so Sum(B, S) is the weight of the      *)
-(* pieces in S.                                                            *)
-(***************************************************************************)
-IsRepresentation(w, B, S, T) ==    S \cap T = {}
-                                 /\ w + Sum(B,S) = Sum(B,T)
-(***************************************************************************)
-(* I now define IsSolution(B) to be true iff break B solves the problem,   *)
-(* meaning that it can be used to balance any weight in 1..N.              *)
-(*                                                                         *)
-(* SUBSET S is the set of all subsets of S (the power set of S).           *)
-(***************************************************************************)
-IsSolution(B) ==  \A w \in 1..N : 
-                     \E S, T \in SUBSET (1..P) : IsRepresentation(w, B, S, T) 
-
-(***************************************************************************)
-(* I define AllSolutions to be the set of all breaks B that solve the      *)
-(* problem.                                                                *)
-(***************************************************************************)
-AllSolutions == { B \in Break : IsSolution(B) }
-
-(***************************************************************************)
-(* We can now have TLC compute the solution to the problem as follows.  We *)
-(* open this module in the TLA+ Toolbox (an Integrated Development         *)
-(* Environment for the TLA+ tools).  We then create a new TLC model in     *)
-(* which we assign the values 40 to N and 4 to P.  We specify in the model *)
-(* that TLC should compute the value of AllSolutions and run TLC on the    *)
-(* model.  (We do this by entering AllSolutions in the Evaluate Constant   *)
-(* Expression section of the model's Model Checking Results page.) After   *)
-(* running for 22 seconds on my 3 year old 2.5 GHz laptop, it prints the   *)
-(* result                                                                  *)
-(*                                                                         *)
-(*    { <<1, 3, 9, 27>> }                                                  *)
-(*                                                                         *)
-(* In TLA+, a k-tuple is represented as a function f with domain 1..k .    *)
-(* Therefore, TLC prints a break B, which with P = 4 is a function with    *)
-(* domain 1..4, as the tuple <<B[1], B[2], B[3], B[4]>>.  Its output       *)
-(* therefore indicates that there is a single break that solves the Car    *)
-(* Talk puzzle, and it breaks the stone into pieces of weights 1, 3, 9,    *)
-(* and 27 pounds.                                                          *)
-(*                                                                         *)
-(* You have undoubtedly observed that the weights of the four pieces are   *)
-(* 3^0, 3^1, 3^2, and 3^3.  You may also have observed that 40 equals 1111 *)
-(* base 3.  These facts should give you enough of a hint to be able to     *)
-(* answer this:                                                            *)
-(*                                                                         *)
-(*    For what values of N and P is the problem solvable, and what         *)
-(*    is a solution for those values?                                      *)
-(***************************************************************************)
+VTPInit ==
+  (*************************************************************************)
+  (* The initial predicate.                                                *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ hState = [h \in H |-> "holding"]
+  /\ iState = [i \in I |-> "waiting"]
+  /\ vtpState = "init"
+  /\ vtpCPrepared   = {}
+  /\ msgs = {}
 -----------------------------------------------------------------------------
 (***************************************************************************)
-(* It's a good idea to check that the definition of AllSolutions really    *)
-(* generates solutions.  The following operator defines ExpandSolutions to *)
-(* be a set of sequences, one for each solution in AllSolutions.  Each of  *)
-(* those sequences is of length N, where the element i shows how to weigh  *)
-(* i pounds of corn.  For example, for the single solution with N = 40 and *)
-(* P = 4, element 7 of the sequence is                                     *)
-(*                                                                         *)
-(*    <<7, {3}, {1, 9}>>                                                   *)
-(*                                                                         *)
-(* indicating that to weight 7 pounds of corn, we can put the 3 pound      *)
-(* weight on the same side of the balance as the corn and the 1 and 9      *)
-(* pound weights on the other side.  For simplicity, I have made the       *)
-(* definition work only only when the solution breaks the stone into       *)
-(* pieces with unequal weights.  As an exercise, modify the definition so  *)
-(* it prints the elements using sequences instead of sets, as in           *)
-(*                                                                         *)
-(*   << 7, <<3>>, <<1, 9>> >>                                              *)
-(*                                                                         *)
-(* so it works if the weights of the pieces are not all distinct.          *)
-(*                                                                         *)
-(* The definition below uses the following notation:                       *)
-(*                                                                         *)
-(*   \X is the Cartesian product of sets.                                  *)
-(*                                                                         *)
-(*   [w \in 1..N |-> F(w)]  is the N tuple with F(i) as element i.         *)
-(*                                                                         *)
+(* We now define the actions that may be performed by the processes, first *)
+(* the VTP's actions, the Hs' actions, then the Is' actions.               *)
 (***************************************************************************)
-ExpandSolutions ==
-  LET PiecesFor(w, B) == CHOOSE ST \in (SUBSET (1..P)) \X (SUBSET (1..P)) :
-                           IsRepresentation(w, B, ST[1], ST[2])
-      Image(S, B) == {B[x] : x \in S}
-      SolutionFor(w, B) == << w, 
-                              Image(PiecesFor(w, B)[1], B), 
-                              Image(PiecesFor(w, B)[2], B) >>
-  IN  { [w \in 1..N |-> SolutionFor(w, B)] : B \in AllSolutions }
-===============================================================================
-Created by Leslie Lamport on 26 October 2011
+VTPRcvPrepared(h,i) ==
+  (*************************************************************************)
+  (* The VTP receives a "Prepared" message from Voucher Holder h and the   *)
+  (* Voucher Issuer i. We could add the additional enabling condition      *)
+  (* h,i \notin vtpCPrepared, which disables the action if the VTP has     *)
+  (* already received this message. But there is no need, because in that  *)
+  (* case the action has no effect; it leaves the state unchanged.         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ vtpState = "init"
+  /\ [type |-> "Prepared", vh |-> h] \in msgs
+  /\ [type |-> "Prepared", vi |-> i] \in msgs
+  /\ vtpCPrepared' = vtpCPrepared \cup {h,i}
+  /\ UNCHANGED <<vState, vlcState, hState, iState, vtpState, msgs>>
+
+VTPCancel(v) ==
+  (*************************************************************************)
+  (* The VTP Cancels the voucher; enabled iff the VTP is in its            *)
+  (* initial state and every H and I has sent a "Prepared" message.        *)
+  (*************************************************************************)
+  /\ vState[v] = "valid"
+  /\ vlcState[v] = "working"
+  /\ vtpState = "init"
+  /\ vtpCPrepared = H \cup I
+  /\ vtpState' = "done"
+  /\ vState' = [vState EXCEPT ![v] = "cancelled"]
+  /\ vlcState' = [vlcState EXCEPT ![v] = "done"]
+  /\ msgs' = msgs \cup {[type |-> "Cancel"]}
+  /\ UNCHANGED <<hState, iState, vtpCPrepared>>
+
+VTPAbort(v) ==
+  (*************************************************************************)
+  (* The VTP spontaneously aborts the transaction.                         *)
+  (*************************************************************************)
+  /\ vState[v] = "valid"
+  /\ vlcState[v] = "working"
+  /\ vtpState = "init"
+  /\ vtpState' = "done"
+  /\ msgs' = msgs \cup {[type |-> "Abort"]}
+  /\ UNCHANGED <<vState, vlcState, hState, iState, vtpCPrepared>>
+
+HPrepare(h) ==
+  (*************************************************************************)
+  (* Voucher holder h prepares.                                            *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ hState[h] = "holding"
+  /\ hState' = [hState EXCEPT ![h] = "prepared"]
+  /\ msgs' = msgs \cup {[type |-> "Prepared", vh |-> h]}
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared>>
+
+HChooseToAbort(h) ==
+  (*************************************************************************)
+  (* Voucher holder h spontaneously decides to abort.  As noted above, h   *)
+  (* does not send any message in our simplified spec.                     *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ hState[h] = "holding"
+  /\ hState' = [hState EXCEPT ![h] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared, msgs>>
+
+HRcvCancelMsg(h) ==
+  (*************************************************************************)
+  (* Voucher holder h is told by the VTP to Cancel.                        *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"valid", "cancelled"}]
+  /\ vlcState \in [V -> {"working", "done"}]
+  /\ hState[h] = "holding"
+  /\ [type |-> "Cancel"] \in msgs
+  /\ hState' = [hState EXCEPT ![h] = "cancelled"]
+  /\ UNCHANGED <<vtpState, vState, vlcState, iState, vtpCPrepared, msgs>>
+
+HRcvAbortMsg(h) ==
+  (*************************************************************************)
+  (* Voucher holder h is told by the VTP to abort.                         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ hState[h] = "holding"
+  /\ [type |-> "Abort"] \in msgs
+  /\ hState' = [hState EXCEPT ![h] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared, msgs>>
+
+IPrepare(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i prepares.                                            *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ iState[i] = "waiting"
+  /\ iState' = [iState EXCEPT ![i] = "prepared"]
+  /\ msgs' = msgs \cup {[type |-> "Prepared", vi |-> i]}
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared>>
+
+IChooseToAbort(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i spontaneously decides to abort. As noted above, i    *)
+  (* does not send any message in our simplified spec.                     *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ iState[i] = "waiting"
+  /\ iState' = [iState EXCEPT ![i] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared, msgs>>
+
+IRcvCancelMsg(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i is told by the VTP to Cancel.                        *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"valid", "cancelled"}]
+  /\ vlcState \in [V -> {"working", "done"}]
+  /\ iState[i] = "waiting"
+  /\ [type |-> "Cancel"] \in msgs
+  /\ iState' = [iState EXCEPT ![i] = "cancelled"]
+  /\ UNCHANGED <<vtpState, vState, vlcState, hState, vtpCPrepared, msgs>>
+
+IRcvAbortMsg(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i is told by the VTP to abort.                         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "valid"]
+  /\ vlcState = [v \in V |-> "working"]
+  /\ iState[i] = "waiting"
+  /\ [type |-> "Abort"] \in msgs
+  /\ iState' = [iState EXCEPT ![i] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared, msgs>>
+
+VTPNext ==
+  \/ \E v \in V:
+       VTPCancel(v) \/ VTPAbort(v)
+  \/ \E h,i \in H \cup I:
+       VTPRcvPrepared(h,i)
+  \/ \E h \in H:
+       HPrepare(h) \/ HChooseToAbort(h)
+       \/ HRcvAbortMsg(h) \/ HRcvCancelMsg(h)
+  \/ \E i \in I:
+       IPrepare(i) \/ IChooseToAbort(i)
+       \/ IRcvAbortMsg(i) \/ IRcvCancelMsg(i)
+-----------------------------------------------------------------------------
+VTPConsistent ==
+  (*************************************************************************)
+  (* A state predicate asserting that a H and an I have not reached        *)
+  (* conflicting decisions. It is an invariant of the specification.       *)
+  (*************************************************************************)
+  /\ \A h \in H, i \in I :   /\ ~ /\ hState[h] = "cancelled"
+                                  /\ iState[i] = "aborted"
+                             /\ ~ /\ hState[h] = "aborted"
+                                  /\ iState[i] = "cancelled"
+-----------------------------------------------------------------------------
+VTPVars == <<hState, iState, vState, vlcState, vtpState, vtpCPrepared, msgs>>
+
+VTPSpec == VTPInit /\ [][VTPNext]_VTPVars
+  (*************************************************************************)
+  (* The complete spec of the a Voucher Cancel using Two-Phase Commit      *)
+  (* protocol.                                                             *)
+  (*************************************************************************)
+
+THEOREM VTPSpec => [](VTPTypeOK /\ VTPConsistent)
+  (*************************************************************************)
+  (* This theorem asserts the truth of the temporal formula whose meaning  *)
+  (* is that the state predicate VTPTypeOK /\ VTPConsistent is an          *)
+  (* invariant of the specification VTPSpec. Invariance of this            *)
+  (* conjunction is equivalent to invariance of both of the formulas       *)
+  (* VTPTypeOK and VTPConsistent.                                          *)
+  (*************************************************************************)
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now assert that the Voucher Cancel specification implements the      *)
+(* Voucher Life Cycle specification of a voucher mentioned in module       *)
+(* VoucherLifeCycle. The following statement imports all the definitions   *)
+(* from module VoucherLifeCycle into the current module.                   *)
+(***************************************************************************)
+INSTANCE VoucherLifeCycle
+
+THEOREM VTPSpec => VSpec
+  (*************************************************************************)
+  (* This theorem asserts that the specification VTPSpec of the Two-Phase  *)
+  (* Commit protocol implements the specification VSpec of the             *)
+  (* Voucher life cycle specification.                                     *)
+  (*************************************************************************)
+=============================================================================
+\* Modification History
+\* Last modified Tue Jun 12 13:03:21 IST 2018 by Fox
+\* Created Fri Mar 16 17:45:37 SGT 2018 by Fox

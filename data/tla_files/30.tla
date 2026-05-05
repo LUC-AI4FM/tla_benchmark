@@ -1,179 +1,287 @@
----------------------------- MODULE cbc_max ----------------------------
+\* Copyright (c) 2018, Backyard Innovations Pte. Ltd., Singapore.
+\*
+\* Released under the terms of the Apache License 2.0
+\* See: file LICENSE that came with this software for details.
+\*
+\* This file contains Intellectual Property that belongs to
+\* Backyard Innovations Pte Ltd., Singapore.
+\*
+\* Authors: Santhosh Raju <santhosh@byisystems.com>
+\*          Cherry G. Mathew <cherry@byisystems.com>
+\*          Fransisca Andriani <sisca@byisystems.com>
+\*
+---------------------------- MODULE VoucherIssue ----------------------------
+(***************************************************************************)
+(* The description is based on the "Issue" operation mentioned in RFC      *)
+(* 3506. This specification describes the issue of Voucher between an      *)
+(* Issuer and a Holder. It is implemented over the Two-Phase Commit        *)
+(* protocol, in which a Voucher Transaction Provider (VTP) coordinates the *)
+(* Voucher Issuers (Is) to issue vouchers (Vs) to Voucher Holders (Hs) as  *)
+(* described in the VoucherLifeCycle specification module. In this         *)
+(* specification, Hs and Is spontaneously issue Prepared messages. We      *)
+(* ignore the Prepare messages that the VTP can send to the Hs and Is.     *)
+(*                                                                         *)
+(* For simplicity, we also eliminate Abort messages sent by an Hs / Is     *)
+(* when it decides to abort.  Such a message would cause the VTP to abort  *)
+(* the transaction, an event represented here by the VTP spontaneously     *)
+(* deciding to abort.                                                      *)
+(*                                                                         *)
+(* Note: We use the "phantom" state of a voucher before issuing a voucher. *)
+(* Once the voucher is issued it goes to "valid" state.                    *)
+(***************************************************************************)
+CONSTANT
+    V,             \* The set of Vouchers
+    H,             \* The set of Voucher Holders
+    I              \* The set of Voucher Issuers
 
-(* An encoding of the conditional consensus protocol based on the maximal value  
-   which is proposed by processes. This protocol is described in Fig. 1 with 
-   condition C1 in [1].
-   
-   Mostéfaoui, Achour, et al. "Evaluating the condition-based approach to solve 
-   consensus." Dependable Systems and Networks, 2003. Proceedings. 2003 International 
-   Conference on. IEEE, 2003.
- 
-   Igor Konnov, Thanh Hai Tran, Josef Widder, 2016
- 
-   This file is a subject to the license that is bundled together with this package 
-   and can be found in the file LICENSE.
- *)
+VARIABLES
+  vState,          \* vState[v] is the state of voucher v.
+  vlcState,        \* vlcState[v] is the state of the voucher life cycle
+                   \* machine.
+  hState,          \* hState[h] is the state of voucher holder h.
+  iState,          \* iState[i] is the state of voucher issuer i.
+  vtpState,        \* The state of the voucher transaction provider.
+  vtpIPrepared,    \* The set of Hs and Is from which the VTP has received
+                   \* "Prepared for Voucher Issue" messages.
+  msgs
+    (***********************************************************************)
+    (* In the protocol, processes communicate with one another by sending  *)
+    (* messages.  For simplicity, we represent message passing with the    *)
+    (* variable msgs whose value is the set of all messages that have been *)
+    (* sent.  A message is sent by adding it to the set msgs.  An action   *)
+    (* that, in an implementation, would be enabled by the receipt of a    *)
+    (* certain message is here enabled by the presence of that message in  *)
+    (* msgs.  For simplicity, messages are never removed from msgs.  This  *)
+    (* allows a single message to be received by multiple receivers.       *)
+    (* Receipt of the same message twice is therefore allowed; but in this *)
+    (* particular protocol, that's not a problem.                          *)
+    (***********************************************************************)
 
-EXTENDS Integers, FiniteSets, TLC
+Messages ==
+  (*************************************************************************)
+  (* The set of all possible messages.  Messages of type "Prepared" are    *)
+  (* sent from the H indicated by the message's vh field to the VTP.       *)
+  (* Similar "Prepared" is also sent from I indicated by message's vc      *)
+  (* field to the VTP. Messages of type "Issue" and "Abort" are broadcast  *)
+  (* by the VTPs, to be received by all Hs and Is.  The set msgs contains  *)
+  (* just a single copy of such a message.                                 *)
+  (*************************************************************************)
+  [type : {"Prepared"}, vi : I] \cup
+  [type : {"Prepared"}, vh : H] \cup
+  [type : {"Issue", "Abort"}]
 
-CONSTANT N, F, T, Values, Bottom
+VTPTypeOK ==
+  (*************************************************************************)
+  (* The type-correctness invariant                                        *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"phantom", "valid"}]
+  /\ vlcState \in [V -> {"init", "working"}]
+  /\ hState \in [H -> {"waiting", "prepared", "holding", "aborted"}]
+  /\ iState \in [I -> {"waiting", "prepared", "issued", "aborted"}]
+  /\ vtpState \in {"init", "done"}
+  /\ vtpIPrepared \subseteq (H \cup I)
+  /\ msgs \subseteq Messages
 
-ASSUME 2 * T < N /\ 0 <= F /\ F <= T /\ 0 < N
-ASSUME \A v \in Values: v # Bottom
+VTPInit ==
+  (*************************************************************************)
+  (* The initial predicate.                                                *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ hState = [h \in H |-> "waiting"]
+  /\ iState = [i \in I |-> "waiting"]
+  /\ vtpState = "init"
+  /\ vtpIPrepared   = {}
+  /\ msgs = {}
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now define the actions that may be performed by the processes, first *)
+(* the VTP's actions, the Hs' actions, then the Is' actions.               *)
+(***************************************************************************)
+VTPRcvPrepared(h,i) ==
+  (*************************************************************************)
+  (* The VTP receives a "Prepared" message from Voucher Holder h and the   *)
+  (* Voucher Issuer i. We could add the additional enabling condition      *)
+  (* h,i \notin vtpIPrepared, which disables the action if the VTP has     *)
+  (* already received this message. But there is no need, because in that  *)
+  (* case the action has no effect; it leaves the state unchanged.         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ vtpState = "init"
+  /\ [type |-> "Prepared", vh |-> h] \in msgs
+  /\ [type |-> "Prepared", vi |-> i] \in msgs
+  /\ vtpIPrepared' = vtpIPrepared \cup {h,i}
+  /\ UNCHANGED <<vState, vlcState, hState, iState, vtpState, msgs>>
 
-VARIABLES pc, V, v, w, dval, nCrash, sntMsgs, rcvdMsgs
+VTPIssue(v) ==
+  (*************************************************************************)
+  (* The VTP Issues the voucher; enabled iff the VTP is in its             *)
+  (* initial state and every H and I has sent a "Prepared" message.        *)
+  (*************************************************************************)
+  /\ vState[v] = "phantom"
+  /\ vlcState[v] = "init"
+  /\ vtpState = "init"
+  /\ vtpIPrepared = H \cup I
+  /\ vtpState' = "done"
+  /\ vState' = [vState EXCEPT ![v] = "valid"]
+  /\ vlcState' = [vlcState EXCEPT ![v] = "working"]
+  /\ msgs' = msgs \cup {[type |-> "Issue"]}
+  /\ UNCHANGED <<hState, iState, vtpIPrepared>>
 
-vars == << pc, V, v, w, dval, nCrash, sntMsgs, rcvdMsgs >>
+VTPAbort(v) ==
+  (*************************************************************************)
+  (* The VTP spontaneously aborts the transaction.                         *)
+  (*************************************************************************)
+  /\ vState[v] = "phantom"
+  /\ vlcState[v] = "init"
+  /\ vtpState = "init"
+  /\ vtpState' = "done"
+  /\ msgs' = msgs \cup {[type |-> "Abort"]}
+  /\ UNCHANGED <<vState, vlcState, hState, iState, vtpIPrepared>>
 
-Proc == 1..N
+HPrepare(h) ==
+  (*************************************************************************)
+  (* Voucher holder h prepares.                                            *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ hState[h] = "waiting"
+  /\ hState' = [hState EXCEPT ![h] = "prepared"]
+  /\ msgs' = msgs \cup {[type |-> "Prepared", vh |-> h]}
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpIPrepared>>
 
-Status == { "BCAST1", "PHS1", "PREP","BCAST2", "PHS2", "DONE", "CRASH", "CHOOSE" }
+HChooseToAbort(h) ==
+  (*************************************************************************)
+  (* Voucher holder h spontaneously decides to abort.  As noted above, h   *)
+  (* does not send any message in our simplified spec.                     *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ hState[h] = "waiting"
+  /\ hState' = [hState EXCEPT ![h] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpIPrepared, msgs>>
 
-(* Create a new message *)
-Phs1Msg(v_i, i) == [ type |-> "Phs1", value |-> v_i, sndr |-> i ]
-Phs2Msg(v_i, w_i, i) == [ type |-> "Phs2", value |-> v_i, wValue |-> w_i, sndr |-> i ]
+HRcvIssueMsg(h) ==
+  (*************************************************************************)
+  (* Voucher holder h is told by the VTP to Issue.                         *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"phantom", "valid"}]
+  /\ vlcState \in [V -> {"init", "working"}]
+  /\ hState[h] = "waiting"
+  /\ [type |-> "Issue"] \in msgs
+  /\ hState' = [hState EXCEPT ![h] = "holding"]
+  /\ UNCHANGED <<vtpState, vState, vlcState, iState, vtpIPrepared, msgs>>
 
-(* Sets of messages which are broadcasted by processes *)
-Msg1s == [ type: {"Phs1"} , value: Values, sndr: Proc ]
-Msg2s == [ type: {"Phs2"}, value: Values, wValue: Values, sndr: Proc ]
-Msgs == Msg1s \cup Msg2s 
+HRcvAbortMsg(h) ==
+  (*************************************************************************)
+  (* Voucher holder h is told by the VTP to abort.                         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ hState[h] = "waiting"
+  /\ [type |-> "Abort"] \in msgs
+  /\ hState' = [hState EXCEPT ![h] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, iState, vtpIPrepared, msgs>>
 
-(* Find the maximum value in arr *)
-MAX(arr) == CHOOSE maxVal \in Values: /\ (\E p \in Proc: arr[p] = maxVal) 
-                                       /\ (\A p \in Proc: maxVal >= arr[p])
+IPrepare(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i prepares.                                            *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ iState[i] = "waiting"
+  /\ iState' = [iState EXCEPT ![i] = "prepared"]
+  /\ msgs' = msgs \cup {[type |-> "Prepared", vi |-> i]}
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpIPrepared>>
 
-(* Line 1 *)
-Init ==
-  /\ V = [ i \in Proc |-> [ j \in Proc |-> Bottom ] ]
-  /\ v \in [ Proc -> Values ]
-  /\ pc = [ i \in Proc |-> "BCAST1" ]
-  /\ w = [ i \in Proc |-> Bottom ]
-  /\ dval = [ i \in Proc |-> Bottom ]
-  /\ nCrash = 0 
-  /\ sntMsgs = {}
-  /\ rcvdMsgs = [ i \in Proc |-> {} ] 
-  
-(* If there are less than F faulty processes, process i becomes faulty. *)  
-Crash(i) ==
-  /\ nCrash < F
-  /\ pc[i] # "CRASH"
-  /\ nCrash' = nCrash + 1
-  /\ pc' = [ pc EXCEPT ![i] = "CRASH" ]   
-  /\ UNCHANGED << V, w, dval, v, sntMsgs, rcvdMsgs >>
+IChooseToAbort(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i spontaneously decides to abort. As noted above, i    *)
+  (* does not send any message in our simplified spec.                     *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ iState[i] = "waiting"
+  /\ iState' = [iState EXCEPT ![i] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpIPrepared, msgs>>
 
-(* Receives a new message *)    
-Receive(i) ==
-  \E msg \in Msgs :
-    /\ pc[i] # "CRASH" 
-    /\ msg \in sntMsgs
-    /\ msg \notin rcvdMsgs[i]
-    /\ rcvdMsgs' = [ rcvdMsgs EXCEPT ![i] = rcvdMsgs[i] \cup { msg } ]         
-    /\ LET j == msg.sndr
-       IN V' = [ V EXCEPT ![i][j] = IF \/ /\ pc[i] = "PHS1" 
-                                          /\ msg.type = "Phs1"
-                                       \/ /\ pc[i] = "PHS2" 
-                                          /\ msg.type = "Phs2"
-                                    THEN msg.value
-                                    ELSE V[i][j] ] 
-    /\ UNCHANGED << pc, v, w, dval, nCrash, sntMsgs, V >>               
-   
-(* Broadcasts PHASE1(v_i, i) *)  
-BcastPhs1(i) ==  
-  /\ pc[i] = "BCAST1"
-  /\ pc' = [ pc EXCEPT ![i] = "PHS1" ] 
-  /\ sntMsgs' = sntMsgs \cup { Phs1Msg(v[i], i) } 
-  /\ UNCHANGED << V, v, w, dval, nCrash, rcvdMsgs >>  
-   
-(* If a process received PHASE1(_, _) from at least N - F processes, it is ready
-   to update its view and to make an estimation.
- *)   
-Phs1(i) == 
-  /\ pc[i] = "PHS1"
-  /\ pc' = [ pc EXCEPT ![i] = "BCAST2" ]
-  /\ Cardinality({ m \in rcvdMsgs[i]: m.type = "Phs1" }) >= N - T
-  /\ w' = [ w EXCEPT ![i] = MAX(V[i]) ]
-  /\ UNCHANGED << v, dval, nCrash, sntMsgs, rcvdMsgs, V >>                
-  
-   
-(* A process broadcasts its estimated value. *)   
-BcastPhs2(i) ==
-  /\ pc[i] = "BCAST2"
-  /\ pc' = [ pc EXCEPT ![i] = "PHS2" ] 
-  /\ sntMsgs' = sntMsgs \cup { Phs2Msg(v[i], w[i], i) } 
-  /\ UNCHANGED << V, v, w, dval, nCrash, rcvdMsgs >>  
-  
-(* If a process receives a new PHASE2, it updates its local view. If the expected 
-   value w in the message is also one from the majority, it decides w. If the input 
-   vector does not belong to the condition and no process crashes, V_i eventually 
-   becomes the "full" input vector and process i deterministically decide. If all 
-   PHASE2 messages has received, process i moves to step Choose.
- *)  
-Phs2(i) ==  
-  /\ pc[i] = "PHS2"
-  /\ \/ \E v0 \in Values:  
-            /\ Cardinality( { m \in rcvdMsgs[i]: m.type = "Phs2" /\ m.wValue = v0 } )  >= N - T  
-            /\ dval' = [ dval EXCEPT ![i] = v0 ]
-            /\ pc' = [ pc EXCEPT ![i] = "DONE" ]             
-            /\ UNCHANGED << v, w, nCrash, sntMsgs, rcvdMsgs, V >>
-     \/ /\ \A j \in Proc: \E m \in rcvdMsgs[i] : m.type = "Phs2" /\ m.sndr = j
-        /\ pc' = [ pc EXCEPT ![i] = "CHOOSE"]
-        /\ UNCHANGED << v, w, nCrash, sntMsgs, dval, rcvdMsgs, V >>
+IRcvIssueMsg(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i is told by the VTP to Issue.                         *)
+  (*************************************************************************)
+  /\ vState \in [V -> {"phantom", "valid"}]
+  /\ vlcState \in [V -> {"init", "working"}]
+  /\ iState[i] = "waiting"
+  /\ [type |-> "Issue"] \in msgs
+  /\ iState' = [iState EXCEPT ![i] = "issued"]
+  /\ UNCHANGED <<vtpState, vState, vlcState, hState, vtpIPrepared, msgs>>
 
-(* Process i has received all PHASE2 messages and therefore, it can deterministically
-   choose a value appearing in V[i]. 
- *)
-Choose(i) ==       
-  /\ pc[i] = "CHOOSE"
-  /\ dval' = [ dval EXCEPT ![i] = (CHOOSE tV \in Values: (\E j \in Proc: tV = V[i][j])) ]
-  /\ pc' = [ pc EXCEPT ![i] = "DONE" ] 
-  /\ UNCHANGED << V, v, w, nCrash, sntMsgs, rcvdMsgs >> 
-      
-Next == \E i \in Proc: \/ Crash(i)      
-                       \/ Receive(i)      
-                       \/ BcastPhs1(i)      
-                       \/ Phs1(i)      
-                       \/ BcastPhs2(i)      
-                       \/ Phs2(i)
-                       \/ Choose(i)
-                       \/ /\ \A p \in Proc : pc[p] = "CRASH" \/ pc[p] = "DONE"
-                          /\ UNCHANGED vars
-      
-Spec == Init /\ [][Next]_vars 
-       /\ WF_vars(\E i \in Proc: \/ Receive(i)      
-                                 \/ BcastPhs1(i)      
-                                 \/ Phs1(i)      
-                                 \/ BcastPhs2(i)      
-                                 \/ Phs2(i)  
-                                 \/ Choose(i))
+IRcvAbortMsg(i) ==
+  (*************************************************************************)
+  (* Voucher issuer i is told by the VTP to abort.                         *)
+  (*************************************************************************)
+  /\ vState = [v \in V |-> "phantom"]
+  /\ vlcState = [v \in V |-> "init"]
+  /\ iState[i] = "waiting"
+  /\ [type |-> "Abort"] \in msgs
+  /\ iState' = [iState EXCEPT ![i] = "aborted"]
+  /\ UNCHANGED <<vState, vlcState, vtpState, hState, vtpIPrepared, msgs>>
 
-TypeOK ==
-  /\ V \in [ Proc -> [ Proc -> { Bottom } \cup Values ] ]
-  /\ v \in [ Proc -> Values ] 
-  /\ pc \in [ Proc -> Status ]
-  /\ w \in [ Proc -> { Bottom } \cup Values ]
-  /\ dval \in [ Proc -> { Bottom } \cup Values ]
-  /\ nCrash \in 0 .. F 
-  /\ sntMsgs \in SUBSET Msgs
-  /\ rcvdMsgs \in [ Proc -> SUBSET Msgs ] 
-  
-  
-(* If a process decides v, then v was proposed by some process. *)
-Validity == (\A i \in Proc: dval[i] # Bottom => (\E j \in Proc: dval[i] = v[j]))
+VTPNext ==
+  \/ \E v \in V:
+       VTPIssue(v) \/ VTPAbort(v)
+  \/ \E h,i \in H \cup I:
+       VTPRcvPrepared(h,i)
+  \/ \E h \in H:
+       HPrepare(h) \/ HChooseToAbort(h)
+       \/ HRcvAbortMsg(h) \/ HRcvIssueMsg(h)
+  \/ \E i \in I:
+       IPrepare(i) \/ IChooseToAbort(i)
+       \/ IRcvAbortMsg(i) \/ IRcvIssueMsg(i)
+-----------------------------------------------------------------------------
+VTPConsistent ==
+  (*************************************************************************)
+  (* A state predicate asserting that a H and an I have not reached        *)
+  (* conflicting decisions. It is an invariant of the specification.       *)
+  (*************************************************************************)
+  /\ \A h \in H, i \in I :   /\ ~ /\ hState[h] = "holding"
+                                  /\ iState[i] = "aborted"
+                             /\ ~ /\ hState[h] = "aborted"
+                                  /\ iState[i] = "issued"
+-----------------------------------------------------------------------------
+VTPVars == <<hState, iState, vState, vlcState, vtpState, vtpIPrepared, msgs>>
 
-(* No two processes decide differently. *)
-Agreement == \A i, j \in Proc: (dval[i] # Bottom /\ dval[j] # Bottom) => dval[i] = dval[j]
+VTPSpec == VTPInit /\ [][VTPNext]_VTPVars
+  (*************************************************************************)
+  (* The complete spec of the a Voucher Issue using Two-Phase Commit       *)
+  (* protocol.                                                             *)
+  (*************************************************************************)
 
-(* Every correct process eventually decides on some values. *)
-Termination == <>(\A i \in Proc: pc[i] = "CRASH" \/ pc[i] = "DONE")
+THEOREM VTPSpec => [](VTPTypeOK /\ VTPConsistent)
+  (*************************************************************************)
+  (* This theorem asserts the truth of the temporal formula whose meaning  *)
+  (* is that the state predicate VTPTypeOK /\ VTPConsistent is an          *)
+  (* invariant of the specification VTPSpec. Invariance of this            *)
+  (* conjunction is equivalent to invariance of both of the formulas       *)
+  (* VTPTypeOK and VTPConsistent.                                          *)
+  (*************************************************************************)
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now assert that the Voucher Issue specification implements the       *)
+(* Voucher Life Cycle specification of a voucher mentioned in module       *)
+(* VoucherLifeCycle. The following statement imports all the definitions   *)
+(* from module VoucherLifeCycle into the current module.                   *)
+(***************************************************************************)
+INSTANCE VoucherLifeCycle
 
-(* At least F + 1 processes initialize with the greatest value MAX(v). *)
-Condition1 == Cardinality({ j \in Proc: v[j] = MAX(v)}) > F
-  
-(* If the input vector satisfies the Condition1, the algorithm terminates. *)  
-RealTermination == Condition1 => Termination  
-    
+THEOREM VTPSpec => VSpec
+  (*************************************************************************)
+  (* This theorem asserts that the specification VTPSpec of the Two-Phase  *)
+  (* Commit protocol implements the specification VSpec of the             *)
+  (* Voucher life cycle specification.                                     *)
+  (*************************************************************************)
 =============================================================================
 \* Modification History
-\* Last modified Mon Jul 09 16:15:38 CEST 2018 by tthai
-\* Last modified Mon Jul 09 13:27:23 CEST 2018 by tran
-\* Created Tue Nov 22 10:32:35 CET 2016 by tran
+\* Last modified Tue Jun 12 13:33:03 IST 2018 by Fox
+\* Created Fri Mar 16 17:45:37 SGT 2018 by Fox

@@ -1,215 +1,217 @@
--------------------------- MODULE ReachableProofs --------------------------      
+-------------------------------- MODULE Paxos -------------------------------
 (***************************************************************************)
-(* This module contains the TLAPS checked proofs of partial correctness of *)
-(* the algorithm in module Reachable, based on the invariants Inv1, Inv2,  *)
-(* and Inv3 defined in that module.  The proofs here are pretty simple     *)
-(* because the difficult parts involve proving general results about       *)
-(* reachability that are independent of the algorithm.  Those results are  *)
-(* stated and proved in module ReachabilityProofs and are used by the      *)
-(* proofs in this module.                                                  *)
-(*                                                                         *)
-(* You might be sufficiently motivated to make sure the algorithm is       *)
-(* correct to want a machine-checked proof that is, but not motivated      *)
-(* enough to write machine-checked proofs of the properties of directed    *)
-(* graphs that the proof uses.  If that's the case, or you're curious      *)
-(* about why it might be the case, read module ReachabilityTest.           *)
-(*                                                                         *)
-(* After writing the proof, it occurred to me that it might be easier to   *)
-(* replace invariants Inv2 and Inv3 by the single invariant                *)
-(*                                                                         *)
-(*    Inv23 == Reachable = ReachableFrom(marked \cup vroot)                *)
-(*                                                                         *)
-(* Inv23 is obviously true initially and its invariance is maintained by   *)
-(* this general result about marked graphs                                 *)
-(*                                                                         *)
-(*     \A S \in SUBSET Nodes :                                             *)
-(*        \A n \in S : reachableFrom(S) = reachableFrom(S \cup Succ[n])    *)
-(*                                                                         *)
-(* since marked \cup vroot is changed only by adding successors of nodes   *)
-(* in vroot to it.  Partial correctness is true because when vroot = {},   *)
-(* we have                                                                 *)
-(*                                                                         *)
-(*    Inv1  => \A n \in marked : Succ[n] \subseteq marked                  *)
-(*    Inv23 <=>  Reachable = ReachableFrom(marked)                         *)
-(*                                                                         *)
-(* and the following is true for any directed graph:                       *)
-(*                                                                         *)
-(*    \A S \in SUBSET Nodes:                                               *)
-(*      (\A n \in S : Succ[n] \subseteq S) => (S = reachableFrom(S))       *)
-(*                                                                         *)
-(* As an exercise, you can try rewriting the proof of partial correctness  *)
-(* of the algorithm using only the invariants Inv1 and Inv23, using the    *)
-(* necessary results about reachability.  When you've finished doing that, *)
-(* you can try proving those reachability results.                         *)
+(* This is a specification of the Paxos algorithm without explicit leaders *)
+(* or learners.  It refines the spec in Voting                             *)
 (***************************************************************************)
-EXTENDS Reachable, ReachabilityProofs, TLAPS
+EXTENDS Integers
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* The constant parameters and the set Ballots are the same as in Voting.  *)
+(***************************************************************************)
+CONSTANT Value, Acceptor, Quorum
+
+ASSUME QuorumAssumption == /\ \A Q \in Quorum : Q \subseteq Acceptor
+                           /\ \A Q1, Q2 \in Quorum : Q1 \cap Q2 # {} 
+      
+Ballot ==  Nat
+
+None == CHOOSE v : v \notin Value
+  (*************************************************************************)
+  (* An unspecified value that is not a choosable value.                   *)
+  (*************************************************************************)
+  
+(***************************************************************************)
+(* This is a message-passing algorithm, so we begin by defining the set    *)
+(* Message of all possible messages.  The messages are explained below     *)
+(* with the actions that send them.                                        *)
+(***************************************************************************)
+Message ==      [type : {"1a"}, bal : Ballot]
+           \cup [type : {"1b"}, acc : Acceptor, bal : Ballot, 
+                 mbal : Ballot \cup {-1}, mval : Value \cup {None}]
+           \cup [type : {"2a"}, bal : Ballot, val : Value]
+           \cup [type : {"2b"}, acc : Acceptor, bal : Ballot, val : Value]
+-----------------------------------------------------------------------------
+VARIABLE maxBal, 
+         maxVBal, \* <<maxVBal[a], maxVal[a]>> is the vote with the largest
+         maxVal,    \* ballot number cast by a; it equals <<-1, None>> if
+                    \* a has not cast any vote.
+         msgs     \* The set of all messages that have been sent.
 
 (***************************************************************************)
-(* Note that there is no need to write a separate proof that TypeOK is     *)
-(* invariant, since its invariance is implied by the invariance of Inv1.   *)
+(* NOTE:                                                                   *)
+(* The algorithm is easier to understand in terms of the set msgs of all   *)
+(* messages that have ever been sent.  A more accurate model would use     *)
+(* one or more variables to represent the messages actually in transit,    *)
+(* and it would include actions representing message loss and duplication  *)
+(* as well as message receipt.                                             *)
+(*                                                                         *)
+(* In the current spec, there is no need to model message loss because we  *)
+(* are mainly concerned with the algorithm's safety property.  The safety  *)
+(* part of the spec says only what messages may be received and does not   *)
+(* assert that any message actually is received.  Thus, there is no        *)
+(* difference between a lost message and one that is never received.  The  *)
+(* liveness property of the spec that we check makes it clear what         *)
+(* messages must be received (and hence either not lost or successfully    *)
+(* retransmitted if lost) to guarantee progress.                           *)
 (***************************************************************************)
 
-THEOREM Thm1 == Spec => []Inv1
+vars == <<maxBal, maxVBal, maxVal, msgs>>
   (*************************************************************************)
-  (* The three level <1> steps and its QED step's proof are the same for   *)
-  (* any inductive invariance proof.  Step <1>2 is the only one that TLAPS *)
-  (* couldn't prove with a BY proof.                                       *)
+  (* It is convenient to define some identifier to be the tuple of all     *)
+  (* variables.  I like to use the identifier `vars'.                      *)
   (*************************************************************************)
-  <1>1. Init => Inv1
-    BY RootAssump DEF Init, Inv1, TypeOK    
-  <1>2. Inv1 /\ [Next]_vars => Inv1'   
-    (***********************************************************************)
-    (* The steps of this level <2> proof are the standard way of proving   *)
-    (* the formula <1>2; they were generated by the Toolbox's Decompose    *)
-    (* Proof Command.  The algorithm is simple enough that TLAPS can prove *)
-    (* steps <2>1 and <2>2, which are the only nontrivial ones, with BY    *)
-    (* proofs.                                                             *)
-    (***********************************************************************)
-    <2> SUFFICES ASSUME Inv1,
-                        [Next]_vars
-                 PROVE  Inv1'
-      OBVIOUS
-    <2>1. CASE a
-        BY <2>1, SuccAssump DEF Inv1, TypeOK, a
-    <2>2. CASE UNCHANGED vars
-      BY <2>2 DEF Inv1, TypeOK, vars
-    <2>3. QED
-      BY <2>1, <2>2 DEF Next, Terminating
-  <1>3. QED
-    BY <1>1, <1>2, PTL DEF Spec  
-
-        
-THEOREM Thm2 == Spec => [](TypeOK /\ Inv2)
-  (*************************************************************************)
-  (* This theorem is a trivial consequence of a general fact about         *)
-  (* reachability in a directed graph, which is called Reachable1 and      *)
-  (* proved in Module ReachabilityProofs,                                  *)
-  (*************************************************************************)
-  <1>1. Inv1 => TypeOK /\ Inv2
-    BY Reachable1 DEF Inv1, Inv2, TypeOK
-  <1> QED
-    BY <1>1, Thm1, PTL
- 
+  
 (***************************************************************************)
-(* The best way to read the proof of the following theorem is              *)
-(* hierarchically.  Read all the steps of a proof at a given level, then   *)
-(* read separately the proof of each of those steps, starting with the     *)
-(* proof of the QED step.  Start by executing the Hide Current Subtree     *)
-(* command on the theorem, then use the little + and - icons beside the    *)
-(* theorem and each proof step to show and hide its proof.                 *)
+(* The type invariant and initial predicate.                               *)
 (***************************************************************************)
-THEOREM Thm3 == Spec => []Inv3
-  (*************************************************************************)
-  (* Observe the level <1> proof and the proof of its QED step to see how  *)
-  (* the invariance of TypeOK and Inv2 are used in the proof of invariance *)
-  (* of Inv3.                                                              *)
-  (*************************************************************************)
-  <1>1. Init => Inv3  
-    BY RootAssump DEF Init, Inv3, TypeOK, Reachable 
-  <1>2. TypeOK /\ TypeOK' /\ Inv2 /\ Inv2' /\ Inv3 /\ [Next]_vars => Inv3'
-    (***********************************************************************)
-    (* The SUFFICES step and its proof, the QED step and its proof, and    *)
-    (* the CASE steps <2>2 and <2>3 were generated by the Toolbox's        *)
-    (* Decompose Proof command.                                            *)
-    (***********************************************************************)
-    <2> SUFFICES ASSUME TypeOK,
-                        TypeOK',
-                        Inv2,
-                        Inv2',
-                        Inv3,
-                        [Next]_vars
-                 PROVE  Inv3'
-      OBVIOUS
-    (***********************************************************************)
-    (* Step <2>1 is obviously true because Reachable and ReachableFrom are *)
-    (* constants.  It helps TLAPS to give it these results explicitly so   *)
-    (* it doesn't have to figure them out when it needs them.              *)
-    (***********************************************************************)
-    <2>1. /\ Reachable' = Reachable
-          /\ ReachableFrom(vroot)' = ReachableFrom(vroot')   
-          /\ ReachableFrom(marked \cup vroot)' = ReachableFrom(marked' \cup vroot')
-      OBVIOUS 
-    <2>2. CASE a
-      (*********************************************************************)
-      (* `a' is a simple enough formula so there's no need to hide its     *)
-      (* definition when it's not needed.                                  *)
-      (*********************************************************************)
-      <3> USE <2>2 DEF a
-      (*********************************************************************)
-      (* Splitting the proof into these two cases is an obvious way to     *)
-      (* write the proof--especially since TLAPS is not very good at       *)
-      (* figuring out by itself when it should do a proof by a case split. *)
-      (*********************************************************************)
-      <3>1. CASE vroot = {}
-        BY <2>1, <3>1 DEF Inv3, TypeOK
-      <3>2. CASE vroot # {}
-        (*******************************************************************)
-        (* The way to use a fact of the form \E x \in S : P(x) is to pick  *)
-        (* an x in S satisfying P(x).                                      *)
-        (*******************************************************************)
-        <4>1. PICK v \in vroot :
-                IF v \notin marked
-                   THEN /\ marked' = (marked \cup {v})
-                        /\ vroot' = vroot \cup Succ[v]
-                   ELSE /\ vroot' = vroot \ {v}
-                        /\ UNCHANGED marked
-          BY <3>2
-        (*******************************************************************)
-        (* Again, the obvious way to use a fact of the form                *)
-        (*                                                                 *)
-        (*    IF P THEN ... ELSE ...                                       *)
-        (*                                                                 *)
-        (* is by splitting the proof into the two cases P and ~P.          *)
-        (*******************************************************************)
-        <4>2. CASE v \notin marked
-          (*****************************************************************)
-          (* This case follows immediately from the general reachability   *)
-          (* result Reachable2 from module ReachabilityProofs.             *)
-          (*****************************************************************)
-          <5>1. /\ ReachableFrom(vroot') = ReachableFrom(vroot)
-                /\ v \in ReachableFrom(vroot)
-            BY <4>1, <4>2, Reachable2 DEF TypeOK 
-          <5>2. QED
-            BY <5>1, <4>1, <4>2, <5>1, <2>1 DEF Inv3
-        <4>3. CASE v \in marked
-          (*****************************************************************)
-          (* This case is obvious.                                         *)
-          (*****************************************************************)
-          <5>1. marked' \cup vroot' = marked \cup vroot
-            BY <4>1, <4>3
-          <5>2. QED
-            BY <5>1, <2>1 DEF Inv2, Inv3
-        <4>4. QED
-          BY <4>2, <4>3
-       <3>3. QED
-          BY <3>1, <3>2   
-    <2>3. CASE UNCHANGED vars
-      (*********************************************************************)
-      (* As is almost all invariance proofs, this case is trivial.         *)
-      (*********************************************************************)
-      BY <2>1, <2>3 DEF Inv3, TypeOK, vars  
-    <2>4. QED
-      BY <2>2, <2>3 DEF Next, Terminating
-  <1>3. QED
-    BY <1>1, <1>2, Thm2, PTL DEF Spec
+TypeOK == /\ maxBal \in [Acceptor -> Ballot \cup {-1}]
+          /\ maxVBal \in [Acceptor -> Ballot \cup {-1}]
+          /\ maxVal \in [Acceptor -> Value \cup {None}]
+          /\ msgs \subseteq Message
+          
 
-                   
-THEOREM Spec => []((pc = "Done") => (marked = Reachable))
-  (*************************************************************************)
-  (* This theorem follows easily from the invariance of Inv1 and Inv3 and  *)
-  (* the trivial result Reachable3 of module ReachabilityProofs that       *)
-  (* Reachable({}) equals {}.  That result was put in module               *)
-  (* ReachabilityProofs so all the reasoning about the algorithm depends   *)
-  (* only on properties of ReachableFrom, and doesn't depend on how        *)
-  (* ReachableFrom is defined.                                             *)
-  (*************************************************************************)
-  <1>1. Inv1 => ((pc = "Done") => (vroot = {}))
-    BY DEF Inv1, TypeOK
-  <1>2. Inv3 /\ (vroot = {}) => (marked = Reachable)
-    BY Reachable3 DEF Inv3  
-  <1>3. QED
-    BY <1>1, <1>2, Thm1, Thm3, PTL
-=============================================================================
-\* Modification History
-\* Last modified Sun Apr 14 16:24:32 PDT 2019 by lamport
-\* Created Thu Apr 11 18:41:11 PDT 2019 by lamport
+Init == /\ maxBal = [a \in Acceptor |-> -1]
+        /\ maxVBal = [a \in Acceptor |-> -1]
+        /\ maxVal = [a \in Acceptor |-> None]
+        /\ msgs = {}
+
+(***************************************************************************)
+(* The actions.  We begin with the subaction (an action that will be used  *)
+(* to define the actions that make up the next-state action.               *)
+(***************************************************************************)
+Send(m) == msgs' = msgs \cup {m}
+
+
+(***************************************************************************)
+(* In an implementation, there will be a leader process that orchestrates  *)
+(* a ballot.  The ballot b leader performs actions Phase1a(b) and          *)
+(* Phase2a(b).  The Phase1a(b) action sends a phase 1a message (a message  *)
+(* m with m.type = "1a") that begins ballot b.                             *)
+(***************************************************************************)
+Phase1a(b) == /\ Send([type |-> "1a", bal |-> b])
+              /\ UNCHANGED <<maxBal, maxVBal, maxVal>>
+                 
+(***************************************************************************)
+(* Upon receipt of a ballot b phase 1a message, acceptor a can perform a   *)
+(* Phase1b(a) action only if b > maxBal[a].  The action sets maxBal[a] to  *)
+(* b and sends a phase 1b message to the leader containing the values of   *)
+(* maxVBal[a] and maxVal[a].                                               *)
+(***************************************************************************)
+Phase1b(a) == /\ \E m \in msgs : 
+                  /\ m.type = "1a"
+                  /\ m.bal > maxBal[a]
+                  /\ maxBal' = [maxBal EXCEPT ![a] = m.bal]
+                  /\ Send([type |-> "1b", acc |-> a, bal |-> m.bal, 
+                            mbal |-> maxVBal[a], mval |-> maxVal[a]])
+              /\ UNCHANGED <<maxVBal, maxVal>>
+
+(***************************************************************************)
+(* The Phase2a(b, v) action can be performed by the ballot b leader if two *)
+(* conditions are satisfied: (i) it has not already performed a phase 2a   *)
+(* action for ballot b and (ii) it has received ballot b phase 1b messages *)
+(* from some quorum Q from which it can deduce that the value v is safe at *)
+(* ballot b.  These enabling conditions are the first two conjuncts in the *)
+(* definition of Phase2a(b, v).  This second conjunct, expressing          *)
+(* condition (ii), is the heart of the algorithm.  To understand it,       *)
+(* observe that the existence of a phase 1b message m in msgs implies that *)
+(* m.mbal is the highest ballot number less than m.bal in which acceptor   *)
+(* m.acc has or ever will cast a vote, and that m.mval is the value it     *)
+(* voted for in that ballot if m.mbal # -1.  It is not hard to deduce from *)
+(* this that the second conjunct implies that there exists a quorum Q such *)
+(* that ShowsSafeAt(Q, b, v) (where ShowsSafeAt is defined in module       *)
+(* Voting).                                                                *)
+(*                                                                         *)
+(* The action sends a phase 2a message that tells any acceptor a that it   *)
+(* can vote for v in ballot b, unless it has already set maxBal[a]         *)
+(* greater than b (thereby promising not to vote in ballot b).             *)
+(***************************************************************************)
+Phase2a(b, v) ==
+  /\ ~ \E m \in msgs : m.type = "2a" /\ m.bal = b
+  /\ \E Q \in Quorum :
+        LET Q1b == {m \in msgs : /\ m.type = "1b"
+                                 /\ m.acc \in Q
+                                 /\ m.bal = b}
+            Q1bv == {m \in Q1b : m.mbal \geq 0}
+        IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a 
+            /\ \/ Q1bv = {}
+               \/ \E m \in Q1bv : 
+                    /\ m.mval = v
+                    /\ \A mm \in Q1bv : m.mbal \geq mm.mbal 
+  /\ Send([type |-> "2a", bal |-> b, val |-> v])
+  /\ UNCHANGED <<maxBal, maxVBal, maxVal>>
+  
+(***************************************************************************)
+(* The Phase2b(a) action is performed by acceptor a upon receipt of a      *)
+(* phase 2a message.  Acceptor a can perform this action only if the       *)
+(* message is for a ballot number greater than or equal to maxBal[a].  In  *)
+(* that case, the acceptor votes as directed by the phase 2a message,      *)
+(* setting maxVBal[a] and maxVal[a] to record that vote and sending a      *)
+(* phase 2b message announcing its vote.  It also sets maxBal[a] to the    *)
+(* message's.  ballot number                                               *)
+(***************************************************************************)
+Phase2b(a) == \E m \in msgs : /\ m.type = "2a"
+                              /\ m.bal \geq maxBal[a]
+                              /\ maxBal' = [maxBal EXCEPT ![a] = m.bal] 
+                              /\ maxVBal' = [maxVBal EXCEPT ![a] = m.bal] 
+                              /\ maxVal' = [maxVal EXCEPT ![a] = m.val]
+                              /\ Send([type |-> "2b", acc |-> a,
+                                       bal |-> m.bal, val |-> m.val]) 
+
+(***************************************************************************)
+(* In an implementation, there will be learner processes that learn from   *)
+(* the phase 2b messages if a value has been chosen.  The learners are     *)
+(* omitted from this abstract specification of the algorithm.              *)
+(***************************************************************************)
+
+(***************************************************************************)
+(* Below are defined the next-state action and the complete spec.          *)
+(***************************************************************************)
+Next == \/ \E b \in Ballot : \/ Phase1a(b)
+                             \/ \E v \in Value : Phase2a(b, v)
+        \/ \E a \in Acceptor : Phase1b(a) \/ Phase2b(a)
+
+Spec == Init /\ [][Next]_vars
+----------------------------------------------------------------------------
+(***************************************************************************)
+(* We now define the refinement mapping under which this algorithm         *)
+(* implements the specification in module Voting.                          *)
+(***************************************************************************)
+
+(***************************************************************************)
+(* As we observed, votes are registered by sending phase 2b messages.  So  *)
+(* the array `votes' describing the votes cast by the acceptors is defined *)
+(* as follows.                                                             *)
+(***************************************************************************)
+votes == [a \in Acceptor |->  
+           {<<m.bal, m.val>> : m \in {mm \in msgs: /\ mm.type = "2b"
+                                                   /\ mm.acc = a }}]
+(***************************************************************************)
+(* We now instantiate module Voting, substituting the constants Value,     *)
+(* Acceptor, and Quorum declared in this module for the corresponding      *)
+(* constants of that module Voting, and substituting the variable maxBal   *)
+(* and the defined state function `votes' for the correspondingly-named    *)
+(* variables of module Voting.                                             *)
+(***************************************************************************)
+V == INSTANCE Voting 
+
+THEOREM Spec => V!Spec
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* Here is a first attempt at an inductive invariant used to prove this    *)
+(* theorem.                                                                *)
+(***************************************************************************)
+Inv == /\ TypeOK
+       /\ \A a \in Acceptor : IF maxVBal[a] = -1
+                                THEN maxVal[a] = None
+                                ELSE <<maxVBal[a], maxVal[a]>> \in votes[a]
+       /\ \A m \in msgs : 
+             /\ (m.type = "1b") => /\ maxBal[m.acc] \geq m.bal
+                                   /\ (m.mbal \geq 0) =>  
+                                       <<m.mbal, m.mval>> \in votes[m.acc]
+             /\ (m.type = "2a") => /\ \E Q \in Quorum : 
+                                         V!ShowsSafeAt(Q, m.bal, m.val)
+                                   /\ \A mm \in msgs : /\ mm.type = "2a"
+                                                       /\ mm.bal = m.bal
+                                                       => mm.val = m.val
+       /\ V!Inv
+============================================================================

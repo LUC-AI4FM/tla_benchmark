@@ -1,182 +1,177 @@
---------------------------- MODULE SimpleRegular ---------------------------
-(***************************************************************************)
-(* This is a minor modification of the algorithm in module Simple.  That   *)
-(* algorithm is an N-process algorithm shared-memory algorithm, in which   *)
-(* each process i has a shared register x[i] that it writes and is read by *)
-(* process x[(i-1) % N].  Each process i also has a local register y[i]    *)
-(* that only it can access.                                                *)
-(*                                                                         *)
-(* The shared registers x[i] in the algorithm of module Simple are assumed *)
-(* to be atomic, effectively meaning that each read or write by any        *)
-(* process is an atomic action.  In the algorithm in this module, the x[i] *)
-(* are assumed to be a weaker class of registers called regular registers. *)
-(* Atomic and regular registers are defined in the paper                   *)
-(*                                                                         *)
-(*    On Interprocess Communication                                        *)
-(*    Distributed Computing 1, 2 (1986), 77-101                            *)
-(*                                                                         *)
-(* which can be found on the Web at                                        *)
-(*                                                                         *)
-(*    http://lamport.azurewebsites.net/pubs/interprocess.pdf               *)
-(*                                                                         *)
-(* That paper considers only registers that can be written by a single     *)
-(* process, but takes into account that reads and writes are not           *)
-(* instantaneous atomic actions, but take a finite length of time and can  *)
-(* overlap.  An atomic register is one in which a read and write acts as   *)
-(* if it were executed atomically at some time between the beginning and   *)
-(* end of the operation.  An atomic register can be modeled as one in      *)
-(* which each read and write is a single step in an execution.             *)
-(*                                                                         *)
-(* A regular register is defined there to be one in which a read that      *)
-(* overlaps some (possibly empty) set of writes to a register obtains a    *)
-(* value that is either the register's value before any of the writes were *)
-(* begun or one of the values being written by one of the writes that the  *)
-(* read overlaps.  (Hence, a read that overlaps no writes obtains the last *)
-(* value written before the read, or the initial value if there were no    *)
-(* such writes before the read.) A regular register r can be modeled in a  *)
-(* TLA+ spec modeled as a variable rv that equals a set of values.  The    *)
-(* register having a value v is modeled by rv equaling {v}.  When a value  *)
-(* w different from v is written to r, the value of rv first changes to    *)
-(* {v, w} and then to {w}.  A read of r is modeled as an atomic step that  *)
-(* can obtain any value in the set rv.                                     *)
-(*                                                                         *)
-(* The algorithm of this model is obtained from that of module Simple by   *)
-(* letting each value x[i] be the set of values representing a regular     *)
-(* register.  Since each y[i] is local to process i, we can consider it to *)
-(* be atomic.                                                              *)
-(*                                                                         *)
-(* The problem of generalizing the algorithm of module Simple to use       *)
-(* regular registers was proposed by Yuri Abraham in                       *)
-(*                                                                         *)
-(*    On Lamport's "Teaching Concurrency"                                  *)
-(*    Bulletin of EATCS (European Association for Theoretical Computer     *)
-(*      Science) No. 127, February 2019                                    *)
-(*    http://bulletin.eatcs.org/index.php/beatcs/article/view/569          *)
-(***************************************************************************)
-EXTENDS Integers, TLAPS
+------------------------ MODULE SchedulingAllocator ---------------------
+(***********************************************************************)
+(* Specification of an allocator managing a set of resources:          *)
+(* - Clients can request sets of resources whenever all their previous *)
+(*   requests have been satisfied.                                     *)
+(* - Requests can be partly fulfilled, and resources can be returned   *)
+(*   even before the full request has been satisfied. However, clients *)
+(*   only have an obligation to return resources after they have       *)
+(*   obtained all resources they requested.                            *)
+(* This allocator operates by repeatedly choosing a schedule according *)
+(* to which requests are satisfied. Resources can be allocated out of  *)
+(* order as long as no client earlier in the schedule asks for them.   *)
+(***********************************************************************)
 
-CONSTANT N
-ASSUME NAssump ==  (N \in Nat) /\ (N > 0)
+EXTENDS FiniteSets, Sequences, Naturals, TLC
 
-(***************************************************************************
---algorithm SimpleRegular {
-    variables x = [i \in 0..(N-1) |-> {0}], y = [i \in 0..(N-1) |-> 0] ;
-    process (proc \in 0..N-1) {
-      a1: x[self] := {0,1} ;
-      a2: x[self] := {1} ;
-      b:  with (v \in x[(self-1) % N]) {y[self] := v }
-    }
-}
-****************************************************************************)
-\* BEGIN TRANSLATION
-VARIABLES x, y, pc
+CONSTANTS
+  Clients,     \* set of all clients
+  Resources    \* set of all resources
 
-vars == << x, y, pc >>
+ASSUME
+  IsFiniteSet(Resources)
 
-ProcSet == (0..N-1)
+VARIABLES
+  unsat,       \* set of all outstanding requests per process
+  alloc,       \* set of resources allocated to given process
+  sched        \* schedule represented as a sequence of clients
 
-Init == (* Global variables *)
-        /\ x = [i \in 0..(N-1) |-> {0}]
-        /\ y = [i \in 0..(N-1) |-> 0]
-        /\ pc = [self \in ProcSet |-> "a1"]
 
-a1(self) == /\ pc[self] = "a1"
-            /\ x' = [x EXCEPT ![self] = {0,1}]
-            /\ pc' = [pc EXCEPT ![self] = "a2"]
-            /\ y' = y
+TypeInvariant ==
+  /\ unsat \in [Clients -> SUBSET Resources]
+  /\ alloc \in [Clients -> SUBSET Resources]
+  /\ sched \in Seq(Clients)
 
-a2(self) == /\ pc[self] = "a2"
-            /\ x' = [x EXCEPT ![self] = {1}]
-            /\ pc' = [pc EXCEPT ![self] = "b"]
-            /\ y' = y
+-------------------------------------------------------------------------
 
-b(self) == /\ pc[self] = "b"
-           /\ \E v \in x[(self-1) % N]:
-                y' = [y EXCEPT ![self] = v]
-           /\ pc' = [pc EXCEPT ![self] = "Done"]
-           /\ x' = x
+(* The set of permutations of a finite set, represented as sequences.  *)
+PermSeqs(S) ==
+  LET perms[ss \in SUBSET S] ==
+       IF ss = {} THEN { << >> }
+       ELSE LET ps == [ x \in ss |-> 
+                        { Append(sq,x) : sq \in perms[ss \ {x}] } ]
+            IN  UNION { ps[x] : x \in ss }
+  IN  perms[S]
 
-proc(self) == a1(self) \/ a2(self) \/ b(self)
+(* Remove element at index i from a sequence.                          *)
+(* Assumes that i \in 1..Len(seq)                                      *)
+Drop(seq,i) == SubSeq(seq, 1, i-1) \circ SubSeq(seq, i+1, Len(seq))
 
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
+(* Resources are available iff they have not been allocated. *)
+available == Resources \ (UNION {alloc[c] : c \in Clients})
 
-Next == (\E self \in 0..N-1: proc(self))
-           \/ Terminating
+(* Range of a function, e.g. elements of a sequence *)
+Range(f) == { f[x] : x \in DOMAIN f }
 
-Spec == Init /\ [][Next]_vars
+(* Clients with pending requests that have not yet been scheduled *)
+toSchedule == { c \in Clients : unsat[c] # {} /\ c \notin Range(sched) }
 
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
+(* Initially, no resources have been requested or allocated. *)
+Init == 
+  /\ unsat = [c \in Clients |-> {}]
+  /\ alloc = [c \in Clients |-> {}]
+  /\ sched = << >>
 
-\* END TRANSLATION
------------------------------------------------------------------------------
-(***************************************************************************)
-(* The definition of PCorrect is the same as in module Simple.             *)
-(***************************************************************************)
-PCorrect == (\A i \in 0..(N-1) : pc[i] = "Done") => 
-                (\E i \in 0..(N-1) : y[i] = 1)
+(* A client c may request a set of resources provided that all of its  *)
+(* previous requests have been satisfied and that it doesn't hold any  *)
+(* resources. The client is added to the pool of clients with          *)
+(* outstanding requests.                                               *)
+Request(c,S) ==
+  /\ unsat[c] = {} /\ alloc[c] = {}
+  /\ S # {} /\ unsat' = [unsat EXCEPT ![c] = S]
+  /\ UNCHANGED <<alloc,sched>>
 
-(***************************************************************************)
-(* The type invariant TypeOK is the obvious modification of the type       *)
-(* invariant TypeOK of module Simple.  Except for the change to the        *)
-(* definition of TypeOK, the inductive invariant Inv is the same as in     *)
-(* module Simple.                                                          *)
-(***************************************************************************)
-TypeOK == /\ x \in [0..(N-1) -> (SUBSET {0, 1}) \ {{}}]
-          /\ y \in [0..(N-1) -> {0,1}]
-          /\ pc \in [0..(N-1) -> {"a1", "a2", "b", "Done"}]
-                    
-Inv ==  /\ TypeOK
-        /\ \A i \in 0..(N-1) : (pc[i] \in {"b", "Done"}) => (x[i] = {1})
-        /\ \/ \E i \in 0..(N-1) : pc[i] /= "Done"
-           \/ \E i \in 0..(N-1) : y[i] = 1
+(* Allocation of a set of available resources to a client that has     *)
+(* requested them (the entire request does not have to be filled).     *)
+(* The process must appear in the schedule, and no process earlier in  *)
+(* the schedule may have requested one of the resources.               *)
+Allocate(c,S) ==
+  /\ S # {} /\ S \subseteq available \cap unsat[c]
+  /\ \E i \in DOMAIN sched :
+        /\ sched[i] = c
+        /\ \A j \in 1..i-1 : unsat[sched[j]] \cap S = {}
+        /\ sched' = IF S = unsat[c] THEN Drop(sched,i) ELSE sched
+  /\ alloc' = [alloc EXCEPT ![c] = @ \cup S]
+  /\ unsat' = [unsat EXCEPT ![c] = @ \ S]
 
-(***************************************************************************)
-(* The proof of invariance of PCorrect differs from the proof in module    *)
-(* Simple only because the single action a has been replaced by the two    *)
-(* actions a1 and a2, and because the proof that b maintains the truth of  *)
-(* the invariant required one extra decomposition to allow Z3 to prove it. *)
-(* As before, the decomposition of the proof of <1>2 was essentially       *)
-(* generated with the Toolbox's Decompose Proof command.                   *)
-(***************************************************************************)
-THEOREM Spec => []PCorrect
-<1> USE NAssump DEF ProcSet
-<1>1. Init => Inv
-  <2>1. Init => 0 \in 0..(N-1) /\ pc[0] /= "Done"
-    BY DEF Init
-  <2>. QED  BY <2>1 DEF Init, Inv, TypeOK
-<1>2. Inv /\ [Next]_vars => Inv'
-  <2> SUFFICES ASSUME Inv,
-                      [Next]_vars
-               PROVE  Inv'
-    OBVIOUS
-  <2>1. ASSUME NEW self \in 0..N-1,
-               a1(self)
-        PROVE  Inv'
-    BY <2>1 DEF a1, Inv, TypeOK
-  <2>2. ASSUME NEW self \in 0..N-1,
-               a2(self)
-        PROVE  Inv'
-    BY <2>2 DEF a2, Inv, TypeOK
-  <2>3. ASSUME NEW self \in 0..N-1,
-               b(self)
-        PROVE  Inv'
-    <3> SUFFICES ASSUME NEW v \in x[(self-1) % N],
-                        y' = [y EXCEPT ![self] = v]
-                 PROVE  Inv'
-      BY <2>3 DEF b
-    <3> QED
-        BY <2>3, Z3 DEF b, Inv, TypeOK  
-  <2>4. CASE UNCHANGED vars
-    BY <2>4 DEF TypeOK, Inv, vars
-  <2>5. QED
-    BY <2>1, <2>2, <2>3, <2>4 DEF Next, Terminating, proc
-<1>3. Inv => PCorrect
-  BY DEF Inv, TypeOK, PCorrect
-<1>4. QED
-  BY <1>1, <1>2, <1>3, PTL DEF Spec
-======================================       
-\* Modification History
-\* Last modified Tue May 14 07:18:15 PDT 2019 by lamport
-\* Created Mon Apr 15 16:25:14 PDT 2019 by lamport
+(* Client c returns a set of resources that it holds. It may do so     *)
+(* even before its full request has been honored.                      *)
+Return(c,S) ==
+  /\ S # {} /\ S \subseteq alloc[c]
+  /\ alloc' = [alloc EXCEPT ![c] = @ \ S]
+  /\ UNCHANGED <<unsat,sched>>
+
+(* The allocator extends its schedule by adding the processes from     *)
+(* the set of clients to be scheduled, in some unspecified order.      *)
+Schedule == 
+  /\ toSchedule # {}
+  /\ \E sq \in PermSeqs(toSchedule) : sched' = sched \circ sq
+  /\ UNCHANGED <<unsat,alloc>>
+
+(* The next-state relation per client and set of resources.            *)
+Next ==
+  \/ \E c \in Clients, S \in SUBSET Resources :
+        Request(c,S) \/ Allocate(c,S) \/ Return(c,S)
+  \/ Schedule
+
+vars == <<unsat,alloc,sched>>
+
+-------------------------------------------------------------------------
+
+(***********************************************************************)
+(* Liveness assumptions:                                               *)
+(* - Clients must return resources if their request has been satisfied.*)
+(* - The allocator must eventually allocate resources when possible.   *)
+(* - The allocator must schedule the processes in the pool.            *)
+(***********************************************************************)
+
+Liveness ==
+  /\ \A c \in Clients : WF_vars(unsat[c]={} /\ Return(c,alloc[c]))
+  /\ \A c \in Clients : WF_vars(\E S \in SUBSET Resources : Allocate(c, S))
+  /\ WF_vars(Schedule)
+
+(* The specification of the scheduling allocator. *)
+Allocator == Init /\ [][Next]_vars /\ Liveness
+
+-------------------------------------------------------------------------
+
+ResourceMutex ==   \** resources are allocated exclusively
+  \A c1,c2 \in Clients : c1 # c2 => alloc[c1] \cap alloc[c2] = {}
+
+UnscheduledClients ==    \** clients that do not appear in the schedule
+  Clients \ Range(sched)
+
+PrevResources(i) ==
+  \** resources that will be available when client i has to be satisfied
+  available
+  \cup (UNION {unsat[sched[j]] \cup alloc[sched[j]] : j \in 1..i-1})
+  \cup (UNION {alloc[c] : c \in UnscheduledClients})
+
+AllocatorInvariant ==  \** a lower-level invariant
+  /\ \** all clients in the schedule have outstanding requests
+     \A i \in DOMAIN sched : unsat[sched[i]] # {}
+  /\ \** all clients that need to be scheduled have outstanding requests
+     \A c \in toSchedule : unsat[c] # {}
+  /\ \** clients never hold a resource requested by a process earlier
+     \** in the schedule
+     \A i \in DOMAIN sched : \A j \in 1..i-1 : 
+        alloc[sched[i]] \cap unsat[sched[j]] = {}
+  /\ \** the allocator can satisfy the requests of any scheduled client
+     \** assuming that the clients scheduled earlier release their resources
+     \A i \in DOMAIN sched : unsat[sched[i]] \subseteq PrevResources(i)
+
+ClientsWillReturn ==
+  \A c \in Clients: (unsat[c]={} ~> alloc[c]={})
+
+ClientsWillObtain ==
+  \A c \in Clients, r \in Resources : r \in unsat[c] ~> r \in alloc[c]
+
+InfOftenSatisfied == 
+  \A c \in Clients : []<>(unsat[c] = {})
+
+(* Used for symmetry reduction with TLC.
+   Note: because of the schedule sequence, the specification is no
+   longer symmetric with respect to the processes!
+*)
+Symmetry == Permutations(Resources)
+
+-------------------------------------------------------------------------
+
+THEOREM Allocator => []TypeInvariant
+THEOREM Allocator => []ResourceMutex
+THEOREM Allocator => []AllocatorInvariant
+THEOREM Allocator => ClientsWillReturn
+THEOREM Allocator => ClientsWillObtain
+THEOREM Allocator => InfOftenSatisfied
+
+=========================================================================

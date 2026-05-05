@@ -1,168 +1,447 @@
------------------------------- MODULE SpanTree ------------------------------
-(***************************************************************************)
-(* This is an algorithm to compute a spanning tree of an undirected graph  *)
-(* with a given root.  Look up "spanning tree" on the Web to see what that *)
-(* means.  You may find pages for finding spanning trees of graphs with    *)
-(* weighted edges.  The algorithm here effectively assumes each edge has   *)
-(* weight 1.                                                               *)
-(*                                                                         *)
-(* A rooted tree is usually described by a set of nodes with a             *)
-(* parent/child relation, where the root is the oldest ancestor of all     *)
-(* other nodes.  The algorithm computes this relation as a function `mom'  *)
-(* where mom[n] equals the parent of node n, except that if n is the root  *)
-(* then mom[n] = n.  If the graph is not connected, then the rooted tree   *)
-(* does not contain nodes of the graph that have no path to the root.      *)
-(* Such nodes n will have mom[n]=n.                                        *)
-(*                                                                         *)
-(* A simple algorithm to compute the rooted spanning tree computes a       *)
-(* function dist where dist[n] is the distance of node n from the root.    *)
-(* Initially, dist[n] equals 0 if n is the root and otherwise equals       *)
-(* infinity.  The algorithm repeatedly performs the following action.  It  *)
-(* chooses an arbitrary node n that has a neighbor m such that dist[n] >   *)
-(* dist[m]+1, and it sets dist[n] to dist[m]+1.                            *)
-(*                                                                         *)
-(* For simplicity, we assume that we're also given a number MaxCardinality *)
-(* that's greater than or equal to the number of nodes, and we use         *)
-(* MaxCardinality instead of infinity.  For a reason to be given below, we *)
-(* also modify the algorithm as follows.  For a node n with dist[n] >      *)
-(* dist[m}+1, instead of setting dist[n] to dist[m]+1 the algorithm sets   *)
-(* it to an arbitrary number d such that dist[n] > d >= dist[m} + 1.       *)
-(***************************************************************************)
-EXTENDS Integers, FiniteSets
+\* Copyright (c) 2024, Oracle and/or its affiliates.
 
-(***************************************************************************)
-(* We represent the graph by a set of Nodes of nodes and a set Edges of    *)
-(* edges.  We assume that there are no edges from a node to itself and     *)
-(* there is at most one edge joining any two nodes.  We represent an edge  *)
-(* joining nodes m and n by the set {m, n}.  We let Root be the root node. *)
-(***************************************************************************)
-CONSTANTS Nodes, Edges, Root, MaxCardinality
+----------------------- MODULE BufferedRandomAccessFile -----------------------
+\* This is a model-checkable specification for BufferedRandomAccessFile.java.
+\* It covers the core fields as well as the seek, read, write, flush, and
+\* setLength operations.
+\*
+\* There are three major correctess conditions:
+\*
+\*   (1) the internal invariants V1-V5 should hold
+\*   (2) the behavior should refine a general RandomAccessFile
+\*   (3) each operation should refine its RandomAccessFile counterpart
+\*
+\* Readers will probably want to start with the general RandomAccessFile spec
+\* before reading this one.
 
-(***************************************************************************)
-(* This assumption asserts mathematically what we are assuming about the   *)
-(* constants.                                                               *)
-(***************************************************************************)
-ASSUME /\ Root \in Nodes
-       /\ \A e \in Edges : (e \subseteq Nodes) /\ (Cardinality(e) = 2)
-       /\ MaxCardinality \in Nat
-       /\ MaxCardinality >= Cardinality(Nodes)
+EXTENDS Naturals, Sequences, TLC, Common
 
-(***************************************************************************)
-(* This defines Nbrs(n) to be the set of neighbors of node n in the        *)
-(* graph--that is, the set of nodes joined by an edge to n.                *)
-(***************************************************************************)
-Nbrs(n) == {m \in Nodes : {m, n} \in Edges}
+CONSTANT BuffSz
 
-(***************************************************************************)
-(* The spec is a straightforward TLA+ spec of the algorithm described      *)
-(* above.                                                                  *)
-(***************************************************************************)       
-VARIABLES mom, dist
-vars == <<mom, dist>>
+VARIABLES
+    \* in-memory variables (BufferedRandomAccessFile class fields)
+    dirty,
+    length,
+    curr,
+    lo,
+    buff,
+    diskPos,
 
-TypeOK == /\ mom  \in [Nodes -> Nodes]
-          /\ dist \in [Nodes -> Nat]
+    \* the underlying file
+    file_content,
+    file_pointer
 
-Init == /\ mom = [n \in Nodes |-> n]
-        /\ dist = [n \in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]
-        
-Next == \E n \in Nodes :
-          \E m \in Nbrs(n) : 
-             /\ dist[m] < 1 + dist[n]
-             /\ \E d \in (dist[m]+1) .. (dist[n] - 1) :
-                    /\ dist' = [dist EXCEPT ![n] = d]
-                    /\ mom'  = [mom  EXCEPT ![n] = m]
+vars == <<
+    dirty, length, curr, lo, buff, diskPos,
+    file_content, file_pointer>>
 
-Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
-   (************************************************************************)
-   (* The formula WF_vars(Next) asserts that a behavior must not stop if   *)
-   (* it's possible to take a Next step.  Thus, the algorithm must either  *)
-   (* terminate (because Next equals FALSE for all values of dist' and     *)
-   (* mom') or else it continues taking Next steps forever.  Don't worry   *)
-   (* about it if you haven't learned how to express liveness in TLA+.     *)
-   (************************************************************************)
------------------------------------------------------------------------------
-(***************************************************************************)
-(* A direct mathematical definition of exactly what the function mom       *)
-(* should be is somewhat complicated and cannot be efficiently evaluated   *)
-(* by TLC.  Here is the definition of a postcondition (a condition to be   *)
-(* satisfied when the algorithm terminates) that implies that mom has the  *)
-(* correct value.                                                          *)
-(***************************************************************************)
-PostCondition == 
-  \A n \in Nodes :
-    \/ /\ n = Root 
-       /\ dist[n] = 0
-       /\ mom[n] = n
-    \/ /\ dist[n] = MaxCardinality 
-       /\ mom[n] = n
-       /\ \A m \in Nbrs(n) : dist[m] = MaxCardinality
-    \/ /\ dist[n] \in 1..(MaxCardinality-1)
-       /\ mom[n] \in Nbrs(n)
-       /\ dist[n] = dist[mom[n]] + 1
+TypeOK ==
+    /\ dirty \in BOOLEAN
+    /\ length \in Offset
+    /\ curr \in Offset
+    /\ lo \in Offset
+    /\ buff \in Array(SymbolOrArbitrary, BuffSz)
+    /\ diskPos \in Offset
 
-(***************************************************************************)
-(* ENABLED Next is the TLA+ formula that is true of a state iff (if and    *)
-(* only if) there is a step satisfying Next starting in the state.  Thus,  *)
-(* ~ ENABLED Next asserts that the algorithm has terminated.  The safety   *)
-(* property that algorithm should satisfy, that it's always true that if   *)
-(* the algorithm has terminated then PostCondition is true, is asserted by  *)
-(* this formula.                                                           *)
-(***************************************************************************)
-Safety == []((~ ENABLED Next) => PostCondition)
+    /\ file_content \in ArrayOfAnyLength(SymbolOrArbitrary)
+    /\ ArrayLen(file_content) <= MaxOffset
+    /\ file_pointer \in Offset
 
-(***************************************************************************)
-(* This formula asserts the liveness condition that the algorithm          *)
-(* eventually terminates                                                   *)
-(***************************************************************************)
-Liveness == <>(~ ENABLED Next) 
------------------------------------------------------------------------------
-(***************************************************************************)
-(* These properties of the spec can be checked with the model that should  *)
-(* have come with this file.  That model has TLC check the algorithm       *)
-(* satisfies properties Safety and Liveness for a single simple graph with *)
-(* 6 nodes.  You should clone that model and change it to try a few        *)
-(* different graphs.  However, this is tedious.  There are two better ways *)
-(* to have TLC check the spec.  The best is to try it on all graphs with a *)
-(* given number of nodes.  The spec with root file SpanTreeTest does this. *)
-(* It can very quickly check all graphs with 4 nodes.  It takes about 25   *)
-(* minutes on my laptop to check all graphs with 5 nodes.  TLC will        *)
-(* probably run out of space after running for a long time if I tried it   *)
-(* for all graphs with 6 nodes.  The spec SpanTreeRandom tests the         *)
-(* algorithm for a randomly chosen graph with a given set of nodes.  This  *)
-(* allows you easily to repeatedly check different graphs.                 *)
-(*                                                                         *)
-(* As a problem, you can now specify an algorithm that is a distributed    *)
-(* implementation of this algorithm.  We can view the algorithm in the     *)
-(* current module as one in which a node n sets its value of dist[n] by    *)
-(* directly reading the values of dist[m] from all its neighbors m.  Your  *)
-(* problem is to write an algorithm in which nodes learn the values of     *)
-(* dist[m] from a neighbor m by receiving messages sent by m.  The root r  *)
-(* sends an initial message informing its neighbors that dist[r] = 0.      *)
-(* Subsequently, each node n sends a message containing dist[n] to all its *)
-(* neighbors whenever its value of dist[n] changes.                        *)
-(*                                                                         *)
-(* Your algorithm should have variables mom and dist that implement the    *)
-(* variables of the same name in the current algorithm.  (Hence, it should *)
-(* implement the current algorithm with a trivial refinement mapping       *)
-(* assigning to every variable and constant the variable or constant of    *)
-(* the same name.) You can use TLC to check that your algorithm does       *)
-(* indeed implement the algorithm in the current module.                   *)
-(*                                                                         *)
-(* You may not know how to write a suitable liveness condition for your    *)
-(* algorithm.  (To find out how, you would have to look through the        *)
-(* available TLA+ documentation.) In that case, just write a safety        *)
-(* specification of the form Init /\ [][Next]_vars and modify formula Spec *)
-(* of the current module by comment out the /\ WF_vars(Next) conjunction   *)
-(* so it too becomes a safey spec.                                         *)
-(*                                                                         *)
-(*                                                                         *)
-(* When writing your algorithm, you should realize why the Next action in  *)
-(* the current module doesn't just set dist[n] to dist[m] + 1 rather than  *)
-(* allowing it to be set to any value in (dist[m]+1) ..  (dist[n]-1) .  If *)
-(* you don't see why, use TLC to find out for you.                         *)
-(***************************************************************************)
-=============================================================================
-\* Modification History
-\* Last modified Mon Jun 17 05:52:09 PDT 2019 by lamport
-\* Created Fri Jun 14 03:07:58 PDT 2019 by lamport
+-------------------------------------------------------------------------------
+\* Internal invariants (copied from comment in BufferedRandomAccessFile.java)
+
+RelevantBufferContent ==
+    ArraySlice(buff, 0, Min(BuffSz, length - lo))
+
+LogicalFileContent == \* denoted c(f) in .java file
+    IF ArrayLen(RelevantBufferContent) > 0
+    THEN WriteToFile(file_content, lo, RelevantBufferContent)
+    ELSE file_content
+
+DiskF(i) == \* denoted disk(f)[i] in .java file
+    IF i >= 0 /\ i < ArrayLen(file_content)
+    THEN ArrayGet(file_content, i)
+    ELSE ArbitrarySymbol
+
+BufferedIndexes == lo .. (Min(lo + BuffSz, length) - 1)
+
+Inv1 ==
+    \* /\ f.closed == closed(f) \* close() not described in this spec
+    \* /\ f.curr == curr(f)     \* by definition; see `file_pointer <- curr` in refinement mapping below
+    /\ length = ArrayLen(LogicalFileContent)
+    /\ diskPos = file_pointer
+
+\* Inv2 is a bit special.  Most methods restore it just before they return.  It
+\* is generally restored by calling `restoreInvariantsAfterIncreasingCurr()`.
+\* But, that behavior is difficult to model in straight TLA+ because each
+\* method may modify variables multiple times.  So instead, this spec treats
+\* Inv2 as a precondition for the methods and verifies that it is always
+\* restored by calling `restoreInvariantsAfterIncreasingCurr()`.
+\* See `Inv2CanAlwaysBeRestored` below.
+Inv2 ==
+    /\ lo <= curr
+    /\ curr < lo + BuffSz
+
+Inv3 ==
+    \A i \in BufferedIndexes:
+        ArrayGet(LogicalFileContent, i) = ArrayGet(buff, i - lo)
+
+Inv4 ==
+    \A i \in 0 .. (length - 1):
+        i \notin BufferedIndexes =>
+            ArrayGet(LogicalFileContent, i) = DiskF(i)
+
+Inv5 ==
+    (\E i \in BufferedIndexes: DiskF(i) /= ArrayGet(buff, i - lo)) =>
+    dirty
+
+-------------------------------------------------------------------------------
+\* Behavior
+
+Init ==
+    /\ dirty = FALSE
+    /\ length = 0
+    /\ curr = 0
+    /\ lo = 0
+    /\ buff \in Array({ArbitrarySymbol}, BuffSz)
+    /\ diskPos = 0
+    /\ file_pointer = 0
+    /\ file_content = EmptyArray
+
+FlushBuffer ==
+    /\ dirty
+    /\ LET len == Min(length - lo, BuffSz) IN
+        /\ IF len > 0
+           THEN LET diskPosA == lo IN \* super.seek(this.lo)
+            /\ file_content' = WriteToFile(file_content, diskPosA, ArraySlice(buff, 0, len))
+            /\ file_pointer' = diskPosA + len
+            /\ diskPos' = lo + len
+           ELSE
+            UNCHANGED <<diskPos, file_pointer, file_content>>
+        /\ dirty' = FALSE
+    /\ UNCHANGED <<length, curr, lo, buff>>
+
+\* Helper for Seek (not a full action):
+\*  - reads lo'
+\*  - constrains diskPos', file_pointer', and buff'
+FillBuffer ==
+    LET diskPosA == lo' IN
+    /\ buff' = MkArray(BuffSz, [i \in 0..BuffSz |->
+            LET fileOffset == diskPosA + i IN
+            IF fileOffset < ArrayLen(file_content)
+            THEN ArrayGet(file_content, fileOffset)
+            ELSE ArbitrarySymbol])
+    /\ file_pointer' = Min(diskPosA + BuffSz, ArrayLen(file_content))
+    /\ diskPos' = Min(diskPosA + BuffSz, ArrayLen(file_content))
+
+Seek(pos) ==
+    /\ curr' = pos
+    /\ IF pos < lo \/ pos >= (lo + BuffSz) THEN
+        /\ ~dirty \* call to FlushBuffer
+        /\ lo' = (pos \div BuffSz) * BuffSz
+        /\ FillBuffer
+       ELSE
+        UNCHANGED <<lo, diskPos, file_pointer, buff>>
+    /\ UNCHANGED <<dirty, length, file_content>>
+
+SetLength(newLength) ==
+    /\ file_content' = TruncateOrExtendFile(file_content, newLength)
+    /\ IF ArrayLen(file_content) > newLength /\ file_pointer > newLength
+       THEN file_pointer' = newLength
+       ELSE file_pointer' \in Offset
+    /\ length' = newLength
+    /\ diskPos' = file_pointer'
+    /\ IF curr > newLength
+       THEN curr' = newLength
+       ELSE UNCHANGED curr
+    \* In reality the buffer doesn't change---but some of its bytes might no
+    \* longer be relevant and have to be marked as arbitrary.
+    /\ buff' = MkArray(BuffSz, [i \in 0..(BuffSz-1) |->
+            IF lo + i < newLength
+            THEN ArrayGet(buff, i)
+            ELSE ArbitrarySymbol])
+    /\ UNCHANGED <<dirty, lo>>
+
+Read1(byte) ==
+    /\ Inv2
+    /\ curr < length
+    /\ byte = ArrayGet(buff, curr - lo)
+    /\ curr' = curr + 1
+    /\ UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>
+
+Write1(byte) ==
+    /\ curr + 1 <= MaxOffset \* bound model checking
+    /\ Inv2
+    /\ buff' = ArraySet(buff, curr - lo, byte)
+    /\ curr' = curr + 1
+    /\ dirty' = TRUE
+    /\ length' = Max(length, curr')
+    /\ UNCHANGED <<lo, diskPos, file_pointer, file_content>>
+
+Read(data) ==
+    LET numReadableWithoutSeeking == Min(lo + BuffSz, length) - curr IN
+    /\ Inv2
+    /\ numReadableWithoutSeeking >= 0
+    /\ LET
+            numToRead == Min(ArrayLen(data), numReadableWithoutSeeking)
+            buffOff == curr - lo
+       IN
+        /\ data = ArraySlice(buff, buffOff, buffOff + numToRead)
+        /\ curr' = curr + numToRead
+    /\ UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>
+
+\* The `write()` method is composed of repeated calls to `writeAtMost()`, so
+\* verifying that the latter maintains all our invariants should be sufficient.
+WriteAtMost(data) ==
+    LET
+        numWriteableWithoutSeeking == Min(ArrayLen(data), lo + BuffSz - curr)
+        buffOff == curr - lo
+    IN
+    /\ Inv2
+    /\ curr + numWriteableWithoutSeeking <= MaxOffset
+    /\ buff' = ArrayConcat(ArrayConcat(
+            ArraySlice(buff, 0, buffOff),
+            ArraySlice(data, 0, numWriteableWithoutSeeking)),
+            ArraySlice(buff, buffOff + numWriteableWithoutSeeking, ArrayLen(buff)))
+    /\ dirty' = TRUE
+    /\ curr' = curr + numWriteableWithoutSeeking
+    /\ length' = Max(length, curr')
+    /\ UNCHANGED <<lo, diskPos, file_content, file_pointer>>
+
+Next ==
+    \/ FlushBuffer
+    \/ \E offset \in Offset:
+        \/ Seek(offset)
+        \/ SetLength(offset)
+    \/ \E symbol \in SymbolOrArbitrary:
+        \/ Read1(symbol)
+        \/ Write1(symbol)
+    \/ \E len \in 1..MaxOffset: \E data \in Array(SymbolOrArbitrary, len):
+        \/ WriteAtMost(data)
+        \/ Read(data)
+
+Spec == Init /\ [][Next]_vars
+
+-------------------------------------------------------------------------------
+\* Refinement of general RandomAccessFile
+
+RAF == INSTANCE RandomAccessFile WITH
+    file_content <- LogicalFileContent,
+    file_pointer <- curr
+
+Safety == RAF!Spec
+
+\* Ensure that the various actions behave according to their abstract specifications.
+FlushBufferCorrect  == [][FlushBuffer => UNCHANGED RAF!vars]_vars
+SeekCorrect         == [][\A offset \in Offset: Seek(offset) => RAF!Seek(offset)]_vars
+SetLengthCorrect    == [][\A offset \in Offset: SetLength(offset) => RAF!SetLength(offset)]_vars
+SeekEstablishesInv2 == [][\A offset \in Offset: Seek(offset) => Inv2']_vars
+Write1Correct       == [][\A symbol \in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]_vars
+Read1Correct        == [][\A symbol \in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]_vars
+WriteAtMostCorrect  == [][\A len \in 1..MaxOffset: \A data \in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \E written \in 1..len: RAF!Write(ArraySlice(data, 0, written))]_vars
+ReadCorrect         == [][\A len \in 1..MaxOffset: \A data \in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]_vars
+
+\* Inv2 is a precondition for many actions; it should always be possible to
+\* restore Inv2 by execuing `restoreInvariantsAfterIncreasingCurr()`.  That
+\* method calls `seeek(curr)`, which is composed of a FlushBuffer followed by a
+\* Seek, or just a Seek.
+\*
+\* To ensure that `restoreInvariantsAfterIncreasingCurr()` works as expected
+\* (without using the \cdot action composition operator), we'll verify a few
+\* things:
+\*  - dirty => ENABLED FlushBuffer
+\*  - FlushBuffer => ~dirty'
+\*  - ~dirty => ENABLED Seek(curr)
+\*  - Seek(curr) => Inv2'
+\* Together, those properties ensure that it is always possible to restore Inv2
+\* by taking a FlushBuffer action (if necessary) followed by a Seek(curr)
+\* action.
+FlushBufferPossibleWhenDirty == dirty => ENABLED FlushBuffer
+FlushBufferMakesProgress == [][FlushBuffer => ~dirty']_vars
+SeekCurrPossibleWhenNotDirty == ~dirty => ENABLED Seek(curr)
+SeekCurrRestoresInv2 == [][Seek(curr) => Inv2']_vars
+Inv2CanAlwaysBeRestored ==
+    /\ []FlushBufferPossibleWhenDirty
+    /\ FlushBufferMakesProgress
+    /\ []SeekCurrPossibleWhenNotDirty
+    /\ SeekCurrRestoresInv2
+
+-------------------------------------------------------------------------------
+\* Model checking helper definitions
+
+Symmetry == Permutations(Symbols)
+
+Alias == [
+    \* constants
+    BuffSz            |-> BuffSz,
+    MaxOffset         |-> MaxOffset,
+
+    \* regular vars
+    dirty             |-> dirty,
+    length            |-> length,
+    curr              |-> curr,
+    lo                |-> lo,
+    buff              |-> buff,
+    diskPos           |-> diskPos,
+    file_content      |-> file_content,
+    file_pointer      |-> file_pointer,
+
+    \* abstract vars
+    abstract_contents |-> LogicalFileContent]
+
+===============================================================================
+
+--------------------------- MODULE RandomAccessFile ---------------------------
+\* Specification of Java's RandomAccessFile class.
+\*
+\* A RandomAccessFile offers single-threaded access to some on-disk data
+\* (`file_content`) and has an internal "pointer" or "cursor" (`file_pointer`).
+\* Clients can move the pointer to an arbitrary position, or the client can
+\* read or write data linearly from its current position, which simultaneously
+\* advances the pointer.
+\*
+\* The core operations are:
+\*   - seek (to move the pointer)
+\*   - setLength (to resize the data)
+\*   - read (to copy bytes from disk to memory)
+\*   - write (to copy bytes from memory to disk)
+\*
+\* There are some cases where the general RandomAccessFile contract does not
+\* define the data contents, for instance when extending the file using
+\* setLength.  In this spec, undefined bytes in the file are explicitly marked
+\* with `ArbitrarySymbol`.  While not entirely accurate, that choice simplifies
+\* many definitions, since there is no need to nondeterministically choose
+\* contents for the file.  It also (incidentally) reduces state space explosion
+\* during model checking.
+
+EXTENDS Naturals, Sequences, Common
+
+VARIABLES
+    file_content,
+    file_pointer
+
+vars == <<file_content, file_pointer>>
+
+TypeOK ==
+    /\ file_content \in ArrayOfAnyLength(SymbolOrArbitrary)
+    /\ ArrayLen(file_content) <= MaxOffset
+    /\ file_pointer \in Offset
+
+Init ==
+    /\ file_content = EmptyArray
+    /\ file_pointer = 0
+
+Seek(new_offset) ==
+    /\ new_offset \in Offset
+    /\ file_pointer' = new_offset
+    /\ UNCHANGED <<file_content>>
+
+SetLength(new_length) ==
+    /\ file_content' = TruncateOrExtendFile(file_content, new_length)
+
+    \* The pointer's behavior is very strange.  Per RandomAccessFile docs [1]:
+    \*  > If the present length of the file as returned by the length method is
+    \*  > greater than the newLength argument then the file will be truncated.
+    \*  > In this case, if the file offset as returned by the getFilePointer
+    \*  > method is greater than newLength then after this method returns the
+    \*  > offset will be equal to newLength.
+    \*
+    \* The docs say NOTHING else about the file pointer.  So, we can assume
+    \* that there are no other formal restrictions on its behavior.
+    \*
+    \* [1]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/RandomAccessFile.html#setLength(long)
+    /\ IF ArrayLen(file_content) > new_length /\ file_pointer > new_length
+       THEN file_pointer' = new_length
+       ELSE file_pointer' \in Offset
+
+Read(output) ==
+    /\ output = ArraySlice(file_content, file_pointer, Min(file_pointer + ArrayLen(output), ArrayLen(file_content)))
+    /\ file_pointer' = file_pointer + ArrayLen(output)
+    /\ UNCHANGED <<file_content>>
+
+Write(data) ==
+    /\ file_pointer + ArrayLen(data) <= MaxOffset
+    /\ file_content' = WriteToFile(file_content, file_pointer, data)
+    /\ file_pointer' = file_pointer + ArrayLen(data)
+
+Next ==
+    \/ \E offset \in Offset:
+        \/ Seek(offset)
+        \/ SetLength(offset)
+    \/ \E len \in 1..MaxOffset: \E data \in Array(SymbolOrArbitrary, len):
+        \/ Write(data)
+        \/ Read(data)
+
+Spec == Init /\ [][Next]_vars
+
+===============================================================================
+
+-------------------------------- MODULE Common --------------------------------
+\* This module contains constants and definitions common to both
+\* RandomAccessFile and BufferedRandomAccessFile.
+
+EXTENDS Naturals, Sequences
+
+CONSTANTS
+    Symbols, \* data stored in the file (in reality there are 256 symbols: bytes 0x00 to 0xFF)
+    ArbitrarySymbol, \* special token for an arbitrary symbol (to reduce the need for nondeterministic choice)
+    MaxOffset \* the highest possible offset (in reality this is 2^63 - 1)
+
+\* The set of legal offsets
+Offset == 0..MaxOffset
+
+\* The set of things that can appear at an offset in a file
+SymbolOrArbitrary == Symbols \union {ArbitrarySymbol}
+
+\* Minimum and maximum of two numbers
+Min(a, b) == IF a <= b THEN a ELSE b
+Max(a, b) == IF a <= b THEN b ELSE a
+
+\* Definitions for 0-indexed arrays (as opposed to TLA+ 1-indexed sequences).
+\* A major goal of the BufferedRandomAccessFile spec is to prevent off-by-one
+\* errors in the implementation; therefore it should use 0-indexed arrays like
+\* Java.
+\*
+\* The definitions are deliberately crafted so that the usual sequence
+\* operators do NOT work on them; this is to help avoid accidental mixing of
+\* sequences and arrays.
+ArrayOfAnyLength(T) == [elems: Seq(T)]
+Array(T, len) == [elems: [1..len -> T]]
+ConstArray(len, x) == [elems |-> [i \in 1..len |-> x]]
+MkArray(len, f) == [elems |-> [i \in 1..len |-> f[i - 1]]]
+EmptyArray == [elems |-> <<>>]
+ArrayLen(a) == Len(a.elems)
+ArrayToSeq(a) == a.elems
+SeqToArray(seq) == [elems |-> seq]
+ArrayGet(a, i) == a.elems[i+1]
+ArraySet(a, i, x) == [a EXCEPT !.elems[i+1] = x]
+ArraySlice(a, startInclusive, endExclusive) == [elems |-> SubSeq(a.elems, startInclusive + 1, endExclusive)]
+ArrayConcat(a1, a2) == [elems |-> a1.elems \o a2.elems]
+
+\* General contract of the file `write()` call: extend the file with
+\* ArbitrarySymbols if necessary, then overlay some `data_to_write` at the
+\* given offset.
+WriteToFile(file, offset, data_to_write) ==
+    LET
+       file_len == ArrayLen(file)
+       data_len == ArrayLen(data_to_write)
+       length == Max(file_len, offset + data_len)
+    IN
+    MkArray(
+        length,
+        [i \in 0..(length-1) |->
+            CASE
+                i < offset -> IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol
+                []
+                i >= offset /\ i < offset + data_len -> ArrayGet(data_to_write, i - offset)
+                []
+                i >= offset + data_len -> ArrayGet(file, i)])
+
+\* General contract of the file `setLength()` call: truncate the file or fill
+\* it with ArbitrarySymbol to reach the desired length.
+TruncateOrExtendFile(file, new_length) ==
+    IF new_length > ArrayLen(file)
+    THEN ArrayConcat(file, ConstArray(new_length - ArrayLen(file), ArbitrarySymbol))
+    ELSE ArraySlice(file, 0, new_length)
+
+===============================================================================

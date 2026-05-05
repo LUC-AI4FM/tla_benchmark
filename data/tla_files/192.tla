@@ -1,131 +1,96 @@
+---------------------- MODULE TwoPhase -----------------------
 (***************************************************************************)
-(* Tower of Hanoi                                                          *)
+(* This module specifies the two-phase handshake, which is a simple but    *)
+(* very important hardware protocol by which a Producer process and a      *)
+(* Consumer process alternately perform actions, with the Producer going   *)
+(* first.  The system is pictured as follows:                              *)
 (*                                                                         *)
-(* From https://en.wikipedia.org/wiki/Tower_of_Hanoi:                      *)
+(* `.                                                                      *)
+(*     ------------           p          ------------                      *)
+(*    |            | -----------------> |            |                     *)
+(*    |  Producer  |                    |  Consumer  |                     *)
+(*    |            | <----------------- |            |                     *)
+(*     ------------           c          ------------    .'                *)
 (*                                                                         *)
-(* The Tower of Hanoi is a mathematical game or puzzle.  It consists of    *)
-(* three rods and a number of disks of different sizes, which can slide    *)
-(* onto any rod.  The puzzle starts with the disks in a neat stack in      *)
-(* ascending order of size on one rod, the smallest at the top, thus       *)
-(* making a conical shape.                                                 *)
 (*                                                                         *)
-(* The objective of the puzzle is to move the entire stack to another rod, *)
-(* obeying the following simple rules:                                     *)
-(*                                                                         *)
-(*   1. Only one disk can be moved at a time.                              *)
-(*   2. Each move consists of taking the upper disk from one of the stacks *)
-(*      and placing it on top of another stack or on an empty rod.         *)
-(*   2. No larger disk may be placed on top of a smaller disk.             *)
+(* In the spec, we represent the Producer and Consumer actions the way we  *)
+(* represented the actions A_0 and A_1 of the Alternate specification.  We *)
+(* then show that this specification implements the Alternate              *)
+(* specification under a suitable refinement mapping (substitution for the *)
+(* variable v).                                                            *)
 (***************************************************************************)
+EXTENDS Naturals, TLAPS
 
------------------------------- MODULE HanoiSeq ------------------------------
-EXTENDS TLC, Sequences, Integers
+CONSTANT XInit(_), XAct(_, _, _)
+ 
+VARIABLE p, c, x
 
-CONSTANTS A, B, C
-VARIABLES towers
+Init == /\ p = 0 
+        /\ c = 0
+        /\ XInit(x)
 
-(***************************************************************************)
-(* We model the three positions where a "tower" of disks can be present as *)
-(* sequences of natural numbers.  The numbers represent the sizes of the   *)
-(* disks.                                                                  *)
-(*                                                                         *)
-(* A, B, and C are the initial configurations of the towers. For example:  *)
-(*   A == <<1,2,3>>                                                        *)
-(*   B == <<>>                                                             *)
-(*   C == <<>>                                                             *)
-(***************************************************************************)
-ASSUME A \in [1..Len(A) -> Nat]
-ASSUME B \in [1..Len(B) -> Nat]
-ASSUME C \in [1..Len(C) -> Nat]
+ProducerStep == /\ p = c
+                /\ XAct(0, x, x')
+                /\ p' = (p + 1) % 2
+                /\ c' = c
 
-Init ==
-  towers = <<A, B, C>>
+ConsumerStep == /\ p # c
+                /\ XAct(1, x, x')
+                /\ c' = (c + 1) % 2
+                /\ p' = p
 
-(***************************************************************************)
-(* A disk can be moved if:                                                 *)
-(*  - The source position is different from the destination.               *)
-(*  - The source tower is not empty.                                       *)
-(*  - The top disk of the source tower is smaller than the top disk of     *)
-(*    the destination tower.                                               *)
-(***************************************************************************)
-CanMove(from, to) ==
-  /\ from /= to
-  /\ towers[from] /= <<>>
-  /\ IF
-      towers[to] = <<>>
-    THEN
-      TRUE
-    ELSE
-      Head(towers[from]) < Head(towers[to])
+Next == ProducerStep \/ ConsumerStep
+
+Spec == Init /\ [][Next]_<<p, c, x>>
+
 
 (***************************************************************************)
-(* Moving a disk means the source tower is left with all but the top disk, *)
-(* which is added to the destination tower.                                *)
+(* Inv is the invariant that is needed for the proof.                      *)
 (***************************************************************************)
-Move(from, to) ==
-  towers' = [
-    towers EXCEPT
-      ![from] = Tail(towers[from]),
-      ![to] = <<Head(towers[from])>> \o towers[to]
-  ]
-
-Next ==
-  \E from, to \in 1..Len(towers):
-    /\ CanMove(from, to)
-    /\ Move(from, to)
+Inv == (p \in {0,1}) /\ (c \in {0,1})
 
 (***************************************************************************)
-(* This finishes the spec.  The next section are the invariants to check.  *)
+(* We prove that specification Spec implement (implies) the specification  *)
+(* obtained by substiting a state function vBar for the variable v, where  *)
+(* vBar is defined as follows.                                             *)
 (***************************************************************************)
+vBar == (p + c) % 2
 
 (***************************************************************************)
-(* Helper to get the elements of a sequence.                               *)
+(* The following statement imports, for every defined operator D of module *)
+(* Alternate, a definition of A!D to equal the definition of D with vBar   *)
+(* substituted for v and with the parameters x, XInit, and XAct of this    *)
+(* module substituted for the parameters of the same name of module        *)
+(* Alternate.  Thus, A!Spec is defined to be the formula Spec of module    *)
+(* Alternate with vBar substituted for v.                                  *)
 (***************************************************************************)
-Range(sequence) ==
-  {sequence[i]: i \in DOMAIN sequence}
+A == INSTANCE Alternate WITH v <- vBar
 
 (***************************************************************************)
-(* `towers` has 3 elements, each a sequence of numbers.                    *)
+(* The following theorem is a standard proof that one specification        *)
+(* implements (the safety part of) another specification under a           *)
+(* refinement mapping.  In fact, the temporal leaf proofs will be exactly  *)
+(* the same one-liners for every such proof.  In realistic example, the    *)
+(* non-temporal leaf proofs will be replaced by fairly long structured     *)
+(* proofs--especially the two substeps numbered <2>2.                      *)
 (***************************************************************************)
-TypeOK ==
-  /\ DOMAIN towers = 1..3
-  /\ \A sequence \in Range(towers):
-      sequence \in [1..Len(sequence) -> Nat]
-
-(***************************************************************************)
-(* In all towers there should never be elements which were not initially   *)
-(* present.                                                                *)
-(***************************************************************************)
-NoNewElements ==
-  LET
-    originalElements ==
-      UNION {Range(A), Range(B), Range(C)}
-    towerElements ==
-      UNION {Range(towers[1]), Range(towers[2]), Range(towers[3])}
-  IN
-    towerElements = originalElements
-
-(***************************************************************************)
-(* The total number of disks should stay constant.                         *)
-(***************************************************************************)
-TotalConstant ==
-  LET
-    originalTotal ==
-      Len(A) + Len(B) + Len(C)
-    towerTotal==
-      Len(towers[1]) + Len(towers[2]) + Len(towers[3])
-  IN
-    towerTotal = originalTotal
-
-(***************************************************************************)
-(* The final configuration has all disks on the right tower with the disks *)
-(* ordered by size.  If a violation of this invariant can be found, the    *)
-(* stack trace shows the steps to solve the Hanoi problem.                 *)
-(***************************************************************************)
-NotSolved ==
-  ~(
-    /\ towers[1] = <<>>
-    /\ towers[2] = <<>>
-    /\ towers[3] = [i \in 1..Len(towers[3]) |-> i]
-  )
-=============================================================================
+THEOREM Implementation == Spec => A!Spec
+<1>1. Spec => []Inv
+  <2>1. Init => Inv
+    BY DEF Init, Inv
+  <2>2. Inv /\ [Next]_<<p, c, x>> => Inv'
+    BY Z3 DEF Inv, Next, ProducerStep, ConsumerStep
+  <2>. QED
+    BY <2>1, <2>2, PTL DEF Spec
+<1>2. QED
+  <2>1. Init => A!Init
+    BY Z3 DEF Init, A!Init, vBar
+  <2>2. Inv /\ [Next]_<<p, c, x>>  => [A!Next]_<<vBar, x>>
+    BY Z3 DEF Inv, Next, ProducerStep, ConsumerStep, A!Next, vBar
+  <2>3. []Inv /\ [][Next]_<<p, c, x>>  => [][A!Next]_<<vBar, x>>
+    BY <2>1, <2>2, PTL
+  <2>. QED
+    BY <2>1, <2>3, <1>1, PTL DEF Spec, A!Spec
+  
+==============================================================
+\* Generated at Sat Oct 31 03:15:55 PDT 2009
