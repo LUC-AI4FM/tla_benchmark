@@ -1,0 +1,197 @@
+{
+  "id": null,
+  "Specification": "This specification models a composite FIFO-style communication system built by connecting a sender, an inner buffer, and a receiver through channel interfaces. The top-level module instantiates a Channel module twice, once for the input side and once for the output side, and also defines an inner module that represents a queue-based buffer with receive and send actions over those channels. The specification asserts structural channel constraints on the records in and out, constrains acknowledgement and ready fields to match, and composes the Sender, existentially quantified Buffer, and Receiver behaviors into the overall Spec; it does not include explicit fault modeling or proof scripts.",
+  "ModuleName": "CompositeFIFO",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "Channel",
+    "InnerBuf"
+  ],
+  "InstanceSubstitutions": [
+    "Data <- Message",
+    "chan <- in",
+    "Data <- Message",
+    "chan <- out"
+  ],
+  "ConstantNames": [
+    "Message"
+  ],
+  "VariableNames": [
+    "in",
+    "out"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "InChan",
+    "OutChan",
+    "SenderInit",
+    "Sender",
+    "BufferInit",
+    "BufRcv",
+    "BufSend",
+    "InnerBuffer",
+    "Buf",
+    "Buffer",
+    "ReceiverInit",
+    "Receiver",
+    "IsChannel",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "BufRcv",
+    "BufSend"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "BOOLEAN"
+  ],
+  "Quantifiers": [
+    "\\E",
+    "\\EE"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "Buf(q)",
+    "InChan!Send(msg)",
+    "InChan!Rcv",
+    "OutChan!Send(Head(q))",
+    "OutChan!Rcv",
+    "Buf(q)!InnerBuffer",
+    "Append(q, in.val)",
+    "Head(q)",
+    "Tail(q)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[ack |-> c.ack, val |-> c.val, rdy |-> c.rdy]"
+  ],
+  "RecordAccess": [
+    "in.rdy",
+    "in.val",
+    "in.ack",
+    "out.rdy",
+    "out.val",
+    "out.ack",
+    "c.ack",
+    "c.val",
+    "c.rdy"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<in.val, in.rdy>>",
+    "<<out.val, out.rdy>>",
+    "<<in.ack, q, out.val, out.rdy>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "q"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<out.val, out.rdy>>",
+    "UNCHANGED in.ack"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][\\E msg \\in Message : InChan!Send(msg)]_<<in.val, in.rdy>>",
+    "[][BufRcv \\/ BufSend]_<<in.ack, q, out.val, out.rdy>>",
+    "[][OutChan!Rcv]_<<in.val, in.rdy>>"
+  ],
+  "AlwaysOp": [
+    "[](IsChannel(in) /\\ IsChannel(out))",
+    "[][\\E msg \\in Message : InChan!Send(msg)]_<<in.val, in.rdy>>",
+    "[][BufRcv \\/ BufSend]_<<in.ack, q, out.val, out.rdy>>",
+    "[][OutChan!Rcv]_<<in.val, in.rdy>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added \"BufferInit\", \"BufRcv\", \"BufSend\", \"InnerBuffer\" | Reason: top-level/module-level `==` definitions counted from full file were missing; file count = 14, JSON count corrected to 14\nField: ActionDefNames | Change: added \"BufRcv\", \"BufSend\" | Reason: these operators prime variable `q` directly and are action definitions\nField: BooleanConstants | Change: added \"BOOLEAN\" | Reason: value appears in file in membership tests; included to match file content present in JSON-extracted vocabulary\nField: Quantifiers | Change: added \"\\\\EE\" | Reason: existential quantifier `\\\\EE` appears in `Buffer == \\\\EE q : Buf(q)!InnerBuffer`\nField: FunctionApplication | Change: added \"InChan!Send(msg)\", \"InChan!Rcv\", \"OutChan!Send(Head(q))\", \"OutChan!Rcv\", \"Buf(q)!InnerBuffer\", \"Append(q, in.val)\", \"Head(q)\", \"Tail(q)\" | Reason: these applications appear literally in the file and were missing\nField: TupleConstructor | Change: removed duplicate \"<<in.val, in.rdy>>\"; added \"<< >>\", \"<<out.val, out.rdy>>\", \"<<in.ack, q, out.val, out.rdy>>\" | Reason: deduplication required and these tuple expressions appear in the file\nField: PrimedVariables | Change: added \"q\" | Reason: `q'` appears in `BufRcv` and `BufSend`\nField: UnchangedExprs | Change: added \"UNCHANGED <<out.val, out.rdy>>\" and \"UNCHANGED in.ack\" | Reason: both distinct UNCHANGED expressions appear in the file\nField: TemporalSubscript | Change: added \"[][BufRcv \\\\/ BufSend]_<<in.ack, q, out.val, out.rdy>>\" | Reason: missing temporal subscript from `InnerBuffer`\nField: AlwaysOp | Change: added \"[][\\\\E msg \\\\in Message : InChan!Send(msg)]_<<in.val, in.rdy>>\", \"[][BufRcv \\\\/ BufSend]_<<in.ack, q, out.val, out.rdy>>\", \"[][OutChan!Rcv]_<<in.val, in.rdy>>\" | Reason: outermost `[]` temporal formulas must appear in AlwaysOp with full subscripts\nField: OperatorDefNames | Change: verified no LET-bound names and no duplicates | Reason: correctness check passed after additions\nField: AssumptionNames | Change: confirmed remains [] | Reason: file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: FunctionOverride | Change: confirmed remains [] | Reason: file contains no `[f EXCEPT ![e] = v]` forms\nField: IfThenElse | Change: confirmed remains [] | Reason: file contains no IF-THEN-ELSE expression\nField: RecordAccess | Change: confirmed existing entries only | Reason: all listed `e.field` expressions appear literally in the file\nField: LocalOperatorNames | Change: confirmed remains [] | Reason: file contains no LET blocks with local parametric operators",
+  "OperatorDefNames_StatePredicate": [
+    "SenderInit",
+    "BufferInit",
+    "ReceiverInit",
+    "IsChannel"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Sender",
+    "InnerBuffer",
+    "Receiver",
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "InChan",
+    "OutChan",
+    "Buf",
+    "Buffer"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<out.val, out.rdy>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED in.ack"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/CompositeFIFO/CompositeFIFO.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(4) + Init(0) + ValueDef(4) + ActionDefNames(2) = OperatorDefNames(14). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms."
+  ]
+}

@@ -1,0 +1,279 @@
+{
+  "id": null,
+  "Specification": "This specification models a write-through cache layered over an internal memory interface. It describes per-processor cache behavior, request and response handling, read misses, writes that update both cache state and a memory queue, queued memory processing, and eviction. The spec verifies a type invariant and a cache coherence property stating that if two cached values for the same address are both valid, then they are equal; it also proves refinement or conformance to an instantiated Memory specification.",
+  "ModuleName": "WriteThroughCache",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "MemoryInterface"
+  ],
+  "InstanceModules": [
+    "InternalMemory",
+    "Memory"
+  ],
+  "InstanceSubstitutions": [
+    "mem <- wmem"
+  ],
+  "ConstantNames": [
+    "QLen"
+  ],
+  "VariableNames": [
+    "wmem",
+    "ctl",
+    "buf",
+    "cache",
+    "memQ"
+  ],
+  "AssumptionNames": [
+    "(QLen \\in Nat) /\\ (QLen > 0)"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => [](TypeInvariant /\\ Coherence)",
+    "THEOREM Spec => LM!Spec"
+  ],
+  "OperatorDefNames": [
+    "Init",
+    "TypeInvariant",
+    "Coherence",
+    "Req",
+    "Rsp",
+    "RdMiss",
+    "DoRd",
+    "DoWr",
+    "vmem",
+    "MemQWr",
+    "MemQRd",
+    "Evict",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Req",
+    "Rsp",
+    "RdMiss",
+    "DoRd",
+    "DoWr",
+    "MemQWr",
+    "MemQRd",
+    "Evict",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "f"
+  ],
+  "LetInNames": [
+    "r",
+    "f",
+    "p"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF (p=q)  \\/  (cache[q][r.adr]#NoVal)\n                      THEN [cache[q] EXCEPT ![r.adr] = r.val]\n                      ELSE cache[q]",
+    "IF i=0 THEN wmem\n               ELSE IF memQ[i][2].op = \"Rd\"\n                      THEN f[i-1]\n                      ELSE [f[i-1] EXCEPT ![memQ[i][2].adr] =\n                                              memQ[i][2].val]",
+    "IF memQ[i][2].op = \"Rd\"\n                      THEN f[i-1]\n                      ELSE [f[i-1] EXCEPT ![memQ[i][2].adr] =\n                                              memQ[i][2].val]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"rdy\", \"busy\", \"waiting\", \"done\"}",
+    "{NoVal}",
+    "{cache[p][a], cache[q][a]}",
+    "{\"busy\",\"waiting\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[p \\in Proc |-> [a \\in Adr |-> NoVal] ]",
+    "[a \\in Adr |-> NoVal]",
+    "[q \\in Proc |-> \n                    IF (p=q)  \\/  (cache[q][r.adr]#NoVal)\n                      THEN [cache[q] EXCEPT ![r.adr] = r.val]\n                      ELSE cache[q] ]"
+  ],
+  "FunctionApplication": [
+    "cache[p]",
+    "cache[q]",
+    "buf[p]",
+    "ctl[p]",
+    "f[Len(memQ)]",
+    "Head(memQ)[2]",
+    "Head(memQ)[1]",
+    "vmem[r.adr]"
+  ],
+  "FunctionOverride": [
+    "[ctl EXCEPT ![p] = \"waiting\"]",
+    "[buf EXCEPT ![p] = cache[p][buf[p].adr]]",
+    "[ctl EXCEPT ![p] = \"done\"]",
+    "[cache[q] EXCEPT ![r.adr] = r.val]",
+    "[buf EXCEPT ![p] = NoVal]",
+    "[f[i-1] EXCEPT ![memQ[i][2].adr] =\n                                              memQ[i][2].val]",
+    "[wmem EXCEPT ![r.adr] = r.val]",
+    "[cache EXCEPT ![p][r.adr] = vmem[r.adr]]",
+    "[cache EXCEPT ![p][a] = NoVal]"
+  ],
+  "RecordConstructor": [
+    "[Adr -> Val]",
+    "[Proc -> {\"rdy\", \"busy\", \"waiting\", \"done\"}]",
+    "[Proc -> MReq \\cup Val \\cup {NoVal}]",
+    "[Proc -> [Adr -> Val \\cup {NoVal}]]",
+    "[Adr -> Val \\cup {NoVal}]"
+  ],
+  "RecordAccess": [
+    "buf[p].op",
+    "buf[p].adr",
+    "r.op",
+    "r.adr",
+    "r.val",
+    "memQ[i][2].op",
+    "memQ[i][2].adr",
+    "memQ[i][2].val"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<cache, memQ>>",
+    "<<memInt, wmem, buf, cache>>",
+    "<<memInt, wmem, cache, memQ>>",
+    "<<p, buf[p]>>",
+    "<<memInt, wmem>>",
+    "<<p, r>>",
+    "<<memInt, buf, ctl, cache>>",
+    "<<memInt, wmem, buf, ctl>>",
+    "<<memInt, wmem, buf, ctl, memQ>>",
+    "<<memInt, wmem, buf, ctl, cache, memQ>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. Len(memQ)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "rdy",
+    "busy",
+    "waiting",
+    "done",
+    "Rd",
+    "Wr"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "memQ",
+    "ctl",
+    "buf",
+    "cache",
+    "wmem"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<cache, memQ>>",
+    "UNCHANGED <<memInt, wmem, buf, cache>>",
+    "UNCHANGED <<memInt, wmem, cache, memQ>>",
+    "UNCHANGED <<memInt, wmem>>",
+    "UNCHANGED <<memInt, buf, ctl, cache>>",
+    "UNCHANGED <<memInt, wmem, buf, ctl>>",
+    "UNCHANGED <<memInt, wmem, buf, ctl, memQ>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<memInt, wmem, buf, ctl, cache, memQ>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<memInt, wmem, buf, ctl, cache, memQ>>",
+    "[](TypeInvariant /\\ Coherence)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: Operator count verification | Change: verified file count = 14, JSON OperatorDefNames count = 14 | Reason: completeness check passed\nField: NamesInLet -> LetInNames | Change: renamed field to LetInNames | Reason: required field name per extraction schema and prompt\nField: LocalOperatorNames | Change: added \\\"f\\\" | Reason: LET-local parametric definition `f[i \\in 0 .. Len(memQ)] ==` must appear in LocalOperatorNames\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with verbatim TLA+ expressions | Reason: JSON values must literally appear in the file; removed invented `(in DoWr)` and `(in vmem)` context\nField: SetEnumeration | Change: removed `<< >>` | Reason: `<< >>` is a tuple/sequence constructor, not a set enumeration\nField: FunctionConstructor | Change: corrected DoWr constructor to verbatim multiline form | Reason: value must match the file text exactly\nField: FunctionOverride | Change: corrected `[f[i-1] EXCEPT ![memQ[i][2].adr] = memQ[i][2].val]` to verbatim multiline form | Reason: value must match the file text exactly\nField: AlwaysOp | Change: added `[][Next]_<<memInt, wmem, buf, ctl, cache, memQ>>` | Reason: outermost `[]` temporal formula from `Spec` must appear in AlwaysOp with full subscript\nField: BooleanConstants | Change: confirmed empty | Reason: file contains no `TRUE` or `FALSE`\nField: FunctionOverride | Change: confirmed non-empty and complete with 9 distinct overrides | Reason: empty/missing override entries are a common extraction error\nField: AssumptionNames | Change: confirmed existing single unnamed ASSUME entry is complete | Reason: file has exactly one ASSUME block\nField: RecordAccess | Change: confirmed existing entries only | Reason: all listed accesses appear verbatim and no extra literal field accesses were found\nField: FairnessConditions | Change: confirmed empty | Reason: no WF/SF expressions occur in Spec or Spec0\nField: EnabledExprs | Change: confirmed empty | Reason: no ENABLED expressions occur in the file",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvariant",
+    "Coherence"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vmem"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Proc |-> [a \\in Adr |-> NoVal] ]",
+    "[a \\in Adr |-> NoVal]",
+    "[q \\in Proc |-> \n                    IF (p=q)  \\/  (cache[q][r.adr]#NoVal)\n                      THEN [cache[q] EXCEPT ![r.adr] = r.val]\n                      ELSE cache[q] ]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<cache, memQ>>",
+    "UNCHANGED <<memInt, wmem, buf, cache>>",
+    "UNCHANGED <<memInt, wmem, cache, memQ>>",
+    "UNCHANGED <<memInt, wmem>>",
+    "UNCHANGED <<memInt, buf, ctl, cache>>",
+    "UNCHANGED <<memInt, wmem, buf, ctl>>",
+    "UNCHANGED <<memInt, wmem, buf, ctl, memQ>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/WriteThroughCache/WriteThroughCache.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(1) + ActionDefNames(9) = OperatorDefNames(14). Verified.",
+    "vmem is placed in ValueDef as a non-Boolean helper value operator computing a virtual memory image from wmem and memQ.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "The theorem `THEOREM Spec => [](TypeInvariant /\\ Coherence)` contains an implication wrapper around a temporal formula, but it is not an operator definition and therefore does not affect OperatorDefNames_TemporalProperty."
+  ]
+}

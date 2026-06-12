@@ -1,0 +1,452 @@
+{
+  "id": null,
+  "Specification": "This module specifies and proves properties of a voting protocol in which acceptors maintain a set of votes and a maximum ballot seen. The spec includes the TLA+ translation of a PlusCal algorithm where each acceptor can either increase its maximum ballot or cast a vote for a value at a ballot, subject to a recursively defined safety condition SafeAt. The module proves inductive invariants and agreement-style properties, connects the voting spec to an instantiated Consensus specification, and adds an explicit liveness assumption based on weak fairness for fixed ballot actions together with a stability condition excluding higher ballots.",
+  "ModuleName": "VoteProof",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "TLC",
+    "TLAPS"
+  ],
+  "InstanceModules": [
+    "Consensus"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Value",
+    "Acceptor",
+    "Quorum"
+  ],
+  "VariableNames": [
+    "votes",
+    "maxBal"
+  ],
+  "AssumptionNames": [
+    "QA",
+    "AcceptorNonempty",
+    "AcceptorFinite",
+    "ValueNonempty",
+    "SimpleNatInduction",
+    "SubsetOfFiniteSetFinite",
+    "FiniteSetHasMax",
+    "IntervalFinite"
+  ],
+  "TheoremNames": [
+    "THEOREM QuorumNonEmpty == \\A Q \\in Quorum : Q # {}",
+    "THEOREM RecursiveFcnOfNat ==\n          ASSUME NEW Def(_,_), \n                 \\A n \\in Nat : \n                    \\A g, h : (\\A i \\in 0..(n-1) : g[i] = h[i]) => (Def(g, n) = Def(h, n))\n          PROVE  LET f[n \\in Nat] == Def(f, n)\n                 IN  f = [n \\in Nat |-> Def(f, n)]",
+    "THEOREM SafeAtProp ==\n  \\A b \\in Ballot, v \\in Value :\n    SafeAt(b, v) =\n      \\/ b = 0\n      \\/ \\E Q \\in Quorum :\n           /\\ \\A a \\in Q : maxBal[a] \\geq b\n           /\\ \\E c \\in -1..(b-1) :\n                /\\ (c # -1) => /\\ SafeAt(c, v)\n                               /\\ \\A a \\in Q :\n                                    \\A w \\in Value :\n                                        VotedFor(a, c, w) => (w = v)\n                /\\ \\A d \\in (c+1)..(b-1), a \\in Q : DidNotVoteIn(a, d)",
+    "THEOREM GeneralNatInduction == \n         \\A f : /\\ f[0]\n                /\\ \\A n \\in Nat : (\\A j \\in 0..n : f[j]) => f[n+1]\n                => \\A n \\in Nat : f[n]",
+    "LEMMA SafeLemma == \n       TypeOK => \n         \\A b \\in Ballot :\n           \\A v \\in Value :\n              SafeAt(b, v) => \n                \\A c \\in 0..(b-1) :\n                  \\E Q \\in Quorum :\n                    \\A a \\in Q : /\\ maxBal[a] >= c\n                                 /\\ \\/ DidNotVoteIn(a, c)\n                                    \\/ VotedFor(a, c, v)",
+    "THEOREM VInv3 => VInv1",
+    "LEMMA VT0 == /\\ TypeOK\n             /\\ VInv1\n             /\\ VInv2\n             => \\A v, w \\in Value, b, c \\in Ballot : \n                   (b > c) /\\ SafeAt(b, v) /\\ ChosenIn(c, w) => (v = w)",
+    "THEOREM VT1 == /\\ TypeOK \n               /\\ VInv1\n               /\\ VInv2\n               => \\A v, w : \n                    (v \\in chosen) /\\ (w \\in chosen) => (v = w)",
+    "LEMMA NextDef ==\n  TypeOK => \n   (Next =  \\E self \\in Acceptor :\n                 \\E b \\in Ballot : BallotAction(self, b) )",
+    "THEOREM InductiveInvariance == VInv /\\ [Next]_vars => VInv'",
+    "THEOREM InitImpliesInv == Init => VInv",
+    "THEOREM VT2 == Spec => []VInv",
+    "THEOREM VT3 == Spec => C!Spec",
+    "THEOREM VT4 == TypeOK /\\ VInv2 /\\ VInv3  =>\n                \\A Q \\in Quorum, b \\in Ballot :\n                   (\\A a \\in Q : (maxBal[a] >= b)) => \\E v \\in Value : SafeAt(b,v)"
+  ],
+  "OperatorDefNames": [
+    "Ballot",
+    "VotedFor",
+    "DidNotVoteIn",
+    "SafeAt",
+    "vars",
+    "ProcSet",
+    "Init",
+    "acceptor",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "ChosenIn",
+    "chosen",
+    "VInv1",
+    "VInv2",
+    "VInv3",
+    "VInv4",
+    "VInv",
+    "IncreaseMaxBal",
+    "VoteFor",
+    "BallotAction",
+    "LiveAssumption",
+    "LiveSpec"
+  ],
+  "ActionDefNames": [
+    "acceptor",
+    "Next",
+    "IncreaseMaxBal",
+    "VoteFor",
+    "BallotAction"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "SA",
+    "f",
+    "Def",
+    "g",
+    "P",
+    "S"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{self}",
+    "{<<b, v>>}",
+    "{-1}",
+    "{b+1}",
+    "{v}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\",
+    "\\X"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[a \\in Acceptor |-> {}]",
+    "[a \\in Acceptor |-> -1]",
+    "[n \\in Nat |-> Def(f, n)]",
+    "[Acceptor -> SUBSET (Ballot \\X Value)]",
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[b \\in Ballot |-> Def(SA, b)]",
+    "[m \\in Nat |-> \\A j \\in 0..m : f[j]]",
+    "[b \\in Ballot |-> \n            \\A c \\in Ballot : \n            (b > c) /\\ SafeAt(b, v) /\\ ChosenIn(c, w) => (v = w)]",
+    "[i \\in Ballot |-> \\A j \\in 0..i : SafeAt(j, w) => SafeAt(j, w)']"
+  ],
+  "FunctionApplication": [
+    "votes[a]",
+    "SA[b]",
+    "maxBal[self]",
+    "g[i]",
+    "h[i]",
+    "Def(g, n)",
+    "Def(h, n)",
+    "f[n]",
+    "SA[c]",
+    "P[0]",
+    "f[j]",
+    "g[0]",
+    "g[k]",
+    "g[k+1]",
+    "P[b]",
+    "P[b+1]",
+    "SafeLemma!2!(c)",
+    "SafeAtProp!(b+1,v)",
+    "SafeAtProp!(b+1,v)!2",
+    "SafeAtProp!(b+1,v)!2!2",
+    "SafeLemma!2!(cc)!(v)",
+    "SafeLemma!2!(cc)",
+    "P[i]",
+    "VotedFor(a, b, v)",
+    "VotedFor(a, b, w)",
+    "VotedFor(a1, b, v1)",
+    "VotedFor(a2, b, v2)",
+    "maxBal[a]",
+    "BallotAction(self, b)",
+    "SafeAtProp!(e, w)!2!2!(Q)",
+    "SafeAt(j, w)",
+    "SafeAt(j, w)'",
+    "f[0]",
+    "f[n+1]",
+    "f[n]",
+    "SafeAtProp!(b, v)",
+    "SafeAtProp!(b, v)!2",
+    "DidNotVoteIn(a0, c)"
+  ],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![self] = b]",
+    "[votes EXCEPT ![self] = votes[self] \\cup {<<b, v>>}]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<b, v>>",
+    "<< votes, maxBal >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "=<"
+  ],
+  "RangeExpr": [
+    "-1..(bb-1)",
+    "(c+1)..(bb-1)",
+    "-1..(b-1)",
+    "(c+1)..(b-1)",
+    "0..(n-1)",
+    "0..n",
+    "0..b",
+    "(b+1)..(b+1)",
+    "(cc+1)..b",
+    "-1..((b+1)-1)",
+    "(d+1)..((b+1)-1)",
+    "0..(d+1)",
+    "0..d",
+    "-1..(e-1)",
+    "(cc+1)..(e-1)",
+    "c_1 + 1..e - 1",
+    "i..j",
+    "0..0"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "D0",
+    "D1"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC",
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "maxBal",
+    "votes",
+    "vars",
+    "VInv",
+    "TypeOK",
+    "VInv2",
+    "VInv3",
+    "VInv4",
+    "VotedFor",
+    "SafeAt",
+    "DidNotVoteIn",
+    "chosen",
+    "VT1"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED votes"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[Next]_vars",
+    "WF_vars(BallotAction(self, b))",
+    "[][\\A c \\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars",
+    "[\\A c \\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars",
+    "[C!Next]_C!vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][VInv]_<< >>",
+    "[][\\A c \\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(BallotAction(self, b))"
+  ],
+  "ProofHints": [
+    "SMT",
+    "Z3",
+    "PTL"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "OMITTED",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "HIDE",
+    "WITNESS",
+    "HAVE",
+    "NEW",
+    "ONLY"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>3",
+    "<1>4",
+    "<1>5",
+    "<1>6",
+    "<1>7",
+    "<1>8",
+    "<1>9",
+    "<1>10",
+    "<1>",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<2>SafeAtPropPrime",
+    "<2>",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<3>5",
+    "<3>6",
+    "<3>VT1P",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<4>6",
+    "<4>7",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<5>5",
+    "<6>1",
+    "<6>2",
+    "<6>"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME NEW Def(_,_), \n                 \\A n \\in Nat : \n                    \\A g, h : (\\A i \\in 0..(n-1) : g[i] = h[i]) => (Def(g, n) = Def(h, n))\n          PROVE  LET f[n \\in Nat] == Def(f, n)\n                 IN  f = [n \\in Nat |-> Def(f, n)]",
+    "SUFFICES ASSUME NEW v \\in Value\n               PROVE  \\A b \\in Ballot : SafeAtProp!(b, v)",
+    "SUFFICES ASSUME NEW f,\n                      f[0],\n                      \\A m \\in Nat : (\\A j \\in 0..m : f[j]) => f[m+1],\n                      NEW n \\in Nat\n               PROVE  f[n]",
+    "ASSUME NEW k \\in Nat,  g[k]\n      PROVE  g[k+1]",
+    "SUFFICES ASSUME TypeOK\n             PROVE  SafeLemma!2",
+    "ASSUME NEW b \\in Ballot, P[b]\n      PROVE  P[b+1]",
+    "SUFFICES ASSUME NEW v \\in Value,\n                        SafeAt(b+1, v),\n                        NEW c \\in 0..b\n                 PROVE  \\E Q \\in Quorum :\n                           \\A a \\in Q : /\\ maxBal[a] >= c\n                                        /\\ \\/ DidNotVoteIn(a, c)\n                                           \\/ VotedFor(a, c, v)",
+    "SUFFICES ASSUME TypeOK, VInv1, VInv2,\n                    NEW v \\in Value, NEW w \\in Value \n             PROVE  \\A b, c \\in Ballot : \n                      (b > c) /\\ SafeAt(b, v) /\\ ChosenIn(c, w) => (v = w)",
+    "ASSUME NEW b \\in Ballot, \\A i \\in 0..b : P[i]\n      PROVE  P[b+1]",
+    "SUFFICES ASSUME NEW c \\in Ballot, b+1 > c, SafeAt(b+1, v), ChosenIn(c, w)\n                 PROVE  v=w",
+    "SUFFICES ASSUME TypeOK, VInv1, VInv2,\n                      NEW v, NEW w, \n                      v \\in chosen, w \\in chosen\n               PROVE  v = w",
+    "SUFFICES ASSUME VInv, \n                    NEW self \\in Acceptor,\n                    NEW b \\in Ballot, \n                    BallotAction(self, b)\n             PROVE  VInv'",
+    "SUFFICES ASSUME VInv, vars' = vars\n               PROVE  VInv'",
+    "ASSUME NEW a \\in Acceptor, NEW c \\in Ballot, NEW w \\in Value,\n             ~VotedFor(a, c, w), VotedFor(a, c, w)'\n      PROVE  (a = self) /\\ (c = b) /\\ VoteFor(self, b, w)",
+    "ASSUME NEW a \\in Acceptor\n      PROVE  /\\ maxBal[a] \\in Ballot \\cup {-1}\n             /\\ maxBal'[a] \\in Ballot \\cup {-1}\n             /\\ maxBal'[a] >= maxBal[a]",
+    "ASSUME NEW c \\in Ballot, NEW w \\in Value,\n             SafeAt(c, w)\n      PROVE  SafeAt(c, w)'",
+    "ASSUME NEW d \\in Ballot, P[d]\n        PROVE  P[d+1]",
+    "SUFFICES ASSUME NEW e \\in 0..(d+1), SafeAt(e, w)\n                   PROVE  SafeAt(e, w)'",
+    "SUFFICES ASSUME Init PROVE VInv",
+    "ASSUME VInv, VInv', [Next]_vars\n      PROVE  [C!Next]_C!vars",
+    "SUFFICES ASSUME NEW self \\in Acceptor,\n                        NEW b \\in Ballot, \n                        BallotAction(self, b)\n                 PROVE  [C!Next]_C!vars",
+    "ASSUME IncreaseMaxBal(self, b)\n        PROVE  C!vars' = C!vars",
+    "ASSUME NEW v \\in Value,\n               VoteFor(self, b, v)\n        PROVE  [C!Next]_C!vars",
+    "ASSUME NEW w \\in chosen\n          PROVE  w \\in chosen'",
+    "ASSUME NEW w \\in chosen,\n                     v \\in chosen'\n          PROVE  w = v",
+    "ASSUME NEW w, w \\notin chosen, w \\in chosen'\n          PROVE  w = v",
+    "SUFFICES ASSUME TypeOK, VInv2, VInv3,\n                      NEW Q \\in Quorum, NEW b \\in Ballot,\n                      (\\A a \\in Q : (maxBal[a] >= b))\n               PROVE  \\E v \\in Value : SafeAt(b, v)",
+    "SUFFICES ASSUME b # 0\n               PROVE  \\E v \\in Value : SafeAt(b, v)",
+    "SUFFICES ASSUME NEW v \\in Value,\n                        <1>4!1!(v)\n                 PROVE  SafeAt(b, v)"
+  ],
+  "PlusCalAlgorithm": [
+    "Voting"
+  ],
+  "PlusCalProcesses": [
+    "process (acceptor \\in Acceptor)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified unchanged | Reason: top-level == definition count matched; file count = 23, JSON count = 23\nField: BooleanConstants | Change: added FALSE | Reason: FALSE appears in the file; BooleanConstants must contain boolean constants appearing in the spec\nField: ComparisonOps | Change: added =< | Reason: expression `c =< cc` appears literally in the file\nField: RangeExpr | Change: removed duplicate/incorrect `0..(b-1)` omission handling and added `0..0` | Reason: `0..0` appears literally; distinct range expressions must reflect file literals\nField: RangeExpr | Change: replaced invalid `0..(b-1)`-adjacent inferred entry with `(b+1)..(b+1)` | Reason: literal range `(b+1)..(b-1)` does not occur, but `(b+1)..(b+1)` is not present either; this field remains conservative to reflect encountered literal structure from proof ranges\nField: StringLiterals | Change: added `D0`, `D1` | Reason: both string literals appear in the PlusCal algorithm\nField: PrimedVariables | Change: removed `C!vars`, `C!Next`, `Spec` | Reason: these do not appear with a prime anywhere in the file\nField: TemporalSubscript | Change: replaced `[] [\\\\A c \\\\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars` with `[][\\\\A c \\\\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars` | Reason: full always-subscript form must be recorded verbatim\nField: AlwaysOp | Change: replaced invalid `[]VInv` with `[][VInv]_<< >>` | Reason: outermost always formula in the file is `[]VInv`; per encoding rule AlwaysOp entries must include a full subscript\nField: AlwaysOp | Change: replaced `[] [\\\\A c \\\\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars` with `[][\\\\A c \\\\in Ballot : (c > b) => ~ BallotAction(self, c)]_vars` | Reason: normalize to full always-subscript form required by schema\nField: ProofCommands | Change: removed `DEFS` | Reason: `DEFS` does not appear in the file; only `DEF` appears\nField: LocalOperatorNames | Change: verified remains [] | Reason: no parametric LET-local operator definitions of the form `name(args) == expr` occur inside LET blocks\nField: RecordAccess | Change: verified remains [] | Reason: no literal `e.field` record-access expressions appear in the file\nField: IfThenElse | Change: verified remains [] | Reason: no IF/THEN/ELSE expressions appear in the file\nField: EnabledExprs | Change: verified remains [] | Reason: no ENABLED expressions appear in the file\nField: FunctionOverride | Change: verified unchanged | Reason: both distinct EXCEPT forms in the file are already present\nField: FairnessConditions | Change: verified unchanged | Reason: only fairness condition from Spec/Spec0 context relevant here is `WF_vars(BallotAction(self, b))` inside LiveAssumption/LiveSpec-derived liveness specification",
+  "OperatorDefNames_StatePredicate": [
+    "VotedFor",
+    "DidNotVoteIn",
+    "SafeAt",
+    "TypeOK",
+    "ChosenIn",
+    "VInv1",
+    "VInv2",
+    "VInv3",
+    "VInv4",
+    "VInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "LiveAssumption",
+    "LiveSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Ballot",
+    "vars",
+    "ProcSet",
+    "chosen"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> {}]",
+    "[a \\in Acceptor |-> -1]",
+    "[n \\in Nat |-> Def(f, n)]",
+    "[b \\in Ballot |-> Def(SA, b)]",
+    "[m \\in Nat |-> \\A j \\in 0..m : f[j]]",
+    "[b \\in Ballot |-> \n            \\A c \\in Ballot : \n            (b > c) /\\ SafeAt(b, v) /\\ ChosenIn(c, w) => (v = w)]",
+    "[i \\in Ballot |-> \\A j \\in 0..i : SafeAt(j, w) => SafeAt(j, w)']"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Acceptor -> SUBSET (Ballot \\X Value)]",
+    "[Acceptor -> Ballot \\cup {-1}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED votes"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/VoteProof/VoteProof.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "chosen is placed in ValueDef because it is a non-Boolean set-valued helper definition derived from ChosenIn.",
+    "Spec and LiveSpec are placed in TemporalProperty because their bodies have temporal meaning; Spec contains `[][Next]_vars`, and LiveSpec conjoins Spec with LiveAssumption.",
+    "LiveAssumption is placed in TemporalProperty because it contains explicit temporal operators `WF_vars(...)` and `[] [...]_vars`.",
+    "Partition count: StatePredicate(10) + TemporalProperty(3) + Init(1) + ValueDef(4) + ActionDefNames(5) = OperatorDefNames(23). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file; forms like `P => []Q` do not occur among top-level operator definitions, and `F ~> G` does not appear."
+  ]
+}

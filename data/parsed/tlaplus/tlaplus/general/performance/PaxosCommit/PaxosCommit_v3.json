@@ -1,0 +1,280 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Paxos Commit algorithm, modeling resource managers, acceptors, and leaders using a safety-only TLA+ specification. The model simplifies communication by representing msgs as the set of all messages ever sent, not explicitly modeling message receipt, and not modeling leader selection, so any process may act as leader. It defines the protocol actions for resource managers, leaders, and acceptors, gives an initial-state predicate and next-state relation, and proves that the resulting specification preserves a type-correctness invariant and implements the transaction commit specification from module TCommit.",
+  "ModuleName": "PaxosCommit",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [
+    "TCommit"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "RM",
+    "Acceptor",
+    "Majority",
+    "Ballot"
+  ],
+  "VariableNames": [
+    "rmState",
+    "aState",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "/\\ Ballot \\subseteq Nat\n  /\\ 0 \\in Ballot\n  /\\ Majority \\subseteq SUBSET Acceptor\n  /\\ \\A MS1, MS2 \\in Majority : MS1 \\cap MS2 # {}"
+  ],
+  "TheoremNames": [
+    "THEOREM PCSpec => PCTypeOK",
+    "THEOREM PCSpec => TC!TCSpec"
+  ],
+  "OperatorDefNames": [
+    "Maximum",
+    "Message",
+    "PCTypeOK",
+    "PCInit",
+    "Send",
+    "RMPrepare",
+    "RMChooseToAbort",
+    "RMRcvCommitMsg",
+    "RMRcvAbortMsg",
+    "Phase1a",
+    "Phase2a",
+    "Decide",
+    "Phase1b",
+    "Phase2b",
+    "PCNext",
+    "PCSpec"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "RMPrepare",
+    "RMChooseToAbort",
+    "RMRcvCommitMsg",
+    "RMRcvAbortMsg",
+    "Phase1a",
+    "Phase2a",
+    "Decide",
+    "Phase1b",
+    "Phase2b",
+    "PCNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Decided"
+  ],
+  "NamesInLet": [
+    "mset",
+    "maxbal",
+    "val",
+    "Decided"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF S = {} THEN -1 ELSE CHOOSE n \\in S : \\A m \\in S : n \\geq m",
+    "IF maxbal = -1 THEN \"aborted\" ELSE (CHOOSE m \\in mset : m.bal = maxbal).val"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"phase1a\"}",
+    "{0}",
+    "{\"phase1b\"}",
+    "{-1}",
+    "{\"prepared\", \"aborted\", \"none\"}",
+    "{\"phase2a\"}",
+    "{\"prepared\", \"aborted\"}",
+    "{\"phase2b\"}",
+    "{\"Commit\", \"Abort\"}",
+    "{\"working\", \"prepared\", \"committed\", \"aborted\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]",
+    "[RM -> [Acceptor -> [mbal : Ballot, bal : Ballot \\cup {-1}, val : {\"prepared\", \"aborted\", \"none\"}]]]",
+    "[Acceptor -> [mbal : Ballot, bal : Ballot \\cup {-1}, val : {\"prepared\", \"aborted\", \"none\"}]]",
+    "[rm \\in RM |-> \"working\"]",
+    "[ins \\in RM |-> [ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]]",
+    "[ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]"
+  ],
+  "FunctionApplication": [
+    "rmState[rm]",
+    "aState[m.ins]",
+    "aState[m.ins][acc]"
+  ],
+  "FunctionOverride": [
+    "[rmState EXCEPT ![rm] = \"prepared\"]",
+    "[rmState EXCEPT ![rm] = \"aborted\"]",
+    "[rmState EXCEPT ![rm] = \"committed\"]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal,\n                                   ![m.ins][acc].bal  = m.bal,\n                                   ![m.ins][acc].val  = m.val]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"phase1a\"}, ins : RM, bal : Ballot \\ {0}]",
+    "[type : {\"phase1b\"}, ins : RM, mbal : Ballot, bal : Ballot \\cup {-1},\n   val : {\"prepared\", \"aborted\", \"none\"}, acc : Acceptor]",
+    "[type : {\"phase2a\"}, ins : RM, bal : Ballot, val : {\"prepared\", \"aborted\"}]",
+    "[type : {\"phase2b\"}, acc : Acceptor, ins : RM, bal : Ballot,  \n   val : {\"prepared\", \"aborted\"}]",
+    "[type : {\"Commit\", \"Abort\"}]",
+    "[mbal : Ballot,\n                                      bal  : Ballot \\cup {-1},\n                                      val  : {\"prepared\", \"aborted\", \"none\"}]",
+    "[mbal |-> 0, bal  |-> -1, val  |-> \"none\"]",
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> 0, val |-> \"prepared\"]",
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> 0, val |-> \"aborted\"]",
+    "[type |-> \"Commit\"]",
+    "[type |-> \"Abort\"]",
+    "[type |-> \"phase1a\", ins |-> rm, bal |-> bal]",
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> bal, val |-> val]",
+    "[type |-> \"phase2b\", ins |-> rm, \n                              bal |-> b, val |-> v, acc |-> ac ]",
+    "[type |-> \"phase1b\", \n             ins  |-> m.ins, \n             mbal |-> m.bal, \n             bal  |-> aState[m.ins][acc].bal, \n             val  |-> aState[m.ins][acc].val,\n             acc  |-> acc]",
+    "[type |-> \"phase2b\", ins |-> m.ins, bal |-> m.bal, \n                  val |-> m.val, acc |-> acc]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m.ins",
+    "m.mbal",
+    "m.acc",
+    "m.val"
+  ],
+  "TupleConstructor": [
+    "<<aState, msgs>>",
+    "<<rmState, aState>>",
+    "<<rmState, aState, msgs>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">=",
+    ">"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE n \\in S : \\A m \\in S : n \\geq m",
+    "CHOOSE m \\in mset : m.bal = maxbal"
+  ],
+  "StringLiterals": [
+    "phase1a",
+    "phase1b",
+    "prepared",
+    "aborted",
+    "none",
+    "phase2a",
+    "phase2b",
+    "Commit",
+    "Abort",
+    "working",
+    "committed"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "msgs",
+    "rmState",
+    "aState"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED aState",
+    "UNCHANGED <<aState, msgs>>",
+    "UNCHANGED <<rmState, aState>>",
+    "UNCHANGED rmState"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][PCNext]_<<rmState, aState, msgs>>"
+  ],
+  "AlwaysOp": [
+    "[][PCNext]_<<rmState, aState, msgs>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: FunctionApplication | Change: Removed `aState[rm]` | Reason: Expression does not appear verbatim in the TLA+ file.\nField: IfThenElse | Change: Replaced annotated entries with verbatim expressions only | Reason: Field values must appear in the file; `(in Maximum)` and `(in Phase2a)` were not in the TLA+ source.\n\n",
+  "OperatorDefNames_StatePredicate": [
+    "PCTypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "PCSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "PCInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Maximum",
+    "Message"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[rm \\in RM |-> \"working\"]",
+    "[ins \\in RM |-> [ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]]",
+    "[ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]",
+    "[RM -> [Acceptor -> [mbal : Ballot, bal : Ballot \\cup {-1}, val : {\"prepared\", \"aborted\", \"none\"}]]]",
+    "[Acceptor -> [mbal : Ballot, bal : Ballot \\cup {-1}, val : {\"prepared\", \"aborted\", \"none\"}]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<aState, msgs>>",
+    "UNCHANGED <<rmState, aState>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED aState",
+    "UNCHANGED rmState"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/PaxosCommit/PaxosCommit.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Maximum and Message are placed in ValueDef: Maximum computes a non-Boolean helper value from a set, and Message defines the set of all possible messages.",
+    "PCSpec is placed in TemporalProperty because its body contains the temporal formula [][PCNext]_<<rmState, aState, msgs>>.",
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(11) = OperatorDefNames(16). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder is not given explicitly in the file content."
+  ]
+}

@@ -1,0 +1,391 @@
+{
+  "id": null,
+  "Specification": "This specification models a simplified version of the Ghostferry data-copying algorithm that copies a source database table to a target database while concurrently streaming and applying binlog entries. The model represents the system as four processes: a table iterator that copies rows, a binlog streamer that replays source updates onto the target, an application that performs concurrent INSERT/UPDATE/DELETE-style changes on the source and appends corresponding binlog entries, and a ferry coordinator that performs cutover by making the application read-only and then stopping binlog streaming after a target position is reached. The spec checks a liveness-style termination property and a safety property asserting that once all processes are done, the source and target tables are equal; it also uses fairness assumptions for all four processes and an action constraint to bound binlog growth for model checking feasibility.",
+  "ModuleName": "ghostferry",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "InitialTable",
+    "MaxPrimaryKey",
+    "Records",
+    "TableIterator",
+    "BinlogStreamer",
+    "Application",
+    "Ferry",
+    "defaultInitValue",
+    "MaxBinlogSize"
+  ],
+  "VariableNames": [
+    "CurrentMaxPrimaryKey",
+    "SourceTable",
+    "TargetTable",
+    "SourceBinlog",
+    "ApplicationReadonly",
+    "TargetBinlogPos",
+    "BinlogStreamingStopRequested",
+    "pc",
+    "lastSuccessfulPK",
+    "currentRow",
+    "lastSuccessfulBinlogPos",
+    "currentBinlogEntry",
+    "oldRecord",
+    "newRecord",
+    "chosenPK"
+  ],
+  "AssumptionNames": [
+    "The model here also models setting the database/application as read only.\n    It will stop writing to the database when ApplicationReadonly = TRUE.",
+    "relies upon the fact that MySQL's updates atomically writes\n    to the binlog and the actual data with respect to Ghostferry."
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "SetMin",
+    "TableCapacity",
+    "PrimaryKeys",
+    "NoRecordHere",
+    "PossibleRecords",
+    "vars",
+    "ProcSet",
+    "Init",
+    "tblit_loop",
+    "tblit_rw",
+    "tblit_upkey",
+    "ProcTableIterator",
+    "binlog_loop",
+    "binlog_read",
+    "binlog_write",
+    "binlog_upkey",
+    "ProcBinlogStreamer",
+    "app_loop",
+    "app_write",
+    "ProcApplication",
+    "ferry_setro",
+    "ferry_waitro",
+    "ferry_binlogpos",
+    "ferry_binlogstop",
+    "ProcFerry",
+    "Next",
+    "Spec",
+    "Termination",
+    "SourceTargetEquality",
+    "BinlogSizeActionConstraint"
+  ],
+  "ActionDefNames": [
+    "tblit_loop",
+    "tblit_rw",
+    "tblit_upkey",
+    "ProcTableIterator",
+    "binlog_loop",
+    "binlog_read",
+    "binlog_write",
+    "binlog_upkey",
+    "ProcBinlogStreamer",
+    "app_loop",
+    "app_write",
+    "ProcApplication",
+    "ferry_setro",
+    "ferry_waitro",
+    "ferry_binlogpos",
+    "ferry_binlogstop",
+    "ProcFerry",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF lastSuccessfulPK < MaxPrimaryKey\n                    THEN /\\ pc' = [pc EXCEPT ![TableIterator] = \"tblit_rw\"]\n                    ELSE /\\ pc' = [pc EXCEPT ![TableIterator] = \"Done\"]",
+    "IF currentRow' # NoRecordHere\n                  THEN /\\ TargetTable' = [TargetTable EXCEPT ![lastSuccessfulPK + 1] = currentRow']\n                  ELSE /\\ TRUE\n                       /\\ UNCHANGED TargetTable",
+    "IF BinlogStreamingStopRequested = FALSE \\/ (BinlogStreamingStopRequested = TRUE /\\ lastSuccessfulBinlogPos < TargetBinlogPos)\n                     THEN /\\ pc' = [pc EXCEPT ![BinlogStreamer] = \"binlog_read\"]\n                     ELSE /\\ pc' = [pc EXCEPT ![BinlogStreamer] = \"Done\"]",
+    "IF lastSuccessfulBinlogPos < Len(SourceBinlog)\n                     THEN /\\ currentBinlogEntry' = SourceBinlog[lastSuccessfulBinlogPos + 1]\n                          /\\ pc' = [pc EXCEPT ![BinlogStreamer] = \"binlog_write\"]\n                     ELSE /\\ pc' = [pc EXCEPT ![BinlogStreamer] = \"binlog_loop\"]\n                          /\\ UNCHANGED currentBinlogEntry",
+    "IF TargetTable[currentBinlogEntry.pk] = currentBinlogEntry.oldr\n                      THEN /\\ TargetTable' = [TargetTable EXCEPT ![currentBinlogEntry.pk] = currentBinlogEntry.newr]\n                      ELSE /\\ TRUE\n                           /\\ UNCHANGED TargetTable",
+    "IF ApplicationReadonly = FALSE\n                  THEN /\\ pc' = [pc EXCEPT ![Application] = \"app_write\"]\n                  ELSE /\\ pc' = [pc EXCEPT ![Application] = \"Done\"]",
+    "IF oldRecord' = NoRecordHere /\\ chosenPK' > CurrentMaxPrimaryKey\n                   THEN /\\ Assert((chosenPK' - 1 = CurrentMaxPrimaryKey),\n                                  \"Failure of assertion at line 230, column 21.\")\n                        /\\ CurrentMaxPrimaryKey' = chosenPK'\n                   ELSE /\\ TRUE\n                        /\\ UNCHANGED CurrentMaxPrimaryKey"
+  ],
+  "CaseExpr": [
+    "CASE self = TableIterator -> \"tblit_loop\"\n                                        [] self = BinlogStreamer -> \"binlog_loop\"\n                                        [] self = Application -> \"app_loop\"\n                                        [] self = Ferry -> \"ferry_setro\""
+  ],
+  "SetEnumeration": [
+    "{NoRecordHere}",
+    "{TableIterator}",
+    "{BinlogStreamer}",
+    "{Application}",
+    "{Ferry}",
+    "{TableCapacity, CurrentMaxPrimaryKey + 1}",
+    "{oldRecord'}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[k \\in PrimaryKeys |-> NoRecordHere]",
+    "[self \\in ProcSet |-> CASE self = TableIterator -> \"tblit_loop\"\n                                        [] self = BinlogStreamer -> \"binlog_loop\"\n                                        [] self = Application -> \"app_loop\"\n                                        [] self = Ferry -> \"ferry_setro\"]"
+  ],
+  "FunctionApplication": [
+    "SourceTable[lastSuccessfulPK + 1]",
+    "pc[TableIterator]",
+    "SourceBinlog[lastSuccessfulBinlogPos + 1]",
+    "TargetTable[currentBinlogEntry.pk]",
+    "pc[BinlogStreamer]",
+    "SourceTable[chosenPK']",
+    "pc[Application]",
+    "pc[Ferry]",
+    "pc[self]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![TableIterator] = \"tblit_rw\"]",
+    "[pc EXCEPT ![TableIterator] = \"Done\"]",
+    "[TargetTable EXCEPT ![lastSuccessfulPK + 1] = currentRow']",
+    "[pc EXCEPT ![TableIterator] = \"tblit_upkey\"]",
+    "[pc EXCEPT ![TableIterator] = \"tblit_loop\"]",
+    "[pc EXCEPT ![BinlogStreamer] = \"binlog_read\"]",
+    "[pc EXCEPT ![BinlogStreamer] = \"Done\"]",
+    "[pc EXCEPT ![BinlogStreamer] = \"binlog_write\"]",
+    "[pc EXCEPT ![BinlogStreamer] = \"binlog_loop\"]",
+    "[TargetTable EXCEPT ![currentBinlogEntry.pk] = currentBinlogEntry.newr]",
+    "[pc EXCEPT ![BinlogStreamer] = \"binlog_upkey\"]",
+    "[pc EXCEPT ![Application] = \"app_write\"]",
+    "[pc EXCEPT ![Application] = \"Done\"]",
+    "[SourceTable EXCEPT ![chosenPK'] = newRecord']",
+    "[pc EXCEPT ![Application] = \"app_loop\"]",
+    "[pc EXCEPT ![Ferry] = \"ferry_waitro\"]",
+    "[pc EXCEPT ![Ferry] = \"ferry_binlogpos\"]",
+    "[pc EXCEPT ![Ferry] = \"ferry_binlogstop\"]",
+    "[pc EXCEPT ![Ferry] = \"Done\"]"
+  ],
+  "RecordConstructor": [
+    "[\n                                    pk |-> chosenPK',\n                                    oldr |-> oldRecord',\n                                    newr |-> newRecord'\n                                  ]"
+  ],
+  "RecordAccess": [
+    "currentBinlogEntry.pk",
+    "currentBinlogEntry.oldr",
+    "currentBinlogEntry.newr"
+  ],
+  "TupleConstructor": [
+    "<<>>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable, SourceBinlog,\n           ApplicationReadonly, TargetBinlogPos, BinlogStreamingStopRequested,\n           pc, lastSuccessfulPK, currentRow, lastSuccessfulBinlogPos,\n           currentBinlogEntry, oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                              SourceBinlog, ApplicationReadonly,\n                              TargetBinlogPos, BinlogStreamingStopRequested,\n                              lastSuccessfulPK, currentRow,\n                              lastSuccessfulBinlogPos, currentBinlogEntry,\n                              oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, SourceBinlog,\n                            ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            lastSuccessfulBinlogPos, currentBinlogEntry,\n                            oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, currentBinlogEntry,\n                               oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, oldRecord, newRecord,\n                               chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                currentBinlogEntry, oldRecord, newRecord,\n                                chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                            SourceBinlog, ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            currentRow, lastSuccessfulBinlogPos,\n                            currentBinlogEntry, oldRecord, newRecord, chosenPK >>",
+    "<< TargetTable, ApplicationReadonly, TargetBinlogPos,\n                             BinlogStreamingStopRequested, lastSuccessfulPK,\n                             currentRow, lastSuccessfulBinlogPos,\n                             currentBinlogEntry >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, TargetBinlogPos,\n                               BinlogStreamingStopRequested, lastSuccessfulPK,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable,\n                                   TargetTable, SourceBinlog,\n                                   ApplicationReadonly,\n                                   BinlogStreamingStopRequested,\n                                   lastSuccessfulPK, currentRow,\n                                   lastSuccessfulBinlogPos, currentBinlogEntry,\n                                   oldRecord, newRecord,\n                                   chosenPK >>",
+    "<< CurrentMaxPrimaryKey, SourceTable,\n                                    TargetTable, SourceBinlog,\n                                    ApplicationReadonly, TargetBinlogPos,\n                                    lastSuccessfulPK, currentRow,\n                                    lastSuccessfulBinlogPos,\n                                    currentBinlogEntry, oldRecord, newRecord,\n                                    chosenPK >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..TableCapacity",
+    "1..SetMin({TableCapacity, CurrentMaxPrimaryKey + 1})"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in S: \\A j \\in S : i <= j",
+    "CHOOSE r : r \\notin Records"
+  ],
+  "StringLiterals": [
+    "tblit_loop",
+    "binlog_loop",
+    "app_loop",
+    "ferry_setro",
+    "tblit_rw",
+    "Done",
+    "tblit_upkey",
+    "binlog_read",
+    "binlog_write",
+    "binlog_upkey",
+    "app_write",
+    "Failure of assertion at line 230, column 21.",
+    "ferry_waitro",
+    "ferry_binlogpos",
+    "ferry_binlogstop"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "currentRow",
+    "TargetTable",
+    "lastSuccessfulPK",
+    "currentBinlogEntry",
+    "lastSuccessfulBinlogPos",
+    "chosenPK",
+    "oldRecord",
+    "newRecord",
+    "SourceBinlog",
+    "SourceTable",
+    "CurrentMaxPrimaryKey",
+    "ApplicationReadonly",
+    "TargetBinlogPos",
+    "BinlogStreamingStopRequested"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                              SourceBinlog, ApplicationReadonly,\n                              TargetBinlogPos, BinlogStreamingStopRequested,\n                              lastSuccessfulPK, currentRow,\n                              lastSuccessfulBinlogPos, currentBinlogEntry,\n                              oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED TargetTable",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, SourceBinlog,\n                            ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            lastSuccessfulBinlogPos, currentBinlogEntry,\n                            oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, currentBinlogEntry,\n                               oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED currentBinlogEntry",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                currentBinlogEntry, oldRecord, newRecord,\n                                chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                            SourceBinlog, ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            currentRow, lastSuccessfulBinlogPos,\n                            currentBinlogEntry, oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED CurrentMaxPrimaryKey",
+    "UNCHANGED << TargetTable, ApplicationReadonly, TargetBinlogPos,\n                             BinlogStreamingStopRequested, lastSuccessfulPK,\n                             currentRow, lastSuccessfulBinlogPos,\n                             currentBinlogEntry >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, TargetBinlogPos,\n                               BinlogStreamingStopRequested, lastSuccessfulPK,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                   TargetTable, SourceBinlog,\n                                   ApplicationReadonly,\n                                   BinlogStreamingStopRequested,\n                                   lastSuccessfulPK, currentRow,\n                                   lastSuccessfulBinlogPos, currentBinlogEntry,\n                                   oldRecord, newRecord,\n                                   chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                    TargetTable, SourceBinlog,\n                                    ApplicationReadonly, TargetBinlogPos,\n                                    lastSuccessfulPK, currentRow,\n                                    lastSuccessfulBinlogPos,\n                                    currentBinlogEntry, oldRecord, newRecord,\n                                    chosenPK >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(ProcTableIterator)",
+    "WF_vars(ProcBinlogStreamer)",
+    "WF_vars(ProcApplication)",
+    "WF_vars(ProcFerry)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(ProcTableIterator)",
+    "WF_vars(ProcBinlogStreamer)",
+    "WF_vars(ProcApplication)",
+    "WF_vars(ProcFerry)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "ghostferry"
+  ],
+  "PlusCalProcesses": [
+    "ProcTableIterator = TableIterator",
+    "ProcBinlogStreamer = BinlogStreamer",
+    "ProcApplication = Application",
+    "ProcFerry = Ferry"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: added 2 entries | Reason: the file contains two ASSUMPTION occurrences in comments; per requested verification format each ASSUME/ASSUMPTION/AXIOM block must be captured.\nField: IfThenElse | Change: replaced non-verbatim prose summaries with the actual IF...THEN...ELSE expressions from the file | Reason: Phase 3 requires every JSON value to appear in the TLA+ file; prior entries did not exist verbatim.\nField: CaseExpr | Change: replaced prose summary with the actual CASE expression from Init | Reason: prior value did not appear in the file verbatim.\nField: SetEnumeration | Change: changed \"{oldRecord}\" to \"{oldRecord'}\" | Reason: the actual set expression in app_write is `PossibleRecords \\\\ {oldRecord'}`.\nField: UnchangedExprs | Change: corrected one entry formatting to include the exact line break before `chosenPK` | Reason: distinct UNCHANGED expressions must appear exactly as in the file.\nField: OperatorDefNames | Change: verified count unchanged at 30 | Reason: top-level `==` definition count in file is 30 and matches JSON count 30.",
+  "OperatorDefNames_StatePredicate": [
+    "SourceTargetEquality",
+    "BinlogSizeActionConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "SetMin",
+    "TableCapacity",
+    "PrimaryKeys",
+    "NoRecordHere",
+    "PossibleRecords",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[k \\in PrimaryKeys |-> NoRecordHere]",
+    "[self \\in ProcSet |-> CASE self = TableIterator -> \"tblit_loop\"\n                                        [] self = BinlogStreamer -> \"binlog_loop\"\n                                        [] self = Application -> \"app_loop\"\n                                        [] self = Ferry -> \"ferry_setro\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                              SourceBinlog, ApplicationReadonly,\n                              TargetBinlogPos, BinlogStreamingStopRequested,\n                              lastSuccessfulPK, currentRow,\n                              lastSuccessfulBinlogPos, currentBinlogEntry,\n                              oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, SourceBinlog,\n                            ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            lastSuccessfulBinlogPos, currentBinlogEntry,\n                            oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, currentBinlogEntry,\n                               oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, ApplicationReadonly,\n                               TargetBinlogPos, BinlogStreamingStopRequested,\n                               lastSuccessfulPK, currentRow,\n                               lastSuccessfulBinlogPos, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                currentBinlogEntry, oldRecord, newRecord,\n                                chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                            SourceBinlog, ApplicationReadonly, TargetBinlogPos,\n                            BinlogStreamingStopRequested, lastSuccessfulPK,\n                            currentRow, lastSuccessfulBinlogPos,\n                            currentBinlogEntry, oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << TargetTable, ApplicationReadonly, TargetBinlogPos,\n                             BinlogStreamingStopRequested, lastSuccessfulPK,\n                             currentRow, lastSuccessfulBinlogPos,\n                             currentBinlogEntry >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                               SourceBinlog, TargetBinlogPos,\n                               BinlogStreamingStopRequested, lastSuccessfulPK,\n                               currentRow, lastSuccessfulBinlogPos,\n                               currentBinlogEntry, oldRecord, newRecord,\n                               chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable, TargetTable,\n                                SourceBinlog, ApplicationReadonly,\n                                TargetBinlogPos, BinlogStreamingStopRequested,\n                                lastSuccessfulPK, currentRow,\n                                lastSuccessfulBinlogPos, currentBinlogEntry,\n                                oldRecord, newRecord, chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                   TargetTable, SourceBinlog,\n                                   ApplicationReadonly,\n                                   BinlogStreamingStopRequested,\n                                   lastSuccessfulPK, currentRow,\n                                   lastSuccessfulBinlogPos, currentBinlogEntry,\n                                   oldRecord, newRecord,\n                                   chosenPK >>",
+    "UNCHANGED << CurrentMaxPrimaryKey, SourceTable,\n                                    TargetTable, SourceBinlog,\n                                    ApplicationReadonly, TargetBinlogPos,\n                                    lastSuccessfulPK, currentRow,\n                                    lastSuccessfulBinlogPos,\n                                    currentBinlogEntry, oldRecord, newRecord,\n                                    chosenPK >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ghostferry/ghostferry.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "SourceTargetEquality is placed in StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators; although written as an implication, both antecedent and consequent are state-level conditions.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e] forms.",
+    "UnchangedExprs_Explicit excludes scalar forms `UNCHANGED TargetTable`, `UNCHANGED currentBinlogEntry`, and `UNCHANGED CurrentMaxPrimaryKey` because the V3 split only places explicit tuple-list forms there, while UnchangedExprs_VarRef contains only tuple-variable references such as `UNCHANGED vars`.",
+    "Termination is placed in TemporalProperty because its body is `<>(\\A self \\in ProcSet: pc[self] = \"Done\")`.",
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(7) + ActionDefNames(18) = OperatorDefNames(30). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

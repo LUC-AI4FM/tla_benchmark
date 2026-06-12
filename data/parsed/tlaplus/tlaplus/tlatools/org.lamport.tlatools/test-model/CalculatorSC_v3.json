@@ -1,0 +1,182 @@
+{
+  "id": null,
+  "Specification": "This module is a driver-style TLA+ specification that invokes TLC externally to run simulation experiments for another specification, Calculator.tla, using IOUtils and TLC environment access. It defines command-line argument sequences for a baseline simulator run and for reinforcement-learning-enabled simulator runs, then uses ASSUME statements to execute those commands and report success or errors via PrintT and Print. The file does not model the calculator algorithm itself as state variables and actions; instead it orchestrates tool execution, collects the TLC revision tag, iterates over a finite set of reward values, and uses CASE distinctions on process exit codes to assert successful runs.",
+  "ModuleName": "CalculatorSC",
+  "ExtendsModules": [
+    "TLC",
+    "IOUtils",
+    "Integers",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "LET ret == IOEnvExec([R |-> -1, N |-> N], Cmd).exitValue\n    IN CASE ret =  0 -> PrintT(\"baseline\")\n         [] OTHER    -> Print(<<IOEnvExec([R |-> -1, N |-> N], Cmd), \"Error\">>, FALSE)",
+    "\\A reward \\in { -200, -100, -10, -1, 0, 1, 10, 100 }:\n    LET ret == IOEnvExec([N |-> N, R |-> reward], RLCmd).exitValue\n    IN CASE ret =  0 -> PrintT(reward)\n         [] OTHER    -> Print(<<reward, IOEnvExec([N |-> N, R |-> reward], RLCmd), \"Error\">>, FALSE)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "N",
+    "B",
+    "Cmd",
+    "RLCmd"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "absolutePathOfTLC",
+    "ret"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [
+    "CASE ret = 0 -> PrintT(\"baseline\") [] OTHER -> Print(<<IOEnvExec([R |-> -1, N |-> N], Cmd), \"Error\">>, FALSE)",
+    "CASE ret = 0 -> PrintT(reward) [] OTHER -> Print(<<reward, IOEnvExec([N |-> N, R |-> reward], RLCmd), \"Error\">>, FALSE)"
+  ],
+  "SetEnumeration": [
+    "{ -200, -100, -10, -1, 0, 1, 10, 100 }"
+  ],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "TLCGet(\"revision\")",
+    "TLCGet(\"config\")",
+    "IOEnvExec([R |-> -1, N |-> N], Cmd)",
+    "PrintT(\"baseline\")",
+    "Print(<<IOEnvExec([R |-> -1, N |-> N], Cmd), \"Error\">>, FALSE)",
+    "IOEnvExec([N |-> N, R |-> reward], RLCmd)",
+    "PrintT(reward)",
+    "Print(<<reward, IOEnvExec([N |-> N, R |-> reward], RLCmd), \"Error\">>, FALSE)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[R |-> -1, N |-> N]",
+    "[N |-> N, R |-> reward]"
+  ],
+  "RecordAccess": [
+    "TLCGet(\"revision\").tag",
+    "TLCGet(\"config\").install",
+    "IOEnvExec([R |-> -1, N |-> N], Cmd).exitValue",
+    "IOEnvExec([N |-> N, R |-> reward], RLCmd).exitValue"
+  ],
+  "TupleConstructor": [
+    "<<\"-simulate\", \"num=25000\", \"-depth\", \"1000\">>",
+    "<<\"java\", \n          \"-Dtlc2.tool.Simulator.extendedStatistics=true\",\n          \"-Dtlc2.tool.Simulator.extendedStatistics.naive=true\",\n          \"-cp\",\n          absolutePathOfTLC,\n          \"tlc2.TLC\",\n          \"-noTE\",\n          \"-fp\", \"0\", \"-seed\", \"0\",\n          \"-config\", \"Calculator.cfg\",\n          \"Calculator.tla\">>",
+    "<<IOEnvExec([R |-> -1, N |-> N], Cmd), \"Error\">>",
+    "<<\"java\", \n            \"-Dtlc2.tool.Simulator.rl=true\",\n            \"-Dtlc2.tool.Simulator.extendedStatistics=true\",\n            \"-Dtlc2.tool.Simulator.extendedStatistics.naive=true\",\n            \"-cp\",\n            absolutePathOfTLC,\n            \"tlc2.TLC\",\n            \"-noTE\",\n            \"-fp\", \"0\", \"-seed\", \"0\",\n            \"-config\", \"Calculator.cfg\",\n            \"Calculator.tla\">>",
+    "<<reward, IOEnvExec([N |-> N, R |-> reward], RLCmd), \"Error\">>"
+  ],
+  "SequenceOps": [
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "revision",
+    "tag",
+    "-simulate",
+    "num=25000",
+    "-depth",
+    "1000",
+    "config",
+    "install",
+    "java",
+    "-Dtlc2.tool.Simulator.extendedStatistics=true",
+    "-Dtlc2.tool.Simulator.extendedStatistics.naive=true",
+    "-cp",
+    "tlc2.TLC",
+    "-noTE",
+    "-fp",
+    "0",
+    "-seed",
+    "-config",
+    "Calculator.cfg",
+    "Calculator.tla",
+    "baseline",
+    "Error",
+    "-Dtlc2.tool.Simulator.rl=true"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME",
+    "CASE"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and preserved values [\"absolutePathOfTLC\", \"ret\"] | Reason: high-risk field name must be LetInNames per verification requirements\nField: CaseExpr | Change: removed non-verbatim context suffixes \"(in ASSUME baseline block)\" and \"(in ASSUME reward block)\" | Reason: values must appear in the TLA+ file; those annotations do not exist verbatim\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 4, JSON count = 4 | Reason: completeness check passed\nField: PrimedVariables | Change: confirmed empty | Reason: no primed variables appear anywhere in the file\nField: UnchangedExprs | Change: confirmed empty | Reason: no UNCHANGED expressions appear in the file\nField: FunctionOverride | Change: confirmed empty | Reason: no [f EXCEPT ![e] = v] forms appear in the file\nField: StringLiterals | Change: confirmed existing entries only | Reason: all double-quoted strings in the file are represented; no extras found\nField: AlwaysOp | Change: confirmed empty | Reason: no temporal formulas with outermost [] appear in the file\nField: EventuallyOp | Change: confirmed empty | Reason: no temporal formulas with outermost <> appear in the file\nField: LeadsToOp | Change: confirmed empty | Reason: no temporal formulas with outermost ~> appear in the file\nField: GuaranteesOp | Change: confirmed empty | Reason: no temporal formulas with outermost -+-> appear in the file\nField: ActionComposition | Change: confirmed empty | Reason: no A \\\\cdot B action composition expressions appear in the file\nField: AssumptionNames | Change: verified both ASSUME blocks present and correctly separated | Reason: completeness check passed for all ASSUME blocks\nField: LocalOperatorNames | Change: confirmed empty | Reason: no parametric LET-local operator definitions appear in the file\nField: IfThenElse | Change: confirmed empty | Reason: no IF THEN ELSE expressions appear in the file\nField: RecordAccess | Change: verified all entries appear verbatim in the file | Reason: correctness check passed\nField: FairnessConditions | Change: confirmed empty | Reason: no WF/SF expressions appear in Spec or Spec0, and no such operators exist here",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "N",
+    "B",
+    "Cmd",
+    "RLCmd"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/CalculatorSC/CalculatorSC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(4) + ActionDefNames(0) = OperatorDefNames(4). Verified.",
+    "All OperatorDefNames are placed in ValueDef by elimination: N returns the TLC revision tag, B is a tuple of simulator arguments, and Cmd and RLCmd compute command-line sequences via LET/IN and sequence concatenation; none are actions, state predicates, init predicates, or temporal properties.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are absent, so there are no [x \\in S |-> e] forms and no [S -> T] forms to partition.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

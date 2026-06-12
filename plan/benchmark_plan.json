@@ -1,0 +1,166 @@
+{
+  "project": "TLA-Bench: An Execution-Grounded Benchmark and Counterexample-Guided Training Method for TLA+ Specification Generation by LLMs",
+  "last_updated": "2026-06-12",
+  "note": "Dataset construction is INTENTIONALLY EXCLUDED from this plan -- it is being finalized interactively. This plan covers everything downstream of the locked dataset.",
+
+  "goal": "Publish at a top-tier venue. Three live targets, same core work, different framing: AAAI (neuro-symbolic / automated-reasoning framing -- arguably the most natural home), ICLR/ICML (method / empirical-finding framing), NeurIPS Datasets & Benchmarks (artifact framing, fallback).",
+
+  "thesis": "A model checker is a uniquely rich oracle for LLMs. Its VERDICT (pass/fail via TLC) powers an execution-grounded benchmark; its COUNTEREXAMPLE (a concrete failing trace) powers a training method. Counterexample-guided training closes the formal-specification gap, especially on the temporal properties (liveness/fairness) where models fail most. One verifier, two uses -> a unified paper, not two stapled halves.",
+
+  "contributions": [
+    "C1 Benchmark: first execution-grounded TLA+ generation benchmark (SANY parse + TLC model-check as ground-truth oracle), two tracks, contamination-controlled.",
+    "C2 Finding: strong LLMs largely cannot produce valid/correct TLA+; plus a CONSTRUCT-LEVEL failure map (which TLA+ constructs they fail on: liveness, fairness, temporal, PlusCal).",
+    "C3 Method (the novelty bet): counterexample-guided training -- feed TLC's failing trace back as structured feedback (CEGIS-style), not just the binary verdict. Distinct from RLVR / DeepSeek-Prover / unit-test RL, which only have pass/fail.",
+    "C4 Analysis (supporting, keep tight): hivemind failure-correlation -- are model failures complementary? Do small ensembles rival large models?"
+  ],
+
+  "novelty_caveat": "Plain 'verifier-grounded DPO for TLA+' is INCREMENTAL (RLVR / proof-checker-feedback applied to a new domain). The genuine novelty is exploiting the model checker's COUNTEREXAMPLE TRACE. src/preference_generator.py currently discards the counterexample (binary pass/fail only) -- that is the gap to fill.",
+
+  "tracks": {
+    "A_translation": "declarative description -> TLA+ spec. Exact behavioral grading (generated spec must SANY-parse and TLC-pass against the gold cfg). Gradeable NOW. Tests TLA+ fluency.",
+    "B_design": "intent description -> TLA+ spec. Property-satisfaction grading (generated spec must satisfy the gold cfg's invariants/liveness, NOT match the gold text). Harder, deferred to Phase 3. Tests modeling ability."
+  },
+
+  "grading": "Execution-based via tla2tools.jar (SANY + TLC). Primary metric: unbiased pass@k (src/analyze_results.py). Secondary: structural F1 over parsed-JSON construct fields; surface similarity (contamination signal). Report with bootstrap CIs. NEVER text-similarity as headline.",
+
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Baseline run (Track A) -- THE UNBLOCKER",
+      "why": "Every asset exists to produce these numbers. Cannot design the paper story until we see where models fail. Also gates whether Track B / the method are worth running (if no model clears the syntax bar, Track B is uniformly ~0%).",
+      "steps": [
+        "1.1 Wire a clean Track-A runner: description -> model (runner.py) -> extract TLA -> SANY+TLC grade (validator.py) on gold_system + silver_system (SANY-only where no cfg).",
+        "1.2 Run a representative ~5-model sweep first: span small->large (e.g. llama3.2-3b -> llama3.3-70b/qwen3-235b), reasoning (deepseek-r1) vs code-specialized (qwen2.5-coder), plus chattla base.",
+        "1.3 Analyze with analyze_results.py: pass@k by model x tier x system/utility; bootstrap CIs.",
+        "1.4 Build the CONSTRUCT-LEVEL FAILURE MAP: correlate failures with parsed-JSON construct fields (liveness, fairness, temporal, PlusCal, proofs). This is a differentiating analysis."
+      ],
+      "deliverable": "Scores table + construct-level failure map. The capability-gap headline.",
+      "status": "next",
+      "existing_assets": ["src/runner.py", "src/validator.py", "src/analyze_results.py", "scripts/roundtrip_fidelity.py"]
+    },
+    {
+      "phase": 2,
+      "name": "Counterexample-guided method + GO/NO-GO ablation",
+      "why": "The novelty bet. Its result decides ICLR-main (strong delta) vs NeurIPS-D&B (weak delta). Build EARLY before over-investing.",
+      "steps": [
+        "2.1 Capture TLC counterexamples: extend the harness to save the failing trace (TLC already emits it; corpus_health/review_triage parse it partially).",
+        "2.2 Counterexample-feedback loop: on a failing generation, feed the trace back ('your spec allows this bad behavior: <trace>') and have the model repair; collect (prompt, chosen=gold, rejected=fail, counterexample) tuples.",
+        "2.3 Train: SFT then DPO (src/sft_trainer.py, src/dpo_trainer.py). 'Chosen' MUST come from cleaned GOLD set; reuse copy_dependencies (roundtrip_fidelity.py) to actually verify chosen (fixes preference_generator.py's current chosen_passes_tlc=False gap).",
+        "2.4 GO/NO-GO ABLATION: counterexample-guided training vs verdict-only DPO. Clear+significant delta -> Path B is real (ICLR main). Small delta -> pivot to benchmark-only (NeurIPS D&B)."
+      ],
+      "deliverable": "Ablation number (counterexample-guided vs verdict-only). The venue-deciding result.",
+      "status": "pending phase 1",
+      "go_no_go": true,
+      "existing_assets": ["src/preference_generator.py", "src/sft_trainer.py", "src/dpo_trainer.py"]
+    },
+    {
+      "phase": 3,
+      "name": "Contamination experiment -- THE PUBLICATION GATE",
+      "why": "Specs are public GitHub + LLM-written descriptions => high memorization risk. Reviewers WILL attack this. Turn it into a contribution.",
+      "steps": [
+        "3.1 MEASURE: verbatim-reproduction rate (surface_similarity already logged by roundtrip_fidelity.py).",
+        "3.2 MITIGATE via semantic perturbation: rename modules/constants/variables + re-bind cfg so a memorized regurgitation fails SANY/TLC but a CORRECT derivation still passes. Re-run baselines.",
+        "3.3 (Optional) post-cutoff held-out set: scrape repos newer than model cutoffs through the same pipeline.",
+        "3.4 Report the contaminated-vs-perturbed GAP -- itself a headline result and a reusable method for contamination-resistant evaluation in formal domains."
+      ],
+      "deliverable": "Contaminated vs perturbed performance gap. Validity argument for the whole benchmark.",
+      "status": "pending",
+      "existing_assets": ["scripts/roundtrip_fidelity.py (surface_similarity)"]
+    },
+    {
+      "phase": 4,
+      "name": "Track B (design) grading + run",
+      "why": "Enables the translation-vs-design contrast (a sharp finding). Only meaningful once Phase 1 shows some model clears the syntax bar.",
+      "steps": [
+        "4.1 Property-based grader: check generated spec satisfies the gold cfg's INVARIANT/PROPERTY/SPECIFICATION (refinement or invariant-holds), NOT exact match.",
+        "4.2 Run Track B (intent descriptions) across the models that cleared Phase-1 syntax bar; reasoning models spotlighted.",
+        "4.3 Report translation (A) vs design (B) gap."
+      ],
+      "deliverable": "Track-A-vs-Track-B gap. 'Models transcribe but cannot design.'",
+      "status": "pending phase 1"
+    },
+    {
+      "phase": 5,
+      "name": "Splits, human descriptions, full results",
+      "steps": [
+        "5.1 Train/test split BY REPOSITORY/STEM (not random) so spec variants do not leak across train/test. Current data/test_split.json predates cleaning -- redo.",
+        "5.2 Human-verified description subset (50-100): counters 'LLM-written descriptions favor LLMs'. Report human-vs-LLM-description performance.",
+        "5.3 Full baseline sweep (all models) + the fine-tuned chattla result; hivemind diversity analysis (keep tight, supporting)."
+      ],
+      "deliverable": "Final results tables + figures."
+    },
+    {
+      "phase": 6,
+      "name": "Paper writing + artifact release",
+      "steps": [
+        "6.1 Standardize + document the pipeline (data/dataset_manifest README, per-artifact schema, reproduction steps) -- a METHODS contribution showing rigor.",
+        "6.2 Reporting must-haves: separate system vs utility; per-tier; macro-average per repo (tlaplus+apalache dominate counts); gold (SANY+TLC) vs silver (SANY-only) explicitly distinguished.",
+        "6.3 Release: benchmark + harness + leaderboard format + model checkpoints."
+      ]
+    }
+  ],
+
+  "go_no_go_decisions": [
+    {"id": "GNG-1", "when": "after Phase 1", "question": "Does ANY model clear the syntax bar (produce valid TLA+ at a non-trivial rate)?", "yes": "proceed to Track B + method", "no": "Track B is uninformative (~0%); focus benchmark + capability-gap finding (NeurIPS D&B)"},
+    {"id": "GNG-2", "when": "after Phase 2", "question": "Counterexample-guided > verdict-only DPO by a clear, significant margin?", "yes": "method-led paper: ICLR/ICML main OR AAAI (method + neuro-symbolic framing)", "no": "benchmark/neuro-symbolic-led paper: AAAI (formal-methods framing) OR NeurIPS D&B -- AAAI still viable because its novelty bar is broader than ICLR/ICML"}
+  ],
+
+  "risks": [
+    {"risk": "Contamination", "severity": "make-or-break", "mitigation": "Phase 3 perturbation; report the gap as a result"},
+    {"risk": "Method is incremental", "severity": "high", "mitigation": "lead with COUNTEREXAMPLE-guided (uses the trace), not plain verifier-DPO; prove via GNG-2 ablation"},
+    {"risk": "TLA+ seen as niche", "severity": "medium at ICLR/ICML, LOW at AAAI", "mitigation": "frame as a REASONING / neuro-symbolic benchmark; cite production use (AWS, Azure, MongoDB); AAAI's formal-methods community treats this as a strength, not a liability -- a reason to prefer AAAI"},
+    {"risk": "LLM-written descriptions favor LLMs", "severity": "medium", "mitigation": "human-verified subset (5.2) + cross-model faithfulness vote (done)"},
+    {"risk": "Dataset size", "severity": "low-medium", "mitigation": "quality over quantity; every spec verified + vote-classified; report construction pipeline as methods contribution"}
+  ],
+
+  "venue_strategy": {
+    "principle": "ONE core artifact + method; the FRAMING shifts per venue. Build venue-agnostic; choose target after GNG-2.",
+    "targets": {
+      "AAAI": {
+        "fit": "Strong / possibly most natural. Neuro-symbolic AI + automated reasoning + formal verification are core AAAI topics; CEGIS lineage is recognized and valued; 'niche TLA+' risk is LOW here.",
+        "frame_as": "A neuro-symbolic system where a formal verifier (model checker) is integrated into LLM training and evaluation. Emphasize: verifier-in-the-loop reasoning, counterexample-guided learning (CEGIS x LLMs), and real-world verification relevance.",
+        "lead_contribution": "C3 (counterexample-guided neuro-symbolic method) + C1 (benchmark) as the substrate.",
+        "novelty_bar": "Interesting AI contribution broadly; rigorous eval. Lands even if GNG-2 delta is modest.",
+        "tracks_note": "Main Technical Track (AI for software/verification, ML, KR&R, neuro-symbolic). Check current AAAI deadline/cycle."
+      },
+      "ICLR_ICML": {
+        "fit": "Reachable only if GNG-2 shows a real, significant counterexample-guided delta.",
+        "frame_as": "A novel training method (counterexample-guided preference optimization) with the benchmark as the testbed; empirical-finding-forward.",
+        "lead_contribution": "C3 as a method paper; C2 (capability gap + construct map) as the finding.",
+        "novelty_bar": "High -- needs the method to beat verdict-only DPO (GNG-2)."
+      },
+      "NeurIPS_DandB": {
+        "fit": "Safe fallback. Artifact-first; rewards rigor + documentation.",
+        "frame_as": "The execution-grounded benchmark + capability-gap finding; training as a supporting 'what helps' section.",
+        "lead_contribution": "C1 + C2.",
+        "novelty_bar": "Lower on method; high on rigor/utility/contamination story."
+      }
+    },
+    "decision_point": "After GNG-2: strong method delta -> ICLR/ICML or AAAI (method-led); modest delta -> AAAI (neuro-symbolic/benchmark-led) or NeurIPS D&B.",
+    "recommendation": "Default to AAAI as primary unless GNG-2 delta is large enough to justify the higher ICLR/ICML novelty bar. AAAI gives the best fit-to-risk ratio for formal-methods + LLM work."
+  },
+
+  "budget": {
+    "anthropic_claude": "funded; ~$3.20 used (description generation). Sonnet 4.6.",
+    "openai_gpt": "credit balance EXHAUSTED (insufficient_quota). GPT-intent for silver/454 blocked until topped up. GPT declarative (original) already exists.",
+    "local_models": "free -- all classification, voting, faithfulness, and baseline generation run on local Ollama fleet (llama3.3:70b, qwen2.5-coder:32b, gpt-oss:120b, deepseek-r1 family, chattla checkpoints, qwen3-235b, etc.)"
+  },
+
+  "existing_infrastructure": {
+    "scripts/corpus_health.py": "SANY/TLC sweep over corpus",
+    "scripts/review_triage.py": "strict cfg-matching + TLC error classification",
+    "scripts/classify_specs.py": "reusable N-model voting engine (system/utility; any judgment task via prompt swap)",
+    "scripts/generate_descriptions.py": "Claude + GPT, declarative + intent description generation",
+    "scripts/faithfulness_vote.py": "cross-model description-agreement vote (GPT vs Claude, 3 local judges)",
+    "scripts/roundtrip_fidelity.py": "description -> spec -> SANY/TLC grading; dependency resolution (copy_dependencies)",
+    "src/runner.py": "model calls (openai/anthropic/google/ollama backends)",
+    "src/validator.py": "SANY + TLC runners",
+    "src/analyze_results.py": "unbiased pass@k, bootstrap CIs, error taxonomy, figures, wandb",
+    "src/preference_generator.py": "execution-grounded DPO pairs (tier1=SANY-pass+TLC-fail, tier2=SANY-fail) -- TO EXTEND with counterexamples",
+    "src/sft_trainer.py / src/dpo_trainer.py": "SFT + DPO training (chattla checkpoints)",
+    "src/hivemind.py": "failure-correlation analysis",
+    "src/code_quality_metrics.py": "CodeBLEU / cyclomatic / Halstead (secondary metrics)"
+  },
+
+  "immediate_next_action": "Phase 1.1-1.2: wire the Track-A runner and run a representative ~5-model sweep on the system core to get the first real scores + the gate decision GNG-1."
+}

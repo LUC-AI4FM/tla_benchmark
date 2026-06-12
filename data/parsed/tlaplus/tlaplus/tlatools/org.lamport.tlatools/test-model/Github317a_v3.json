@@ -1,0 +1,310 @@
+{
+  "id": null,
+  "Specification": "This specification models a distributed breadth-first spanning tree construction over a fixed undirected graph rooted at root. The graph is defined by a constant node set and edge set, with recursive operators for reachability and distance, and then a PlusCal algorithm translated into TLA+ where each node process updates message queues, parent pointers, depths, and acknowledgment state. The temporal specification requires initialization, next-state evolution, and weak fairness for each node process, and it checks type correctness, a conditional correctness property relating computed depths and parents to graph distance from the root, and eventual termination when all message queues are empty.",
+  "ModuleName": "Github317a",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "ro",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5"
+  ],
+  "VariableNames": [
+    "msgs",
+    "depth",
+    "parent",
+    "acked"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A e \\in Edges : (e \\subseteq Nodes) /\\ HasTwoElts(e)\n       /\\ root \\in Nodes\n       /\\ MaxNodes >= Cardinality(Nodes)",
+    "ReachableFrom({root}) = Nodes"
+  ],
+  "TheoremNames": [
+    "\\A S \\in SUBSET Nodes : EReachableFrom(S, {}) = ReachableFrom(S)",
+    "\\A n \\in Nodes, S \\in (SUBSET Nodes) \\ {{}} : \n         EDistanceFrom(n, S, {}) = DistanceFrom(n, S)"
+  ],
+  "OperatorDefNames": [
+    "Nodes",
+    "root",
+    "Edges",
+    "MaxNodes",
+    "HasTwoElts",
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "DistanceFrom",
+    "EReachableFrom",
+    "EDistanceFrom",
+    "Dist",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "NodePs",
+    "vars",
+    "ProcSet",
+    "Init",
+    "nd",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "Termination",
+    "Correctness",
+    "Prop"
+  ],
+  "ActionDefNames": [
+    "nd",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ReachableFrom",
+    "DistanceFrom",
+    "EReachableFrom",
+    "EDistanceFrom"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "R"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF R \\subseteq S THEN S ELSE ReachableFrom(R \\cup S)",
+    "IF n \\in S THEN 0 ELSE 1 + DistanceFrom(n, S \\cup SetNbrs(S))",
+    "IF R = {} THEN S ELSE EReachableFrom(R, R \\cup S)",
+    "IF n \\in Bdry THEN 0 ELSE 1 + EDistanceFrom(n, R, S \\cup R)",
+    "IF q[1] = root THEN <<0>> ELSE << >>",
+    "IF self[1] = root THEN 0 ELSE MaxNodes",
+    "IF self[1] = <<root>> THEN FALSE ELSE TRUE",
+    "IF Head(msgs[q]) < depth[self] - 1\n                 THEN /\\ depth' = [depth EXCEPT ![self] = Head(msgs[q]) + 1]\n                      /\\ parent' = [parent EXCEPT ![self] = q[1]]\n                      /\\ msgs' = [r \\in Queues |->\n                                   IF r = q\n                                     THEN Tail(msgs[q])\n                                     ELSE IF r \\in QueuesFrom(self[1]) \\ {<<self[1], q[1]>>}\n                                            THEN Append(msgs[r], depth'[self])\n                                            ELSE msgs[r] ]\n                      /\\ acked' = [acked EXCEPT ![self] = [b \\in Nbrs(self[1]) |-> b /= q[1]]]\n                 ELSE /\\ msgs' = [msgs EXCEPT ![q] = Tail(msgs[q])]\n                      /\\ IF Head(msgs'[q]) =< depth[self]+1\n                            THEN /\\ acked' = [acked EXCEPT ![self][q[1]] = TRUE]\n                            ELSE /\\ TRUE\n                                 /\\ acked' = acked\n                      /\\ UNCHANGED << depth, parent >>",
+    "IF r = q\n                                     THEN Tail(msgs[q])\n                                     ELSE IF r \\in QueuesFrom(self[1]) \\ {<<self[1], q[1]>>}\n                                            THEN Append(msgs[r], depth'[self])\n                                            ELSE msgs[r]",
+    "IF r \\in QueuesFrom(self[1]) \\ {<<self[1], q[1]>>}\n                                            THEN Append(msgs[r], depth'[self])\n                                            ELSE msgs[r]",
+    "IF Head(msgs'[q]) =< depth[self]+1\n                            THEN /\\ acked' = [acked EXCEPT ![self][q[1]] = TRUE]\n                            ELSE /\\ TRUE\n                                 /\\ acked' = acked"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ro, n1, n2, n3, n4, n5}",
+    "{{ro,n1}, {ro,n2}, {n1,n3}, {n2,n3}, {n3,n4}, {n3,n5}}",
+    "{a,b}",
+    "{}",
+    "{{}}",
+    "{<<self[1], q[1]>>}",
+    "{root}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[q \\in Queues |-> IF q[1] = root THEN <<0>> ELSE << >>]",
+    "[self \\in NodePs |-> IF self[1] = root THEN 0 ELSE MaxNodes]",
+    "[self \\in NodePs |-> self[1]]",
+    "[self \\in NodePs |-> [n \\in Nbrs(self[1]) |-> IF self[1] = <<root>> THEN FALSE ELSE TRUE]]",
+    "[n \\in Nbrs(self[1]) |-> IF self[1] = <<root>> THEN FALSE ELSE TRUE]",
+    "[r \\in Queues |->\n                                   IF r = q\n                                     THEN Tail(msgs[q])\n                                     ELSE IF r \\in QueuesFrom(self[1]) \\ {<<self[1], q[1]>>}\n                                            THEN Append(msgs[r], depth'[self])\n                                            ELSE msgs[r] ]",
+    "[b \\in Nbrs(self[1]) |-> b /= q[1]]",
+    "[NodePs -> 0..MaxNodes]",
+    "[NodePs -> Nodes]",
+    "[Queues -> Seq(0..(Cardinality(Nodes)-1))]"
+  ],
+  "FunctionApplication": [
+    "q[1]",
+    "self[1]",
+    "msgs[r]",
+    "msgs[q]",
+    "depth[self]",
+    "depth'[self]",
+    "msgs'[q]",
+    "depth[<<n>>]",
+    "parent[<<n>>]"
+  ],
+  "FunctionOverride": [
+    "[depth EXCEPT ![self] = Head(msgs[q]) + 1]",
+    "[parent EXCEPT ![self] = q[1]]",
+    "[acked EXCEPT ![self] = [b \\in Nbrs(self[1]) |-> b /= q[1]]]",
+    "[msgs EXCEPT ![q] = Tail(msgs[q])]",
+    "[acked EXCEPT ![self][q[1]] = TRUE]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<n, m>>",
+    "<<m, n>>",
+    "<<n>>",
+    "<<0>>",
+    "<< >>",
+    "<<root>>",
+    "<< msgs, depth, parent, acked >>",
+    "<<self[1], q[1]>>",
+    "<< depth, parent >>",
+    "<<parent[<<n>>]>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Head",
+    "Tail",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">=",
+    "=<"
+  ],
+  "RangeExpr": [
+    "0..MaxNodes",
+    "0..(Cardinality(Nodes)-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "depth",
+    "parent",
+    "msgs",
+    "acked"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(nd(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>Termination"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(nd(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "MinSpanningTree"
+  ],
+  "PlusCalProcesses": [
+    "fair process (nd \\in NodePs)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count remains 26 | Reason: top-level `==` definition count in file is 26 and JSON count matches exactly\nField: NamesInLet | Change: renamed field to `LetInNames` and kept value `R` | Reason: prompt specifies `LetInNames`; `R` is LET-bound and not a top-level operator\nField: IfThenElse | Change: removed annotation suffixes like `(in ReachableFrom)` and replaced entries with expressions appearing in the file verbatim | Reason: field values must appear in the TLA+ file; annotated variants do not\nField: IfThenElse | Change: corrected `R\\\\cup S` to `R \\\\cup S` in EReachableFrom entry | Reason: exact file text uses a space and this distinct expression should match verbatim\nField: SetOperators | Change: removed `DOMAIN` | Reason: `DOMAIN` does not appear anywhere in the file\nField: FunctionApplication | Change: removed `acked[q[1]]` | Reason: this expression does not appear verbatim in the file\nField: FunctionApplication | Change: added `depth'[self]` | Reason: this primed function application appears in `nd`\nField: FunctionApplication | Change: added `msgs'[q]` | Reason: this primed function application appears in `nd`\nField: SequenceOps | Change: removed `Len` | Reason: `Len` does not appear anywhere in the file\nField: FairnessConditions | Change: replaced `\\\\A self \\\\in NodePs : WF_vars(nd(self))` with `WF_vars(nd(self))` | Reason: field must contain only WF/SF expressions from inside `Spec`, not surrounding quantifier context",
+  "OperatorDefNames_StatePredicate": [
+    "HasTwoElts",
+    "TypeOK",
+    "Termination",
+    "Correctness"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Prop"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nodes",
+    "root",
+    "Edges",
+    "MaxNodes",
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "DistanceFrom",
+    "EReachableFrom",
+    "EDistanceFrom",
+    "Dist",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "NodePs",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[q \\in Queues |-> IF q[1] = root THEN <<0>> ELSE << >>]",
+    "[self \\in NodePs |-> IF self[1] = root THEN 0 ELSE MaxNodes]",
+    "[self \\in NodePs |-> self[1]]",
+    "[self \\in NodePs |-> [n \\in Nbrs(self[1]) |-> IF self[1] = <<root>> THEN FALSE ELSE TRUE]]",
+    "[n \\in Nbrs(self[1]) |-> IF self[1] = <<root>> THEN FALSE ELSE TRUE]",
+    "[r \\in Queues |->\n                                   IF r = q\n                                     THEN Tail(msgs[q])\n                                     ELSE IF r \\in QueuesFrom(self[1]) \\ {<<self[1], q[1]>>}\n                                            THEN Append(msgs[r], depth'[self])\n                                            ELSE msgs[r] ]",
+    "[b \\in Nbrs(self[1]) |-> b /= q[1]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[NodePs -> 0..MaxNodes]",
+    "[NodePs -> Nodes]",
+    "[Queues -> Seq(0..(Cardinality(Nodes)-1))]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Github317a/Github317a.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(17) + ActionDefNames(2) = OperatorDefNames(26). Verified.",
+    "Correctness is placed in StatePredicate because it is Boolean-valued and contains no primed variables and no temporal operators; its implication is purely state-level (Termination => ...), not temporal.",
+    "Prop is placed in TemporalProperty because its body is <>Termination.",
+    "All non-action operators not classified as Init, StatePredicate, or TemporalProperty are placed in ValueDef by elimination; these are value-computing sets, constants, helper functions, recursive reachability/distance functions, and structural tuple definitions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

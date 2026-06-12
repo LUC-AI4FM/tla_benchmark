@@ -1,0 +1,223 @@
+{
+  "id": null,
+  "Specification": "This specification models attacker isolation at a full node after it receives evidence from a light client about conflicting blocks. It assumes a Tendermint-like setting with unit voting power per validator, a trusted common height, a conflicting height, and a violated security model in which Byzantine validators may have signed a conflicting block. The spec initializes an arbitrary blockchain and conflicting evidence, then classifies the attack into Lunatic, Equivocation, or Amnesia cases and computes a set of attackers; it checks invariants asserting that the detected attackers have more than one third of the voting power and that all detected attackers are faulty.",
+  "ModuleName": "Isolation_001_draft",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Apalache"
+  ],
+  "InstanceModules": [
+    "Blockchain_003_draft",
+    "LCVerificationApi_003_draft"
+  ],
+  "InstanceSubstitutions": [
+    "localClock <- refClock",
+    "REAL_CLOCK_DRIFT <- 0",
+    "CLOCK_DRIFT <- 0"
+  ],
+  "ConstantNames": [
+    "AllNodes",
+    "COMMON_HEIGHT",
+    "CONFLICT_HEIGHT",
+    "TRUSTING_PERIOD",
+    "FAULTY_RATIO"
+  ],
+  "VariableNames": [
+    "blockchain",
+    "refClock",
+    "Faulty",
+    "conflictingBlock",
+    "state",
+    "attackers"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "ULTIMATE_HEIGHT",
+    "BC",
+    "TRUSTING_HEIGHT",
+    "TARGET_HEIGHT",
+    "LC",
+    "a <: b",
+    "ViolatesValidity",
+    "Init",
+    "Next",
+    "DetectionCompleteness",
+    "DetectionAccuracy"
+  ],
+  "ActionDefNames": [
+    "Init",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "conflicting",
+    "refBlock",
+    "reference",
+    "referenceCommit",
+    "evidenceHeader",
+    "evidenceCommit"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ViolatesValidity(reference, evidenceHeader) THEN /\\ attackers' := blockchain[COMMON_HEIGHT].NextVS \\intersect evidenceCommit /\\ state' := \"Lunatic\" ELSE IF referenceRound = evidenceRound THEN /\\ attackers' := referenceCommit \\intersect evidenceCommit /\\ state' := \"Equivocation\" ELSE /\\ state' := \"Amnesia\" /\\ \\E Attackers \\in SUBSET (Faulty \\intersect reference.VS): /\\ 3 * Cardinality(Attackers) > Cardinality(reference.VS) /\\ attackers' := Attackers",
+    "IF referenceRound = evidenceRound THEN /\\ attackers' := referenceCommit \\intersect evidenceCommit /\\ state' := \"Equivocation\" ELSE /\\ state' := \"Amnesia\" /\\ \\E Attackers \\in SUBSET (Faulty \\intersect reference.VS): /\\ 3 * Cardinality(Attackers) > Cardinality(reference.VS) /\\ attackers' := Attackers"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\intersect",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "blockchain[COMMON_HEIGHT]",
+    "blockchain[COMMON_HEIGHT + 1]",
+    "blockchain[CONFLICT_HEIGHT]",
+    "blockchain[CONFLICT_HEIGHT + 1]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[ Commits |-> Commits, header |-> [height |-> CONFLICT_HEIGHT, time |-> time, VS |-> VS, NextVS |-> NextVS, lastCommit |-> lastCommit] ]",
+    "[height |-> CONFLICT_HEIGHT, time |-> time, VS |-> VS, NextVS |-> NextVS, lastCommit |-> lastCommit]",
+    "[ header |-> blockchain[COMMON_HEIGHT], Commits |-> blockchain[COMMON_HEIGHT + 1].lastCommit ]"
+  ],
+  "RecordAccess": [
+    "header1.VS",
+    "header2.VS",
+    "header1.NextVS",
+    "header2.NextVS",
+    "header1.height",
+    "header2.height",
+    "header1.time",
+    "header2.time",
+    "refBlock.header.NextVS",
+    "conflicting.header",
+    "refBlock.header",
+    "conflicting.Commits",
+    "blockchain[COMMON_HEIGHT + 1].lastCommit",
+    "conflictingBlock.header",
+    "conflictingBlock.Commits",
+    "reference.VS",
+    "blockchain[CONFLICT_HEIGHT].VS"
+  ],
+  "TupleConstructor": [
+    "<<blockchain, refClock, Faulty, conflictingBlock, state>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "*"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "init",
+    "SUCCESS",
+    "Lunatic",
+    "Equivocation",
+    "Amnesia"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "attackers",
+    "state",
+    "blockchain",
+    "refClock",
+    "Faulty",
+    "conflictingBlock"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained entries | Reason: field name must match required schema; file contains six LET-bound names and no local operator definitions\nField: IfThenElse | Change: replaced informal paraphrases using `and choose Attackers (in Next)` with verbatim TLA+ conditional expressions using `/\\\\` and quantifier text | Reason: JSON values must correspond to expressions that actually appear in the file; original entries did not exist verbatim and had encoding errors\nField: SetOperators | Change: retained `SUBSET` here | Reason: `SUBSET` belongs in `SetOperators`, not `FiniteSetOps`; V1 already had correct placement\nField: BooleanConstants | Change: confirmed empty | Reason: file contains no `TRUE` or `FALSE`\nField: AssumptionNames | Change: confirmed empty | Reason: file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks\nField: FunctionOverride | Change: confirmed empty | Reason: file contains no `[f EXCEPT ![e] = v]` expressions\nField: UnchangedExprs | Change: confirmed empty | Reason: file contains no `UNCHANGED` expressions\nField: TemporalSubscript | Change: confirmed empty | Reason: file contains no temporal subscript formulas\nField: AlwaysOp | Change: confirmed empty | Reason: file contains no outermost `[]` temporal formulas\nField: EventuallyOp | Change: confirmed empty | Reason: file contains no outermost `<>` temporal formulas\nField: LeadsToOp | Change: confirmed empty | Reason: file contains no outermost `~>` temporal formulas\nField: GuaranteesOp | Change: confirmed empty | Reason: file contains no outermost `-+->` temporal formulas\nField: ActionComposition | Change: confirmed empty | Reason: file contains no `A \\\\cdot B` action composition expressions\nField: FairnessConditions | Change: confirmed empty | Reason: file contains no `WF` or `SF` expressions\nField: LocalOperatorNames | Change: confirmed empty | Reason: file contains LET-bound simple names only, no parametric local operator definitions\nField: RecordAccess | Change: confirmed entries as verbatim occurrences only | Reason: all retained record accesses literally appear in the file\nField: OperatorDefNames | Change: confirmed completeness and no duplicates | Reason: top-level `==` definition count in file = 12, JSON OperatorDefNames count = 12",
+  "OperatorDefNames_StatePredicate": [
+    "ViolatesValidity",
+    "DetectionCompleteness",
+    "DetectionAccuracy"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ULTIMATE_HEIGHT",
+    "BC",
+    "TRUSTING_HEIGHT",
+    "TARGET_HEIGHT",
+    "LC",
+    "a <: b"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Isolation_001_draft/Isolation_001_draft.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(0) + Init(1) + ValueDef(7) + ActionDefNames(2) = OperatorDefNames(12). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms vacuously because FunctionConstructor itself is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "ValueDef by elimination: vars, ULTIMATE_HEIGHT, BC, TRUSTING_HEIGHT, TARGET_HEIGHT, LC, and a <: b are non-action, non-temporal, non-Init operator definitions.",
+    "DetectionCompleteness is classified as a StatePredicate although it uses implication; it is Boolean-valued, contains no primed variables, and no temporal operators."
+  ]
+}

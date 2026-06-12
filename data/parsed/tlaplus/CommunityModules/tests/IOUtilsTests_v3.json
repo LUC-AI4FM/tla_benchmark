@@ -1,0 +1,188 @@
+{
+  "id": null,
+  "Specification": "This module is a collection of assumption-based tests for the IOUtils library and related TLC extensions rather than a transition-system algorithm. It validates environment-variable access through IOEnv, string-to-integer conversion with atoi, zero-padding with zeroPadN, and binary serialization/deserialization round trips for a small payload containing strings, sets, ranges, and a record. It also includes a regression-style test for deserializing a previously unseen string value, relying on comments to explain a TLC string interning bug scenario. The module contains no variables, no actions, and no temporal behavior; it uses ASSUME statements as executable checks.",
+  "ModuleName": "IOUtilsTests",
+  "ExtendsModules": [
+    "IOUtils",
+    "TLC",
+    "TLCExt",
+    "Integers"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "PrintT(\"IOUtilsTests!A\")",
+    "IOEnv.SOME_TEST_ENV_VAR = \"TLCFTW\"",
+    "IOEnv[\"SOME_TEST_ENV_VAR\"] = \"TLCFTW\"",
+    "IOEnv[\"SOME-TEST-ENV-VAR\"] = \"TLCFTW\"",
+    "LET n  == CHOOSE n \\in 0..2^16 : \\* TLC won't choose from *unbounded*  Nat  , thus restricting to 0..2^16 (which should be sufficient for most use cases).\n                              IOEnv.SOME_TEST_ENV_VAR_N23 = ToString(n)\n       IN n = 23",
+    "DOMAIN IOEnv \\subseteq STRING",
+    "\\A var \\in DOMAIN IOEnv: IOEnv[var] \\in STRING",
+    "atoi(\"1\") = 1",
+    "atoi(\"0\") = 0",
+    "atoi(\"-0\") = 0",
+    "atoi(\"-1\") = -1",
+    "AssertError(\n           \"The argument of atoi should be a string, but instead it is:\\n\\\"\\\"\", \n           atoi(\"\"))",
+    "AssertError(\n           \"The argument of atoi should be a string, but instead it is:\\n\\\"foo\\\"\", \n           atoi(\"foo\"))",
+    "AssertEq(zeroPadN(42, 5), \"00042\")",
+    "AssertEq(zeroPadN(123, 3), \"123\")",
+    "AssertEq(zeroPadN(7, 1), \"7\")",
+    "AssertEq(zeroPadN(0, 4), \"0000\")",
+    "AssertEq(zeroPadN(999, 2), \"999\")",
+    "AssertEq(zeroPadN(1000, 6), \"001000\")",
+    "AssertEq(zeroPadN(0, 1), \"0\")",
+    "PrintT(\"IOUtilsTests!B\")",
+    "/\\ IOSerialize(payloadBIN, file, FALSE)\n       /\\ LET value == IODeserialize(file, FALSE)\n          IN  value = payloadBIN",
+    "LET strValue == IODeserialize(\"tests/Hippopotomonstrosesquippedaliophobia.vos\", FALSE)\n       IN /\\ PrintT(strValue)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "file",
+    "payloadBIN"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "n",
+    "value",
+    "strValue"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"bar\"}"
+  ],
+  "SetOperators": [
+    "\\subseteq",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "IOEnv[\"SOME_TEST_ENV_VAR\"]",
+    "IOEnv[\"SOME-TEST-ENV-VAR\"]",
+    "IOEnv[var]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[x |-> 1, y |-> 2]"
+  ],
+  "RecordAccess": [
+    "IOEnv.SOME_TEST_ENV_VAR",
+    "IOEnv.SOME_TEST_ENV_VAR_N23"
+  ],
+  "TupleConstructor": [
+    "<<\n\t\"foo\",\n\t{\"bar\"},\n\t42,\n\t1..3,\n\t[x |-> 1, y |-> 2]\n>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-",
+    "^"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "0..2^16",
+    "1..3"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE n \\in 0..2^16 : \\* TLC won't choose from *unbounded*  Nat  , thus restricting to 0..2^16 (which should be sufficient for most use cases).\n                              IOEnv.SOME_TEST_ENV_VAR_N23 = ToString(n)"
+  ],
+  "StringLiterals": [
+    "IOUtilsTests!A",
+    "TLCFTW",
+    "SOME_TEST_ENV_VAR",
+    "SOME-TEST-ENV-VAR",
+    "1",
+    "0",
+    "-0",
+    "-1",
+    "The argument of atoi should be a string, but instead it is:\n\"\"",
+    "",
+    "The argument of atoi should be a string, but instead it is:\n\"foo\"",
+    "foo",
+    "00042",
+    "123",
+    "7",
+    "0000",
+    "999",
+    "001000",
+    "IOUtilsTests!B",
+    "build/tests/bin-serialize-test.vos",
+    "bar",
+    "tests/Hippopotomonstrosesquippedaliophobia.vos"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained entries `n`, `value`, `strValue` | Reason: Phase 3 requires LET-bound names to appear in `LetInNames`; `NamesInLet` is not the expected field name.\nField: StringLiterals | Change: removed `foo` entry corresponding to tuple element `\"foo\"` | Reason: the source contains `\"foo\"` only inside the commented-out text `\\* /\\ strValue = \"Hippopotomonstrosesquippedaliophobia\"`? No\u2014the actual issue is that every string literal must appear in the file, but `\"foo\"` does appear in the tuple, so this line should not remove it. Correct change is below.\nField: StringLiterals | Change: restored/kept only literals that appear in actual code; removed none except correcting prior invalid assessment | Reason: verification against file shows `\"foo\"` does appear in `payloadBIN`. Operator count verified.\nField: StringLiterals | Change: removed `\"foo\"` from prior correction attempt is itself invalid; final corrected JSON should include `\"foo\"` if strict literal extraction is desired | Reason: `\"foo\"` appears in the tuple constructor in the file.\nField: OperatorDefNames | Change: no content change; verified count matches top-level `==` definitions | Reason: file count = 2, JSON OperatorDefNames count = 2.\nField: ActionDefNames | Change: confirmed empty | Reason: module has no primed variables, no actions, and no action compositions.\nField: FunctionOverride | Change: confirmed empty | Reason: no `[f EXCEPT ![e] = v]` forms occur in the file.\nField: IfThenElse | Change: confirmed empty | Reason: no `IF THEN ELSE` expressions occur in the file.\nField: LocalOperatorNames | Change: confirmed empty | Reason: LET blocks contain only simple bindings (`n`, `value`, `strValue`), not local parametric operator definitions.\nField: RecordAccess | Change: no content change; verified verbatim entries | Reason: only `IOEnv.SOME_TEST_ENV_VAR` and `IOEnv.SOME_TEST_ENV_VAR_N23` occur as record access.\nField: AssumptionNames | Change: no content change; verified all 23 ASSUME blocks are present | Reason: every ASSUME in the file has a corresponding entry.\nField: PrimedVariables | Change: confirmed empty | Reason: no primed variable occurrences anywhere in the file.\nField: UnchangedExprs | Change: confirmed empty | Reason: no `UNCHANGED` expressions occur in the file.\nField: AlwaysOp | Change: confirmed empty | Reason: no temporal formulas with outermost `[]` occur.\nField: EventuallyOp | Change: confirmed empty | Reason: no temporal formulas with outermost `<>` occur.\nField: LeadsToOp | Change: confirmed empty | Reason: no `~>` formulas occur.\nField: GuaranteesOp | Change: confirmed empty | Reason: no `-+->` formulas occur.\nField: FairnessConditions | Change: confirmed empty | Reason: no `WF` or `SF` expressions occur in `Spec` or `Spec0` or anywhere else.",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "file",
+    "payloadBIN"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/IOUtilsTests/IOUtilsTests.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(2) + ActionDefNames(0) = OperatorDefNames(2). Verified.",
+    "All FunctionConstructor entries are [S -> T] forms because FunctionConstructor is empty.",
+    "file and payloadBIN are placed in ValueDef by elimination: both are top-level non-Boolean value definitions and the module has no actions, init predicates, or temporal properties.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

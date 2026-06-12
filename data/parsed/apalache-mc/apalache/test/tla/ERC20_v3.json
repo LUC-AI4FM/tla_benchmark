@@ -1,0 +1,277 @@
+{
+  "id": null,
+  "Specification": "This module specifies an ERC20-style token contract together with a simple model of Ethereum transaction submission and later commitment, in order to analyze behaviors around approve, transfer, and transferFrom. It models account balances, allowances, a set of pending transactions with unique identifiers, and the last executed transaction, and it focuses in particular on the classic approve/transferFrom race-style attack where a transferFrom may occur while a smaller approval is still pending. The file contains initial-state and next-state action definitions, several state invariants intended both for debugging and for checking expected safety conditions, and one trace-oriented property over sequences of states used with Apalache. The model deliberately ignores 256-bit overflow behavior and is written for model checking rather than for temporal-proof-oriented fairness reasoning.",
+  "ModuleName": "ERC20",
+  "ExtendsModules": [
+    "Integers",
+    "Apalache",
+    "Variants",
+    "ERC20_typedefs"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "ADDR",
+    "AMOUNTS",
+    "INITIAL_BALANCES"
+  ],
+  "VariableNames": [
+    "balanceOf",
+    "allowance",
+    "pendingTransactions",
+    "lastTx",
+    "nextTxId"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "None",
+    "Transfer",
+    "Approve",
+    "TransferFrom",
+    "Init",
+    "SubmitTransfer",
+    "CommitTransfer",
+    "SubmitTransferFrom",
+    "CommitTransferFrom",
+    "SubmitApprove",
+    "CommitApprove",
+    "Next",
+    "NoTransferFrom",
+    "NoApprove",
+    "NoTransferFromWhileApproveInFlight",
+    "NoNegativeBalances",
+    "NoTransferAboveApproved",
+    "Full"
+  ],
+  "ActionDefNames": [
+    "SubmitTransfer",
+    "CommitTransfer",
+    "SubmitTransferFrom",
+    "CommitTransferFrom",
+    "SubmitApprove",
+    "CommitApprove",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Add"
+  ],
+  "NamesInLet": [
+    "newTx",
+    "fail",
+    "Example",
+    "BadExample",
+    "TransferIndices",
+    "tx",
+    "sumTransfers",
+    "existsApprovalForSumInPast",
+    "tx_i"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF fail THEN UNCHANGED <<balanceOf, allowance, nextTxId>> ELSE /\\ balanceOf' = [ balanceOf EXCEPT ![_tx.sender] = @ - _tx.value, ![_tx.toAddr] = @ + _tx.value ] /\\ UNCHANGED <<allowance, nextTxId>>",
+    "IF fail THEN UNCHANGED <<balanceOf, allowance, nextTxId>> ELSE /\\ balanceOf' = [ balanceOf EXCEPT ![_tx.fromAddr] = @ - _tx.value, ![_tx.toAddr] = @ + _tx.value ] /\\ allowance' = [ allowance EXCEPT ![_tx.fromAddr, _tx.sender] = @ - _tx.value ] /\\ UNCHANGED nextTxId",
+    "IF fail THEN UNCHANGED allowance ELSE allowance' = [ allowance EXCEPT ![_tx.sender, _tx.spender] = _tx.value ]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{ newTx }",
+    "{ Transfer(_tx) }",
+    "{ TransferFrom(_tx) }",
+    "{ Approve(_tx) }",
+    "{ lastTx }",
+    "{ tx }",
+    "{ tx_i }"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\",
+    "\\X",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ pair \\in ADDR \\X ADDR |-> 0 ]"
+  ],
+  "FunctionApplication": [
+    "balanceOf[_tx.sender]",
+    "balanceOf[_tx.fromAddr]",
+    "allowance[_tx.fromAddr, _tx.sender]",
+    "balanceOf[a]",
+    "trace[i]"
+  ],
+  "FunctionOverride": [
+    "[ _tx EXCEPT !.fail = fail ]",
+    "[ balanceOf EXCEPT ![_tx.sender] = @ - _tx.value,\n                                  ![_tx.toAddr] = @ + _tx.value\n               ]",
+    "[ balanceOf EXCEPT\n                  ![_tx.fromAddr] = @ - _tx.value,\n                  ![_tx.toAddr] = @ + _tx.value\n               ]",
+    "[ allowance EXCEPT\n                  ![_tx.fromAddr, _tx.sender] = @ - _tx.value\n               ]",
+    "[ allowance EXCEPT ![_tx.sender, _tx.spender] = _tx.value ]"
+  ],
+  "RecordConstructor": [
+    "[ id |-> nextTxId, fail |-> FALSE, sender |-> _sender,\n                            toAddr |-> _toAddr, value |-> _value ]",
+    "[\n            id |-> nextTxId, fail |-> FALSE, sender |-> _sender,\n            fromAddr |-> _fromAddr, toAddr |-> _toAddr, value |-> _value\n        ]",
+    "[\n            id |-> nextTxId, fail |-> FALSE, sender |-> _sender,\n            spender |-> _spender, value |-> _value\n        ]"
+  ],
+  "RecordAccess": [
+    "_tx.value",
+    "_tx.sender",
+    "_tx.toAddr",
+    "_tx.fromAddr",
+    "_tx.spender",
+    "tx.fail",
+    "tx.value",
+    "trace[i].lastTx",
+    "lastTxFields.value",
+    "lastTxFields.fail",
+    "approval.sender",
+    "approval.spender",
+    "approval.value",
+    "lastTxFields.fromAddr",
+    "lastTxFields.sender",
+    "trace[i].lastTx",
+    "txFields.fail",
+    "txFields.fromAddr",
+    "txFields.sender",
+    "txFields.value",
+    "txFields_i.fail",
+    "txFields_i.value",
+    "txFields_i.spender",
+    "txFields_i.sender"
+  ],
+  "TupleConstructor": [
+    "<<balanceOf, allowance>>",
+    "<<balanceOf, allowance, nextTxId>>",
+    "<<sender, spender>>"
+  ],
+  "SequenceOps": [
+    "Seq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "None",
+    "Transfer",
+    "Approve",
+    "TransferFrom"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "pendingTransactions",
+    "lastTx",
+    "nextTxId",
+    "balanceOf",
+    "allowance"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<balanceOf, allowance>>",
+    "UNCHANGED <<balanceOf, allowance, nextTxId>>",
+    "UNCHANGED <<allowance, nextTxId>>",
+    "UNCHANGED nextTxId",
+    "UNCHANGED <<balanceOf, nextTxId>>",
+    "UNCHANGED allowance"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 18, JSON count = 18 | Reason: Phase 2 completeness check\nField: NamesInLet | Change: removed \"Add\" | Reason: Add is a local operator defined in a LET as Add(sum, i) == ..., so it belongs only in LocalOperatorNames, not NamesInLet\nField: IfThenElse | Change: replaced all three non-verbatim summaries with actual expressions from the file using proper TLA+ syntax | Reason: field values must appear in the TLA+ file; V1 entries were paraphrases and did not exist verbatim\nField: SetOperators | Change: replaced \"\\\\cup\" with \"\\\\union\" | Reason: the file uses \\\\union, not \\\\cup; all JSON values must appear in the TLA+ file\nField: RecordAccess | Change: removed duplicate occurrence of \"trace[i].lastTx\" during deduplication review | Reason: Phase 4 requires deduplication of repeated entries\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: there are no ASSUME, ASSUMPTION, or AXIOM blocks in the file, and \"ASSUME\" does not appear as a proof command in the module",
+  "OperatorDefNames_StatePredicate": [
+    "NoTransferFrom",
+    "NoApprove",
+    "NoTransferFromWhileApproveInFlight",
+    "NoNegativeBalances",
+    "Full"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "None",
+    "Transfer",
+    "Approve",
+    "TransferFrom",
+    "NoTransferAboveApproved"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ pair \\in ADDR \\X ADDR |-> 0 ]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<balanceOf, allowance>>",
+    "UNCHANGED <<balanceOf, allowance, nextTxId>>",
+    "UNCHANGED <<allowance, nextTxId>>",
+    "UNCHANGED <<balanceOf, nextTxId>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED nextTxId",
+    "UNCHANGED allowance"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ERC20/ERC20.tla",
+  "VerificationTools": [
+    "Apalache",
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "NoTransferAboveApproved is classified as ValueDef rather than StatePredicate because it is a parameterized trace property over sequences of states (Seq(STATE) => Bool), not a predicate over the current state.",
+    "None, Transfer, Approve, and TransferFrom are constructor/helper operators returning TX values, so they are classified as ValueDef.",
+    "Partition count: StatePredicate(5) + TemporalProperty(0) + Init(1) + ValueDef(5) + ActionDefNames(7) = OperatorDefNames(18). Verified.",
+    "TemporalNesting is false. No temporal operator [], <>, or ~> appears in this file."
+  ]
+}

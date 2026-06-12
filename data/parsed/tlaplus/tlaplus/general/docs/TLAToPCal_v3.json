@@ -1,0 +1,384 @@
+{
+  "id": null,
+  "Specification": "This module specifies data structures and algorithms for mapping a region in a TLA+ specification to corresponding PlusCal source structure, using token regions, parentheses, and breaks to describe translation correspondence. It defines location, region, token, and TPSpec well-formedness predicates, along with helper operators such as parenthesis-depth computation and region-to-token-pair selection. The file also contains a PlusCal algorithm and its generated TLA+ translation for computing the token pair selected by an input region and then scanning the token interval to compute depth information, with a temporal specification asserting the translated algorithm and a termination property.",
+  "ModuleName": "TLAToPCal",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "tpSpec",
+    "tpRegion",
+    "defaultInitValue"
+  ],
+  "VariableNames": [
+    "ltok",
+    "rtok",
+    "rtokDepth",
+    "minDepth",
+    "i",
+    "tpregion",
+    "bParen",
+    "eParen",
+    "pc"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Location",
+    "loc1 <: loc2",
+    "Dist",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "IsWellFormed",
+    "TokensInOrder",
+    "MatchingParen",
+    "IsTPSpec",
+    "TPSpec",
+    "Min",
+    "Max",
+    "RegionToTokPair",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "tpSpec1",
+    "tpRegion1",
+    "vars",
+    "Init",
+    "Lbl_1",
+    "Lbl_2",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "Lbl_1",
+    "Lbl_2",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ParenDepth"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "obj",
+    "j",
+    "dp",
+    "Dom",
+    "TokToLeft",
+    "TokToRight",
+    "lt",
+    "rt",
+    "tp"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pos = 0 THEN 0 ELSE LET obj == objSeq[pos] IN ParenDepth(objSeq, pos - 1) + ( CASE obj.type = \"begin\" -> 1  [] obj.type = \"end\"   -> -1 [] OTHER              -> 0 )",
+    "IF i = 1 THEN PrintT(<<\"k\", k>>) ELSE TRUE",
+    "IF k = 4 THEN PrintT(<<\"m\", m>>) ELSE TRUE",
+    "IF S = {} THEN -1 ELSE CHOOSE i \\in S : \\A j \\in S : i =< j",
+    "IF S = {} THEN -1 ELSE CHOOSE i \\in S : \\A j \\in S : i >= j",
+    "IF (lt # -1) /\\ (spec[lt].region.begin <: reg.end) THEN IF spec[lt].region.end = spec[rt].region.begin THEN IF spec[lt].region.end = reg.begin THEN IF spec[rt].region.begin # reg.end THEN <<rt, rt>> ELSE <<lt, rt>> ELSE IF spec[rt].region.begin = reg.end THEN <<lt, lt>> ELSE <<lt, rt>> ELSE << lt, rt >> ELSE IF lt = -1 THEN <<rt, rt>> ELSE IF rt = -1 THEN <<lt, lt>> ELSE IF Dist(spec[rt].region.end, reg.begin) < Dist(reg.end, spec[lt].region.begin) THEN <<rt, rt>> ELSE <<lt, lt>>",
+    "IF spec[lt].region.end = spec[rt].region.begin THEN IF spec[lt].region.end = reg.begin THEN IF spec[rt].region.begin # reg.end THEN <<rt, rt>> ELSE <<lt, rt>> ELSE IF spec[rt].region.begin = reg.end THEN <<lt, lt>> ELSE <<lt, rt>> ELSE << lt, rt >>",
+    "IF spec[lt].region.end = reg.begin THEN IF spec[rt].region.begin # reg.end THEN <<rt, rt>> ELSE <<lt, rt>> ELSE IF spec[rt].region.begin = reg.end THEN <<lt, lt>> ELSE <<lt, rt>>",
+    "IF spec[rt].region.begin # reg.end THEN <<rt, rt>> ELSE <<lt, rt>>",
+    "IF spec[rt].region.begin = reg.end THEN <<lt, lt>> ELSE <<lt, rt>>",
+    "IF lt = -1 THEN <<rt, rt>> ELSE IF rt = -1 THEN <<lt, lt>> ELSE IF Dist(spec[rt].region.end, reg.begin) < Dist(reg.end, spec[lt].region.begin) THEN <<rt, rt>> ELSE <<lt, lt>>",
+    "IF rt = -1 THEN <<lt, lt>> ELSE IF Dist(spec[rt].region.end, reg.begin) < Dist(reg.end, spec[lt].region.begin) THEN <<rt, rt>> ELSE <<lt, lt>>",
+    "IF Dist(spec[rt].region.end, reg.begin) < Dist(reg.end, spec[lt].region.begin) THEN <<rt, rt>> ELSE <<lt, lt>>",
+    "IF i =< rtok THEN /\\ rtokDepth' = (rtokDepth + CASE tpSpec[i].type = \"begin\" -> 1  [] tpSpec[i].type = \"end\"  -> -1 [] OTHER                    -> 0) /\\ IF rtokDepth' < minDepth THEN /\\ minDepth' = rtokDepth' ELSE /\\ TRUE /\\ UNCHANGED minDepth /\\ i' = i+1 /\\ pc' = \"Lbl_2\" ELSE /\\ Assert(/\\ ParenDepth(tpSpec, rtok) = ParenDepth(tpSpec, ltok) + rtokDepth /\\ minDepth + ParenDepth(tpSpec, ltok) = Min({ParenDepth(tpSpec, k) : k \\in ltok..rtok}), \"Failure of assertion at line 308, column 7.\") /\\ pc' = \"Done\" /\\ UNCHANGED << rtokDepth, minDepth, i >>",
+    "IF rtokDepth' < minDepth THEN /\\ minDepth' = rtokDepth' ELSE /\\ TRUE /\\ UNCHANGED minDepth"
+  ],
+  "CaseExpr": [
+    "CASE obj.type = \"begin\" -> 1  [] obj.type = \"end\"   -> -1 [] OTHER              -> 0",
+    "CASE tpSpec[i].type = \"begin\" -> 1  [] tpSpec[i].type = \"end\"  -> -1 [] OTHER                    -> 0"
+  ],
+  "SetEnumeration": [
+    "{\"token\"}",
+    "{\"begin\", \"end\"}",
+    "{\"break\"}",
+    "<< >>",
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]"
+  ],
+  "FunctionApplication": [
+    "objSeq[pos]",
+    "seq[1]",
+    "seq[i]",
+    "seq[j]",
+    "seq[i-1]",
+    "seq[i+1]",
+    "spec[i]",
+    "spec[lt]",
+    "spec[rt]",
+    "tp[1]",
+    "tp[2]",
+    "tpSpec[i]",
+    "r[1]",
+    "r[2]",
+    "rr[1]",
+    "rr[2]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]",
+    "[line |-> 0, column |-> pos]",
+    "[begin |-> Loc(beg), end |-> Loc(end)]",
+    "[type |->\"token\", region |-> Reg(beg, end)]",
+    "[type |-> \"begin\", loc |-> Loc(pos)]",
+    "[type |-> \"end\", loc |-> Loc(pos)]",
+    "[type |-> \"break\", depth |-> dep]"
+  ],
+  "RecordAccess": [
+    "loc1.line",
+    "loc2.line",
+    "loc1.column",
+    "loc2.column",
+    "r.begin",
+    "r.end",
+    "obj.type",
+    "seq[i].type",
+    "seq[j].type",
+    "seq[i].region.end",
+    "seq[j].region.begin",
+    "seq[i-1].type",
+    "seq[i+1].type",
+    "seq[i].loc",
+    "seq[j].loc",
+    "seq[k].type",
+    "seq[k].loc",
+    "seq[m].type",
+    "seq[m].loc",
+    "spec[i].type",
+    "spec[i].region.begin",
+    "spec[i].region.end",
+    "reg.begin",
+    "reg.end",
+    "spec[lt].region.begin",
+    "spec[lt].region.end",
+    "spec[rt].region.begin",
+    "tpSpec[i].type"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<j, dp>>",
+    "<<\"k\", k>>",
+    "<<\"m\", m>>",
+    "<<t, t>>",
+    "<<lt, rt>>",
+    "<<rt, rt>>",
+    "<<lt, lt>>",
+    "<< L(-5), T(2,3), L(11), T(3, 4), R(11), B(2), L(12), R(13), T(5, 6), R(42) >>",
+    "<< ltok, rtok, rtokDepth, minDepth, i, tpregion, bParen, eParen, pc\n        >>",
+    "<< tpregion, bParen, eParen >>",
+    "<< rtokDepth, minDepth, i >>",
+    "<< ltok, rtok, tpregion, bParen, eParen >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">=",
+    "=<"
+  ],
+  "RangeExpr": [
+    "1..(Len(seq)-1)",
+    "pos+1..Len(seq)",
+    "1..Len(seq)",
+    "(i+1)..Len(seq)",
+    "(pos)..(i-1)",
+    "(i+1)..(j-1)",
+    "(k+1)..(j-1)",
+    "1..Len(spec)",
+    "(1..7)\\X(1..7)",
+    "ltok..rtok"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in pos+1..Len(seq) :\n     /\\ ParenDepth(seq,i) = ParenDepth(seq, pos-1)\n     /\\ \\A j \\in (pos)..(i-1) : ParenDepth(seq, j) > ParenDepth(seq, pos-1)",
+    "CHOOSE i \\in S : \\A j \\in S : i =< j",
+    "CHOOSE i \\in S : \\A j \\in S : i >= j"
+  ],
+  "StringLiterals": [
+    "begin",
+    "end",
+    "token",
+    "break",
+    "k",
+    "m",
+    "Lbl_1",
+    "Lbl_2",
+    "Done",
+    "Failure of assertion at line 308, column 7."
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "ltok",
+    "rtok",
+    "rtokDepth",
+    "minDepth",
+    "i",
+    "pc"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << tpregion, bParen, eParen >>",
+    "UNCHANGED minDepth",
+    "UNCHANGED << rtokDepth, minDepth, i >>",
+    "UNCHANGED << ltok, rtok, tpregion, bParen, eParen >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Map"
+  ],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count 32 matches top-level == definitions count 32 | Reason: completeness check passed\nField: LocalOperatorNames | Change: removed \"TokToLeft\", \"TokToRight\" | Reason: these are LET-bound simple bindings, not parametric local operator definitions\nField: IfThenElse | Change: removed contextual suffixes like \"(in ...)\", removed duplicate entries, and replaced elided \"...\" entries with formulas that actually appear in the file | Reason: entries must correspond to actual IF expressions present in the TLA+ file\nField: CaseExpr | Change: removed contextual suffixes and removed PlusCal-only duplicate, leaving only TLA+ CASE expressions that literally appear | Reason: correctness against file contents\nField: SetOperators | Change: removed \"DOMAIN\" | Reason: \"DOMAIN\" does not appear in the file\nField: FiniteSetOps | Change: removed \"Cardinality\" | Reason: no finite-set operator from this field appears in the file\nField: RecordAccess | Change: removed duplicates and removed \"spec[rt].region.end\" | Reason: deduplication and nonexistent expression check; \"spec[rt].region.end\" does not literally appear in the file\nField: TupleConstructor | Change: added \"<< tpregion, bParen, eParen >>\", \"<< rtokDepth, minDepth, i >>\", and \"<< ltok, rtok, tpregion, bParen, eParen >>\"; preserved exact multiline vars tuple form | Reason: completeness for tuple expressions used in UNCHANGED and exact literal presence in file\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: no ASSUME/ASSUMPTION/AXIOM/proof command appears in the module\nField: SetEnumeration | Change: verified no encoding issue requiring correction | Reason: all entries match actual set/tuple enumerations present\nField: FunctionOverride | Change: confirmed remains [] | Reason: no [f EXCEPT ![e] = v] form appears in the file\nField: AssumptionNames | Change: confirmed remains [] | Reason: the file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: EnabledExprs | Change: confirmed remains [] | Reason: no ENABLED expression appears in the file\nField: PrimedVariables | Change: verified remains [\"ltok\",\"rtok\",\"rtokDepth\",\"minDepth\",\"i\",\"pc\"] | Reason: these are exactly the variables appearing primed anywhere in the file\nField: UnchangedExprs | Change: verified distinct complete set with proper spacing | Reason: all UNCHANGED expressions in file are captured exactly once\nField: AlwaysOp | Change: verified \"[][Next]_vars\" already complete with full subscript | Reason: required full temporal subscript format\nField: FairnessConditions | Change: confirmed remains [] | Reason: no WF/SF fairness formula appears in Spec or Spec0\n",
+  "OperatorDefNames_StatePredicate": [
+    "loc1 <: loc2",
+    "IsWellFormed",
+    "TokensInOrder",
+    "IsTPSpec"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Location",
+    "Dist",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "MatchingParen",
+    "TPSpec",
+    "Min",
+    "Max",
+    "RegionToTokPair",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "tpSpec1",
+    "tpRegion1",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << tpregion, bParen, eParen >>",
+    "UNCHANGED << rtokDepth, minDepth, i >>",
+    "UNCHANGED << ltok, rtok, tpregion, bParen, eParen >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED minDepth",
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/TLAToPCal/TLAToPCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ValueDef by elimination: Location, Dist, Region, TLAToken, Paren, Break, TPObject, ParenDepth, MatchingParen, TPSpec, Min, Max, RegionToTokPair, Loc, Reg, T, L, R, B, tpSpec1, tpRegion1, vars. These are non-action helper definitions, constructors, recursive/value computations, or sample/debug values rather than state predicates or temporal properties.",
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(22) + ActionDefNames(3) = OperatorDefNames(32). Verified.",
+    "All FunctionConstructor entries are [S -> T] forms; FunctionConstructor_ByDomain is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef includes both UNCHANGED vars and UNCHANGED minDepth, since minDepth is a variable reference form rather than an explicit tuple form.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

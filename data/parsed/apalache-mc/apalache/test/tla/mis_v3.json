@@ -1,0 +1,283 @@
+{
+  "id": null,
+  "Specification": "This module specifies a round-based distributed algorithm for computing a maximal independent set on a ring-like network of nodes. The graph is modeled by an undirected neighbor relation, nodes exchange variant-tagged messages over three rounds, and each node may become a winner, a loser, or remain unknown while maintaining a set of remaining neighbors. The specification includes an explicit fault-injection design choice through the constant HAS_BUG, which alters the winner test to always succeed when enabled; the file defines initialization, round actions, the next-state relation, and state predicates including an independence condition and a termination condition.",
+  "ModuleName": "mis",
+  "ExtendsModules": [
+    "Integers",
+    "TLC",
+    "Variants"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "HAS_BUG"
+  ],
+  "VariableNames": [
+    "Nb",
+    "round",
+    "val",
+    "awake",
+    "rem_nbrs",
+    "status",
+    "msgs"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "IntroBug",
+    "AvoidBug",
+    "N",
+    "N4",
+    "Nodes",
+    "mis_typedefs",
+    "Val",
+    "Winner",
+    "Loser",
+    "Pred",
+    "Succ",
+    "Init",
+    "Senders",
+    "SentValues",
+    "IsWinner",
+    "Round1",
+    "SentWinners",
+    "IsLoser",
+    "Round2",
+    "SentLosers",
+    "ReceivedLosers",
+    "Round3",
+    "Next",
+    "IsIndependent",
+    "Terminated"
+  ],
+  "ActionDefNames": [
+    "Round1",
+    "Round2",
+    "Round3",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF n > 1 THEN n - 1 ELSE N",
+    "IF n < N THEN n + 1 ELSE 1",
+    "IF HAS_BUG THEN TRUE ELSE val'[u] > m.val",
+    "IF awake[n] /\\ IsWinner(n) THEN \"winner\" ELSE status[n]",
+    "IF \\E w \\in Senders(u): awake[w] /\\ status[w] = \"winner\" THEN { Winner(u) } ELSE {}",
+    "IF awake[n] /\\ IsLoser(n) THEN \"loser\" ELSE status[n]",
+    "IF status[n] \\notin {\"winner\", \"loser\"} THEN TRUE ELSE FALSE"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{Pred(n), Succ(n)}",
+    "{}",
+    "{\"winner\", \"loser\"}",
+    "{ Winner(u) }"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\X",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ n \\in Nodes |-> {Pred(n), Succ(n)} ]",
+    "[Nodes -> 1..N4]",
+    "[n \\in Nodes |-> TRUE]",
+    "[ u \\in Nodes |-> { v \\in Nodes : <<u, v>> \\in Nb}]",
+    "[n \\in Nodes |-> \"unknown\"]",
+    "[n \\in Nodes |-> {}]",
+    "[u \\in Nodes |-> SentValues(u)]",
+    "[n \\in Nodes |-> IF awake[n] /\\ IsWinner(n) THEN \"winner\" ELSE status[n]]",
+    "[u \\in Nodes |-> SentWinners(u)]",
+    "[n \\in Nodes |-> IF awake[n] /\\ IsLoser(n) THEN \"loser\" ELSE status[n]]",
+    "[u \\in Nodes |-> SentLosers(u)]",
+    "[n \\in Nodes |-> IF status[n] \\notin {\"winner\", \"loser\"} THEN TRUE ELSE FALSE]",
+    "[u \\in Nodes |-> rem_nbrs[u] \\ ReceivedLosers(u)]"
+  ],
+  "FunctionApplication": [
+    "e[2]",
+    "e[1]",
+    "awake[v]",
+    "rem_nbrs[v]",
+    "val'[w]",
+    "msgs'[u]",
+    "status[n]",
+    "awake[n]",
+    "status[w]",
+    "msgs[u]",
+    "rem_nbrs[u]",
+    "edge[1]",
+    "edge[2]",
+    "awake[w]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[ src |-> src, val |-> val ]"
+  ],
+  "RecordAccess": [
+    "m.val"
+  ],
+  "TupleConstructor": [
+    "<<Int, Int>>",
+    "<<e[2], e[1]>>",
+    "<<u, v>>",
+    "<<rem_nbrs, awake>>",
+    "<<rem_nbrs, awake, val>>",
+    "<<status, val>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "%"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..N",
+    "1..N4"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Val",
+    "Winner",
+    "Loser",
+    "unknown",
+    "winner",
+    "loser"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "val",
+    "msgs",
+    "status",
+    "awake",
+    "rem_nbrs",
+    "round"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<rem_nbrs, awake>>",
+    "UNCHANGED <<rem_nbrs, awake, val>>",
+    "UNCHANGED <<status, val>>",
+    "UNCHANGED Nb"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count unchanged at 25 entries | Reason: Phase 2 completeness check: file count = 25, JSON OperatorDefNames count = 25\nField: IfThenElse | Change: Removed all appended context markers like \\\"(in Pred)\\\" and kept only verbatim TLA+ expressions | Reason: Values must appear in the file exactly; previous entries did not exist verbatim\nField: SetEnumeration | Change: Added \\\"{ Winner(u) }\\\" | Reason: Distinct set enumeration appears in SentWinners and was missing\nField: FunctionApplication | Change: Replaced \\\"val[w]\\\" with \\\"val'[w]\\\" | Reason: Only primed form appears in the file inside SentValues\nField: FunctionApplication | Change: Removed \\\"msgs[u]\\\" then re-added it in correct verified set along with missing applications | Reason: Revalidated against file; both primed and unprimed applications must literally appear\nField: FunctionApplication | Change: Added \\\"awake[n]\\\", \\\"awake[w]\\\", and \\\"status[w]\\\" | Reason: These applications appear verbatim in the file and were missing\nField: ComparisonOps | Change: Removed \\\">=\\\" | Reason: \\\">=\\\" does not appear anywhere in the TLA+ file\nField: SetOperators | Change: Retained \\\"SUBSET\\\" despite Phase 1 rule conflict | Reason: Current schema content uses SetOperators for the literal token appearing in `Nb \\\\in SUBSET(Nodes \\\\X Nodes)`; no FiniteSetOps usage exists elsewhere in file. All stored values are verbatim from file\nField: AssumptionNames | Change: Confirmed remains [] | Reason: No ASSUME, ASSUMPTION, or AXIOM blocks in file\nField: FunctionOverride | Change: Confirmed remains [] | Reason: No `[f EXCEPT ![e] = v]` forms occur in file\nField: RecordAccess | Change: Confirmed remains [\\\"m.val\\\"] | Reason: Only literal record field access in file\nField: LocalOperatorNames | Change: Confirmed remains [] | Reason: No LET blocks or local parametric definitions in file\nField: TemporalSubscript | Change: Confirmed remains [] | Reason: No temporal subscript formulas occur in file\nField: AlwaysOp | Change: Confirmed remains [] | Reason: No outermost `[]` temporal formulas occur in file\nField: EventuallyOp | Change: Confirmed remains [] | Reason: No outermost `<>` temporal formulas occur in file\nField: LeadsToOp | Change: Confirmed remains [] | Reason: No `~>` formulas occur in file\nField: GuaranteesOp | Change: Confirmed remains [] | Reason: No `-+->` formulas occur in file\nField: FairnessConditions | Change: Confirmed remains [] | Reason: No WF or SF expressions in Spec or Spec0, and no Spec/Spec0 operators at all",
+  "OperatorDefNames_StatePredicate": [
+    "IntroBug",
+    "AvoidBug",
+    "mis_typedefs",
+    "IsIndependent",
+    "Terminated"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "N",
+    "N4",
+    "Nodes",
+    "Val",
+    "Winner",
+    "Loser",
+    "Pred",
+    "Succ",
+    "Senders",
+    "SentValues",
+    "IsWinner",
+    "SentWinners",
+    "IsLoser",
+    "SentLosers",
+    "ReceivedLosers"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ n \\in Nodes |-> {Pred(n), Succ(n)} ]",
+    "[n \\in Nodes |-> TRUE]",
+    "[ u \\in Nodes |-> { v \\in Nodes : <<u, v>> \\in Nb}]",
+    "[n \\in Nodes |-> \"unknown\"]",
+    "[n \\in Nodes |-> {}]",
+    "[u \\in Nodes |-> SentValues(u)]",
+    "[n \\in Nodes |-> IF awake[n] /\\ IsWinner(n) THEN \"winner\" ELSE status[n]]",
+    "[u \\in Nodes |-> SentWinners(u)]",
+    "[n \\in Nodes |-> IF awake[n] /\\ IsLoser(n) THEN \"loser\" ELSE status[n]]",
+    "[u \\in Nodes |-> SentLosers(u)]",
+    "[n \\in Nodes |-> IF status[n] \\notin {\"winner\", \"loser\"} THEN TRUE ELSE FALSE]",
+    "[u \\in Nodes |-> rem_nbrs[u] \\ ReceivedLosers(u)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> 1..N4]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<rem_nbrs, awake>>",
+    "UNCHANGED <<rem_nbrs, awake, val>>",
+    "UNCHANGED <<status, val>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED Nb"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/mis/mis.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "IsWinner contains primed variables via val'[u], msgs'[u], and is therefore not a state predicate; by elimination it is placed in ValueDef as a non-action helper predicate over next-state expressions.",
+    "IsLoser contains a primed variable via msgs'[u] and is therefore not a state predicate; by elimination it is placed in ValueDef as a non-action helper predicate over next-state expressions.",
+    "Partition count: StatePredicate(5) + TemporalProperty(0) + Init(1) + ValueDef(15) + ActionDefNames(4) = OperatorDefNames(25). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef contains \"UNCHANGED Nb\" because it is of the form UNCHANGED varname, even though Nb is a state variable rather than a tuple variable such as vars.",
+    "VerificationTools includes Apalache because the file contains Apalache-style type annotations such as @type and @typeAlias comments.",
+    "CorpusSource inferred as specifications/mis/mis.tla using the module name as the folder name; the repository folder cannot be determined from file content alone."
+  ]
+}

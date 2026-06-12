@@ -1,0 +1,261 @@
+{
+  "id": null,
+  "Specification": "This module specifies Huang's distributed termination detection algorithm on a fully meshed network of processes with a distinguished leader. Each process has an active flag, a dyadic rational weight, and a queue of in-transit messages; the total weight across processes and messages is conserved at 1, and idle processes return their weight toward the leader. The specification defines initialization, message sending, receiving, and idling actions, adds weak fairness for receive and idle actions, and verifies both a safety property that detected termination implies permanent global termination and a liveness property that global termination eventually leads to the leader detecting termination.",
+  "ModuleName": "Huang",
+  "ExtendsModules": [
+    "Naturals",
+    "DyadicRationals",
+    "Sequences",
+    "SequencesExt",
+    "Functions"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Procs",
+    "Leader"
+  ],
+  "VariableNames": [
+    "active",
+    "weight",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "Leader \\in Procs"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => Safe",
+    "THEOREM Spec => Live"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "Sum",
+    "TypeOK",
+    "Init",
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next",
+    "Spec",
+    "TerminationDetected",
+    "Terminated",
+    "Safe",
+    "Live",
+    "StateConstraint",
+    "Alias"
+  ],
+  "ActionDefNames": [
+    "Init",
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "Sum"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "p",
+    "M"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF set = {} THEN Zero ELSE LET p == CHOOSE p \\in set: TRUE IN Add(FoldFunction(Add, Zero, fun[p]), Sum(fun, set \\ {p}))",
+    "IF p = Leader THEN TRUE ELSE FALSE",
+    "IF p = Leader THEN One ELSE Zero"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{<<>>}",
+    "{Leader}"
+  ],
+  "SetOperators": [
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Procs -> BOOLEAN ]",
+    "[ p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE ]",
+    "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]",
+    "[ Procs -> {<<>>} ]",
+    "[ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i]) ]"
+  ],
+  "FunctionApplication": [
+    "fun[p]",
+    "msgs[p]",
+    "msgs[p][i]",
+    "weight[p]",
+    "active[p]"
+  ],
+  "FunctionOverride": [
+    "[weight EXCEPT ![p] = Half(weight[p])]",
+    "[msgs EXCEPT ![q] = Append(@, weight[p]')]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[weight EXCEPT ![p] = Add(@, msgs[p][i])]",
+    "[msgs EXCEPT ![p] = RemoveAt(@, i)]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[msgs EXCEPT ![Leader] = Append(@, weight[p])]",
+    "[weight EXCEPT ![p] = Zero]",
+    "[active EXCEPT ![Leader] = FALSE]",
+    "[weight EXCEPT ![Leader] = Add(@, msgs[Leader][i])]",
+    "[msgs EXCEPT ![Leader] = RemoveAt(@, i)]"
+  ],
+  "RecordConstructor": [
+    "[ active |-> {p \\in Procs : active[p]}, weights |-> [p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])], msgs |-> [p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]] ]"
+  ],
+  "RecordAccess": [
+    "weight[p].den"
+  ],
+  "TupleConstructor": [
+    "<<active, weight, msgs>>",
+    "<<>>",
+    "<<weight, msgs>>",
+    "<<active>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [
+    "<="
+  ],
+  "RangeExpr": [
+    "1..Len(msgs[p])",
+    "1..Len(msgs[Leader])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE p \\in set: TRUE"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "weight",
+    "msgs",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active>>",
+    "UNCHANGED <<weight, msgs>>",
+    "UNCHANGED active"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](TerminationDetected => []Terminated)",
+    "[]Terminated"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Terminated ~> TerminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "\\A p \\in Procs \\ {Leader}: WF_vars(RcvMsg(p))",
+    "\\A p \\in Procs \\ {Leader}: WF_vars(Idle(p))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and preserved values `[\"p\", \"M\"]` | Reason: `LetInNames` is the required field; V1 used a nonstandard field name\nField: IfThenElse | Change: removed non-verbatim suffixes `(in Sum)` and `(in Init)` from all entries | Reason: entries must be expressions that literally appear in the TLA+ file\nField: Completeness check | Change: verified top-level operator definition count: file count = 17, JSON OperatorDefNames count = 17 | Reason: Phase 2 completeness requirement; counts match, so no operator additions/removals were needed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "TerminationDetected",
+    "Terminated",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Safe",
+    "Live"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Sum",
+    "Alias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE ]",
+    "[ p \\in Procs |-> IF p = Leader THEN One ELSE Zero ]",
+    "[ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i]) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Procs -> BOOLEAN ]",
+    "[ Procs -> {<<>>} ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active>>",
+    "UNCHANGED <<weight, msgs>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED active"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/Huang/Huang.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(3) + Init(0) + ValueDef(3) + ActionDefNames(7) = OperatorDefNames(17). Verified.",
+    "Init is listed in ActionDefNames in the verified V2 JSON, so by the mandatory partition rule it does not appear in any OperatorDefNames_* subdivision even though its name matches the Init-prefix convention.",
+    "Safe is placed in TemporalProperty because its body is [](TerminationDetected => []Terminated).",
+    "TemporalNesting is true. Exact line: \"    [](TerminationDetected => []Terminated)\"",
+    "Alias is placed in ValueDef by elimination; it is a non-Boolean record-valued helper for pretty-printing states.",
+    "UnchangedExprs_VarRef includes \"UNCHANGED active\" because it is a single variable reference form rather than an explicit tuple. The file does not define a tuple variable named active; this is still classified syntactically as a varname form from UnchangedExprs."
+  ]
+}

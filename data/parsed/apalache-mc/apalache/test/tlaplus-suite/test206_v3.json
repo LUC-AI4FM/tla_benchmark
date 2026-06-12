@@ -1,0 +1,383 @@
+{
+  "id": null,
+  "Specification": "This module is a test specification for TLA+ labels and subexpression selectors rather than a distributed algorithm or transition system. It exercises how labels, selector syntax, operator-valued arguments, LET-IN bindings, CHOOSE, quantifiers, sets, tuples, records, function constructors, EXCEPT, temporal subscript syntax, fairness syntax, and INSTANCE references interact with subexpression selection. The file verifies these behaviors through many ASSUME statements and two simple theorems, without introducing state variables, a Next action, fairness conditions in a system specification, or a temporal transition system.",
+  "ModuleName": "test206",
+  "ExtendsModules": [
+    "TLC",
+    "Integers"
+  ],
+  "InstanceModules": [
+    "test206a"
+  ],
+  "InstanceSubstitutions": [
+    "A5 <- COp!@!++"
+  ],
+  "ConstantNames": [
+    "C"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "Foo(5) = Foo(5)!:",
+    "Foo(25) = 50",
+    "Op(Foo, 9)",
+    "Thm2!lab3",
+    "Bar",
+    "Op(Foo, 9)!lab(1,2,3)!label2 = Op(Foo, 9)!lab(1,2,3)!:!++(9, 4)",
+    "OOp1(SOp1, 2) = 2",
+    "OOp2(SOp1a!@, 2, 2) = TRUE",
+    "OOp2(SOp1b!@, 2, 3) = 5",
+    "OOp2(SOp1c!@!c, 2, 3) = 2 * 3",
+    "OOp3(SOp1d!@!c, 2, 3, 4) = 2 * 3 + 4",
+    "Op1(2)!(3)!2!1 = 2 + 4*3 + 6",
+    "Op1(2)!(3)!2!Op1a(4) = 16 + 6",
+    "Op3(Op1!@!2!Op1a, 2, 3, 4) = 22",
+    "COp(1, 2)!(3)!++(4, 5) = {2,1, 3, 4, 5}",
+    "COp(1, 2)!(3) = <<1, {99, 1, 2, 3} >>",
+    "COp(1, 2)!(3)!1 = <<1, {99, 1, 2, 3} >>",
+    "COp(1, 2)!(3)!1!>> = {99, 1, 2, 3}",
+    "OOp5(COp!@!++, 1, 2, 3, 4, 5) = {2,1, 3, 4, 5}",
+    "COp(1, 2)!lab(3)!:!++(4, 5) = {2,1, 3, 4, 5}",
+    "Inst!Foo(1, 2, 3, 4, 5) = {2,1, 3, 4, 5}",
+    "Inst!Bar(3)!>> = 3",
+    "Inst!Bar2(3)!>> = 3",
+    "Inst!Bar3!>> = 2",
+    "Inst!Bar4(1)!(2)!<< = 2",
+    "Inst!Bar4(1)!(2)!>> = 1",
+    "Inst!Bar4(1)!lab(2)!<< = 2",
+    "Inst!Bar4(1)!lab(2)!>> = 1",
+    "OOp2(Inst!Bar4!@!<<, 1, 2) = 2",
+    "OOp2(Inst!Bar4!@!>>, 1, 2) = 1",
+    "OOp2(Inst!Bar4!lab!<<, 1, 2) = 2",
+    "OOp2(Inst!Bar4!lab!>>, 1, 2) = 1",
+    "Inst!Bar5(1)!lab(2)!:!++(3, 4) = <<1, 3, 4, 2>>",
+    "Inst!Bar5(1)!(2)!++(3, 4) = <<1, 3, 4, 2>>",
+    "OOp4(Inst!Bar5!lab!:!++, 1, 2, 3, 4) = <<1, 3, 4, 2>>",
+    "Inst2(COp!@!++)!Foo(1, 2, 3, 4, 5) = {2,1, 3, 4, 5}",
+    "COp2(1,2)!lab(3)!:!++(9,10)!lab(11) = 30",
+    "COp2(1,2)!(3)!++(9,10)!lab(11) = 30",
+    "COp2(1,2)!lab(3)!:!++(9,10)!(11) = 30",
+    "OOp6(COp2!lab!:!++!lab, 1, 2, 3, 9, 10, 11) = 30",
+    "OOp6(COp2!@!++!lab, 1, 2, 3, 9, 10, 11) = 30",
+    "OOp6(COp2!lab!:!++!@, 1, 2, 3, 9, 10, 11) = 30",
+    "Def1!2 = 2",
+    "Def2!1 = {1, 2, 3}",
+    "Def2!(14)!<< = 14",
+    "Def3!2!1 = 2",
+    "Def3!(1, 2)!<< = 1",
+    "Def4!>>!<<!2 = {2}",
+    "Def5!>> = 3",
+    "Def5!<<[4] = 5",
+    "Def5!<<!1!>> = 10",
+    "Def6!1[3] = 4",
+    "Def7!1 = 3",
+    "Def7!2 = \"a\"",
+    "Def8!2 = 2",
+    "Def9!2 = 2",
+    "Def10!2 = 2",
+    "Def11!3!1 = 3",
+    "/\\ Def12!1!<< = 2\n       /\\ Def12!2 = 2\n       /\\ Def12!3 = 3",
+    "/\\ Def13!(42)!1!<<!<< = 42\n       /\\ Def13!(42)!1!>> = 1\n       /\\ Def13!(42)!2!>> = 2\n       /\\ Def13!(42)!3!>> = 3",
+    "/\\ Def14!(2)!<< = 2\n       /\\ Def14!1!1 = 1",
+    "/\\ Def15!(2,3)!<<!<< = 2\n       /\\ Def15!(2,3)!>>!<< = 3\n       /\\ Def15!2!<< = 2",
+    "/\\ Def16!(2,3,4)!1!1 = 2\n       /\\ Def16!(2,3,4)!2!1 = 3\n       /\\ Def16!2!1!<< = 2",
+    "/\\ Def17!(2,3,4)!1!1 = 2\n       /\\ Def17!(2,3,4)!2!1 = 3",
+    "Def18!(2)!<< = 2",
+    "/\\ Def19!(2)!<< = 2\n       /\\ Def19!1!1 = 42",
+    "/\\ Def20!1 = 12\n       /\\ Def20!>> = 23",
+    "/\\ Def21!1 = 12\n       /\\ Def21!>> = 23",
+    "/\\ Def22!1 = 12\n       /\\ Def22!>> = 23",
+    "/\\ Def23!(2,3,4)!1!1 = 2\n       /\\ Def23!(2,3,4)!2!1 = 3"
+  ],
+  "TheoremNames": [
+    "Thm",
+    "Thm2"
+  ],
+  "OperatorDefNames": [
+    "Op",
+    "Foo",
+    "Bar",
+    "Op3",
+    "Op1",
+    "SOp1",
+    "OOp1",
+    "SOp1a",
+    "OOp2",
+    "SOp1b",
+    "SOp1c",
+    "SOp1d",
+    "OOp3",
+    "OOp4",
+    "COp",
+    "OOp5",
+    "Inst",
+    "Inst2",
+    "COp2",
+    "OOp6",
+    "Def1",
+    "Def2",
+    "Def3",
+    "Def4",
+    "Def5",
+    "Def6",
+    "Def7",
+    "Def8",
+    "Def9",
+    "Def10",
+    "Def11",
+    "Def12",
+    "Def13",
+    "Def14",
+    "Def15",
+    "Def16",
+    "Def17",
+    "Def18",
+    "Def19",
+    "Def20",
+    "Def21",
+    "Def22",
+    "Def23"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Op1a",
+    "c"
+  ],
+  "NamesInLet": [
+    "a",
+    "++",
+    "Op1a",
+    "c"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E",
+    "\\EE"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF TRUE THEN LET Op1a(c) == 4 * c + a*x IN a + Op1a(x) ELSE 1",
+    "IF 2=3 THEN 2 ELSE 3"
+  ],
+  "CaseExpr": [
+    "CASE x=1 -> 1\n                  [] x=2 -> 2\n                  [] OTHER -> 3"
+  ],
+  "SetEnumeration": [
+    "{1,2}",
+    "{<<3, 4>>}",
+    "{}",
+    "{1}",
+    "{2}",
+    "{a, b, q, p, x}",
+    "{1, 2, 3, 4}",
+    "{1, 2, 3}",
+    "{{1}, {2}}",
+    "{42}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\X",
+    "UNION"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 1..10 |-> i+1]",
+    "[a |-> 1, b |-> 2]"
+  ],
+  "FunctionApplication": [
+    "Arg(a)",
+    "Arg(1)",
+    "Arg(p)",
+    "Foo(5)",
+    "Op(Foo, 9)",
+    "Foo(25)",
+    "lab(1,2,3)",
+    "A(a1, a2, a3)",
+    "Op1a(x)",
+    "A(a)",
+    "OOp1(SOp1, 2)",
+    "SOp1a!@",
+    "A(a, b)",
+    "SOp1b!@",
+    "SOp1c!@!c",
+    "c(y)",
+    "A(a, b, c)",
+    "SOp1d!@!c",
+    "Op1(2)",
+    "Op1a(4)",
+    "Op3(Op1!@!2!Op1a, 2, 3, 4)",
+    "COp(1, 2)",
+    "A(a1, a2, a3, a4, a5)",
+    "Inst!Foo(1, 2, 3, 4, 5)",
+    "Inst!Bar(3)",
+    "Inst!Bar2(3)",
+    "Inst!Bar4(1)",
+    "lab(2)",
+    "Inst!Bar5(1)",
+    "Inst2(COp!@!++)",
+    "COp2(1,2)",
+    "lab(11)",
+    "Def5!<<[4]"
+  ],
+  "FunctionOverride": [
+    "[[i \\in 1..10 |-> i+1] EXCEPT ![2] = 1, ![3] = 2]"
+  ],
+  "RecordConstructor": [
+    "[a : 1, b : 2]"
+  ],
+  "RecordAccess": [
+    "3.a"
+  ],
+  "TupleConstructor": [
+    "<<y, z>>",
+    "<<3, 4>>",
+    "<<q, 99 ++ p >>",
+    "<<1, 2, 3>>",
+    "<<x, y>>",
+    "<<12>>",
+    "<<2,3>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "*",
+    ".."
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [
+    "1..10"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x : lab(x) ::  LET a ++ b ==  {a, b, q, p, x}\n                         IN  <<q, 99 ++ p >>",
+    "CHOOSE x : lab(x) ::  LET a ++ b ==  {lab(y):: y + a + b : y \\in {1}}\n                         IN  <<q, 99 ++ p >>",
+    "CHOOSE x : (x=1)",
+    "CHOOSE x \\in {42}: (x=1)"
+  ],
+  "StringLiterals": [
+    "a"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[12]_(23)",
+    "<<12>>_(23)",
+    "WF_(12)(23)"
+  ],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME",
+    "PROVE"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [
+    "ASSUME FALSE\n               PROVE  lab:: C > 0"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: TheoremNames | Change: replaced full theorem texts with [\"Thm\",\"Thm2\"] | Reason: theorem field should contain theorem names; full theorem bodies belong elsewhere.\nField: AssumptionNames | Change: reordered and retained all 74 ASSUME blocks as separate entries | Reason: completeness verification against all ASSUME blocks in file.\nField: Quantifiers | Change: added \"\\\\EE\" | Reason: Def23 uses bounded existential quantifier \\\\EE.\nField: IfThenElse | Change: removed appended context markers \"(in Op1)\" and \"(in Def12)\" | Reason: values must appear in the TLA+ file verbatim.\nField: CaseExpr | Change: replaced contextualized single-line value with verbatim multiline CASE expression | Reason: previous value did not appear literally in file.\nField: SetEnumeration | Change: removed \"{99, 1, 2, 3}\" | Reason: this set does not occur literally in the file; it appears only as evaluated result inside ASSUMEs.\nField: FunctionConstructor | Change: added \"[a |-> 1, b |-> 2]\" | Reason: Def8 is a function constructor and field was incomplete.\nField: RecordConstructor | Change: removed \"[a |-> 1, b |-> 2]\" | Reason: this is a function constructor, not a record constructor in TLA+ syntax.\nField: FunctionApplication | Change: removed non-literal and invalid entries including \"Foo(u)\", \"lab(x,y,z)\", \"Arg(_)\", \"Op1(a)\", \"lab(x)\", \"SOp1(a)\", \"SOp1a(a)\", \"SOp1b(a)\", \"SOp1c(a)\", \"SOp1d(a)\", \"lab(y)\"; added literal applications such as \"Foo(25)\", \"A(a1, a2, a3)\", \"A(a1, a2, a3, a4, a5)\", \"Def5!<<[4]\" and selector-applied operators \"SOp1a!@\", \"SOp1b!@\", \"SOp1c!@!c\", \"SOp1d!@!c\" | Reason: every entry must literally appear in the file.\nField: TupleConstructor | Change: removed \"<<p, Arg(p)>>\", \"<<p, C>>\", \"<<x, y, z>>\", \"<<1, {99, 1, 2, 3} >>\" | Reason: these tuples do not occur literally in the file; some appear only in comments or ASSUME results.\nField: ArithmeticOps | Change: added \"..\" | Reason: range expression 1..10 uses arithmetic range operator.\nField: Specification | Change: revised wording to avoid implying actual fairness conditions/specification | Reason: module contains WF syntax as a value definition, not fairness conditions in Spec/Spec0.\nField: Operator count check | Change: verified top-level == definitions count = 43, JSON OperatorDefNames count = 43 | Reason: completeness requirement satisfied.",
+  "OperatorDefNames_StatePredicate": [
+    "Op",
+    "Bar",
+    "Op1",
+    "Def12",
+    "Def14",
+    "Def15",
+    "Def16",
+    "Def17",
+    "Def23"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "Foo",
+    "Op3",
+    "SOp1",
+    "OOp1",
+    "SOp1a",
+    "OOp2",
+    "SOp1b",
+    "SOp1c",
+    "SOp1d",
+    "OOp3",
+    "OOp4",
+    "COp",
+    "OOp5",
+    "Inst",
+    "Inst2",
+    "COp2",
+    "OOp6",
+    "Def1",
+    "Def2",
+    "Def3",
+    "Def4",
+    "Def5",
+    "Def6",
+    "Def7",
+    "Def8",
+    "Def9",
+    "Def10",
+    "Def11",
+    "Def13",
+    "Def18",
+    "Def19",
+    "Def20",
+    "Def21",
+    "Def22"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..10 |-> i+1]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[a |-> 1, b |-> 2]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/test206/test206.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(9) + TemporalProperty(0) + Init(0) + ValueDef(34) + ActionDefNames(0) = OperatorDefNames(43). Verified.",
+    "No operator definitions in this module use [], <>, or ~> as temporal properties at the operator-definition level; Def20, Def21, and Def22 are value definitions that exercise temporal-subscript/fairness syntax as data for selector tests rather than system properties.",
+    "ValueDef by elimination among non-action operators: Foo, Op3, SOp1, OOp1, SOp1a, OOp2, SOp1b, SOp1c, SOp1d, OOp3, OOp4, COp, OOp5, Inst, Inst2, COp2, OOp6, Def1, Def2, Def3, Def4, Def5, Def6, Def7, Def8, Def9, Def10, Def11, Def13, Def18, Def19, Def20, Def21, Def22.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs is empty, so both UnchangedExprs_Explicit and UnchangedExprs_VarRef are empty.",
+    "FunctionConstructor classification note: [i \\in 1..10 |-> i+1] is a by-domain constructor. [a |-> 1, b |-> 2] is treated in the remaining FunctionConstructor partition by elimination because it is neither a [x \\in S |-> e] form nor a [S -> T] set-of-functions form."
+  ]
+}

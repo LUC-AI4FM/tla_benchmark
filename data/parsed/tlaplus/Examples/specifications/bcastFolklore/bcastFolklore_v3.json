@@ -1,0 +1,238 @@
+{
+  "id": null,
+  "Specification": "This TLA+ specification models the reliable broadcast algorithm by message diffusion, as described in Chandra and Toueg's 1996 paper on unreliable failure detectors. The model is parameterized by the number of processes (N), a threshold T, and the maximum number of allowed crashes F. It explicitly encodes process states, message sending and receiving, and crashed processes, and models only ECHO messages. The system allows processes to crash up to F times, and includes both the standard and a 'no broadcast' initialization. The specification checks type correctness, safety (unforgeability), and liveness properties, including that if a correct process broadcasts, all correct processes eventually accept, and that messages sent by correct processes are eventually received by all correct processes. Weak fairness is added to ensure liveness, and the model is designed for parameterized verification of fault-tolerant distributed algorithms under crash failures.",
+  "ModuleName": "bcastFolklore",
+  "ExtendsModules": [
+    "Naturals"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "T",
+    "F"
+  ],
+  "VariableNames": [
+    "Corr",
+    "nCrashed",
+    "pc",
+    "rcvd",
+    "sent"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat /\\ T \\in Nat /\\ F \\in Nat",
+    "(N > 2 * T) /\\ (T >= F) /\\ (F >= 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "M",
+    "vars",
+    "Init",
+    "InitNoBcast",
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next",
+    "Spec",
+    "SpecNoBcast",
+    "TypeOK",
+    "UnforgLtl",
+    "Unforg",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan"
+  ],
+  "ActionDefNames": [
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"ECHO\" }",
+    "{}",
+    "{\"V0\", \"V1\"}",
+    "{\"V0\", \"V1\", \"AC\", \"CR\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\times",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "rcvd[self]",
+    "pc[i]",
+    "rcvd[p]",
+    "sent",
+    "Corr",
+    "nCrashed"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"AC\"]",
+    "[rcvd EXCEPT ![self] = msgs ]",
+    "[pc EXCEPT ![self] = \"CR\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, rcvd, sent, nCrashed, Corr >>",
+    "<<self, \"ECHO\">>",
+    "<<sndr, \"ECHO\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "*"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<"
+  ],
+  "RangeExpr": [
+    "1 .. N",
+    "0..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ECHO",
+    "V0",
+    "V1",
+    "AC",
+    "CR"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "rcvd",
+    "pc",
+    "sent",
+    "nCrashed",
+    "Corr"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                          /\\ \\/ UponV1(self)                                              \n                                             \\/ UponAccept(self)\n                                             \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                                        /\\ \\/ UponV1(self)\n                                                           \\/ UponAccept(self)\n                                                           \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )"
+  ],
+  "AlwaysOp": [
+    "[]( \\E sndr \\in 1..N : (<<sndr, \"ECHO\">> \\in sent \n                            => <>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])))",
+    "[]((\\E i \\in Corr: pc[i] = \"AC\") => <>(\\A i \\in Corr: pc[i] = \"AC\"))",
+    "[](\\A i \\in Corr: pc[i] /= \"AC\")"
+  ],
+  "EventuallyOp": [
+    "<>(\\E i \\in Corr: pc[i] = \"AC\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                          /\\ \\/ UponV1(self)                                              \n                                             \\/ UponAccept(self)\n                                             \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                                        /\\ \\/ UponV1(self)\n                                                           \\/ UponAccept(self)\n                                                           \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Unforg"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "SpecNoBcast",
+    "UnforgLtl",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitNoBcast"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "M",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Proc -> {\"V0\", \"V1\"} ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/bcastFolklore/bcastFolklore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(6) + Init(2) + ValueDef(3) + ActionDefNames(6) = 19 = OperatorDefNames total. Verified.",
+    "UnforgLtl, CorrLtl, RelayLtl, and ReliableChan are placed in TemporalProperty because their bodies are implications whose right-hand side is a temporal operator ([] or <>). The outermost operator is =>, but the meaning is temporal.",
+    "TemporalNesting is true: ReliableChan is defined as []( \\E sndr \\in 1..N : (<<sndr, \"ECHO\">> \\in sent => <>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p]))) \u2014 here, <>[] is nested inside [].",
+    "FunctionConstructor_ByDomain contains two entries ([ i \\in Proc |-> {} ], [ p \\in Proc |-> \"V0\" ]), FunctionConstructor_SetType contains one ([ Proc -> {\"V0\", \"V1\"} ])."
+  ]
+}

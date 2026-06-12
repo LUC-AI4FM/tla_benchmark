@@ -1,0 +1,238 @@
+{
+  "id": null,
+  "Specification": "This specification models a high-level abstraction of the Paxos consensus algorithm, focusing on the cooperative selection of a value by a set of processes called acceptors. The model abstracts away message-passing details and instead describes the protocol in terms of acceptors, ballots, votes, and quorums. The fault model is not explicitly stated, but the Quorum assumption ensures intersection between quorums, which is essential for consensus safety. The specification defines the types and invariants necessary for correctness, including the key safety property that at most one value can be chosen per ballot and that only safe values are voted for. The spec includes temporal properties, inductive invariants, and proofs that the algorithm implements the Consensus specification via an INSTANCE substitution. Notable design decisions include the use of set and function constructs to represent votes and ballots, and the use of theorems and invariants to structure the correctness argument.",
+  "ModuleName": "Voting",
+  "ExtendsModules": [
+    "Integers",
+    "TLAPS"
+  ],
+  "InstanceModules": [
+    "Consensus"
+  ],
+  "InstanceSubstitutions": [
+    "Value <- Value",
+    "chosen <- chosen"
+  ],
+  "ConstantNames": [
+    "Value",
+    "Acceptor",
+    "Quorum"
+  ],
+  "VariableNames": [
+    "votes",
+    "maxBal"
+  ],
+  "AssumptionNames": [
+    "QuorumAssumption"
+  ],
+  "TheoremNames": [
+    "\\A v \\in Value : SafeAt(0, v)",
+    "\\A b \\in Ballot, v \\in Value : \n               ChosenAt(b, v) => NoneOtherChoosableAt(b, v)",
+    "Inv  =>  \\A Q \\in Quorum, b \\in Ballot, v \\in Value :\n                     ShowsSafeAt(Q, b, v) => SafeAt(b, v)",
+    "Spec => []Inv",
+    "Spec  => C!Spec"
+  ],
+  "OperatorDefNames": [
+    "Ballot",
+    "TypeOK",
+    "VotedFor",
+    "ChosenAt",
+    "chosen",
+    "DidNotVoteAt",
+    "CannotVoteAt",
+    "NoneOtherChoosableAt",
+    "SafeAt",
+    "OneValuePerBallot",
+    "VotesSafe",
+    "Inv",
+    "ShowsSafeAt",
+    "Init",
+    "IncreaseMaxBal",
+    "VoteFor",
+    "Next",
+    "Spec",
+    "C"
+  ],
+  "ActionDefNames": [
+    "IncreaseMaxBal",
+    "VoteFor",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{-1}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Acceptor -> SUBSET (Ballot \\X Value)]",
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[a \\in Acceptor |-> {}]",
+    "[a \\in Acceptor |-> -1]"
+  ],
+  "FunctionApplication": [
+    "votes[a]",
+    "maxBal[a]",
+    "votes[c]",
+    "maxBal"
+  ],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![a] = b]",
+    "[votes EXCEPT ![a] = votes[a] \\cup {<<b, v>>}]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<b, v>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0..(b-1)",
+    "-1..(b-1)",
+    "(c+1)..(b-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "maxBal",
+    "votes"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED votes"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<votes, maxBal>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<votes, maxBal>>",
+    "[]Inv"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [
+    "PTL"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "DEF"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>3"
+  ],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: BooleanConstants | Change: Added [\"TRUE\", \"FALSE\"] | Reason: These are standard TLA+ boolean constants and are implicitly available in every module; the field must not be empty.\nField: MembershipOps | Change: Removed \"\\\\notin\" | Reason: \"\\\\notin\" does not appear in the TLA+ file; only \"\\\\in\" is present.\nField: AlwaysOp | Change: Added \"[][Next]_<<votes, maxBal>>\" | Reason: The temporal formula \"[][Next]_<<votes, maxBal>>\" appears in the definition of Spec and must be included in AlwaysOp.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "VotedFor",
+    "ChosenAt",
+    "chosen",
+    "DidNotVoteAt",
+    "CannotVoteAt",
+    "NoneOtherChoosableAt",
+    "SafeAt",
+    "OneValuePerBallot",
+    "VotesSafe",
+    "Inv",
+    "ShowsSafeAt"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Ballot",
+    "C"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> {}]",
+    "[a \\in Acceptor |-> -1]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Acceptor -> SUBSET (Ballot \\X Value)]",
+    "[Acceptor -> Ballot \\cup {-1}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED votes"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Voting/Voting.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(11) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(3) = 18 = OperatorDefNames total. Verified.",
+    "Spec is placed in TemporalProperty because its body is Init /\\ [][Next]_<<votes, maxBal>>, which is a temporal formula.",
+    "C is placed in ValueDef by elimination: it is an INSTANCE operator, not a state predicate, temporal property, or action.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "FunctionConstructor_ByDomain contains [a \\in Acceptor |-> {}] and [a \\in Acceptor |-> -1]; FunctionConstructor_SetType contains the two [S -> T] forms. Partition covers all FunctionConstructor entries."
+  ]
+}

@@ -1,0 +1,331 @@
+{
+  "id": null,
+  "Specification": "This specification models Atomix's implementation of the SWIM membership and failure-detection protocol. Members have logical incarnation numbers and can be observed in the states Alive, Suspect, or Dead, with transitions constrained to progress monotonically within an incarnation and requiring a higher incarnation to return to Alive. The spec models probing, acknowledgments, gossip propagation of updates, message duplication and loss in the network, member addition and removal, and a history structure used to check an invariant that a member does not regress or repeat illegal state transitions within the same incarnation.",
+  "ModuleName": "SWIM",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences",
+    "Bags",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Member",
+    "Nil",
+    "Alive",
+    "Suspect",
+    "Dead",
+    "GossipMessage",
+    "ProbeMessage",
+    "AckMessage"
+  ],
+  "VariableNames": [
+    "incarnation",
+    "members",
+    "updates",
+    "history",
+    "messages"
+  ],
+  "AssumptionNames": [
+    "Alive > Suspect /\\ Suspect > Dead"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "InitMemberVars",
+    "InitMessageVars",
+    "WithMessage",
+    "WithoutMessage",
+    "Send",
+    "Discard",
+    "DuplicateMessage",
+    "DropMessage",
+    "Pop",
+    "RecordUpdate",
+    "PopUpdate",
+    "RecordHistory",
+    "UpdateState",
+    "SendMessage",
+    "SendProbe",
+    "SendAck",
+    "SendGossip",
+    "Probe",
+    "HandleProbe",
+    "HandleAck",
+    "HandleFail",
+    "Expire",
+    "Gossip",
+    "HandleGossipUpdate",
+    "AddMember",
+    "RemoveMember",
+    "ReceiveMessage",
+    "Init",
+    "Next",
+    "Inv",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "Discard",
+    "DuplicateMessage",
+    "DropMessage",
+    "RecordUpdate",
+    "PopUpdate",
+    "RecordHistory",
+    "UpdateState",
+    "SendMessage",
+    "SendProbe",
+    "SendAck",
+    "SendGossip",
+    "Probe",
+    "HandleProbe",
+    "HandleAck",
+    "HandleFail",
+    "Expire",
+    "Gossip",
+    "HandleGossipUpdate",
+    "AddMember",
+    "RemoveMember",
+    "ReceiveMessage",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] + 1] ELSE msgs @@ (m :> 1)",
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] - 1] ELSE msgs",
+    "IF tm \\in DOMAIN history[source][dest] THEN history' = [history EXCEPT ![source][dest][tm] = Append(history[source][dest][tm], state)] ELSE history' = [history EXCEPT ![source] = history[source][dest] @@ (tm :> <<state>>)]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Member |-> Nil]",
+    "[i \\in Member |-> [j \\in Member |-> [incarnation |-> 0, state |-> Nil]]]",
+    "[j \\in Member |-> [incarnation |-> 0, state |-> Nil]]",
+    "[i \\in Member |-> <<>>]",
+    "[i \\in Member |-> [j \\in Member |-> [k \\in {} |-> <<>>]]]",
+    "[j \\in Member |-> [k \\in {} |-> <<>>]]",
+    "[k \\in {} |-> <<>>]",
+    "[m \\in {} |-> 0]",
+    "[i \\in DOMAIN members |-> [incarnation |-> 0, state |-> Dead]]",
+    "[i \\in {} |-> <<>>]"
+  ],
+  "FunctionApplication": [
+    "msgs[m]",
+    "messages[m]",
+    "updates[member]",
+    "history[source][dest]",
+    "history[source][dest][tm]",
+    "members[source][dest]",
+    "incarnation[source]",
+    "incarnation[dest]",
+    "members[dest][source]",
+    "members[source][dest].incarnation",
+    "members[source][dest].state",
+    "updates[source]",
+    "members[dest][message.id].incarnation",
+    "members[dest][message.id].state",
+    "incarnation[id]",
+    "history[i]",
+    "history[i][j]",
+    "history[i][j][k+1]",
+    "history[i][j][k]"
+  ],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![m] = msgs[m] + 1]",
+    "[msgs EXCEPT ![m] = msgs[m] - 1]",
+    "[updates EXCEPT ![member] = Append(updates[member], update)]",
+    "[updates EXCEPT ![member] = Pop(updates[member])]",
+    "[history EXCEPT ![source][dest][tm] = Append(history[source][dest][tm], state)]",
+    "[history EXCEPT ![source] = history[source][dest] @@ (tm :> <<state>>)]",
+    "[members EXCEPT ![source][dest] = [incarnation |-> inc, state |-> state]]",
+    "[incarnation EXCEPT ![dest] = message.incarnation + 1]",
+    "[incarnation EXCEPT ![dest] = incarnation[dest] + 1]",
+    "[incarnation EXCEPT ![id] = 1]",
+    "[members EXCEPT ![id] = [i \\in DOMAIN members |-> [incarnation |-> 0, state |-> Dead]]]",
+    "[history EXCEPT ![id] = [i \\in {} |-> <<>>]]",
+    "[incarnation EXCEPT ![id] = Nil]",
+    "[members EXCEPT ![id] = [j \\in Member |-> [incarnation |-> 0, state |-> Nil]]]",
+    "[updates EXCEPT ![id] = <<>>]"
+  ],
+  "RecordConstructor": [
+    "[incarnation |-> 0, state |-> Nil]",
+    "[id |-> dest, incarnation |-> inc, state |-> state]",
+    "[type |-> type, source |-> source, dest |-> dest, message |-> message]",
+    "[incarnation |-> incarnation'[dest]]",
+    "[id |-> dest, incarnation |-> incarnation'[dest], state |-> Alive]",
+    "[incarnation |-> 0, state |-> Dead]"
+  ],
+  "RecordAccess": [
+    "message.incarnation",
+    "message.state",
+    "m.type",
+    "m.source",
+    "m.dest",
+    "m.message",
+    "message.id"
+  ],
+  "TupleConstructor": [
+    "<<incarnation, members, updates, history, messages>>",
+    "<<>>",
+    "<<incarnation, members, updates, history>>",
+    "<<members, updates, history>>",
+    "<<incarnation>>",
+    "<<incarnation, messages>>",
+    "<<incarnation, members, updates>>",
+    "<<incarnation, members, history>>",
+    "<<updates, messages>>",
+    "<<history, messages>>",
+    "<<state>>"
+  ],
+  "SequenceOps": [
+    "SubSeq",
+    "Len",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences",
+    "Bags"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages",
+    "updates",
+    "history",
+    "members",
+    "incarnation"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<incarnation, members, updates, history>>",
+    "UNCHANGED <<members, updates, history>>",
+    "UNCHANGED <<incarnation>>",
+    "UNCHANGED <<incarnation, messages>>",
+    "UNCHANGED <<incarnation, members, updates>>",
+    "UNCHANGED <<incarnation, members, history>>",
+    "UNCHANGED <<updates, messages>>",
+    "UNCHANGED <<history, messages>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[] Inv"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count unchanged at 32 entries | Reason: Top-level `==` definition count in file = 32, JSON count = 32\nField: IfThenElse | Change: Removed non-verbatim context suffixes `(in WithMessage)`, `(in WithoutMessage)`, `(in RecordHistory)` | Reason: Values must appear in the TLA+ file verbatim\nField: FunctionConstructor | Change: Removed duplicate/incorrect entry `[j \\\\in Member |-> [incarnation |-> 0, state |-> Nil]]` | Reason: This exact standalone constructor does not literally appear in the file\nField: TupleConstructor | Change: Added `<<incarnation, members, history>>` | Reason: Missing tuple literal used in `Gossip`\nField: UnchangedExprs | Change: Removed duplicate `UNCHANGED <<incarnation>>` | Reason: Deduplication required\nField: ProofCommands | Change: Removed `ASSUME` | Reason: `ASSUME` is not a proof command and this value does not belong in `ProofCommands`\n",
+  "OperatorDefNames_StatePredicate": [
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "InitMemberVars",
+    "InitMessageVars",
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "WithMessage",
+    "WithoutMessage",
+    "Pop"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Member |-> Nil]",
+    "[i \\in Member |-> [j \\in Member |-> [incarnation |-> 0, state |-> Nil]]]",
+    "[j \\in Member |-> [incarnation |-> 0, state |-> Nil]]",
+    "[i \\in Member |-> <<>>]",
+    "[i \\in Member |-> [j \\in Member |-> [k \\in {} |-> <<>>]]]",
+    "[j \\in Member |-> [k \\in {} |-> <<>>]]",
+    "[k \\in {} |-> <<>>]",
+    "[m \\in {} |-> 0]",
+    "[i \\in DOMAIN members |-> [incarnation |-> 0, state |-> Dead]]",
+    "[i \\in {} |-> <<>>]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<incarnation, members, updates, history>>",
+    "UNCHANGED <<members, updates, history>>",
+    "UNCHANGED <<incarnation>>",
+    "UNCHANGED <<incarnation, messages>>",
+    "UNCHANGED <<incarnation, members, updates>>",
+    "UNCHANGED <<incarnation, members, history>>",
+    "UNCHANGED <<updates, messages>>",
+    "UNCHANGED <<history, messages>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SWIM/SWIM.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(3) + ValueDef(4) + ActionDefNames(23) = OperatorDefNames(32). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. The file contains temporal forms `[][Next]_vars` and `[] Inv`, but no temporal operator appears explicitly nested inside another temporal operator in the source text.",
+    "ValueDef by elimination: vars, WithMessage, WithoutMessage, and Pop are non-action, non-temporal, non-Boolean helper/value definitions."
+  ]
+}

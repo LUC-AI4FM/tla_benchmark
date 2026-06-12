@@ -1,0 +1,289 @@
+{
+  "id": null,
+  "Specification": "This module specifies a disk-based variant of Synod/Paxos in which processes interact through persistent disks and maintain local phase, block, and read/write bookkeeping state. The model assumes each process has a disjoint positive ballot set, a distinguished set of disks with a majority predicate, and requires that any two disk majorities intersect. The specification defines initialization, phase-0 recovery reads, phase-1 and phase-2 writes and reads, ballot restarts, and failures, then verifies that the overall behavior refinement-style implies the imported SynodSpec theorem target.",
+  "ModuleName": "DiskSynod",
+  "ExtendsModules": [
+    "Synod",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Ballot",
+    "Disk",
+    "IsMajority"
+  ],
+  "VariableNames": [
+    "disk",
+    "dblock",
+    "phase",
+    "disksWritten",
+    "blocksRead"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A p \\in Proc : /\\ Ballot(p) \\subseteq {n \\in Nat : n > 0}\n                          /\\ \\A q \\in Proc \\ {p} : Ballot(p) \\cap Ballot(q) = {}\n       /\\ IsMajority(Disk)\n       /\\ \\A S, T \\in SUBSET Disk :\n              IsMajority(S) /\\ IsMajority(T) => (S \\cup T # {})"
+  ],
+  "TheoremNames": [
+    "THEOREM DiskSynodSpec => SynodSpec"
+  ],
+  "OperatorDefNames": [
+    "DiskBlock",
+    "InitDB",
+    "vars",
+    "Init",
+    "hasRead",
+    "allBlocksRead",
+    "InitializePhase",
+    "StartBallot",
+    "Phase1or2Write",
+    "Phase1or2Read",
+    "EndPhase1or2",
+    "Fail",
+    "Phase0Read",
+    "EndPhase0",
+    "Next",
+    "DiskSynodSpec"
+  ],
+  "ActionDefNames": [
+    "InitializePhase",
+    "StartBallot",
+    "Phase1or2Write",
+    "Phase1or2Read",
+    "EndPhase1or2",
+    "Fail",
+    "Phase0Read",
+    "EndPhase0",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "allRdBlks",
+    "blocksSeen",
+    "nonInitBlks",
+    "maxBlk"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF disk [d ][q].mbal < dblock [p].mbal\n     THEN /\\ blocksRead' = \n                [blocksRead EXCEPT\n                    ![p][d ] = @ \\cup {[block |-> disk [d ][q], proc |-> q]}]\n          /\\ UNCHANGED <<input, output, disk , phase, dblock , disksWritten>>\n     ELSE StartBallot(p)",
+    "IF nonInitBlks = {} THEN input[p]\n                       ELSE maxBlk .inp"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{}",
+    "{1, 2}",
+    "{p}",
+    "{d}",
+    "{NotAnInput}",
+    "{dblock [p]}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[mbal : (UNION {Ballot(p) : p \\in Proc}) \\cup {0},\n              bal  : (UNION {Ballot(p) : p \\in Proc}) \\cup {0},\n              inp  : Inputs \\cup {NotAnInput}]",
+    "[mbal |-> 0, bal |-> 0, inp |-> NotAnInput]",
+    "[Proc -> Inputs]",
+    "[p \\in Proc |-> NotAnInput]",
+    "[d \\in Disk |-> [p \\in Proc |-> InitDB ]]",
+    "[p \\in Proc |-> InitDB ]",
+    "[p \\in Proc |-> 0]",
+    "[p \\in Proc |-> {}]",
+    "[p \\in Proc |-> [d \\in Disk |-> {}]]",
+    "[d \\in Disk |-> {}]",
+    "[block |-> disk [d ][q], proc |-> q]",
+    "[block |-> disk [d][p], proc |-> p]"
+  ],
+  "FunctionApplication": [
+    "Ballot(p)",
+    "IsMajority(Disk)",
+    "IsMajority(S)",
+    "IsMajority(T)",
+    "blocksRead [p][d ]",
+    "phase[p]",
+    "disksWritten[p]",
+    "input[p]",
+    "Ballot(q)",
+    "disk[d][p]"
+  ],
+  "FunctionOverride": [
+    "[disksWritten EXCEPT ![p] = {}]",
+    "[blocksRead EXCEPT ![p] = [d \\in Disk |-> {}]]",
+    "[phase EXCEPT ![p] = 1]",
+    "[dblock EXCEPT ![p].mbal = b]",
+    "[disk EXCEPT ![d][p] = dblock[p]]",
+    "[disksWritten EXCEPT ![p] = @ \\cup {d}]",
+    "[blocksRead EXCEPT\n                    ![p][d ] = @ \\cup {[block |-> disk [d ][q], proc |-> q]}]",
+    "[dblock EXCEPT\n                ![p].bal = dblock [p].mbal,\n                ![p].inp =\n                    LET blocksSeen == allBlocksRead(p) \\cup {dblock [p]}\n                        nonInitBlks ==\n                            {bs \\in blocksSeen : bs.inp # NotAnInput}\n                        maxBlk ==\n                            CHOOSE b \\in nonInitBlks :\n                                \\A c \\in nonInitBlks : b.bal >= c.bal\n                    IN IF nonInitBlks = {} THEN input[p]\n                       ELSE maxBlk .inp ]",
+    "[output EXCEPT ![p] = dblock [p].inp]",
+    "[phase EXCEPT ![p] = @ + 1]",
+    "[input EXCEPT ![p] = ip]",
+    "[phase EXCEPT ![p] = 0]",
+    "[dblock EXCEPT ![p] = InitDB]",
+    "[output EXCEPT ![p] = NotAnInput]",
+    "[blocksRead EXCEPT\n                        ![p][d ] = @ \\cup {[block |-> disk [d][p], proc |-> p]}]",
+    "[dblock EXCEPT\n                        ![p] = [(CHOOSE r \\in allBlocksRead (p) :\n                                     \\A s \\in allBlocksRead (p) : r .bal >= s.bal)\n                                  EXCEPT !.mbal = b]]",
+    "[(CHOOSE r \\in allBlocksRead (p) :\n                                     \\A s \\in allBlocksRead (p) : r .bal >= s.bal)\n                                  EXCEPT !.mbal = b]"
+  ],
+  "RecordConstructor": [
+    "[mbal : (UNION {Ballot(p) : p \\in Proc}) \\cup {0},\n              bal  : (UNION {Ballot(p) : p \\in Proc}) \\cup {0},\n              inp  : Inputs \\cup {NotAnInput}]",
+    "[mbal |-> 0, bal |-> 0, inp |-> NotAnInput]",
+    "[block |-> disk [d ][q], proc |-> q]",
+    "[block |-> disk [d][p], proc |-> p]"
+  ],
+  "RecordAccess": [
+    "br .proc",
+    "br.block",
+    "dblock [p].mbal",
+    "disk [d ][q].mbal",
+    "bs.inp",
+    "b.bal",
+    "c.bal",
+    "maxBlk .inp",
+    "dblock [p].inp",
+    "r.mbal",
+    "r .bal",
+    "s.bal"
+  ],
+  "TupleConstructor": [
+    "<<input, output, disk , phase, dblock , disksWritten, blocksRead>>",
+    "<<input, output, disk>>",
+    "<<input, output, phase, dblock , blocksRead>>",
+    "<<input, disk>>",
+    "<<input, output, disk , phase, dblock , disksWritten>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE b \\in nonInitBlks :\n                                \\A c \\in nonInitBlks : b.bal >= c.bal",
+    "CHOOSE r \\in allBlocksRead (p) :\n                                     \\A s \\in allBlocksRead (p) : r .bal >= s.bal"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "disksWritten",
+    "blocksRead",
+    "phase",
+    "dblock",
+    "disk",
+    "output",
+    "input"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<input, output, disk>>",
+    "UNCHANGED <<input, output, phase, dblock , blocksRead>>",
+    "UNCHANGED output",
+    "UNCHANGED dblock",
+    "UNCHANGED <<input, disk>>",
+    "UNCHANGED disk",
+    "UNCHANGED <<input, output, disk , phase, dblock , disksWritten>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced both paraphrased/non-verbatim entries with the actual IF expressions from the file | Reason: Values must appear in the TLA+ file verbatim; V1 entries did not\nField: SetEnumeration | Change: Added \"{p}\", \"{d}\", \"{NotAnInput}\", \"{dblock [p]}\" | Reason: These set enumerations appear in the file and were missing\nField: FunctionOverride | Change: Added \"[(CHOOSE r \\\\in allBlocksRead (p) :\\n                                     \\\\A s \\\\in allBlocksRead (p) : r .bal >= s.bal)\\n                                  EXCEPT !.mbal = b]\" | Reason: Nested EXCEPT form appears in EndPhase0 and every distinct EXCEPT form must be listed\nField: RecordAccess | Change: Replaced \"br.proc\" with \"br .proc\" | Reason: RecordAccess entries must literally match the file; the file contains a space before \".proc\"\nField: OperatorDefNames | Change: Verified count unchanged at 16 | Reason: Top-level == definition count in file is 16; JSON count matches completeness requirement",
+  "OperatorDefNames_StatePredicate": [
+    "hasRead"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "DiskSynodSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitDB"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "DiskBlock",
+    "vars",
+    "allBlocksRead"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Proc |-> NotAnInput]",
+    "[d \\in Disk |-> [p \\in Proc |-> InitDB ]]",
+    "[p \\in Proc |-> InitDB ]",
+    "[p \\in Proc |-> 0]",
+    "[p \\in Proc |-> {}]",
+    "[p \\in Proc |-> [d \\in Disk |-> {}]]",
+    "[d \\in Disk |-> {}]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Proc -> Inputs]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<input, output, disk>>",
+    "UNCHANGED <<input, output, phase, dblock , blocksRead>>",
+    "UNCHANGED <<input, disk>>",
+    "UNCHANGED <<input, output, disk , phase, dblock , disksWritten>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/DiskSynod/DiskSynod.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InitDB is classified in OperatorDefNames_Init because its name begins with \"Init\", even though it defines a record value rather than an initial-state predicate.",
+    "allBlocksRead is classified in ValueDef by elimination: it is a non-Boolean helper that computes a set of blocks read by process p.",
+    "vars is classified in ValueDef by elimination: it is a tuple-valued structural helper used as the temporal subscript variable tuple.",
+    "FunctionConstructor contains additional record constructors ([mbal : ...], [mbal |-> ...], [block |-> ...]) that are neither [x \\in S |-> e] nor [S -> T] forms, so FunctionConstructor_ByDomain and FunctionConstructor_SetType partition only the function constructors of those two requested forms, not the full mixed FunctionConstructor field.",
+    "UnchangedExprs contains scalar forms \"UNCHANGED output\" and \"UNCHANGED dblock\" in addition to explicit tuple forms; these are neither explicit <<...>> forms nor var-ref forms such as UNCHANGED vars, so the two requested sub-fields do not exhaust the original UnchangedExprs field for this module.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(2) + ValueDef(3) + ActionDefNames(9) = OperatorDefNames(16). Verified."
+  ]
+}

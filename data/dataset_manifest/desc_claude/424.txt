@@ -1,0 +1,7 @@
+The module is a TLA+ test case (described as having caught a bug in an early TLC version) that models a simplified request-ordering system for a multiprocessor memory architecture.
+
+The model has two variables: `reqQ`, a per-processor sequence of issued requests, and `reqOrder`, a binary relation over request identifiers capturing the global ordering of requests. The constant parameters are `Reg` (registers), `Adr` (addresses), `Val` (values), and `Proc` (processors). Each request identifier (`reqId`) is a record pairing a processor with an index into that processor's queue.
+
+The sole action, `IssueRequest`, appends a new request entry (carrying a register field) to a chosen processor's queue and nondeterministically extends `reqOrder` via `UpdateReqOrder`. The updated order must be a superset of the old one, must remain a subset of the new `reqId` cross product, and must satisfy `GoodReqOrder`, which enforces transitivity, irreflexivity, and the constraint that program order (earlier indices on the same processor) is respected.
+
+The state space is bounded by a model constraint limiting each processor's queue to fewer than two entries. The temporal specification is defined by `Init` and `Next` with no fairness conditions. The checked invariant is `TypeInvariant`, which asserts that `reqQ` maps each processor to a sequence of requests or register-tagged records, and that `reqOrder` is a subset of the appropriate cross product of request identifiers.

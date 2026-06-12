@@ -48,11 +48,14 @@ def _find_tla2tools() -> str:
     )
 
 
-def run_sany(tla_path: str) -> dict[str, Any]:
+def run_sany(tla_path: str, search_paths: list[str] | None = None) -> dict[str, Any]:
     java = _find_java()
     jar = _find_tla2tools()
     tla_file = Path(tla_path)
-    cmd = [java, "-cp", jar, "tla2sany.SANY", str(tla_file.name)]
+    cmd = [java, "-cp", jar, "tla2sany.SANY"]
+    for sp in (search_paths or []):
+        cmd += ["-I", sp]
+    cmd.append(str(tla_file.name))
     logger.debug("SANY cmd: %s", " ".join(cmd))
     try:
         result = subprocess.run(

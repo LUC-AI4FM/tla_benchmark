@@ -1,0 +1,364 @@
+{
+  "id": null,
+  "Specification": "This specification models Safra's distributed termination-detection algorithm on a ring, following EWD 998. Nodes maintain activity status, colors, counters for sent-minus-received messages, pending in-flight messages, and a circulating token carrying position, accumulated quantity, and color; the spec also includes auxiliary loop and formula-tracking variables used to encode and check temporal properties. It verifies a safety-style termination-detection condition, an invariant inspired by Safra's inductive argument, and a liveness-style temporal property that termination is eventually detected under weak fairness of the system token actions, with an explicit state constraint used to bound TLC exploration.",
+  "ModuleName": "EWD998_tableau_rename",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Utils"
+  ],
+  "InstanceModules": [
+    "AsyncTerminationDetection"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token",
+    "loop_active",
+    "loop_color",
+    "loop_counter",
+    "loop_pending",
+    "loop_token",
+    "InLoop",
+    "Formula",
+    "Formula_Inner",
+    "Formula_Inner_Right",
+    "Formula_Inner_Right_Finally",
+    "Formula_Globally",
+    "Loop_Formula",
+    "Loop_Formula_Inner",
+    "Loop_Formula_Inner_Right",
+    "Loop_Formula_Inner_Right_Finally",
+    "Loop_Formula_Globally",
+    "LoopFair",
+    "Init_Formula"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM Spec => TD!Spec"
+  ],
+  "OperatorDefNames": [
+    "N",
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "loop_vars",
+    "predicate_vars",
+    "Loop_predicate_vars",
+    "TypeOK",
+    "terminationDetected",
+    "Plus",
+    "B",
+    "Termination",
+    "Predicate_IR",
+    "Predicate_I",
+    "Predicate",
+    "Predicate_G",
+    "Predicate_IRF",
+    "PredicateNext",
+    "PredicateInit",
+    "LoopInit",
+    "FairnessInit",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "PassTokenEnabled",
+    "InitiateProbeEnabled",
+    "SystemEnabled",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "FairnessNext",
+    "LoopNext",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "TerminationDetection",
+    "Inv",
+    "Liveness",
+    "FinallyOK",
+    "GloballyOK",
+    "PredicatesOK",
+    "LoopOK",
+    "Property",
+    "TD"
+  ],
+  "ActionDefNames": [
+    "Predicate_IR",
+    "Predicate_I",
+    "Predicate",
+    "Predicate_G",
+    "Predicate_IRF",
+    "PredicateNext",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "FairnessNext",
+    "LoopNext",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE @",
+    "IF token.pos = N-1 THEN token.q = 0 ELSE token.q = FoldFunctionOnSet(Plus, 0, counter, {x \\in Node: (token.pos+1) <= x})"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}",
+    "{TRUE, FALSE}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]",
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionApplication": [
+    "counter[0]",
+    "active[0]",
+    "pending[0]",
+    "active[i]",
+    "color[0]",
+    "counter[i]",
+    "color[i]",
+    "pending[i]"
+  ],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[token EXCEPT !.pos = @ - 1,\n                            !.q = @ + counter[i],\n                            !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[pos : Node, q : Int, color : Color]",
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]"
+  ],
+  "RecordAccess": [
+    "token.pos",
+    "token.color",
+    "token.q"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, pending, token>>",
+    "<<loop_active, loop_color, loop_counter, loop_pending, loop_token>>",
+    "<<Formula, Formula_Inner, Formula_Inner_Right, Formula_Inner_Right_Finally, Formula_Globally>>",
+    "<<Loop_Formula, Loop_Formula_Inner, Loop_Formula_Inner_Right, Loop_Formula_Inner_Right_Finally, Loop_Formula_Globally>>",
+    "<< Init_Formula >>",
+    "<<active, counter, pending>>",
+    "<<active, color, token>>",
+    "<<token>>",
+    "<<color, counter, pending, token>>",
+    "<< vars >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<="
+  ],
+  "RangeExpr": [
+    "0 .. N-1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "white",
+    "black"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "Formula_Inner_Right",
+    "Formula_Inner",
+    "Formula",
+    "Formula_Globally",
+    "InLoop",
+    "Formula_Inner_Right_Finally",
+    "token",
+    "color",
+    "counter",
+    "pending",
+    "active",
+    "LoopFair",
+    "loop_active",
+    "loop_color",
+    "loop_counter",
+    "loop_pending",
+    "loop_token",
+    "Loop_Formula",
+    "Loop_Formula_Inner",
+    "Loop_Formula_Inner_Right",
+    "Loop_Formula_Inner_Right_Finally",
+    "Loop_Formula_Globally",
+    "loop_vars",
+    "Loop_predicate_vars"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << Init_Formula >>",
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>",
+    "UNCHANGED << vars >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](~Termination \\/ <>terminationDetected)"
+  ],
+  "EventuallyOp": [
+    "<>terminationDetected"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 48, JSON count = 48 | Reason: completeness check required\nField: ActionDefNames | Change: added \"Predicate\" | Reason: operator body directly primes Formula via Formula'\nField: ActionDefNames | Change: retained only action operators and compositions | Reason: verified all listed entries are action definitions in the file\nField: NamesInLet | Change: renamed field to \"LetInNames\" with empty array | Reason: required field name in verification guide; file has no LET/IN definitions\nField: IfThenElse | Change: replaced annotated strings with verbatim file expressions only | Reason: field values must literally appear in the TLA+ file\nField: SetOperators | Change: removed \"\\\\subseteq\" | Reason: value does not appear in the file\nField: AssumptionNames | Change: confirmed empty | Reason: file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: EnabledExprs | Change: confirmed empty | Reason: file contains no ENABLED expressions\nField: FunctionOverride | Change: confirmed non-empty entries and verified all distinct EXCEPT forms are present | Reason: completeness check required for commonly missed field\nField: PrimedVariables | Change: confirmed inclusion of loop_vars and Loop_predicate_vars | Reason: these appear primed in assignments loop_vars' and Loop_predicate_vars'\nField: FairnessConditions | Change: confirmed \"WF_vars(System)\" only | Reason: only fairness expression appears inside Spec\nField: LocalOperatorNames | Change: confirmed empty | Reason: file has no LET-local parametric operators\nField: RecordAccess | Change: confirmed entries only for literal field accesses present in file | Reason: correctness check required\nField: StateConstraint | Change: confirmed empty metadata field | Reason: although operator StateConstraint exists, there is no separate state-constraint annotation field content in the file",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "terminationDetected",
+    "Termination",
+    "PassTokenEnabled",
+    "InitiateProbeEnabled",
+    "SystemEnabled",
+    "PredicateInit",
+    "LoopInit",
+    "FairnessInit",
+    "StateConstraint",
+    "TerminationDetection",
+    "Inv",
+    "FinallyOK",
+    "GloballyOK",
+    "PredicatesOK",
+    "LoopOK",
+    "Property"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "N",
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "loop_vars",
+    "predicate_vars",
+    "Loop_predicate_vars",
+    "Plus",
+    "B",
+    "TD"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << Init_Formula >>",
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>",
+    "UNCHANGED << vars >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/EWD998_tableau_rename/EWD998_tableau_rename.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(17) + TemporalProperty(2) + Init(1) + ValueDef(11) + ActionDefNames(16) = OperatorDefNames(47). Verified.",
+    "OperatorDefNames has 47 entries in this V2 JSON, and the partition was verified against that provided list.",
+    "PassTokenEnabled, InitiateProbeEnabled, and SystemEnabled are Boolean-valued current-state predicates, not actions, because they contain no primed variables or temporal operators.",
+    "Property is placed in StatePredicate by elimination: it is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "TD is placed in ValueDef by elimination as an INSTANCE-valued module alias rather than a predicate/action/temporal operator.",
+    "TemporalNesting is true. Exact line: \"  [](~Termination \\/ <>terminationDetected)\"",
+    "Apalache is applicable because the file contains @type annotations on variables."
+  ]
+}

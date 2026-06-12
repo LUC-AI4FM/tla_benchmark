@@ -1,0 +1,268 @@
+{
+  "id": null,
+  "Specification": "This module is a TLC model-checking wrapper for the write-through cache specification from LiveWriteThroughCache. It manually instantiates definitions corresponding to the internal-memory liveness specification, using a refinement mapping from the cache implementation state variables to abstract memory variables omem, octl, and obuf, because the comments explain that the TLC version targeted here cannot handle the intended INSTANCE-based instantiation directly. The file defines initial-state, next-state, type-invariant, enabledness, liveness, and combined specification formulas for the instantiated internal memory view, and also includes constants and a PostCondition value describing a counterexample-shaped structure for model checking.",
+  "ModuleName": "MCLiveWriteThroughCache",
+  "ExtendsModules": [
+    "LiveWriteThroughCache",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "p1",
+    "p2",
+    "a1",
+    "v1",
+    "v2"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "MCSend",
+    "MCReply",
+    "MCInitMemInt",
+    "omem",
+    "octl",
+    "obuf",
+    "LM_Inner_IInit",
+    "LM_Inner_TypeInvariant",
+    "LM_Inner_Req",
+    "LM_Inner_Do",
+    "LM_Inner_Rsp",
+    "LM_Inner_INext",
+    "LM_Inner_ISpec",
+    "LM_Inner_vars",
+    "LM_Inner_EnabledDo",
+    "LM_Inner_EnabledRsp",
+    "LM_Inner_Liveness",
+    "LM_Inner_Liveness2",
+    "LM_Inner_LISpec",
+    "LM_Inner_LivenessProperty",
+    "PermanentlyBusy",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "LM_Inner_Req",
+    "LM_Inner_Do",
+    "LM_Inner_Rsp",
+    "LM_Inner_INext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ctl[p] = \"waiting\" THEN \"busy\" ELSE ctl[p]",
+    "IF obuf[p].op = \"Wr\"\n              THEN [omem EXCEPT ![obuf[p].adr] = obuf[p].val] \n              ELSE omem",
+    "IF obuf[p].op = \"Wr\"\n                                  THEN NoVal\n                                  ELSE omem[obuf[p].adr]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{<<CHOOSE p \\in Proc : TRUE, NoVal>>}",
+    "{\"rdy\", \"busy\",\"done\"}",
+    "{NoVal}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[p \\in Proc |-> IF ctl[p] = \"waiting\" THEN \"busy\" ELSE ctl[p]]",
+    "[Adr->Val]",
+    "[p \\in Proc |-> \"rdy\"]",
+    "[p \\in Proc |-> NoVal]",
+    "[Proc -> {\"rdy\", \"busy\",\"done\"}]",
+    "[Proc -> MReq \\cup Val \\cup {NoVal}]"
+  ],
+  "FunctionApplication": [
+    "ctl[p]",
+    "octl[p]",
+    "obuf[p]",
+    "omem[obuf[p].adr]"
+  ],
+  "FunctionOverride": [
+    "[obuf EXCEPT ![p] = req]",
+    "[octl EXCEPT ![p] = \"busy\"]",
+    "[omem EXCEPT ![obuf[p].adr] = obuf[p].val]",
+    "[obuf EXCEPT ![p] = IF obuf[p].op = \"Wr\"\n                                  THEN NoVal\n                                  ELSE omem[obuf[p].adr]]",
+    "[octl EXCEPT ![p] = \"done\"]",
+    "[octl EXCEPT ![p]= \"rdy\"]"
+  ],
+  "RecordConstructor": [
+    "[ action |->\n      { << << 1,\n              [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n                buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n                memInt |-> <<p1, NoVal>>,\n                wmem |-> (a1 :> v1),\n                cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n                memQ |-> <<>> ] >>,\n           [ name |-> \"UnnamedAction\",\n             location |->\n                 [ beginLine |-> 0,\n                   beginColumn |-> 0,\n                   endLine |-> 0,\n                   endColumn |-> 0,\n                   module |-> \"--TLA+ BUILTINS--\" ] ],\n           << 1,\n              [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n                buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n                memInt |-> <<p1, NoVal>>,\n                wmem |-> (a1 :> v1),\n                cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n                memQ |-> <<>> ] >> >> },\n  state |->\n      { << 1,\n           [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n             buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n             memInt |-> <<p1, NoVal>>,\n             wmem |-> (a1 :> v1),\n             cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n             memQ |-> <<>> ] >> } ]",
+    "[ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n                buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n                memInt |-> <<p1, NoVal>>,\n                wmem |-> (a1 :> v1),\n                cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n                memQ |-> <<>> ]",
+    "[ name |-> \"UnnamedAction\",\n             location |->\n                 [ beginLine |-> 0,\n                   beginColumn |-> 0,\n                   endLine |-> 0,\n                   endColumn |-> 0,\n                   module |-> \"--TLA+ BUILTINS--\" ] ]",
+    "[ beginLine |-> 0,\n                   beginColumn |-> 0,\n                   endLine |-> 0,\n                   endColumn |-> 0,\n                   module |-> \"--TLA+ BUILTINS--\" ]",
+    "[ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n             buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n             memInt |-> <<p1, NoVal>>,\n             wmem |-> (a1 :> v1),\n             cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n             memQ |-> <<>> ]"
+  ],
+  "RecordAccess": [
+    "obuf[p].op",
+    "obuf[p].adr",
+    "obuf[p].val"
+  ],
+  "TupleConstructor": [
+    "<<p, d>>",
+    "<<CHOOSE p \\in Proc : TRUE, NoVal>>",
+    "<<memInt, omem, octl, obuf>>",
+    "<<LM_Inner_Do(p)>>",
+    "<<LM_Inner_Rsp(p)>>",
+    "<<LM_Inner_Do(p) \\/ LM_Inner_Rsp(p)>>",
+    "<<DoRd(p)>>",
+    "<< 1,\n              [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n                buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n                memInt |-> <<p1, NoVal>>,\n                wmem |-> (a1 :> v1),\n                cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n                memQ |-> <<>> ] >>",
+    "<< 1,\n              [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n                buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n                memInt |-> <<p1, NoVal>>,\n                wmem |-> (a1 :> v1),\n                cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n                memQ |-> <<>> ] >> >>",
+    "<<p1, NoVal>>",
+    "<<>>",
+    "<< 1,\n           [ ctl |-> (p1 :> \"rdy\" @@ p2 :> \"rdy\"),\n             buf |-> (p1 :> NoVal @@ p2 :> NoVal),\n             memInt |-> <<p1, NoVal>>,\n             wmem |-> (a1 :> v1),\n             cache |-> (p1 :> (a1 :> NoVal) @@ p2 :> (a1 :> NoVal)),\n             memQ |-> <<>> ] >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE p \\in Proc : TRUE"
+  ],
+  "StringLiterals": [
+    "waiting",
+    "busy",
+    "rdy",
+    "done",
+    "Wr",
+    "req",
+    "UnnamedAction",
+    "--TLA+ BUILTINS--"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "memInt",
+    "obuf",
+    "octl",
+    "omem"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED omem",
+    "UNCHANGED memInt",
+    "UNCHANGED <<omem, obuf>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][LM_Inner_INext]_<<memInt, omem, octl, obuf>>",
+    "<<LM_Inner_Do(p)>>_LM_Inner_vars",
+    "<<LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "<<LM_Inner_Do(p) \\/ LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "<<DoRd(p)>>_vars"
+  ],
+  "AlwaysOp": [
+    "[][LM_Inner_INext]_<<memInt, omem, octl, obuf>>",
+    "[]<>~LM_Inner_EnabledDo(p) \\/ []<><<LM_Inner_Do(p)>>_LM_Inner_vars",
+    "[]<>~LM_Inner_EnabledRsp(p) \\/ []<><<LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "[]<>~(LM_Inner_EnabledDo(p) \\/ LM_Inner_EnabledRsp(p))",
+    "[]<><<LM_Inner_Do(p) \\/ LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "[]<><<DoRd(p)>>_vars"
+  ],
+  "EventuallyOp": [
+    "<>~LM_Inner_EnabledDo(p)",
+    "<><<LM_Inner_Do(p)>>_LM_Inner_vars",
+    "<>~LM_Inner_EnabledRsp(p)",
+    "<><<LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "<>~(LM_Inner_EnabledDo(p) \\/ LM_Inner_EnabledRsp(p))",
+    "<><<LM_Inner_Do(p) \\/ LM_Inner_Rsp(p)>>_LM_Inner_vars",
+    "<><<DoRd(p)>>_vars"
+  ],
+  "LeadsToOp": [
+    "(octl[p] = \"req\") ~> (octl[p] = \"rdy\")"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AlwaysOp | Change: Replaced `[]<>~LM_Inner_EnabledDo(p)` and `[]<><<LM_Inner_Do(p)>>_LM_Inner_vars` with `[]<>~LM_Inner_EnabledDo(p) \\\\/ []<><<LM_Inner_Do(p)>>_LM_Inner_vars` | Reason: Outer temporal operator in file is `[]` over the full disjunction, so the full temporal formula must be captured.\nField: AlwaysOp | Change: Replaced `[]<>~LM_Inner_EnabledRsp(p)` and `[]<><<LM_Inner_Rsp(p)>>_LM_Inner_vars` with `[]<>~LM_Inner_EnabledRsp(p) \\\\/ []<><<LM_Inner_Rsp(p)>>_LM_Inner_vars` | Reason: Outer temporal operator in file is `[]` over the full disjunction, so the full temporal formula must be captured.\nField: IfThenElse | Change: Removed contextual suffixes `(in octl)` and `(in LM_Inner_Do)` from all entries | Reason: Values must appear verbatim in the TLA+ file.\nField: Completeness | Change: Verified top-level operator definition count: file count = 22, JSON OperatorDefNames count = 22 | Reason: Phase 2 completeness check passed; no missing or extra operator definitions.",
+  "OperatorDefNames_StatePredicate": [
+    "LM_Inner_TypeInvariant",
+    "LM_Inner_EnabledDo",
+    "LM_Inner_EnabledRsp"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "LM_Inner_ISpec",
+    "LM_Inner_Liveness",
+    "LM_Inner_Liveness2",
+    "LM_Inner_LISpec",
+    "LM_Inner_LivenessProperty",
+    "PermanentlyBusy"
+  ],
+  "OperatorDefNames_Init": [
+    "LM_Inner_IInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "MCSend",
+    "MCReply",
+    "MCInitMemInt",
+    "omem",
+    "octl",
+    "obuf",
+    "LM_Inner_vars",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Proc |-> IF ctl[p] = \"waiting\" THEN \"busy\" ELSE ctl[p]]",
+    "[p \\in Proc |-> \"rdy\"]",
+    "[p \\in Proc |-> NoVal]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Adr->Val]",
+    "[Proc -> {\"rdy\", \"busy\",\"done\"}]",
+    "[Proc -> MReq \\cup Val \\cup {NoVal}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED omem",
+    "UNCHANGED memInt",
+    "UNCHANGED <<omem, obuf>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/MCLiveWriteThroughCache/MCLiveWriteThroughCache.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "LM_Inner_EnabledDo and LM_Inner_EnabledRsp are placed in StatePredicate because they are Boolean-valued, contain no primed variables, and contain no temporal operators. The comments describe them as instantiations of ENABLED formulas, but the source text here contains no explicit ENABLED operator.",
+    "MCSend, MCReply, MCInitMemInt, omem, octl, obuf, LM_Inner_vars, and PostCondition are placed in ValueDef. MCSend and MCReply are Boolean-valued helper definitions but are classified there by elimination because they are neither temporal properties, init predicates, nor state predicates under the required partition.",
+    "Partition count: StatePredicate(3) + TemporalProperty(6) + Init(1) + ValueDef(8) + ActionDefNames(4) = OperatorDefNames(22). Verified.",
+    "TemporalNesting is true. Explicit nested temporal operators appear in the line: \"/\\ []<>~LM_Inner_EnabledDo(p) \\/ []<><<LM_Inner_Do(p)>>_LM_Inner_vars\".",
+    "No UnchangedExprs_VarRef entries occur in this file; all UNCHANGED expressions are explicit forms."
+  ]
+}

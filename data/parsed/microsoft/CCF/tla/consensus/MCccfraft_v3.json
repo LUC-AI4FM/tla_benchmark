@@ -1,0 +1,276 @@
+{
+  "id": null,
+  "Specification": "This module is a model-checking wrapper around a Raft-related specification, configuring and restricting the explored state space for a CCF/Raft model. It reads configuration choices from the IO environment, constrains reconfiguration sequences, term growth, client requests, message duplication, and signature generation, and defines debugging and coverage-related predicates for TLC runs. The file also introduces assumptions about configuration and term/request bounds, a symmetry set and view for model checking, and postconditions intended to detect whether certain debug invariants were ever exercised.",
+  "ModuleName": "MCccfraft",
+  "ExtendsModules": [
+    "ccfraft",
+    "MCAliases",
+    "TLC",
+    "IOUtils"
+  ],
+  "InstanceModules": [
+    "ccfraft"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NodeOne",
+    "NodeTwo",
+    "NodeThree"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "Configurations \\in Seq(SUBSET Servers)",
+    "TermCount \\in Nat",
+    "RequestCount \\in Nat",
+    "TLCSet(0, [ DebugInvLeaderCannotStepDown |-> 0,\n                   DebugInvSuccessfulCommitAfterReconfig |-> 0,\n                   DebugInvRetirementReachable |-> 0,\n                   DebugAppendEntriesRequests |-> 0,\n                   DebugCommittedEntriesTermsInv |-> 0,\n                   DebugNotTooManySigsInv |-> 0,  \n                   DebugAllReconfigurationsReachableInv |-> 0 ])"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Configurations",
+    "TermCount",
+    "RequestCount",
+    "ToServers",
+    "MCCheckQuorum",
+    "MCChangeConfigurationInt",
+    "MCTimeout",
+    "MCRcvProposeVoteRequest",
+    "MCClientRequest",
+    "MCSignCommittableMessages",
+    "MCSend",
+    "MCInitPreVoteStatus",
+    "MCInit",
+    "Symmetry",
+    "View",
+    "AllReconfigurationsCommitted",
+    "DebugAllReconfigurationsReachableInv",
+    "DebugNotTooManySigsInv",
+    "CoverageExpressions",
+    "AreAllCovered",
+    "PostConditions",
+    "ABSExtend",
+    "ABSCopyMaxAndExtend"
+  ],
+  "ActionDefNames": [
+    "MCChangeConfigurationInt",
+    "MCTimeout",
+    "MCRcvProposeVoteRequest",
+    "MCClientRequest",
+    "MCSignCommittableMessages",
+    "MCSend",
+    "MCInit",
+    "ABSExtend",
+    "ABSCopyMaxAndExtend"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "default"
+  ],
+  "LambdaParams": [
+    "e",
+    "count"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~",
+    "\\lnot"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \"RAFT_CONFIGS\" \\in DOMAIN IOEnv THEN CASE IOEnv.RAFT_CONFIGS = \"1C1N\" -> <<{NodeOne}>> [] IOEnv.RAFT_CONFIGS = \"1C2N\" -> default [] IOEnv.RAFT_CONFIGS = \"1C3N\" -> <<{NodeOne, NodeTwo, NodeThree}>> [] IOEnv.RAFT_CONFIGS = \"2C2N\" -> <<{NodeOne}, {NodeTwo}>> [] IOEnv.RAFT_CONFIGS = \"2C3N\" -> <<{NodeOne, NodeTwo}, {NodeTwo, NodeThree}>> [] IOEnv.RAFT_CONFIGS = \"3C2N\" -> <<{NodeOne}, {NodeOne, NodeTwo}, {NodeTwo}>> [] OTHER -> Print(\"Unsupported value for RAFT_CONFIGS, defaulting to 1C2N: <<{NodeOne, NodeTwo}>>.\", default) ELSE Print(\"RAFT_CONFIGS is not set, defaulting to 1C2N: <<{NodeOne, NodeTwo}>>.\", default)",
+    "IF \"TERM_COUNT\" \\in DOMAIN IOEnv THEN atoi(IOEnv.TERM_COUNT) ELSE Print(\"TERM_COUNT is not set, defaulting to 0\", 0)",
+    "IF \"REQUEST_COUNT\" \\in DOMAIN IOEnv THEN atoi(IOEnv.REQUEST_COUNT) ELSE Print(\"REQUEST_COUNT is not set, defaulting to 3\", 3)",
+    "IF \"DISABLE_CHECK_QUORUM\" \\in DOMAIN IOEnv THEN FALSE ELSE CCF!CheckQuorum(i)",
+    "IF e.contentType = TypeEntry THEN count + 1 ELSE count",
+    "IF Cardinality(Configurations[1]) = 1 THEN InitLogConfigServerVars(Configurations[1], StartLog) ELSE InitLogConfigServerVars(Configurations[1], JoinedLog)",
+    "IF e.contentType = TypeSignature THEN count + 1 ELSE count"
+  ],
+  "CaseExpr": [
+    "CASE IOEnv.RAFT_CONFIGS = \"1C1N\" -> <<{NodeOne}>> [] IOEnv.RAFT_CONFIGS = \"1C2N\" -> default [] IOEnv.RAFT_CONFIGS = \"1C3N\" -> <<{NodeOne, NodeTwo, NodeThree}>> [] IOEnv.RAFT_CONFIGS = \"2C2N\" -> <<{NodeOne}, {NodeTwo}>> [] IOEnv.RAFT_CONFIGS = \"2C3N\" -> <<{NodeOne, NodeTwo}, {NodeTwo, NodeThree}>> [] IOEnv.RAFT_CONFIGS = \"3C2N\" -> <<{NodeOne}, {NodeOne, NodeTwo}, {NodeTwo}>> [] OTHER -> Print(\"Unsupported value for RAFT_CONFIGS, defaulting to 1C2N: <<{NodeOne, NodeTwo}>>.\", default)"
+  ],
+  "SetEnumeration": [
+    "{NodeOne, NodeTwo}",
+    "{NodeOne}",
+    "{NodeOne, NodeTwo, NodeThree}",
+    "{NodeTwo}",
+    "{NodeTwo, NodeThree}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "Configurations[configCount]",
+    "CCF!MaxConfiguration(i)",
+    "Configurations[configCount+1]",
+    "currentTerm[i]",
+    "GetServerSetForIndex(i, commitIndex[i])",
+    "leadershipState[s]",
+    "log[i]",
+    "preVoteStatus[i]",
+    "Configurations[1]",
+    "Committed(s)[i]",
+    "TLCGet(0)[s]"
+  ],
+  "FunctionOverride": [
+    "[ TLCGet(0) EXCEPT !.DebugInvLeaderCannotStepDown = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugInvSuccessfulCommitAfterReconfig = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugInvRetirementReachable = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugAppendEntriesRequests = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugCommittedEntriesTermsInv = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugNotTooManySigsInv = @ + 1 ]",
+    "[ TLCGet(0) EXCEPT !.DebugAllReconfigurationsReachableInv = @ + 1 ]"
+  ],
+  "RecordConstructor": [
+    "[ DebugInvLeaderCannotStepDown |-> 0,\n                   DebugInvSuccessfulCommitAfterReconfig |-> 0,\n                   DebugInvRetirementReachable |-> 0,\n                   DebugAppendEntriesRequests |-> 0,\n                   DebugCommittedEntriesTermsInv |-> 0,\n                   DebugNotTooManySigsInv |-> 0,  \n                   DebugAllReconfigurationsReachableInv |-> 0 ]"
+  ],
+  "RecordAccess": [
+    "IOEnv.RAFT_CONFIGS",
+    "IOEnv.TERM_COUNT",
+    "IOEnv.REQUEST_COUNT",
+    "e.contentType",
+    "Last(log[i]).contentType",
+    "Last(log[i]).term",
+    "n.dest",
+    "msg.dest",
+    "n.source",
+    "msg.source",
+    "n.term",
+    "msg.term",
+    "n.type",
+    "Committed(s)[i].configuration"
+  ],
+  "TupleConstructor": [
+    "<<{NodeOne, NodeTwo}>>",
+    "<<{NodeOne}>>",
+    "<<{NodeOne, NodeTwo, NodeThree}>>",
+    "<<{NodeOne}, {NodeTwo}>>",
+    "<<{NodeOne, NodeTwo}, {NodeTwo, NodeThree}>>",
+    "<<{NodeOne}, {NodeOne, NodeTwo}, {NodeTwo}>>",
+    "<<>>",
+    "<< reconfigurationVars, messageVars, serverVars, candidateVars, leaderVars, logVars >>",
+    "<<\"Debug Invariant violations: \", ToString(TLCGet(0))>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(Configurations)-1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "RAFT_CONFIGS",
+    "1C1N",
+    "1C2N",
+    "1C3N",
+    "2C2N",
+    "2C3N",
+    "3C2N",
+    "Unsupported value for RAFT_CONFIGS, defaulting to 1C2N: <<{NodeOne, NodeTwo}>>.",
+    "RAFT_CONFIGS is not set, defaulting to 1C2N: <<{NodeOne, NodeTwo}>>.",
+    "TERM_COUNT",
+    "TERM_COUNT is not set, defaulting to 0",
+    "REQUEST_COUNT",
+    "REQUEST_COUNT is not set, defaulting to 3",
+    "DISABLE_CHECK_QUORUM",
+    "Debug Invariant violations: "
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches file; file count = 23, JSON count = 23 | Reason: Phase 2 completeness check\nField: ActionDefNames | Change: added MCChangeConfigurationInt, MCTimeout, MCRcvProposeVoteRequest, MCClientRequest, MCSignCommittableMessages, MCSend, MCInit, ABSExtend, ABSCopyMaxAndExtend | Reason: these are action definitions or action compositions; V1 incorrectly left field empty\nField: NamesInLet | Change: renamed field to LetInNames and kept value default | Reason: prompt requires LetInNames; default is a LET-bound simple binding\nField: IfThenElse | Change: replaced paraphrased/non-verbatim entries with expressions that literally appear in the file | Reason: Phase 3 requires values to appear in the TLA+ file\nField: RecordAccess | Change: removed duplicate msg.term, duplicate msg.dest, duplicate msg.source | Reason: Phase 4 deduplication\nField: ProofCommands | Change: removed ASSUME | Reason: ASSUME blocks are not proof commands in this module; value does not belong to this field\nField: PrimedVariables | Change: confirmed remains empty | Reason: no primed variables appear anywhere in the file, including EXCEPT clauses\nField: UnchangedExprs | Change: confirmed remains empty | Reason: no UNCHANGED expressions appear in the file\nField: EnabledExprs | Change: confirmed remains empty | Reason: no ENABLED expressions appear in the file\nField: TemporalSubscript | Change: confirmed remains empty | Reason: no temporal subscript formulas appear in the file\nField: AlwaysOp | Change: confirmed remains empty | Reason: no [] outermost temporal formulas appear in the file\nField: EventuallyOp | Change: confirmed remains empty | Reason: no <> outermost temporal formulas appear in the file\nField: LeadsToOp | Change: confirmed remains empty | Reason: no ~> formulas appear in the file\nField: GuaranteesOp | Change: confirmed remains empty | Reason: no -+-> formulas appear in the file\nField: ActionComposition | Change: confirmed remains empty | Reason: no A \\\\cdot B expressions appear in the file\nField: FairnessConditions | Change: confirmed remains empty | Reason: no WF/SF expressions in Spec or Spec0 appear in the file\nField: FunctionConstructor | Change: confirmed remains empty | Reason: no function constructor patterns of the form [x \\\\in S |-> e] appear in the file\nField: SymmetrySet | Change: confirmed remains empty | Reason: file defines Symmetry as an operator, not a dedicated symmetry-set field entry\nField: StateConstraint | Change: confirmed remains empty | Reason: no top-level TLC state constraint declaration appears; CoverageExpressions is just an operator definition\nField: ActionConstraint | Change: confirmed remains empty | Reason: no top-level action constraint declaration appears\nField: ViewExpr | Change: confirmed remains empty | Reason: file defines View as an operator, not a separate extracted view-expression field",
+  "OperatorDefNames_StatePredicate": [
+    "MCCheckQuorum",
+    "MCInitPreVoteStatus",
+    "AllReconfigurationsCommitted",
+    "DebugAllReconfigurationsReachableInv",
+    "DebugNotTooManySigsInv",
+    "CoverageExpressions",
+    "AreAllCovered",
+    "PostConditions"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "MCInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Configurations",
+    "TermCount",
+    "RequestCount",
+    "ToServers",
+    "Symmetry",
+    "View"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MCccfraft/MCccfraft.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(8) + TemporalProperty(0) + Init(1) + ValueDef(6) + ActionDefNames(8) = OperatorDefNames(23). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "TemporalNesting is false. No temporal operator [], <>, or ~> appears in this file.",
+    "Configurations, TermCount, RequestCount, ToServers, Symmetry, and View are placed in ValueDef as non-Boolean helper/value definitions.",
+    "PostConditions is placed in StatePredicate because it is defined as AreAllCovered, a non-temporal Boolean predicate."
+  ]
+}

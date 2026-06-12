@@ -1,0 +1,388 @@
+{
+  "id": null,
+  "Specification": "This module specifies the mapping between TLA+ and PlusCal (PCal) code regions, focusing on the translation of syntactic regions and their correspondence. It defines data structures for locations, regions, and translation objects, and provides predicates for well-formedness and ordering of these objects. The module includes a PlusCal algorithm (translated to TLA+) that, given a region in the TLA+ spec, computes the corresponding token positions and analyzes parenthesis depth, ensuring correct mapping and well-formedness. The specification is primarily concerned with syntactic correctness and region mapping, not with distributed or fault-tolerant algorithms. It verifies properties such as proper parenthesis matching, token ordering, and correct region-to-token mapping, and includes assertions to check these properties during execution.",
+  "ModuleName": "TLAToPCal",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "tpSpec",
+    "tpRegion",
+    "defaultInitValue"
+  ],
+  "VariableNames": [
+    "ltok",
+    "rtok",
+    "rtokDepth",
+    "minDepth",
+    "i",
+    "tpregion",
+    "bParen",
+    "eParen",
+    "pc"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Location",
+    "loc1 <: loc2",
+    "Dist",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "IsWellFormed",
+    "TokensInOrder",
+    "MatchingParen",
+    "IsTPSpec",
+    "TPSpec",
+    "Min",
+    "Max",
+    "RegionToTokPair",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "tpSpec1",
+    "tpRegion1",
+    "vars",
+    "Init",
+    "Lbl_1",
+    "Lbl_2",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "Lbl_1",
+    "Lbl_2",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ParenDepth"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "obj",
+    "j",
+    "dp",
+    "Dom",
+    "TokToLeft",
+    "TokToRight",
+    "lt",
+    "rt"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pos = 0 THEN 0 ELSE LET obj == objSeq[pos] IN ... (in ParenDepth)",
+    "IF S = {} THEN -1 ELSE CHOOSE i \\in S : ... (in Min)",
+    "IF S = {} THEN -1 ELSE CHOOSE i \\in S : ... (in Max)",
+    "IF (lt # -1) /\\ (spec[lt].region.begin <: reg.end) THEN ... ELSE ... (in RegionToTokPair)",
+    "IF spec[lt].region.end = spec[rt].region.begin THEN ... ELSE ... (in RegionToTokPair)",
+    "IF spec[lt].region.end = reg.begin THEN ... ELSE ... (in RegionToTokPair)",
+    "IF spec[rt].region.begin # reg.end THEN ... ELSE ... (in RegionToTokPair)",
+    "IF spec[rt].region.begin = reg.end THEN ... ELSE ... (in RegionToTokPair)",
+    "IF Dist(spec[rt].region.end, reg.begin) < Dist(reg.end, spec[lt].region.begin) THEN ... ELSE ... (in RegionToTokPair)",
+    "IF i = 1 THEN PrintT(<<\"k\", k>>) ELSE TRUE (in IsTPSpec)",
+    "IF k = 4 THEN PrintT(<<\"m\", m>>) ELSE TRUE (in IsTPSpec)",
+    "IF i =< rtok THEN ... ELSE ... (in Lbl_2)",
+    "IF rtokDepth' < minDepth THEN ... ELSE ... (in Lbl_2)"
+  ],
+  "CaseExpr": [
+    "CASE obj.type = \"begin\" -> 1 [] obj.type = \"end\" -> -1 [] OTHER -> 0 (in ParenDepth)",
+    "CASE tpSpec[i].type = \"begin\" -> 1 [] tpSpec[i].type = \"end\" -> -1 [] OTHER -> 0 (in Lbl_2)"
+  ],
+  "SetEnumeration": [
+    "{\"token\"}",
+    "{\"begin\", \"end\"}",
+    "{\"break\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]",
+    "[i \\in Dom : ...]",
+    "[r \\in [begin : Location, end : Location] : r.begin <: r.end]"
+  ],
+  "FunctionApplication": [
+    "objSeq[pos]",
+    "seq[i]",
+    "seq[1]",
+    "seq[k]",
+    "seq[j]",
+    "spec[i]",
+    "spec[lt]",
+    "spec[rt]",
+    "tpSpec[i]",
+    "tpSpec[k]",
+    "tpSpec[m]",
+    "tpSpec[1]",
+    "tpSpec[ltok]",
+    "tpSpec[rtok]",
+    "ParenDepth(seq, i)",
+    "ParenDepth(seq, pos-1)",
+    "ParenDepth(seq, k-1)",
+    "ParenDepth(seq, k)",
+    "ParenDepth(tpSpec, i)",
+    "ParenDepth(tpSpec, k)",
+    "ParenDepth(tpSpec, ltok)",
+    "ParenDepth(tpSpec, rtok)",
+    "ParenDepth(tpSpec, k)",
+    "RegionToTokPair(tpSpec, tpregion)",
+    "RegionToTokPair(tpSpec, reg)",
+    "Len(seq)",
+    "Len(spec)",
+    "Min({ParenDepth(tpSpec, k) : k \\in ltok..rtok})",
+    "Max({i \\in Dom : ...})"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[line |-> 0, column |-> pos]",
+    "[begin |-> Loc(beg), end |-> Loc(end)]",
+    "[type |->\"token\", region |-> Reg(beg, end)]",
+    "[type |-> \"begin\", loc |-> Loc(pos)]",
+    "[type |-> \"end\", loc |-> Loc(pos)]",
+    "[type |-> \"break\", depth |-> dep]"
+  ],
+  "RecordAccess": [
+    "loc1.line",
+    "loc2.line",
+    "loc1.column",
+    "loc2.column",
+    "r.begin",
+    "r.end",
+    "loc.line",
+    "loc.column",
+    "seq[i].type",
+    "seq[j].type",
+    "seq[k].type",
+    "seq[m].type",
+    "seq[i].region",
+    "seq[j].region",
+    "seq[k].loc",
+    "seq[j].loc",
+    "seq[m].loc",
+    "seq[i].loc",
+    "spec[i].type",
+    "spec[i].region",
+    "spec[lt].region",
+    "spec[rt].region",
+    "spec[lt].region.begin",
+    "spec[lt].region.end",
+    "spec[rt].region.begin",
+    "spec[rt].region.end",
+    "reg.begin",
+    "reg.end",
+    "tpSpec[i].type",
+    "tpSpec[i].region",
+    "tpSpec[k].type",
+    "tpSpec[k].region",
+    "tpSpec[m].type",
+    "tpSpec[m].region"
+  ],
+  "TupleConstructor": [
+    "<<j, dp>>",
+    "<<\"k\", k>>",
+    "<<\"m\", m>>",
+    "<<lt, rt>>",
+    "<<rt, rt>>",
+    "<<lt, lt>>",
+    "<< L(-5), T(2,3), L(11), T(3, 4), R(11), B(2), L(12), R(13), T(5, 6), R(42) >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..(Len(seq)-1)",
+    "1..Len(spec)",
+    "(i+1)..Len(seq)",
+    "(pos)..(i-1)",
+    "ltok..rtok",
+    "1..7"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in S : \\A j \\in S : i =< j",
+    "CHOOSE i \\in S : \\A j \\in S : i >= j",
+    "CHOOSE i \\in pos+1..Len(seq) : /\\ ParenDepth(seq,i) = ParenDepth(seq, pos-1) /\\ \\A j \\in (pos)..(i-1) : ParenDepth(seq, j) > ParenDepth(seq, pos-1)"
+  ],
+  "StringLiterals": [
+    "token",
+    "begin",
+    "end",
+    "break",
+    "Lbl_1",
+    "Lbl_2",
+    "Done",
+    "Failure of assertion at line 308, column 7."
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "ltok",
+    "rtok",
+    "rtokDepth",
+    "minDepth",
+    "i",
+    "pc"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << tpregion, bParen, eParen >>",
+    "UNCHANGED minDepth",
+    "UNCHANGED << rtokDepth, minDepth, i >>",
+    "UNCHANGED << ltok, rtok, tpregion, bParen, eParen >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Map"
+  ],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "OperatorDefNames_StatePredicate": [
+    "IsWellFormed",
+    "TokensInOrder",
+    "IsTPSpec"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Location",
+    "loc1 <: loc2",
+    "Dist",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "MatchingParen",
+    "TPSpec",
+    "Min",
+    "Max",
+    "RegionToTokPair",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "tpSpec1",
+    "tpRegion1",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Dom : ...]",
+    "[r \\in [begin : Location, end : Location] : r.begin <: r.end]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << tpregion, bParen, eParen >>",
+    "UNCHANGED minDepth",
+    "UNCHANGED << rtokDepth, minDepth, i >>",
+    "UNCHANGED << ltok, rtok, tpregion, bParen, eParen >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/TLAToPCal/TLAToPCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(2) + Init(1) + ValueDef(23) + ActionDefNames(3) = 32 = OperatorDefNames total. Verified.",
+    "Spec and Termination are placed in TemporalProperty because their bodies contain temporal operators ([] and <> respectively).",
+    "No temporal operator appears explicitly nested inside another temporal operator in this file; TemporalNesting is false.",
+    "FunctionConstructor_ByDomain contains two entries: one for [i \\in Dom : ...] and one for [r \\in [begin : Location, end : Location] : r.begin <: r.end]. The rest are [S -> T] forms."
+  ]
+}

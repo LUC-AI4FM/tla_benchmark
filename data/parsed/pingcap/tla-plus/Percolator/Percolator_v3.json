@@ -1,0 +1,472 @@
+{
+  "id": null,
+  "Specification": "This specification models Google's Percolator-style distributed transaction protocol with primary and secondary keys, timestamp assignment, prewrite locking, primary-key commit, stale-lock cleanup, and client aborts. It tracks clients, per-key data versions, locks, committed writes, and auxiliary variables used to check a snapshot isolation condition by comparing commit timestamps against the last observed read timestamp. The spec verifies safety properties including type correctness, write ordering and non-overlap, lock consistency, consistency of committed and aborted transactions, and preservation of snapshot isolation, expressed by a theorem that PercolatorSpec implies these invariants always hold.",
+  "ModuleName": "Percolator",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "KEY",
+    "CLIENT",
+    "CLIENT_PRIMARY_KEY"
+  ],
+  "VariableNames": [
+    "next_ts",
+    "client_state",
+    "client_ts",
+    "client_key",
+    "key_data",
+    "key_lock",
+    "key_write",
+    "key_last_read_ts",
+    "key_si"
+  ],
+  "AssumptionNames": [
+    "KEY # {}",
+    "CLIENT_PRIMARY_KEY \\in [CLIENT -> KEY]"
+  ],
+  "TheoremNames": [
+    "Safety"
+  ],
+  "OperatorDefNames": [
+    "client_vars",
+    "key_vars",
+    "vars",
+    "Range",
+    "hasLockLE",
+    "hasLockEQ",
+    "isStaleLock",
+    "hasStaleLock",
+    "findWriteWithStartTS",
+    "findWriteWithCommitTS",
+    "checkSnapshotIsolation",
+    "cleanupStaleLock",
+    "cleanup",
+    "readKey",
+    "canLockKey",
+    "lockKey",
+    "lock",
+    "commitPrimary",
+    "Start",
+    "Get",
+    "Prewrite",
+    "Commit",
+    "Abort",
+    "ClientOp",
+    "Next",
+    "Init",
+    "PercolatorSpec",
+    "NextTsTypeInv",
+    "ClientStateTypeInv",
+    "ClientTsTypeInv",
+    "ClientKeyTypeInv",
+    "KeyDataTypeInv",
+    "KeyLockTypeInv",
+    "KeyWriteTypeInv",
+    "KeyLastReadTsTypeInv",
+    "KeySiTypeInv",
+    "TypeInvariant",
+    "WriteConsistency",
+    "LockConsistency",
+    "CommittedConsistency",
+    "AbortedConsistency",
+    "SnapshotIsolation"
+  ],
+  "ActionDefNames": [
+    "checkSnapshotIsolation",
+    "cleanupStaleLock",
+    "cleanup",
+    "readKey",
+    "lockKey",
+    "lock",
+    "commitPrimary",
+    "Start",
+    "Get",
+    "Prewrite",
+    "Commit",
+    "Abort",
+    "ClientOp",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "chooseKey"
+  ],
+  "LetInNames": [
+    "writes",
+    "start_ts",
+    "primary",
+    "secondary",
+    "pending",
+    "commit_ts",
+    "chooseKey",
+    "w"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF key_last_read_ts[k] >= commit_ts THEN key_si' = [key_si EXCEPT ![k] = FALSE] ELSE UNCHANGED <<key_si>>",
+    "IF writes = {} THEN IF hasLockEQ(l.primary, l.ts) THEN /\\ key_data' = [key_data EXCEPT ![l.primary] = @ \\ {[ts |-> l.ts]}] /\\ key_lock' = [key_lock EXCEPT ![l.primary] = @ \\ {l}] /\\ UNCHANGED <<key_write, key_si>> ELSE /\\ key_data' = [key_data EXCEPT ![k] = @ \\ {[ts |-> l.ts]}] /\\ key_lock' = [key_lock EXCEPT ![k] = @ \\ {l}] /\\ UNCHANGED <<key_write, key_si>> ELSE \\E w \\in writes : /\\ key_lock' = [key_lock EXCEPT ![k] = @ \\ {l}] /\\ key_write' = [key_write EXCEPT ![k] = Append(@, w)] /\\ checkSnapshotIsolation(k, w.ts) /\\ UNCHANGED <<key_data>>",
+    "IF hasLockEQ(l.primary, l.ts) THEN /\\ key_data' = [key_data EXCEPT ![l.primary] = @ \\ {[ts |-> l.ts]}] /\\ key_lock' = [key_lock EXCEPT ![l.primary] = @ \\ {l}] /\\ UNCHANGED <<key_write, key_si>> ELSE /\\ key_data' = [key_data EXCEPT ![k] = @ \\ {[ts |-> l.ts]}] /\\ key_lock' = [key_lock EXCEPT ![k] = @ \\ {l}] /\\ UNCHANGED <<key_write, key_si>>",
+    "IF primary \\in pending THEN /\\ canLockKey(primary, start_ts) /\\ lockKey(primary, start_ts, primary) /\\ client_key' = [client_key EXCEPT ![c].pending = @ \\ {primary}] /\\ UNCHANGED <<client_state, client_ts>> ELSE \\E k \\in pending : /\\ canLockKey(k, start_ts) /\\ lockKey(k, start_ts, primary) /\\ client_key' = [client_key EXCEPT ![c].pending = @ \\ {k}] /\\ UNCHANGED <<client_state, client_ts>>",
+    "IF client_key[c].pending = {} THEN /\\ next_ts' = next_ts + 1 /\\ client_state' = [client_state EXCEPT ![c] = \"committing\"] /\\ client_ts' = [client_ts EXCEPT ![c].commit_ts = next_ts'] /\\ UNCHANGED <<key_vars, client_key>> ELSE /\\ lock(c) /\\ UNCHANGED <<next_ts>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{primary}",
+    "{l}",
+    "{w}",
+    "{\"init\", \"working\", \"prewriting\", \"committing\", \"committed\", \"aborted\"}"
+  ],
+  "SetOperators": [
+    "DOMAIN",
+    "\\union",
+    "\\",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[CLIENT -> KEY]",
+    "[key_si EXCEPT ![k] = FALSE]",
+    "[key_data EXCEPT ![k] = @ \\ {[ts |-> l.ts]}]",
+    "[key_lock EXCEPT ![k] = @ \\ {l}]",
+    "[key_data EXCEPT ![l.primary] = @ \\ {[ts |-> l.ts]}]",
+    "[key_lock EXCEPT ![l.primary] = @ \\ {l}]",
+    "[key_write EXCEPT ![k] = Append(@, w)]",
+    "[key_last_read_ts EXCEPT ![k] = start_ts]",
+    "[key_lock EXCEPT ![k] = @ \\union {[ts |-> start_ts, primary |-> primary]}]",
+    "[key_data EXCEPT ![k] = @ \\union {[ts |-> start_ts]}]",
+    "[client_key EXCEPT ![c].pending = @ \\ {primary}]",
+    "[client_key EXCEPT ![c].pending = @ \\ {k}]",
+    "[key_write EXCEPT ![primary] = Append(@, [ts |-> commit_ts, start_ts |-> start_ts])]",
+    "[key_lock EXCEPT ![primary] = @ \\ {[ts |-> start_ts, primary |-> primary]}]",
+    "[client_state EXCEPT ![c] = \"working\"]",
+    "[client_ts EXCEPT ![c].start_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"prewriting\"]",
+    "[client_state EXCEPT ![c] = \"committing\"]",
+    "[client_ts EXCEPT ![c].commit_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"committed\"]",
+    "[client_state EXCEPT ![c] = \"aborted\"]",
+    "[c \\in CLIENT |-> \"init\"]",
+    "[c \\in CLIENT |-> [start_ts |-> 0, commit_ts |-> 0]]",
+    "[c \\in CLIENT |-> chooseKey(KEY, c)]",
+    "[k \\in KEY |-> {}]",
+    "[k \\in KEY |-> <<>>]",
+    "[k \\in KEY |-> 0]",
+    "[k \\in KEY |-> TRUE]",
+    "[CLIENT -> [start_ts : Nat, commit_ts : Nat]]",
+    "[CLIENT -> [primary : KEY, secondary : SUBSET KEY, pending : SUBSET KEY]]",
+    "[KEY -> SUBSET [ts : Nat]]",
+    "[KEY -> SUBSET [ts : Nat, primary : KEY]]",
+    "[KEY -> Seq([ts : Nat, start_ts : Nat])]",
+    "[KEY -> Nat]",
+    "[KEY -> BOOLEAN]"
+  ],
+  "FunctionApplication": [
+    "m[i]",
+    "key_lock[k]",
+    "Range(key_write[k])",
+    "client_ts[c]",
+    "client_key[c]",
+    "hasStaleLock(primary, start_ts)",
+    "cleanupStaleLock(primary, start_ts)",
+    "hasStaleLock(k, start_ts)",
+    "cleanupStaleLock(k, start_ts)",
+    "canLockKey(primary, start_ts)",
+    "lockKey(primary, start_ts, primary)",
+    "canLockKey(k, start_ts)",
+    "lockKey(k, start_ts, primary)",
+    "hasLockEQ(primary, start_ts)",
+    "checkSnapshotIsolation(primary, commit_ts)",
+    "Start(c)",
+    "Get(c)",
+    "Prewrite(c)",
+    "Commit(c)",
+    "Abort(c)",
+    "ClientOp(c)",
+    "chooseKey(KEY, c)",
+    "Len(key_write[k])",
+    "hasLockEQ(client_key[c].primary, client_ts[c].start_ts)",
+    "hasLockEQ(k, client_ts[c].start_ts)",
+    "hasLockLE(primary, start_ts)",
+    "findWriteWithCommitTS(primary, commit_ts)",
+    "key_data[primary]",
+    "hasLockEQ(k, start_ts)",
+    "findWriteWithCommitTS(k, commit_ts)",
+    "hasLockLE(k, start_ts - 1)",
+    "findWriteWithCommitTS(client_key[c].primary, client_ts[c].commit_ts)"
+  ],
+  "FunctionOverride": [
+    "[key_si EXCEPT ![k] = FALSE]",
+    "[key_data EXCEPT ![k] = @ \\ {[ts |-> l.ts]}]",
+    "[key_lock EXCEPT ![k] = @ \\ {l}]",
+    "[key_data EXCEPT ![l.primary] = @ \\ {[ts |-> l.ts]}]",
+    "[key_lock EXCEPT ![l.primary] = @ \\ {l}]",
+    "[key_write EXCEPT ![k] = Append(@, w)]",
+    "[key_last_read_ts EXCEPT ![k] = start_ts]",
+    "[key_lock EXCEPT ![k] = @ \\union {[ts |-> start_ts, primary |-> primary]}]",
+    "[key_data EXCEPT ![k] = @ \\union {[ts |-> start_ts]}]",
+    "[client_key EXCEPT ![c].pending = @ \\ {primary}]",
+    "[client_key EXCEPT ![c].pending = @ \\ {k}]",
+    "[key_write EXCEPT ![primary] = Append(@, [ts |-> commit_ts, start_ts |-> start_ts])]",
+    "[key_lock EXCEPT ![primary] = @ \\ {[ts |-> start_ts, primary |-> primary]}]",
+    "[client_state EXCEPT ![c] = \"working\"]",
+    "[client_ts EXCEPT ![c].start_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"prewriting\"]",
+    "[client_state EXCEPT ![c] = \"committing\"]",
+    "[client_ts EXCEPT ![c].commit_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"committed\"]",
+    "[client_state EXCEPT ![c] = \"aborted\"]"
+  ],
+  "RecordConstructor": [
+    "[ts |-> l.ts]",
+    "[ts |-> start_ts, primary |-> primary]",
+    "[ts |-> commit_ts, start_ts |-> start_ts]",
+    "[primary |-> primary, secondary |-> ks \\ {primary}, pending |-> ks]",
+    "[start_ts |-> 0, commit_ts |-> 0]",
+    "[start_ts : Nat, commit_ts : Nat]",
+    "[primary : KEY, secondary : SUBSET KEY, pending : SUBSET KEY]",
+    "[ts : Nat]",
+    "[ts : Nat, primary : KEY]",
+    "[ts : Nat, start_ts : Nat]"
+  ],
+  "RecordAccess": [
+    "l.ts",
+    "l.primary",
+    "w.start_ts",
+    "w.ts",
+    "client_ts[c].start_ts",
+    "client_ts[c].commit_ts",
+    "client_key[c].primary",
+    "client_key[c].secondary",
+    "client_key[c].pending",
+    "key_write[k][w].ts",
+    "key_write[k][n].ts",
+    "key_write[k][n + 1].start_ts",
+    "key_write[k][n].start_ts"
+  ],
+  "TupleConstructor": [
+    "<<client_state, client_ts, client_key>>",
+    "<<key_data, key_lock, key_write, key_last_read_ts, key_si>>",
+    "<<next_ts, client_vars, key_vars>>",
+    "<<key_si>>",
+    "<<key_last_read_ts>>",
+    "<<key_write, key_si>>",
+    "<<key_data>>",
+    "<<key_data, key_lock, key_write, key_si>>",
+    "<<client_state, client_ts>>",
+    "<<key_write, key_last_read_ts, key_si>>",
+    "<<key_data, key_last_read_ts>>",
+    "<<key_vars, client_key>>",
+    "<<next_ts, key_vars, client_ts, client_key>>",
+    "<<next_ts, client_vars>>",
+    "<<next_ts>>",
+    "<<next_ts, client_ts, client_key>>",
+    "<<next_ts, client_ts, client_key, key_vars>>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(key_write[k]) - 1",
+    "1..Len(key_write[k])"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "init",
+    "working",
+    "prewriting",
+    "committing",
+    "committed",
+    "aborted"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "key_si",
+    "key_data",
+    "key_lock",
+    "key_write",
+    "key_last_read_ts",
+    "client_key",
+    "next_ts",
+    "client_state",
+    "client_ts"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<key_si>>",
+    "UNCHANGED <<key_last_read_ts>>",
+    "UNCHANGED <<key_write, key_si>>",
+    "UNCHANGED <<key_data>>",
+    "UNCHANGED <<key_data, key_lock, key_write, key_si>>",
+    "UNCHANGED <<client_state, client_ts>>",
+    "UNCHANGED <<key_write, key_last_read_ts, key_si>>",
+    "UNCHANGED <<key_data, key_last_read_ts>>",
+    "UNCHANGED <<key_vars, client_key>>",
+    "UNCHANGED <<next_ts, key_vars, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_vars>>",
+    "UNCHANGED <<next_ts>>",
+    "UNCHANGED <<next_ts, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_ts, client_key, key_vars>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](/\\ TypeInvariant\n                       /\\ WriteConsistency\n                       /\\ LockConsistency\n                       /\\ CommittedConsistency\n                       /\\ AbortedConsistency\n                       /\\ SnapshotIsolation)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: TheoremNames | Change: Replaced full theorem text with \\\"Safety\\\" | Reason: Named theorem blocks should record the theorem name only.\nField: LetInNames | Change: Renamed field from NamesInLet to LetInNames and removed \\\"ks\\\", \\\"c\\\", \\\"k\\\" | Reason: High-risk field name correction and only LET-bound names belong here; operator parameters and quantified variables do not.\nField: IfThenElse | Change: Removed appended contextual markers like \\\"(in checkSnapshotIsolation)\\\" and \\\"(in cleanupStaleLock)\\\" | Reason: Values must appear in the TLA+ file verbatim.\nField: SetOperators | Change: Confirmed SUBSET belongs here and retained only valid set operators | Reason: Phase 1 requires SUBSET not appear in FiniteSetOps.\nField: FunctionApplication | Change: Removed duplicate \\\"Len(key_write[k])\\\" | Reason: Deduplication.\nField: UnchangedExprs | Change: Removed duplicate \\\"UNCHANGED <<key_data, key_lock, key_write, key_si>>\\\" | Reason: Deduplication required.\nField: AlwaysOp | Change: Added \\\"[][Next]_vars\\\" and retained invariant always formula | Reason: Outermost [] temporal formulas must appear in AlwaysOp, and entries with subscripts must include the full subscript.\nField: OperatorDefNames | Change: Verified count matches file top-level definitions: file count = 43, JSON count = 43 | Reason: Phase 2 completeness check.\n",
+  "OperatorDefNames_StatePredicate": [
+    "hasLockLE",
+    "hasLockEQ",
+    "isStaleLock",
+    "hasStaleLock",
+    "canLockKey",
+    "NextTsTypeInv",
+    "ClientStateTypeInv",
+    "ClientTsTypeInv",
+    "ClientKeyTypeInv",
+    "KeyDataTypeInv",
+    "KeyLockTypeInv",
+    "KeyWriteTypeInv",
+    "KeyLastReadTsTypeInv",
+    "KeySiTypeInv",
+    "TypeInvariant",
+    "WriteConsistency",
+    "LockConsistency",
+    "CommittedConsistency",
+    "AbortedConsistency",
+    "SnapshotIsolation"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "PercolatorSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "client_vars",
+    "key_vars",
+    "vars",
+    "Range",
+    "findWriteWithStartTS",
+    "findWriteWithCommitTS"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[c \\in CLIENT |-> \"init\"]",
+    "[c \\in CLIENT |-> [start_ts |-> 0, commit_ts |-> 0]]",
+    "[c \\in CLIENT |-> chooseKey(KEY, c)]",
+    "[k \\in KEY |-> {}]",
+    "[k \\in KEY |-> <<>>]",
+    "[k \\in KEY |-> 0]",
+    "[k \\in KEY |-> TRUE]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[CLIENT -> KEY]",
+    "[CLIENT -> [start_ts : Nat, commit_ts : Nat]]",
+    "[CLIENT -> [primary : KEY, secondary : SUBSET KEY, pending : SUBSET KEY]]",
+    "[KEY -> SUBSET [ts : Nat]]",
+    "[KEY -> SUBSET [ts : Nat, primary : KEY]]",
+    "[KEY -> Seq([ts : Nat, start_ts : Nat])]",
+    "[KEY -> Nat]",
+    "[KEY -> BOOLEAN]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<key_si>>",
+    "UNCHANGED <<key_last_read_ts>>",
+    "UNCHANGED <<key_write, key_si>>",
+    "UNCHANGED <<key_data>>",
+    "UNCHANGED <<key_data, key_lock, key_write, key_si>>",
+    "UNCHANGED <<client_state, client_ts>>",
+    "UNCHANGED <<key_write, key_last_read_ts, key_si>>",
+    "UNCHANGED <<key_data, key_last_read_ts>>",
+    "UNCHANGED <<key_vars, client_key>>",
+    "UNCHANGED <<next_ts, key_vars, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_vars>>",
+    "UNCHANGED <<next_ts>>",
+    "UNCHANGED <<next_ts, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_ts, client_key, key_vars>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Percolator/Percolator.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(20) + TemporalProperty(1) + Init(1) + ValueDef(6) + ActionDefNames(14) = OperatorDefNames(42). Verified.",
+    "PercolatorSpec is placed in TemporalProperty because its body is Init /\\ [][Next]_vars, containing an outer temporal component.",
+    "All FunctionConstructor entries that are true constructor forms are partitioned into ByDomain and SetType. EXCEPT override forms remain in FunctionConstructor from V2 and are not part of this subpartition because they are not [x \\in S |-> e] or [S -> T] forms in the source grammar.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in the file text.",
+    "CorpusSource inferred from module name because repository folder cannot be determined from file content.",
+    "ValueDef entries findWriteWithStartTS and findWriteWithCommitTS return sets; Range returns a computed set; client_vars, key_vars, and vars are structural tuple definitions."
+  ]
+}

@@ -1,10 +1,3 @@
-"""Supervised Fine-Tuning on raw TLA+ (prompt, completion) pairs.
-
-Ablation baseline against DPO on PVP dataset:
-  SFT learns to generate TLA+ from descriptions without preference optimization.
-  Compare its Pass@k and code-quality metrics against Spec-Align (DPO) to show
-  that programmatically verifiable preferences add value beyond plain fine-tuning.
-"""
 from __future__ import annotations
 
 import json
@@ -26,13 +19,9 @@ from utils import data_dir, get_logger, load_json, load_text, outputs_dir, repo_
 logger = get_logger("sft_trainer")
 
 
-# ---------------------------------------------------------------------------
-# Dataset
-# ---------------------------------------------------------------------------
+# dataset
 
 class SFTDataset(Dataset):
-    """JSONL dataset of {"prompt": str, "completion": str} pairs."""
-
     def __init__(self, jsonl_path: str | Path, tokenizer, max_length: int = 2048):
         self.data = []
         with open(jsonl_path, "r") as f:
@@ -84,9 +73,7 @@ class SFTDataset(Dataset):
         }
 
 
-# ---------------------------------------------------------------------------
-# Trainer
-# ---------------------------------------------------------------------------
+# trainer
 
 class SFTTrainer:
     def __init__(
@@ -121,13 +108,22 @@ class SFTTrainer:
         self.wandb_entity = wandb_entity
         self.wandb_run_name = wandb_run_name or f"sft_{Path(model_name).name}"
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # pick the gpu with most free vram so sft can co-run with dpo on gpu 0
+        if torch.cuda.is_available():
+            free = [torch.cuda.mem_get_info(i)[0] for i in range(torch.cuda.device_count())]
+            self.device = torch.device(f"cuda:{free.index(max(free))}")
+        else:
+            self.device = torch.device("cpu")
+
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, torch_dtype=dtype, local_files_only=True
+        ).to(self.device)
 
         if self.use_lora:
             self._apply_lora()
@@ -146,34 +142,32 @@ class SFTTrainer:
         self.model = get_peft_model(self.model, peft_config)
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         total = sum(p.numel() for p in self.model.parameters())
-        logger.info(
-            "LoRA Applied | Trainable: %s / %s (%.2f%%)",
-            f"{trainable:,}", f"{total:,}", 100 * trainable / total,
-        )
+        logger.info("lora applied: trainable=%d total=%d (%.2f%%)", trainable, total, 100 * trainable / total)
 
     def train(self, train_dataset_path: str | Path, eval_dataset_path: str | Path | None = None) -> dict[str, Any]:
-        import wandb
-
-        run = wandb.init(
-            project=self.wandb_project,
-            entity=self.wandb_entity,
-            name=self.wandb_run_name,
-            group="sft_training",
-            job_type="train",
-            config={
-                "model_name": self.model_name,
-                "learning_rate": self.learning_rate,
-                "num_epochs": self.num_epochs,
-                "batch_size": self.batch_size,
-                "warmup_steps": self.warmup_steps,
-                "max_length": self.max_length,
-                "use_lora": self.use_lora,
-                "lora_rank": self.lora_rank,
-                "lora_alpha": self.lora_alpha,
-                "lora_dropout": self.lora_dropout,
-                "trainer": "sft",
-            },
-        )
+        use_wandb = False
+        run = None
+        try:
+            import wandb
+            run = wandb.init(
+                project=self.wandb_project,
+                entity=self.wandb_entity,
+                name=self.wandb_run_name,
+                group="sft_training",
+                job_type="train",
+                config={
+                    "model_name": self.model_name,
+                    "learning_rate": self.learning_rate,
+                    "num_epochs": self.num_epochs,
+                    "batch_size": self.batch_size,
+                    "use_lora": self.use_lora,
+                    "lora_rank": self.lora_rank,
+                    "trainer": "sft",
+                },
+            )
+            use_wandb = True
+        except Exception:
+            logger.warning("wandb not available, logging to file only")
 
         try:
             train_dataset = SFTDataset(train_dataset_path, self.tokenizer, self.max_length)
@@ -221,15 +215,16 @@ class SFTTrainer:
                     train_history["batch_losses"].append(loss_val)
                     global_step += 1
 
-                    wandb.log({
-                        "train/loss": loss_val,
-                        "train/perplexity": perplexity,
-                        "train/learning_rate": scheduler.get_last_lr()[0],
-                    }, step=global_step)
+                    if use_wandb:
+                        wandb.log({
+                            "train/loss": loss_val,
+                            "train/perplexity": perplexity,
+                            "train/learning_rate": scheduler.get_last_lr()[0],
+                        }, step=global_step)
 
                     if (batch_idx + 1) % 10 == 0:
                         logger.info(
-                            "Epoch %d/%d Batch %d/%d Loss: %.4f Perplexity: %.2f",
+                            "epoch %d/%d batch %d/%d loss=%.4f ppl=%.2f",
                             epoch + 1, self.num_epochs, batch_idx + 1, len(train_loader),
                             loss_val, perplexity,
                         )
@@ -238,33 +233,36 @@ class SFTTrainer:
                 avg_epoch_ppl = math.exp(min(avg_epoch_loss, 20))
                 train_history["epoch_losses"].append(avg_epoch_loss)
 
-                wandb.log({
-                    "train/epoch_loss": avg_epoch_loss,
-                    "train/epoch_perplexity": avg_epoch_ppl,
-                    "epoch": epoch + 1,
-                }, step=global_step)
+                if use_wandb:
+                    wandb.log({
+                        "train/epoch_loss": avg_epoch_loss,
+                        "train/epoch_perplexity": avg_epoch_ppl,
+                        "epoch": epoch + 1,
+                    }, step=global_step)
 
-                logger.info(
-                    "Epoch %d/%d — avg_loss: %.4f perplexity: %.2f",
-                    epoch + 1, self.num_epochs, avg_epoch_loss, avg_epoch_ppl,
-                )
+                logger.info("epoch %d/%d avg_loss=%.4f ppl=%.2f", epoch + 1, self.num_epochs, avg_epoch_loss, avg_epoch_ppl)
+
+                self.save_checkpoint(self.output_dir / f"epoch_{epoch + 1}")
 
             if eval_dataset_path and Path(eval_dataset_path).exists():
                 eval_results = self._evaluate(eval_dataset_path)
                 train_history["eval_results"] = eval_results
-                wandb.log({
-                    "eval/loss": eval_results["eval_loss"],
-                    "eval/perplexity": eval_results["eval_perplexity"],
-                }, step=global_step)
-                logger.info("Eval — loss: %.4f perplexity: %.2f", eval_results["eval_loss"], eval_results["eval_perplexity"])
+                if use_wandb:
+                    wandb.log({
+                        "eval/loss": eval_results["eval_loss"],
+                        "eval/perplexity": eval_results["eval_perplexity"],
+                    }, step=global_step)
+                logger.info("eval loss=%.4f ppl=%.2f", eval_results["eval_loss"], eval_results["eval_perplexity"])
 
-            wandb.summary.update({
-                "final_train_loss": train_history["epoch_losses"][-1] if train_history["epoch_losses"] else None,
-                "model_name": self.model_name,
-            })
+            if use_wandb:
+                wandb.summary.update({
+                    "final_train_loss": train_history["epoch_losses"][-1] if train_history["epoch_losses"] else None,
+                    "model_name": self.model_name,
+                })
 
         finally:
-            run.finish()
+            if run is not None:
+                run.finish()
 
         return train_history
 
@@ -300,20 +298,16 @@ class SFTTrainer:
         self.model.save_pretrained(str(checkpoint_dir))
         self.tokenizer.save_pretrained(str(checkpoint_dir))
 
-        logger.info("SFT model saved to: %s", checkpoint_dir)
+        logger.info("saved: %s", checkpoint_dir)
         return str(checkpoint_dir)
 
 
-# ---------------------------------------------------------------------------
-# Dataset builder — creates SFT JSONL from raw corpus
-# ---------------------------------------------------------------------------
 
 def build_sft_dataset(
     spec_ids: list[int],
     output_path: Path | None = None,
     prompt_prefix: str = "Generate a TLA+ specification for the following system:\n\n",
 ) -> Path:
-    """Build a JSONL SFT dataset from descriptions + raw TLA+ files in the data dir."""
     if output_path is None:
         output_path = outputs_dir() / "sft_dataset.jsonl"
 
@@ -344,9 +338,7 @@ def build_sft_dataset(
     return output_path
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+# entry point
 
 def train_sft_model(
     base_model: str,

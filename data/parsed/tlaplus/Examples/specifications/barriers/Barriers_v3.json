@@ -1,0 +1,509 @@
+{
+  "id": null,
+  "Specification": "This module specifies and proves properties of a reusable barrier synchronization algorithm for N concurrent processes using two gates and a lock. The PlusCal algorithm models a two-chamber barrier in which processes first accumulate in a first waiting chamber, then pass through a second waiting chamber, preventing any process from re-entering the barrier too early and overtaking others. The translated TLA+ specification defines the operational steps a0 through a12, proves type correctness, mutual exclusion in the lock-protected critical section, several barrier invariants and a flush invariant, and finally proves that the detailed barrier implementation refines an abstract instantiated Barrier specification through a translated program counter view.",
+  "ModuleName": "Barriers",
+  "ExtendsModules": [
+    "TLAPS",
+    "Integers",
+    "FiniteSets",
+    "FiniteSetTheorems"
+  ],
+  "InstanceModules": [
+    "Barrier"
+  ],
+  "InstanceSubstitutions": [
+    "pc <- [p \\in ProcSet |-> pc_translation(p)]"
+  ],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "pc",
+    "lock",
+    "gate_1",
+    "gate_2",
+    "rdv"
+  ],
+  "AssumptionNames": [
+    "N_Assumption"
+  ],
+  "TheoremNames": [
+    "LEMMA Typing == Spec => []TypeOK",
+    "LEMMA LockExclusion == Spec => []LockInv",
+    "LEMMA ProcSetSubSetsBound ==\n    /\\ IsFiniteSet(ProcsInRdv) /\\ Cardinality(ProcsInRdv) \\in 0..N\n    /\\ IsFiniteSet(ProcsInB1) /\\ Cardinality(ProcsInB1) \\in 0..N\n    /\\ IsFiniteSet(ProcsInB1)' /\\ Cardinality(ProcsInB1)' \\in 0..N\n    /\\ IsFiniteSet(ProcsInB2) /\\ Cardinality(ProcsInB2) \\in 0..N\n    /\\ IsFiniteSet(ProcsInB2)' /\\ Cardinality(ProcsInB2)' \\in 0..N",
+    "LEMMA AllProcsInRdv == \n    (Cardinality(ProcsInRdv) = N) => (\\A p \\in ProcSet : rdvsection(p))",
+    "LEMMA AllProcsNotInRdv ==\n    (Cardinality(ProcsInRdv) = 0) => ~(\\E p \\in ProcSet : rdvsection(p))",
+    "THEOREM FS_NonEmptySet ==\n    ASSUME NEW S, IsFiniteSet(S)\n    PROVE Cardinality(S) > 0 <=> \\E x: x \\in S",
+    "THEOREM FS_TwoElements ==\n    ASSUME NEW S, IsFiniteSet(S)\n    PROVE Cardinality(S) > 1 => \\E x, y \\in S: x # y",
+    "THEOREM Invariant == Spec => []Inv",
+    "THEOREM BarrierExclusion ==\n    Inv => \\/ ~(\\E p \\in ProcSet: pc[p] \\in {\"a0\", \"a1\", \"a2\", \"a3\", \"a4\"})\n           \\/ ~(\\E p \\in ProcSet: pc[p] \\in {\"a7\", \"a8\", \"a9\", \"a10\"})",
+    "THEOREM BarrierExclusion2 ==\n    TypeOK /\\ Inv => \n      \\/ (\\A p \\in ProcSet: pc[p] \\in \n                    {\"a5\", \"a6\", \"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"})\n      \\/ (\\A p \\in ProcSet: pc[p] \\in \n                    {\"a11\", \"a12\", \"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\"})",
+    "THEOREM FlushInvariant == Spec => []FlushInv",
+    "THEOREM Spec => B!Spec"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "ProcSet",
+    "Init",
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "a6",
+    "a7",
+    "a8",
+    "a9",
+    "a10",
+    "a11",
+    "a12",
+    "proc",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "lockcs",
+    "ProcsInLockCS",
+    "LockInv",
+    "rdvsection",
+    "ProcsInRdv",
+    "barrier1",
+    "ProcsInB1",
+    "barrier2",
+    "ProcsInB2",
+    "Inv",
+    "FlushInv",
+    "pc_translation",
+    "BSpec"
+  ],
+  "ActionDefNames": [
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "a6",
+    "a7",
+    "a8",
+    "a9",
+    "a10",
+    "a11",
+    "a12",
+    "proc",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "T"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF rdv = N\n                  THEN /\\ pc' = [pc EXCEPT ![self] = \"a4\"]\n                  ELSE /\\ pc' = [pc EXCEPT ![self] = \"a5\"]",
+    "IF rdv = 0\n                  THEN /\\ pc' = [pc EXCEPT ![self] = \"a10\"]\n                  ELSE /\\ pc' = [pc EXCEPT ![self] = \"a11\"]",
+    "IF pc[self] \\in {\"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\", \"a7\", \"a8\", \"a9\", \"a10\"}\n    THEN \"b1\"\n  ELSE IF pc[self] = \"a0\" \n    THEN \"b0\"\n  ELSE IF gate_2 > 0\n    THEN \"b0\"\n  ELSE \"b1\"",
+    "IF pc[self] = \"a0\" \n    THEN \"b0\"\n  ELSE IF gate_2 > 0\n    THEN \"b0\"\n  ELSE \"b1\"",
+    "IF gate_2 > 0\n    THEN \"b0\"\n  ELSE \"b1\""
+  ],
+  "CaseExpr": [
+    "CASE rdv = N",
+    "CASE rdv < N",
+    "CASE gate_1' = 0",
+    "CASE gate_1' > 0",
+    "CASE rdv = 0",
+    "CASE rdv > 0",
+    "CASE gate_2' = 0",
+    "CASE gate_2' > 0",
+    "CASE UNCHANGED vars"
+  ],
+  "SetEnumeration": [
+    "{0}",
+    "{0, 1}",
+    "{\"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\", \n            \"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"}",
+    "{\"a2\", \"a3\", \"a4\", \"a5\", \"a8\", \"a9\", \"a10\", \"a11\"}",
+    "{\"a3\", \"a4\", \"a5\", \"a6\", \"a7\", \"a8\"}",
+    "{\"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\"}",
+    "{\"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"}",
+    "{\"a5\", \"a6\"}",
+    "{\"a11\", \"a12\"}",
+    "{\"a0\", \"a1\", \"a2\", \"a3\", \"a4\"}",
+    "{\"a7\", \"a8\", \"a9\", \"a10\"}",
+    "{\"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\", \"a7\", \"a8\", \"a9\", \"a10\"}",
+    "{}",
+    "{x}",
+    "{\"a5\",\"a6\"}",
+    "{\"a11\",\"a12\"}",
+    "{\"a5\", \"a6\", \"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"}",
+    "{\"a11\", \"a12\", \"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet",
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[self \\in ProcSet |-> \"a0\"]",
+    "[ProcSet -> {\"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\", \n            \"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"}]",
+    "[p \\in ProcSet |-> pc_translation(p)]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "pc[p]",
+    "lockcs(p)",
+    "rdvsection(p)",
+    "barrier1(p)",
+    "barrier2(p)",
+    "lockcs(i)",
+    "lockcs(j)",
+    "pc_translation(p)",
+    "a0(self)",
+    "a1(self)",
+    "a2(self)",
+    "a3(self)",
+    "a4(self)",
+    "a5(self)",
+    "a6(self)",
+    "a7(self)",
+    "a8(self)",
+    "a9(self)",
+    "a10(self)",
+    "a11(self)",
+    "a12(self)",
+    "proc(self)"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"a1\"]",
+    "[pc EXCEPT ![self] = \"a2\"]",
+    "[pc EXCEPT ![self] = \"a3\"]",
+    "[pc EXCEPT ![self] = \"a4\"]",
+    "[pc EXCEPT ![self] = \"a5\"]",
+    "[pc EXCEPT ![self] = \"a6\"]",
+    "[pc EXCEPT ![self] = \"a7\"]",
+    "[pc EXCEPT ![self] = \"a8\"]",
+    "[pc EXCEPT ![self] = \"a9\"]",
+    "[pc EXCEPT ![self] = \"a10\"]",
+    "[pc EXCEPT ![self] = \"a11\"]",
+    "[pc EXCEPT ![self] = \"a12\"]",
+    "[pc EXCEPT ![self] = \"a0\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, lock, gate_1, gate_2, rdv >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "=<"
+  ],
+  "RangeExpr": [
+    "1..N",
+    "0..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "a5",
+    "a6",
+    "a7",
+    "a8",
+    "a9",
+    "a10",
+    "a11",
+    "a12",
+    "b1",
+    "b0"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "lock",
+    "rdv",
+    "gate_1",
+    "gate_2",
+    "TypeOK",
+    "LockInv",
+    "ProcsInB1",
+    "ProcsInB2",
+    "Inv",
+    "FlushInv",
+    "ProcsInRdv"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << lock, gate_1, gate_2, rdv >>",
+    "UNCHANGED << gate_1, gate_2, rdv >>",
+    "UNCHANGED << lock, gate_1, gate_2 >>",
+    "UNCHANGED << lock, gate_2, rdv >>",
+    "UNCHANGED << lock, gate_1, rdv >>",
+    "UNCHANGED vars",
+    "UNCHANGED B!vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[Next]_vars",
+    "[B!Next]_B!vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]TypeOK",
+    "[]LockInv",
+    "[]Inv",
+    "[]FlushInv"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [
+    "PTL",
+    "FS_Subset"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "HIDE",
+    "NEW"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>3",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<2>9",
+    "<2>10",
+    "<2>11",
+    "<2>12",
+    "<2>13",
+    "<2>14",
+    "<2>15",
+    "<1>4",
+    "<1>5",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<3>5",
+    "<3>6",
+    "<3>7",
+    "<3>8",
+    "<3>9",
+    "<3>10",
+    "<3>11",
+    "<3>12",
+    "<3>13",
+    "<3>14",
+    "<3>15",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<4>6",
+    "<4>7",
+    "<4>8",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<5>5",
+    "<5>6",
+    "<5>7"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME NEW S, IsFiniteSet(S)\n    PROVE Cardinality(S) > 0 <=> \\E x: x \\in S",
+    "ASSUME NEW S, IsFiniteSet(S)\n    PROVE Cardinality(S) > 1 => \\E x, y \\in S: x # y",
+    "SUFFICES ASSUME LockInv /\\ TypeOK /\\ [Next]_vars\n                 PROVE  LockInv'",
+    "ASSUME NEW self \\in 1..N, a0(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a1(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a2(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a3(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a4(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a5(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a6(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a7(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a8(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a9(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a10(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a11(self)\n        PROVE LockInv'",
+    "ASSUME NEW self \\in 1..N, a12(self)\n        PROVE LockInv'",
+    "SUFFICES ASSUME Init\n                 PROVE  Inv",
+    "SUFFICES ASSUME Inv,\n                        TypeOK,\n                        LockInv,\n                        [Next]_vars\n                 PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a0(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a1(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a2(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a3(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a4(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a5(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a6(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a7(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                 a8(self)\n          PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                  a9(self)\n           PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                  a10(self)\n           PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                  a11(self)\n           PROVE  Inv'",
+    "ASSUME NEW self \\in 1..N,\n                  a12(self)\n           PROVE  Inv'",
+    "SUFFICES ASSUME [Next]_vars, TypeOK, LockInv, Inv, FlushInv\n                 PROVE  FlushInv'",
+    "ASSUME NEW self \\in 1..N, a0(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a1(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a2(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a3(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a4(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a5(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a6(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a7(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a8(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a9(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a10(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a11(self)\n        PROVE FlushInv'",
+    "ASSUME NEW self \\in 1..N, a12(self)\n        PROVE FlushInv'",
+    "SUFFICES ASSUME [Next]_vars,\n                        TypeOK, TypeOK',\n                        LockInv, LockInv',\n                        Inv, Inv',\n                        FlushInv, FlushInv'\n                 PROVE [B!Next]_B!vars",
+    "ASSUME NEW self \\in 1..N, a0(self)\n          PROVE [B!Next]_B!vars",
+    "ASSUME NEW self \\in 1..N, a1(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a2(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a3(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a4(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a5(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a6(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a7(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a8(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a9(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a10(self)\n          PROVE [B!Next]_B!vars",
+    "ASSUME NEW self \\in 1..N, a11(self)\n          PROVE UNCHANGED B!vars",
+    "ASSUME NEW self \\in 1..N, a12(self)\n          PROVE UNCHANGED B!vars"
+  ],
+  "PlusCalAlgorithm": [
+    "Barriers"
+  ],
+  "PlusCalProcesses": [
+    "process (proc \\in 1..N)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; no entries added or removed | Reason: file count = 34, JSON OperatorDefNames count = 34\nField: NamesInLet | Change: renamed to LetInNames and added \\\"T\\\" | Reason: file contains LET-bound simple binding `T == S \\\\ {x}` inside proof; field name in JSON was incorrect and content was missing\nField: IfThenElse | Change: replaced descriptive paraphrases with verbatim TLA+ IF expressions | Reason: field values must appear in the file verbatim\nField: CaseExpr | Change: removed proof-context annotations and duplicates, kept only literal CASE expressions | Reason: values must appear in the file verbatim; distinct CASE expressions are expression forms, not annotated commentary\nField: SetEnumeration | Change: corrected long state-label set to include the literal line break/spacing from the file | Reason: each value must literally appear in the file\nField: FunctionConstructor | Change: corrected long function-set constructor to include the literal line break/spacing from the file | Reason: each value must literally appear in the file\nField: FunctionApplication | Change: removed duplicate `rdvsection(p)` and extra `barrier2(p)` | Reason: deduplication and exactness\nField: ComparisonOps | Change: added `=<` | Reason: the file uses `gate_1 =< ...` and `gate_2 =< ...`\nField: ChoiceExpr | Change: cleared field to [] | Reason: file contains `PICK`, not CHOOSE expressions; previous entries do not exist in the file\nField: PrimedVariables | Change: added `TypeOK`, `LockInv`, `ProcsInB1`, `ProcsInB2`, `Inv`, `FlushInv`, `ProcsInRdv` | Reason: every name appearing with a prime anywhere in the file must be listed, including in proofs\nField: AlwaysOp | Change: added `[][Next]_vars` | Reason: outermost `[]` temporal formula must appear here with full subscript\nField: ProofCommands | Change: removed `DEFS` and `HAVE` | Reason: these tokens do not appear in the file\nField: ProofStructureSteps | Change: removed non-step entries `\\\"<2> DEFINE T == S \\\\ {x}\\\"` and `\\\"<2> SUFFICES ASSUME ...\\\"` | Reason: field should contain step labels only; those values are not proof step identifiers\nField: Phase 2 completeness | Change: verified top-level operator count | Reason: file count = 34, JSON OperatorDefNames count = 34",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "lockcs",
+    "LockInv",
+    "rdvsection",
+    "barrier1",
+    "barrier2",
+    "Inv",
+    "FlushInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "BSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet",
+    "ProcsInLockCS",
+    "ProcsInRdv",
+    "ProcsInB1",
+    "ProcsInB2",
+    "pc_translation"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[self \\in ProcSet |-> \"a0\"]",
+    "[p \\in ProcSet |-> pc_translation(p)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ProcSet -> {\"a0\", \"a1\", \"a2\", \"a3\", \"a4\", \"a5\", \"a6\", \n            \"a7\", \"a8\", \"a9\", \"a10\", \"a11\", \"a12\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << lock, gate_1, gate_2, rdv >>",
+    "UNCHANGED << gate_1, gate_2, rdv >>",
+    "UNCHANGED << lock, gate_1, gate_2 >>",
+    "UNCHANGED << lock, gate_2, rdv >>",
+    "UNCHANGED << lock, gate_1, rdv >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars",
+    "UNCHANGED B!vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Barriers/Barriers.tla",
+  "VerificationTools": [
+    "TLAPS",
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "BSpec is classified as TemporalProperty because it is defined as B!Spec, and Spec is a temporal specification in the instantiated module.",
+    "ProcsInLockCS, ProcsInRdv, ProcsInB1, and ProcsInB2 are placed in ValueDef because they are set-valued derived definitions, not Boolean predicates.",
+    "Partition count: StatePredicate(8) + TemporalProperty(2) + Init(1) + ValueDef(7) + ActionDefNames(15) = OperatorDefNames(33). Verified.",
+    "Temporal properties wrapped by implication occur in theorem statements such as `Spec => []TypeOK`, but these are theorem bodies, not operator definitions. Among operator definitions, Spec is directly temporal and BSpec inherits temporal meaning from the instantiated module.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "FunctionConstructor is exactly partitioned into ByDomain(2) and SetType(1)."
+  ]
+}

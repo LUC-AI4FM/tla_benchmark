@@ -1,0 +1,277 @@
+{
+  "id": null,
+  "Specification": "This module specifies a parameterized one-round asynchronous reliable broadcast algorithm in the presence of Byzantine faults, based on the Srikanth-Toueg algorithm. The model represents correct and faulty processes, the local control state of each process, the set of ECHO messages sent by correct processes, and the messages received by each process; Byzantine behavior is abstracted via arbitrary Byzantine ECHO messages from faulty processes. The specification defines initialization, receive and step actions, a temporal specification with weak fairness for liveness checking, and several correctness properties including correctness, relay, unforgeability, and an inductive invariant used in a TLAPS proof of unforgeability when no correct process initially broadcasts.",
+  "ModuleName": "bcastByz",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Functions"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "T",
+    "F"
+  ],
+  "VariableNames": [
+    "Corr",
+    "Faulty",
+    "pc",
+    "rcvd",
+    "sent"
+  ],
+  "AssumptionNames": [
+    "NTF"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "M",
+    "ByzMsgs",
+    "vars",
+    "Init",
+    "InitNoBcast",
+    "Receive",
+    "ReceiveFromCorrectSender",
+    "ReceiveFromAnySender",
+    "UponV1",
+    "UponNonFaulty",
+    "UponAcceptNotSentBefore",
+    "UponAcceptSentBefore",
+    "Step",
+    "Next",
+    "Spec",
+    "SpecNoBcast",
+    "TypeOK",
+    "FCConstraints",
+    "CorrLtl",
+    "RelayLtl",
+    "UnforgLtl",
+    "Unforg",
+    "IndInv_Unforg_NoBcast",
+    "IndInv_Unforg_NoBcast_TLC",
+    "ProposeLeadsToAccept"
+  ],
+  "ActionDefNames": [
+    "Receive",
+    "ReceiveFromCorrectSender",
+    "ReceiveFromAnySender",
+    "UponV1",
+    "UponNonFaulty",
+    "UponAcceptNotSentBefore",
+    "UponAcceptSentBefore",
+    "Step",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF includeByz THEN ByzMsgs ELSE {}",
+    "IF i # self THEN rcvd[i] ELSE rcvd[self] \\cup newMessages"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"ECHO\" }",
+    "{}",
+    "{\"V0\", \"V1\"}",
+    "{\"V0\"}",
+    "{ <<self, \"ECHO\">> }",
+    "{ \"V0\", \"V1\", \"SE\", \"AC\"}",
+    "{ \"V0\", \"V1\" }",
+    "{ \"V0\", \"V1\", \"SE\", \"AC\" }"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\X",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality",
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ i \\in Proc |-> {} ]",
+    "[ i \\in Proc |-> IF i # self THEN rcvd[i] ELSE rcvd[self] \\cup newMessages ]",
+    "[ Proc -> {\"V0\"} ]",
+    "[ pc EXCEPT ![self] = \"SE\" ]",
+    "[ pc EXCEPT ![self] = \"AC\" ]",
+    "[ Proc -> {\"V0\", \"V1\", \"SE\", \"AC\"} ]",
+    "[ Proc -> SUBSET ( sent \\cup ByzMsgs ) ]",
+    "[ i \\in Proc |-> \"V0\" ]",
+    "[ Proc -> sent \\cup SUBSET ByzMsgs ]"
+  ],
+  "FunctionApplication": [
+    "rcvd[i]",
+    "rcvd[self]",
+    "pc[self]",
+    "pc[i]",
+    "pc[p]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"SE\"]",
+    "[ pc EXCEPT ![self] = \"SE\" ]",
+    "[ pc EXCEPT ![self] = \"AC\" ]",
+    "[pc EXCEPT ![self] = \"AC\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, rcvd, sent, Corr, Faulty >>",
+    "<<self, \"ECHO\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "*",
+    "-",
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<",
+    "<="
+  ],
+  "RangeExpr": [
+    "1 .. N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ECHO",
+    "V0",
+    "V1",
+    "SE",
+    "AC"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "rcvd",
+    "pc",
+    "sent"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << Corr, Faulty >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Corr: /\\ ReceiveFromCorrectSender(self)\n                                          /\\ \\/ UponV1(self)\n                                             \\/ UponNonFaulty(self)\n                                             \\/ UponAcceptNotSentBefore(self)\n                                             \\/ UponAcceptSentBefore(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]((\\E i \\in Corr: pc[i] = \"AC\") => <>(\\A i \\in Corr: pc[i] = \"AC\"))",
+    "[](\\A i \\in Corr: pc[i] /= \"AC\")"
+  ],
+  "EventuallyOp": [
+    "<>(\\A i \\in Corr: pc[i] = \"AC\")"
+  ],
+  "LeadsToOp": [
+    "\\A p \\in Proc : pc[p] = \"V1\" ~> pc[p] = \"AC\""
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Corr: /\\ ReceiveFromCorrectSender(self)\n                                          /\\ \\/ UponV1(self)\n                                             \\/ UponNonFaulty(self)\n                                             \\/ UponAcceptNotSentBefore(self)\n                                             \\/ UponAcceptSentBefore(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: SetOperators | Change: removed `DOMAIN` | Reason: value does not appear anywhere in the TLA+ file\nField: IfThenElse | Change: removed contextual suffixes `(in Receive)` from both entries | Reason: field must contain expressions that literally appear in the file\nField: SetEnumeration | Change: added `{ \"V0\", \"V1\" }` and `{ \"V0\", \"V1\", \"SE\", \"AC\" }` | Reason: these spaced variants appear verbatim in the file and are distinct enumerations\nField: CompletenessCheck | Change: verified top-level operator count | Reason: file count = 26, JSON OperatorDefNames count = 26",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "FCConstraints",
+    "Unforg",
+    "IndInv_Unforg_NoBcast",
+    "IndInv_Unforg_NoBcast_TLC"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "SpecNoBcast",
+    "CorrLtl",
+    "RelayLtl",
+    "UnforgLtl",
+    "ProposeLeadsToAccept"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitNoBcast"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "M",
+    "ByzMsgs",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> {} ]",
+    "[ i \\in Proc |-> IF i # self THEN rcvd[i] ELSE rcvd[self] \\cup newMessages ]",
+    "[ i \\in Proc |-> \"V0\" ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ Proc -> {\"V0\"} ]",
+    "[ Proc -> {\"V0\", \"V1\", \"SE\", \"AC\"} ]",
+    "[ Proc -> SUBSET ( sent \\cup ByzMsgs ) ]",
+    "[ Proc -> sent \\cup SUBSET ByzMsgs ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << Corr, Faulty >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/bcastByz/bcastByz.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(6) + Init(2) + ValueDef(4) + ActionDefNames(9) = OperatorDefNames(26). Verified.",
+    "CorrLtl and UnforgLtl are placed in TemporalProperty because their bodies are of the form P => <>Q and P => []Q respectively. The outermost operator is => but the meaning is temporal.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file. RelayLtl contains []((...) => <>(...)), but <> is nested inside implication, not inside another temporal operator. ProposeLeadsToAccept uses ~> shorthand only, which does not count as explicit temporal nesting.",
+    "ByzMsgs, vars, and M are placed in ValueDef as non-Boolean helper/value definitions; Proc is also a non-Boolean value definition.",
+    "VerificationTools includes TLC because the module defines Spec/SpecNoBcast and explicitly discusses TLC model checking. TLAPS is not included because the file contains no EXTENDS TLAPS, theorem blocks, or proof steps."
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "id": null,
+  "Specification": "This module defines debugging, visualization, and state-alias operators for a Raft-related specification imported from the extended module ccfraft. It does not define the core protocol itself; instead, it builds aliases, colorized renderings, aggregate views, and TLC-driven instrumentation over the existing state variables and actions of the underlying model. The file uses CHOOSE, function and record constructors, sequences, and TLC extension operators to summarize leader elections, blocked nodes, per-node vote and message statistics, and animated log/state output for simulation traces.",
+  "ModuleName": "MCAliases",
+  "ExtendsModules": [
+    "ccfraft"
+  ],
+  "InstanceModules": [
+    "TLCExt"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "srv",
+    "L",
+    "S",
+    "C",
+    "B",
+    "Colorize",
+    "ColorizeServer",
+    "ColorizeTerm",
+    "StringifyLog",
+    "DebugAliasGlobals",
+    "DebugAliasAggregates",
+    "DebugAliasVars",
+    "DebugAlias",
+    "DebugActingServerAlias",
+    "AnimateLogAndStateAlias"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Cup",
+    "Plus"
+  ],
+  "NamesInLet": [
+    "Cup",
+    "Plus"
+  ],
+  "LambdaParams": [
+    "e",
+    "acc",
+    "o",
+    "v",
+    "s",
+    "rcd"
+  ],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \\E s \\in Servers: <<BecomeLeader(s)>>_vars THEN 1 ELSE 0",
+    "IF Len(v[s]) > Len(v'[s]) THEN Len(v[s]) - Len(v'[s]) ELSE 0",
+    "IF v[s] = Nil THEN {} ELSE {v[s]}",
+    "IF IsSuffix(<<v[s]>>, o[s]) THEN o[s] ELSE o[s] \\o <<TLCGet(\"level\")', v[s]>>",
+    "IF TLCSet(\"-Dtlc2.output.StatePrinter.overwrite\", 150 (*in milliseconds*)) THEN DebugAliasGlobals @@ FoldSet(LAMBDA s, rcd: rcd @@ ColorizeServer(s, \"log_\") :> StringifyLog(s), <<>>, Servers) @@ FoldSet(LAMBDA s, rcd: rcd @@ ColorizeServer(s, \"ste_\") :> ToString(leadershipState[s]) \\o \" \" \\o ToString(currentTerm[s]), <<>>, Servers) ELSE <<>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"\u25b5\", \"\u25bf\", \"\u25b4\", \"\u25cb\"}",
+    "{\"\u001b[0;30m\", \"\u001b[0;31m\", \"\u001b[0;32m\", \"\u001b[0;33m\", \"\u001b[0;34m\"}",
+    "{\"\u001b[47m\", \"\u001b[41m\", \"\u001b[42m\", \"\u001b[43m\", \"\u001b[44m\"}",
+    "{}",
+    "{v[s]}",
+    "{Leader, Follower}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ LeadershipStates -> {\"\u25b5\", \"\u25bf\", \"\u25b4\", \"\u25cb\"} ]",
+    "[ Servers -> {\"\u001b[0;30m\", \"\u001b[0;31m\", \"\u001b[0;32m\", \"\u001b[0;33m\", \"\u001b[0;34m\"} ]",
+    "[ Servers -> {\"\u001b[47m\", \"\u001b[41m\", \"\u001b[42m\", \"\u001b[43m\", \"\u001b[44m\"} ]",
+    "[s \\in Servers |-> {}]",
+    "[ s \\in Servers |-> o[s] + IF Len(v[s]) > Len(v'[s]) THEN Len(v[s]) - Len(v'[s]) ELSE 0 ]",
+    "[s \\in Servers |-> 0]",
+    "[ s \\in Servers |-> o[s] \\cup IF v[s] = Nil THEN {} ELSE {v[s]} ]",
+    "[ s \u2208 Servers |-> IF IsSuffix(<<v[s]>>, o[s]) THEN o[s] ELSE o[s] \\o <<TLCGet(\"level\")', v[s]>>]",
+    "[s \\in Servers |-> <<>>]",
+    "[s \\in Servers |-> o[s] \\o C[s] \\o S[v[s]] \\o \"\u001b[0m\"]",
+    "[s \\in Servers |-> \"\"]",
+    "[ s, t \\in Servers |-> Network!MessagesTo(s, t) ]"
+  ],
+  "FunctionApplication": [
+    "NextInt(s)",
+    "C[server]",
+    "log[s]",
+    "L[e.contentType]",
+    "leadershipState[s]",
+    "C[v]",
+    "v[s]",
+    "o[s]",
+    "C[s]",
+    "S[v[s]]",
+    "configurations[srv]",
+    "currentTerm[srv]",
+    "votedFor[srv]",
+    "leadershipState[srv]",
+    "commitIndex[srv]",
+    "votesGranted[srv]",
+    "sentIndex[srv]",
+    "matchIndex[srv]",
+    "B[srv]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[\n        \\* Total number of leader elections, i.e.,  BecomeLeader actions.\n        le  |-> TLCGetAndSet(8, +, IF \\E s \\in Servers: <<BecomeLeader(s)>>_vars THEN 1 ELSE 0, 1),\n        \\* Set of nodes that are blocked right now.\n        blocked  |-> { s \\in Servers : ~[NextInt(s)]_vars},\n        \\* Set of nodes that are active right now.\n        cluster |-> { Colorize(s, ToString(s)) : s \\in { s \\in Servers : leadershipState[s] \\in {Leader, Follower} } },\n        \\* Sequence showing which node is active when.\n        tl  |-> TLCGetAndSet(9, LAMBDA o, v: o \\o C[v] \\o \"\u25a7\" \\o \"\u001b[0m\", CHOOSE i \\in Servers: [NextInt(i)]_vars, \"\")\n    ]",
+    "[\n        \\* Per Node (node-local):\n            \\* The set of nodes granting a vote to this node, ever.\n            vg   |-> TLCGetAndSet(0, Cup, votesGranted, [s \\in Servers |-> {}]),\n            \\* \\* Set of messages received by or pending at a node.\n            \\*mr   |-> TLCGetAndSet(2,\n            \\*            LAMBDA o, v: [s \\in Servers |-> o[s] \\cup { m \\in v : m.dest = s }],\n            \\*            Network!Messages, [s \\in Servers |-> {}]),\n            \\* \\* Total number of delivered/received messages per node (message is considered delivered if it is no longer in a node's inbox)\n            rms  |-> TLCGetAndSet(3,\n                        LAMBDA o, v: \n                            [ s \\in Servers |-> o[s] + IF Len(v[s]) > Len(v'[s]) THEN Len(v[s]) - Len(v'[s]) ELSE 0 ], \n                        messages, [s \\in Servers |-> 0]),\n            \\* \\* Set of nodes, a node has ever voted for.\n            vf   |-> TLCGetAndSet(4, \n                        LAMBDA o, v: \n                            [ s \\in Servers |-> o[s] \\cup IF v[s] = Nil THEN {} ELSE {v[s]} ],\n                        votedFor, [s \\in Servers |-> {}]),\n            \\* Sequence of state transitions of this node.\n            st   |-> TLCGetAndSet(5, \n                        LAMBDA o, v: \n                            [ s \\in Servers |-> IF IsSuffix(<<v[s]>>, o[s]) \n                                                THEN o[s] \n                                                ELSE o[s] \\o <<TLCGet(\"level\")', v[s]>>],\n                        leadershipState, [s \\in Servers |-> <<>>]),\n            ss   |-> TLCGetAndSet(6, \n                        LAMBDA o, v: [s \\in Servers |-> o[s] \\o C[s] \\o S[v[s]] \\o \"\u001b[0m\"],\n                        leadershipState, [s \\in Servers |-> \"\"])\n            \\* Times at which this node is active (this becomes unwidely for longer traces).\n            \\*ta   |-> TLCGetAndSet(7, \n            \\*            LAMBDA o, v: [ o EXCEPT ![v] = @ \\cup {TLCGet(\"level\")} ],\n            \\*            CHOOSE i \\in Servers: NextOfI(i), [s \\in Servers |-> {}]),\n    ]",
+    "[\n        preVoteStatus |-> preVoteStatus,\n        configurations |-> configurations,\n        messages |-> messages,\n        currentTerm |-> currentTerm,\n        leadershipState |-> leadershipState,\n        membershipState |-> membershipState,\n        votedFor |-> votedFor,\n        hasJoined |-> hasJoined,\n        \\* More compact visualization of the log.  \n        \\* lg |-> [ s \\in Servers |-> StringifyLog(s) ],\n        log |-> log,\n        commitIndex |-> commitIndex,\n        votesGranted |-> votesGranted,\n        sentIndex |-> sentIndex,\n        matchIndex |-> matchIndex,\n        retirementCompleted |-> retirementCompleted,\n        _MessagesTo |-> [ s, t \\in Servers |-> Network!MessagesTo(s, t) ]\n    ]",
+    "[\n        \\* Comment this format in VSCode because it breaks its parser. :-()\n        _format |-> B[srv] \\o \"/\\\\\u001b[0m %1$s = %2$s\\n\",\n        srv |-> srv,\n        configurations |-> configurations[srv],\n        currentTerm |-> currentTerm[srv],\n        votedFor |-> votedFor[srv],\n        leadershipState |-> leadershipState[srv],\n        log |-> StringifyLog(srv),\n        commitIndex |-> commitIndex[srv],\n        votesGranted |-> votesGranted[srv],\n        sentIndex |-> sentIndex[srv],\n        matchIndex |-> matchIndex[srv]\n    ]"
+  ],
+  "RecordAccess": [
+    "e.term",
+    "e.contentType",
+    "m.dest"
+  ],
+  "TupleConstructor": [
+    "<<BecomeLeader(s)>>",
+    "<<v[s]>>",
+    "<<TLCGet(\"level\")', v[s]>>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE s \\in Servers : [NextInt(s)]_vars",
+    "CHOOSE f \\in [ LeadershipStates -> {\"\u25b5\", \"\u25bf\", \"\u25b4\", \"\u25cb\"} ] : IsInjective(f)",
+    "CHOOSE f \\in [ Servers -> {\"\u001b[0;30m\", \"\u001b[0;31m\", \"\u001b[0;32m\", \"\u001b[0;33m\", \"\u001b[0;34m\"} ]: IsInjective(f)",
+    "CHOOSE f \\in [ Servers -> {\"\u001b[47m\", \"\u001b[41m\", \"\u001b[42m\", \"\u001b[43m\", \"\u001b[44m\"} ]: IsInjective(f)",
+    "CHOOSE i \\in Servers: [NextInt(i)]_vars"
+  ],
+  "StringLiterals": [
+    "r",
+    "s",
+    "e",
+    "\u25b5",
+    "\u25bf",
+    "\u25b4",
+    "\u25cb",
+    "\u001b[0;30m",
+    "\u001b[0;31m",
+    "\u001b[0;32m",
+    "\u001b[0;33m",
+    "\u001b[0;34m",
+    "\u001b[47m",
+    "\u001b[41m",
+    "\u001b[42m",
+    "\u001b[43m",
+    "\u001b[44m",
+    "\u001b[0m",
+    "\u001b[0;3",
+    "m",
+    "level",
+    "\u25a7",
+    "",
+    "log_",
+    "ste_",
+    " ",
+    "-Dtlc2.output.StatePrinter.overwrite",
+    "/\\\\\u001b[0m %1$s = %2$s\\n"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "v"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[NextInt(s)]_vars",
+    "<<BecomeLeader(s)>>_vars",
+    "[NextInt(i)]_vars"
+  ],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified unchanged | Reason: top-level `==` definition count matches file count; file count = 15, JSON count = 15\nField: IfThenElse | Change: removed appended context markers like `(in DebugAliasGlobals)` and kept only verbatim IF expressions | Reason: values must appear in the TLA+ file\nField: FunctionConstructor | Change: corrected malformed spacing/bracketing in CHOOSE-domain function constructors and removed one invalid extra tokenization issue from V1 | Reason: entries must match file text\nField: FunctionConstructor | Change: kept the distinct constructor for `[ s \u2208 Servers |-> IF IsSuffix(<<v[s]>>, o[s]) THEN o[s] ELSE o[s] \\\\o <<TLCGet(\\\"level\\\")', v[s]>>]` as present in file | Reason: completeness for function constructors\nField: FunctionApplication | Change: removed invalid entry `f)` | Reason: does not appear in the file\nField: FunctionOverride | Change: verified remains empty | Reason: the only EXCEPT form is inside a commented-out line, so no actual override expression appears in the file\nField: RecordConstructor | Change: removed invalid entry `[NextInt(s)]_vars` | Reason: this is a temporal subscript/action expression, not a record constructor\nField: RecordConstructor | Change: removed placeholder entry `[field |-> value, ...]` | Reason: does not appear in the file\nField: SequenceOps | Change: removed `Append` | Reason: does not appear in the file\nField: ChoiceExpr | Change: corrected CHOOSE expressions for `C` and `B` to match spacing/bracketing in file | Reason: values must appear in the TLA+ file\nField: StringLiterals | Change: normalized symbol literals to match file characters for `\u25b5`, `\u25bf`, `\u25b4`, `\u25cb`, and `\u25a7` | Reason: exact string literals from the file must be recorded\nField: PrimedVariables | Change: added `v` | Reason: `v'` appears in `Len(v'[s])`, so `v` must be listed\nField: ProofCommands | Change: removed `ASSUME` | Reason: no `ASSUME`, `ASSUMPTION`, or proof command appears in the file\nField: AssumptionNames | Change: verified remains empty | Reason: the file has no ASSUME/ASSUMPTION/AXIOM blocks\nField: LocalOperatorNames | Change: verified unchanged as `Cup`, `Plus` | Reason: these are parametric LET-local definitions\nField: NamesInLet | Change: verified unchanged as `Cup`, `Plus` | Reason: LET-bound names must be captured here\nField: AlwaysOp | Change: verified remains empty | Reason: no outermost `[]` temporal formula in file\nField: EventuallyOp | Change: verified remains empty | Reason: no outermost `<>` temporal formula in file\nField: LeadsToOp | Change: verified remains empty | Reason: no outermost `~>` temporal formula in file\nField: GuaranteesOp | Change: verified remains empty | Reason: no outermost `-+->` temporal formula in file\nField: ActionComposition | Change: verified remains empty | Reason: no `A \\\\cdot B` action composition appears in file\nField: FairnessConditions | Change: verified remains empty | Reason: no WF/SF condition appears in `Spec` or `Spec0`, and neither operator is defined in this module\nField: UnchangedExprs | Change: verified remains empty | Reason: no `UNCHANGED` expression appears in file\nField: EnabledExprs | Change: verified remains empty | Reason: no `ENABLED` expression appears in file\nField: RecordAccess | Change: verified unchanged | Reason: `e.term`, `e.contentType`, and `m.dest` all literally appear in the file\nField: PlusCalAlgorithm | Change: verified remains empty array | Reason: no PlusCal algorithm in file\nField: PlusCalProcesses | Change: verified remains empty array | Reason: no PlusCal process declarations in file",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "srv",
+    "L",
+    "S",
+    "C",
+    "B",
+    "Colorize",
+    "ColorizeServer",
+    "ColorizeTerm",
+    "StringifyLog",
+    "DebugAliasGlobals",
+    "DebugAliasAggregates",
+    "DebugAliasVars",
+    "DebugAlias",
+    "DebugActingServerAlias",
+    "AnimateLogAndStateAlias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[s \\in Servers |-> {}]",
+    "[ s \\in Servers |-> o[s] + IF Len(v[s]) > Len(v'[s]) THEN Len(v[s]) - Len(v'[s]) ELSE 0 ]",
+    "[s \\in Servers |-> 0]",
+    "[ s \\in Servers |-> o[s] \\cup IF v[s] = Nil THEN {} ELSE {v[s]} ]",
+    "[ s \u2208 Servers |-> IF IsSuffix(<<v[s]>>, o[s]) THEN o[s] ELSE o[s] \\o <<TLCGet(\"level\")', v[s]>>]",
+    "[s \\in Servers |-> <<>>]",
+    "[s \\in Servers |-> o[s] \\o C[s] \\o S[v[s]] \\o \"\u001b[0m\"]",
+    "[s \\in Servers |-> \"\"]",
+    "[ s, t \\in Servers |-> Network!MessagesTo(s, t) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ LeadershipStates -> {\"\u25b5\", \"\u25bf\", \"\u25b4\", \"\u25cb\"} ]",
+    "[ Servers -> {\"\u001b[0;30m\", \"\u001b[0;31m\", \"\u001b[0;32m\", \"\u001b[0;33m\", \"\u001b[0;34m\"} ]",
+    "[ Servers -> {\"\u001b[47m\", \"\u001b[41m\", \"\u001b[42m\", \"\u001b[43m\", \"\u001b[44m\"} ]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MCAliases/MCAliases.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(15) + ActionDefNames(0) = OperatorDefNames(15). Verified.",
+    "All top-level operators in this module are value-producing helpers, aliases, renderers, or TLC instrumentation definitions rather than actions, state predicates, init predicates, or temporal properties, so they are placed in ValueDef by elimination.",
+    "TemporalNesting is false. The file contains temporal subscript forms such as [NextInt(s)]_vars and <<BecomeLeader(s)>>_vars, but no explicit nesting of [], <>, or ~> inside another temporal operator appears in the source text."
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Chang-Roberts leader election algorithm on a unidirectional ring of N nodes, where each node has a unique natural-number identity given by the sequence Id. The embedded comments explain that any subset of nodes may initiate the algorithm, and the node with the smallest identity is intended to be elected leader. The specification includes a PlusCal algorithm and its TLA+ translation, defines type correctness and a safety correctness condition about the winner and losing nodes, and states a liveness property that if some candidate exists then eventually some node wins. The temporal specification uses weak fairness for every process action and allows infinite stuttering through a Terminating action to avoid deadlock on termination.",
+  "ModuleName": "ChangRoberts",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "Id"
+  ],
+  "VariableNames": [
+    "msgs",
+    "pc",
+    "initiator",
+    "state"
+  ],
+  "AssumptionNames": [
+    "/\\ N \\in Nat \\ {0}\n  /\\ Id \\in Seq(Nat)\n  /\\ Len(Id) = N\n  /\\ \\A m,n \\in Node : m # n => Id[m] # Id[n]"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Node",
+    "succ",
+    "vars",
+    "ProcSet",
+    "Init",
+    "n0",
+    "n1",
+    "node",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "TypeOK",
+    "Correctness",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "n0",
+    "n1",
+    "node",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "_msgs"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF n=N THEN 1 ELSE n+1",
+    "IF initiator[self] THEN \"cand\" ELSE \"lost\"",
+    "IF initiator[self]\n                  THEN /\\ msgs' = [msgs EXCEPT ![succ(self)] = @ \\cup {Id[self]}]\n                  ELSE /\\ TRUE\n                       /\\ msgs' = msgs",
+    "IF state[self] = \"lost\"\n                      THEN /\\ msgs' = [_msgs EXCEPT ![succ(self)] = @ \\cup {id}]\n                           /\\ state' = state\n                      ELSE /\\ IF id < Id[self]\n                                 THEN /\\ state' = [state EXCEPT ![self] = \"lost\"]\n                                      /\\ msgs' = [_msgs EXCEPT ![succ(self)] = @ \\cup {id}]\n                                 ELSE /\\ msgs' = _msgs\n                                      /\\ IF id = Id[self]\n                                            THEN /\\ state' = [state EXCEPT ![self] = \"won\"]\n                                            ELSE /\\ TRUE\n                                                 /\\ state' = state",
+    "IF id < Id[self]\n                                 THEN /\\ state' = [state EXCEPT ![self] = \"lost\"]\n                                      /\\ msgs' = [_msgs EXCEPT ![succ(self)] = @ \\cup {id}]\n                                 ELSE /\\ msgs' = _msgs\n                                      /\\ IF id = Id[self]\n                                            THEN /\\ state' = [state EXCEPT ![self] = \"won\"]\n                                            ELSE /\\ TRUE\n                                                 /\\ state' = state",
+    "IF id = Id[self]\n                                            THEN /\\ state' = [state EXCEPT ![self] = \"won\"]\n                                            ELSE /\\ TRUE\n                                                 /\\ state' = state"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{}",
+    "{id}",
+    "{\"n0\", \"n1\", \"Done\"}",
+    "{\"cand\", \"lost\", \"won\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Node |-> {}]",
+    "[Node -> BOOLEAN]",
+    "[self \\in Node |-> IF initiator[self] THEN \"cand\" ELSE \"lost\"]",
+    "[self \\in ProcSet |-> \"n0\"]",
+    "[Node -> {\"n0\", \"n1\", \"Done\"}]",
+    "[Node -> SUBSET {Id[n] : n \\in Node}]",
+    "[Node -> {\"cand\", \"lost\", \"won\"}]"
+  ],
+  "FunctionApplication": [
+    "Id[i]",
+    "Id[m]",
+    "Id[n]",
+    "initiator[self]",
+    "pc[self]",
+    "msgs[self]",
+    "state[self]",
+    "state[n]",
+    "state[m]"
+  ],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![succ(self)] = @ \\cup {Id[self]}]",
+    "[pc EXCEPT ![self] = \"n1\"]",
+    "[msgs EXCEPT ![self] = @ \\ {id}]",
+    "[_msgs EXCEPT ![succ(self)] = @ \\cup {id}]",
+    "[state EXCEPT ![self] = \"lost\"]",
+    "[state EXCEPT ![self] = \"won\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< msgs, pc, initiator, state >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1 .. N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "cand",
+    "lost",
+    "n0",
+    "n1",
+    "won",
+    "Done"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "msgs",
+    "pc",
+    "state"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << initiator, state >>",
+    "UNCHANGED initiator",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")",
+    "<>(\\E n \\in Node : state[n] = \"won\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in Node : WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "ChangRoberts"
+  ],
+  "PlusCalProcesses": [
+    "process (node \\in Node)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained `[\"_msgs\"]` | Reason: field name must match required schema; `_msgs` is a LET-bound name from `n1`.\nField: IfThenElse | Change: removed non-verbatim annotations like `(in succ)` and `(in Init)` and replaced entries with expressions that literally appear in the file | Reason: Phase 3 requires values to appear in the TLA+ file; annotated strings did not.\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` here is not a proof command block; assumptions belong in `AssumptionNames`.\nField: OperatorDefNames | Change: verified no change; count confirmed 15 | Reason: top-level `==` definition count in file is 15, matching JSON count 15.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Correctness"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Node",
+    "succ",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> {}]",
+    "[self \\in Node |-> IF initiator[self] THEN \"cand\" ELSE \"lost\"]",
+    "[self \\in ProcSet |-> \"n0\"]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node -> {\"n0\", \"n1\", \"Done\"}]",
+    "[Node -> SUBSET {Id[n] : n \\in Node}]",
+    "[Node -> {\"cand\", \"lost\", \"won\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << initiator, state >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ChangRoberts/ChangRoberts.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(3) + Init(1) + ValueDef(4) + ActionDefNames(5) = OperatorDefNames(15). Verified.",
+    "Liveness is placed in TemporalProperty because its body is of the form P => <>Q. The outermost operator is => but the meaning is temporal.",
+    "ValueDef by elimination: Node, succ, vars, and ProcSet are non-action, non-temporal, non-init helper/value definitions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs contains one entry, \"UNCHANGED initiator\", that is neither an explicit tuple form nor a previously defined tuple-variable reference such as vars; therefore UnchangedExprs_Explicit and UnchangedExprs_VarRef do not exhaustively partition UnchangedExprs."
+  ]
+}

@@ -1,0 +1,318 @@
+{
+  "id": null,
+  "Specification": "This module specifies a bounded blocking queue with multiple producers and multiple consumers that use poison pills to achieve global termination. Producers enqueue either ordinary data or the distinguished constant Poison, and consumers dequeue items; the state also tracks a wait set for blocked threads plus counters telling how many poison-related actions each producer and consumer still owes before termination. The specification verifies type correctness, absence of deadlock, queue emptiness after global termination, and a leads-to termination property; it also studies a stronger fairness variant under which all producers eventually terminate, and includes a concrete counterexample value in PostCondition.",
+  "ModuleName": "BlockingQueuePoisonApple",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "FiniteSets",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Producers",
+    "Consumers",
+    "BufCapacity",
+    "Poison",
+    "p1",
+    "p2",
+    "c1",
+    "c2"
+  ],
+  "VariableNames": [
+    "prod",
+    "cons",
+    "buffer",
+    "waitSet"
+  ],
+  "AssumptionNames": [
+    "Assumption"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => [](TypeInv /\\ NoDeadlock)",
+    "THEOREM Spec => QueueEmpty /\\ GlobalTermination",
+    "THEOREM SSpec => Terminates"
+  ],
+  "OperatorDefNames": [
+    "ap",
+    "ac",
+    "vars",
+    "NotifyOther",
+    "Wait",
+    "Put",
+    "Get",
+    "Init",
+    "Next",
+    "Spec",
+    "TypeInv",
+    "NoDeadlock",
+    "QueueEmpty",
+    "GlobalTermination",
+    "SSpec",
+    "Terminates",
+    "BufferInfOftenNonEmpty",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "NotifyOther",
+    "Wait",
+    "Put",
+    "Get",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF waitSet \\cap Others # {} THEN \\E t \\in waitSet \\cap Others : waitSet' = waitSet \\ {t} ELSE UNCHANGED waitSet"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\cap",
+    "\\intersect",
+    "\\",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ c \\in Consumers |-> Cardinality(Producers) ]",
+    "[ p \\in Producers |-> Cardinality(Consumers) ]",
+    "[ Producers -> 0..Cardinality(Consumers) ]",
+    "[ Consumers -> 0..Cardinality(Producers) ]"
+  ],
+  "FunctionApplication": [
+    "prod[p]",
+    "cons[c]",
+    "prod[t]",
+    "cons[t]"
+  ],
+  "FunctionOverride": [
+    "[ prod EXCEPT ![t] = @ - 1]",
+    "[ cons EXCEPT ![t] = @ - 1]"
+  ],
+  "RecordConstructor": [
+    "[ action |-> { << << 1, [ prod |-> (p1 :> 2 @@ p2 :> 2), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p2, d |-> p2], parameters |-> <<\"t\", \"d\">> ], << 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>, << << 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c2], parameters |-> <<\"t\">> ], << 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >> >>, << << 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p2, d |-> p2], parameters |-> <<\"t\", \"d\">> ], << 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>, << << 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >> >>, << << 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p1, d |-> p1], parameters |-> <<\"t\", \"d\">> ], << 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>, << << 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p1, d |-> p1], parameters |-> <<\"t\", \"d\">> ], << 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >> >>, << << 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c2], parameters |-> <<\"t\">> ], << 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>, << << 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >> >>, << << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >> >> }, state |-> { << 1, [ prod |-> (p1 :> 2 @@ p2 :> 2), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<>>, waitSet |-> {} ] >>, << 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >>, << 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, << 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, << 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, << 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, << 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >>, << 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >>, << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >> } ]",
+    "[ prod |-> (p1 :> 2 @@ p2 :> 2), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<>>, waitSet |-> {} ]",
+    "[ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p2, d |-> p2], parameters |-> <<\"t\", \"d\">> ]",
+    "[ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ]",
+    "[t |-> p2, d |-> p2]",
+    "[ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ]",
+    "[ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c2], parameters |-> <<\"t\">> ]",
+    "[ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ]",
+    "[t |-> c2]",
+    "[ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ]",
+    "[ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ]",
+    "[t |-> c1]",
+    "[ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ]",
+    "[ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ]",
+    "[t |-> p1, d |-> p1]",
+    "[ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ]",
+    "[ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ]",
+    "[ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<buffer, waitSet, prod, cons>>",
+    "<<buffer>>",
+    "<<prod,cons>>",
+    "<<prod>>",
+    "<<>>",
+    "<<Poison>>",
+    "<<Put(p, p)>>_vars",
+    "<< 1, [ prod |-> (p1 :> 2 @@ p2 :> 2), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<>>, waitSet |-> {} ] >>",
+    "<<\"t\", \"d\">>",
+    "<< 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >>",
+    "<< << 1, [ prod |-> (p1 :> 2 @@ p2 :> 2), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p2, d |-> p2], parameters |-> <<\"t\", \"d\">> ], << 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>",
+    "<<\"t\">>",
+    "<< 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>",
+    "<< << 2, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 2), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c2], parameters |-> <<\"t\">> ], << 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >> >>",
+    "<< 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>",
+    "<< << 3, [ prod |-> (p1 :> 2 @@ p2 :> 1), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p2, d |-> p2], parameters |-> <<\"t\", \"d\">> ], << 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>",
+    "<< 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>",
+    "<< << 4, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 2 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >> >>",
+    "<< 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>",
+    "<< << 5, [ prod |-> (p1 :> 2 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p1, d |-> p1], parameters |-> <<\"t\", \"d\">> ], << 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>",
+    "<< 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >>",
+    "<< << 6, [ prod |-> (p1 :> 1 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Put\", location |-> [ beginLine |-> 64, beginColumn |-> 5, endLine |-> 77, endColumn |-> 25, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> p1, d |-> p1], parameters |-> <<\"t\", \"d\">> ], << 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >> >>",
+    "<< 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >>",
+    "<< << 7, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 1), buffer |-> <<Poison, Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c2], parameters |-> <<\"t\">> ], << 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >> >>",
+    "<< 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >>",
+    "<< << 8, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 1 @@ c2 :> 0), buffer |-> <<Poison>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >> >>",
+    "<< << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >>, [ name |-> \"Get\", location |-> [ beginLine |-> 80, beginColumn |-> 1, endLine |-> 92, endColumn |-> 32, module |-> \"BlockingQueuePoisonApple\" ], context |-> [t |-> c1], parameters |-> <<\"t\">> ], << 9, [ prod |-> (p1 :> 0 @@ p2 :> 0), cons |-> (c1 :> 0 @@ c2 :> 0), buffer |-> <<>>, waitSet |-> {} ] >> >>",
+    "<<Poison, Poison>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "0..BufCapacity",
+    "0..Cardinality(Consumers)",
+    "0..Cardinality(Producers)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Put",
+    "BlockingQueuePoisonApple",
+    "t",
+    "d",
+    "Get"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "waitSet",
+    "buffer",
+    "prod",
+    "cons"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED waitSet",
+    "UNCHANGED <<buffer>>",
+    "UNCHANGED prod",
+    "UNCHANGED <<cons>>",
+    "UNCHANGED <<prod,cons>>",
+    "UNCHANGED <<prod>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Get(c))",
+    "WF_vars(Put(p, p))",
+    "SF_vars(Put(p, p) /\\ prod' # prod)",
+    "<<Put(p, p)>>_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](TypeInv /\\ NoDeadlock)",
+    "[]((ap \\cup ac) = {}) => (buffer = <<>>)"
+  ],
+  "EventuallyOp": [
+    "<>[](ap = {})"
+  ],
+  "LeadsToOp": [
+    "(ap = {}) ~> [](ac = {})"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A c \\in Consumers : WF_vars(Get(c))",
+    "\\A p \\in Producers : WF_vars(Put(p, p))",
+    "\\A p \\in Producers : SF_vars(Put(p, p) /\\ prod' # prod)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and kept empty | Reason: schema requires LetInNames; there are no LET-bound names in the file\nField: Implication | Change: added \"<=>\" | Reason: comment text in the file literally contains \"<=>\"; Implication must contain only => and <=>\nField: IfThenElse | Change: removed trailing context annotation \"(in NotifyOther)\" | Reason: field values must appear in the TLA+ file verbatim\nField: AlwaysOp | Change: added \"[][Next]_vars\" | Reason: outermost [] temporal formula appears in Spec and SSpec and must be listed with full subscript\nField: SetOperators | Change: retained \"SUBSET\" | Reason: it literally appears in the file in TypeInv\nOperator count verified: file count = 18, JSON OperatorDefNames count = 18",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInv",
+    "NoDeadlock"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "QueueEmpty",
+    "GlobalTermination",
+    "SSpec",
+    "Terminates",
+    "BufferInfOftenNonEmpty"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "ap",
+    "ac",
+    "vars",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ c \\in Consumers |-> Cardinality(Producers) ]",
+    "[ p \\in Producers |-> Cardinality(Consumers) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Producers -> 0..Cardinality(Consumers) ]",
+    "[ Consumers -> 0..Cardinality(Producers) ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<buffer>>",
+    "UNCHANGED <<cons>>",
+    "UNCHANGED <<prod,cons>>",
+    "UNCHANGED <<prod>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED waitSet",
+    "UNCHANGED prod"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/BlockingQueuePoisonApple/BlockingQueuePoisonApple.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(6) + Init(1) + ValueDef(4) + ActionDefNames(5) = OperatorDefNames(18). Verified.",
+    "QueueEmpty is placed in TemporalProperty because its body is []((ap \\cup ac) = {}) => (buffer = <<>>); the outermost operator is [] and the meaning is temporal.",
+    "GlobalTermination is placed in TemporalProperty because it uses ~>.",
+    "Terminates is placed in TemporalProperty because its body is <>[](ap = {}), which contains explicit nesting of temporal operators.",
+    "BufferInfOftenNonEmpty is placed in TemporalProperty because its body is \\A p \\in Producers: []<><<Put(p, p)>>_vars.",
+    "PostCondition is placed in ValueDef by elimination: it defines a non-Boolean record value used as a concrete counterexample witness.",
+    "TemporalNesting is true. Exact line: BufferInfOftenNonEmpty == \\A p \\in Producers: []<><<Put(p, p)>>_vars",
+    "TemporalNesting is also explicit on the line: Terminates ==\n    <>[](ap = {})",
+    "UnchangedExprs_VarRef contains \"UNCHANGED waitSet\" and \"UNCHANGED prod\" because these are bare variable references rather than explicit tuples; the file contains no UNCHANGED vars entry."
+  ]
+}

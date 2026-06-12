@@ -1,0 +1,237 @@
+{
+  "id": null,
+  "Specification": "This module gives a high-level TLA+ specification of the Sailfish and Sailfish++ consensus algorithms, modeling a DAG-based protocol with correct and Byzantine nodes. The comments explain that Byzantine behavior is constrained because vertices are disseminated with reliable broadcast, so Byzantine nodes cannot equivocate and can only create protocol-conforming vertices subject to quorum checks. The specification defines initialization, the next-state relation for correct and Byzantine nodes, a basic type invariant, an agreement safety property over delivered logs, and a liveness property stating that after GST, leaders of synchronous rounds are eventually reflected in correct nodes' logs.",
+  "ModuleName": "Sailfish",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "BlockDag"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "F",
+    "R",
+    "IsQuorum",
+    "IsBlocking",
+    "Leader",
+    "GST"
+  ],
+  "VariableNames": [
+    "vs",
+    "es",
+    "round",
+    "log"
+  ],
+  "AssumptionNames": [
+    "\\E n \\in R : R = 1..n"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "dag",
+    "NoLeaderVoteQuorum",
+    "vars",
+    "ProcSet",
+    "Init",
+    "correctNode",
+    "byzantineNode",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "Agreement",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "correctNode",
+    "byzantineNode",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "NoLeaderVote",
+    "newV",
+    "votesForLeader"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF round[self] = 0 THEN /\\ round' = [round EXCEPT ![self] = 1] /\\ vs' = (vs \\cup {<<self, 1>>}) /\\ es' = (es \\cup {<<<<self, 1>>, Genesis>>}) /\\ log' = log ELSE /\\ \\E r \\in {r \\in R : r > round[self]}: \\E deliveredVertices \\in SUBSET {v \\in vs : Round(v) = r-1}: /\\ IsQuorum({Node(v) : v \\in deliveredVertices}) /\\ r >= GST => (N \\ F) \\subseteq {Node(v) : v \\in deliveredVertices} /\\ round' = [round EXCEPT ![self] = r] /\\ LeaderVertex(r-1) \\in deliveredVertices => \\/ LeaderVertex(r-2) \\in Children(dag, LeaderVertex(r-1)) \\/ NoLeaderVoteQuorum(r-1, deliveredVertices, {}) /\\ IF Leader(r) = self THEN /\\ \\/ LeaderVertex(r-1) \\in deliveredVertices \\/ NoLeaderVoteQuorum(r, {v \\in vs : Round(v) = r}, {self}) ELSE /\\ TRUE /\\ LET newV == <<self, r>> IN /\\ vs' = (vs \\cup {newV}) /\\ es' = (es \\cup {<<newV, pv>> : pv \\in deliveredVertices}) /\\ IF r > 2 THEN /\\ LET votesForLeader == {pv \\in deliveredVertices : <<pv, LeaderVertex(r-2)>> \\in es'} IN IF IsQuorum({Node(pv) : pv \\in votesForLeader}) THEN /\\ log' = [log EXCEPT ![self] = Linearize(dag, LeaderVertex(r-2))] ELSE /\\ TRUE /\\ log' = log ELSE /\\ TRUE /\\ log' = log",
+    "IF Leader(r) = self THEN /\\ \\/ LeaderVertex(r-1) \\in deliveredVertices \\/ NoLeaderVoteQuorum(r, {v \\in vs : Round(v) = r}, {self}) ELSE /\\ TRUE",
+    "IF r > 2 THEN /\\ LET votesForLeader == {pv \\in deliveredVertices : <<pv, LeaderVertex(r-2)>> \\in es'} IN IF IsQuorum({Node(pv) : pv \\in votesForLeader}) THEN /\\ log' = [log EXCEPT ![self] = Linearize(dag, LeaderVertex(r-2))] ELSE /\\ TRUE /\\ log' = log ELSE /\\ TRUE /\\ log' = log",
+    "IF IsQuorum({Node(pv) : pv \\in votesForLeader}) THEN /\\ log' = [log EXCEPT ![self] = Linearize(dag, LeaderVertex(r-2))] ELSE /\\ TRUE /\\ log' = log",
+    "IF r = 1 THEN /\\ vs' = (vs \\cup {newV}) /\\ es' = (es \\cup {<<newV, Genesis>>}) ELSE /\\ \\E delivered \\in SUBSET {v \\in vs : Round(v) = r-1}: /\\ IsQuorum({Node(v) : v \\in delivered}) /\\ vs' = (vs \\cup {newV}) /\\ es' = (es \\cup {<<newV, pv>> : pv \\in delivered})"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{Genesis}",
+    "{}",
+    "{self}",
+    "{0}",
+    "{e[1], e[2]}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[self \\in N \\ F |-> 0]",
+    "[self \\in N \\ F |-> <<>>]"
+  ],
+  "FunctionApplication": [
+    "round[self]",
+    "Leader(r)",
+    "Node(v)",
+    "Round(v)",
+    "Node(pv)",
+    "e[1]",
+    "e[2]",
+    "round[n]",
+    "log[n1]",
+    "log[n2]",
+    "log[n]",
+    "log[n][i]"
+  ],
+  "FunctionOverride": [
+    "[round EXCEPT ![self] = 1]",
+    "[round EXCEPT ![self] = r]",
+    "[log EXCEPT ![self] = Linearize(dag, LeaderVertex(r-2))]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<vs, es>>",
+    "<< vs, es, round, log >>",
+    "<<self, 1>>",
+    "<<<<self, 1>>, Genesis>>",
+    "<<self, r>>",
+    "<<newV, pv>>",
+    "<<newV, Genesis>>",
+    "<<>>",
+    "<<e[1],e[2]>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-",
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..n"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "round",
+    "vs",
+    "es",
+    "log"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << round, log >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Sailfish"
+  ],
+  "PlusCalProcesses": [
+    "correctNode",
+    "byzantineNode"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and preserved entries [\"NoLeaderVote\", \"newV\", \"votesForLeader\"] | Reason: LET-bound names must be stored under LetInNames; NamesInLet is not the required field name\nField: IfThenElse | Change: replaced all 5 paraphrased/non-verbatim entries with verbatim TLA+ IF...THEN...ELSE expressions using proper JSON escaping for /\\\\ and \\\\/ | Reason: every value must appear in the TLA+ file; original entries were descriptive summaries and therefore incorrect\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is not a proof command in this module; it appears as a top-level assumption block, already captured in AssumptionNames\n\nCHANGE LOG\nField: OperatorDefNames | Change: no content change; verified completeness | Reason: top-level == definition count in file = 12, JSON OperatorDefNames count = 12",
+  "OperatorDefNames_StatePredicate": [
+    "NoLeaderVoteQuorum",
+    "TypeOK",
+    "Agreement",
+    "Liveness"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "dag",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[self \\in N \\ F |-> 0]",
+    "[self \\in N \\ F |-> <<>>]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << round, log >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Sailfish/Sailfish.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Liveness is classified as a StatePredicate because its body contains no primed variables and no temporal operators [], <>, or ~>; it is a quantified state predicate relating current-state variables.",
+    "dag, vars, and ProcSet are placed in ValueDef as non-Boolean helper/structural value definitions.",
+    "Partition count: StatePredicate(4) + TemporalProperty(1) + Init(1) + ValueDef(3) + ActionDefNames(3) = OperatorDefNames(12). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

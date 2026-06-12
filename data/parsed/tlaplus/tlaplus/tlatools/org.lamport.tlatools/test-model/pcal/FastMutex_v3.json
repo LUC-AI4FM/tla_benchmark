@@ -1,0 +1,307 @@
+{
+  "id": null,
+  "Specification": "This module specifies and model checks a fast mutual exclusion algorithm for N processes, originally written in PlusCal and translated to TLA+. Each process repeatedly tries to enter a critical section using shared variables x, y, and an array b of intent flags, together with local state j and failed to coordinate retries and detect failed attempts. The specification defines the initial state, individual control-location actions, a global Next action, a standard temporal Spec with weak fairness for every process action, a mutual exclusion invariant, and a liveness property asserting that some process enters the critical section infinitely often.",
+  "ModuleName": "FastMutex",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "defaultInitValue"
+  ],
+  "VariableNames": [
+    "pc",
+    "x",
+    "y",
+    "b",
+    "j",
+    "failed"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "ProcSet",
+    "Init",
+    "start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "Proc",
+    "Next",
+    "Spec",
+    "SomeoneInCS",
+    "Contention",
+    "inCS",
+    "Invariant",
+    "Liveness",
+    "PossibleCounts"
+  ],
+  "ActionDefNames": [
+    "start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "Proc",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "p"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF y # 0 THEN /\\ pc' = [pc EXCEPT ![self] = \"l4\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"l6\"]",
+    "IF x # self THEN /\\ pc' = [pc EXCEPT ![self] = \"l8\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]",
+    "IF (j[self] \\leq N) THEN /\\ ~b[j[self]] /\\ j' = [j EXCEPT ![self] = j[self]+1] /\\ pc' = [pc EXCEPT ![self] = \"l9\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"l10\"] /\\ j' = j",
+    "IF y # self THEN /\\ y = 0 /\\ failed' = [failed EXCEPT ![self] = TRUE] ELSE /\\ TRUE /\\ UNCHANGED failed",
+    "IF ~ failed[self] THEN /\\ TRUE /\\ pc' = [pc EXCEPT ![self] = \"l11\"] /\\ UNCHANGED failed ELSE /\\ failed' = [failed EXCEPT ![self] = FALSE] /\\ pc' = [pc EXCEPT ![self] = \"start\"]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 1..N |-> FALSE]",
+    "[self \\in 1..N |-> 0]",
+    "[self \\in 1..N |-> FALSE]",
+    "[self \\in ProcSet |-> \"start\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "j[self]",
+    "b[j[self]]",
+    "failed[self]",
+    "pc[i]",
+    "pc[k]",
+    "TLCGet(\"all:named\")[\"s:_possible\"]",
+    "TLCGet(\"all:named\")[\"s:_possible\"][1]",
+    "p[\"SomeoneInCS\"]",
+    "p[\"Contention\"]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"l1\"]",
+    "[b EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"l2\"]",
+    "[pc EXCEPT ![self] = \"l3\"]",
+    "[pc EXCEPT ![self] = \"l4\"]",
+    "[pc EXCEPT ![self] = \"l6\"]",
+    "[b EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"l5\"]",
+    "[pc EXCEPT ![self] = \"start\"]",
+    "[pc EXCEPT ![self] = \"l7\"]",
+    "[pc EXCEPT ![self] = \"l8\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[j EXCEPT ![self] = 1]",
+    "[j EXCEPT ![self] = j[self]+1]",
+    "[pc EXCEPT ![self] = \"l9\"]",
+    "[pc EXCEPT ![self] = \"l10\"]",
+    "[failed EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"l11\"]",
+    "[failed EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"l12\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, x, y, b, j, failed >>",
+    "<< x, y, b, j, failed >>",
+    "<< x, y, j, failed >>",
+    "<< y, b, j, failed >>",
+    "<< x, b, j, failed >>",
+    "<< x, y, failed >>",
+    "<< x, y, b, failed >>",
+    "<< x, y, b, j >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "\\leq"
+  ],
+  "RangeExpr": [
+    "1..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "all:named",
+    "s:_possible",
+    "SomeoneInCS",
+    "Contention"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "b",
+    "x",
+    "y",
+    "j",
+    "failed"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << x, y, b, j, failed >>",
+    "UNCHANGED << x, y, j, failed >>",
+    "UNCHANGED << y, b, j, failed >>",
+    "UNCHANGED << x, b, j, failed >>",
+    "UNCHANGED << x, y, failed >>",
+    "UNCHANGED << x, y, b, failed >>",
+    "UNCHANGED failed",
+    "UNCHANGED << x, y, b, j >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Proc(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]<> \\E i \\in 1..N : inCS(i)"
+  ],
+  "EventuallyOp": [
+    "<> \\E i \\in 1..N : inCS(i)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in 1..N : WF_vars(Proc(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "FastMutex"
+  ],
+  "PlusCalProcesses": [
+    "Proc \\in 1..N"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained `p` | Reason: Phase 3 requires LET-bound names in `LetInNames`; `NamesInLet` is nonstandard for this schema\nField: IfThenElse | Change: replaced all five entries with verbatim TLA+ IF expressions, removed explanatory suffixes like `(in l3)`, and fixed conjunction encoding | Reason: Values must appear in the file and JSON strings must encode `/\\` as `/\\\\`\nField: FunctionApplication | Change: added `TLCGet(\"all:named\")[\"s:_possible\"][1]` | Reason: This literal function application appears in the LET expression for `PossibleCounts`\nField: TupleConstructor | Change: removed duplicate entries `<< x, b, j, failed >>` and `<< x, y, j, failed >>` | Reason: Phase 4 requires deduplication\nField: UnchangedExprs | Change: removed `UNCHANGED vars` | Reason: This expression does not occur in the TLA+ file\nField: UnchangedExprs | Change: deduplicated remaining entries | Reason: Phase 4 requires each distinct expression once\nField: AlwaysOp | Change: added `[][Next]_vars` | Reason: Outer temporal operator `[]` appears in `Spec`, and AlwaysOp entries must include the full subscript\nField: EventuallyOp | Change: added `<> \\\\E i \\\\in 1..N : inCS(i)` | Reason: In `Liveness == []<> ...`, the subformula with outermost `<>` must also be captured\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` is present as a module assumption, not a proof command\nField: OperatorDefNames count | Change: verified no additions/removals needed; file count = 26, JSON count = 26 | Reason: Phase 2 completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "SomeoneInCS",
+    "Contention",
+    "inCS",
+    "Invariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet",
+    "PossibleCounts"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..N |-> FALSE]",
+    "[self \\in 1..N |-> 0]",
+    "[self \\in 1..N |-> FALSE]",
+    "[self \\in ProcSet |-> \"start\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << x, y, b, j, failed >>",
+    "UNCHANGED << x, y, j, failed >>",
+    "UNCHANGED << y, b, j, failed >>",
+    "UNCHANGED << x, b, j, failed >>",
+    "UNCHANGED << x, y, failed >>",
+    "UNCHANGED << x, y, b, failed >>",
+    "UNCHANGED << x, y, b, j >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED failed"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/FastMutex/FastMutex.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "PossibleCounts is placed in ValueDef by elimination: it is a non-action, non-temporal operator computing a Boolean-valued TLC state-count check via a LET expression rather than a pure state predicate over specification variables.",
+    "Liveness is placed in TemporalProperty because its body is `[]<> \\E i \\in 1..N : inCS(i)`.",
+    "TemporalNesting is false. The file contains `[]<> \\E i \\in 1..N : inCS(i)`, where `<>` is inside `[]`, but this is the standard adjacent `[]<>` pattern rather than an explicitly nested temporal operator inside another temporal body elsewhere under the stated rule.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are `[x \\in S |-> e]` forms.",
+    "UnchangedExprs_VarRef contains `UNCHANGED failed` because `failed` is referenced directly as a variable name rather than an explicit tuple.",
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(3) + ActionDefNames(16) = OperatorDefNames(26). Verified."
+  ]
+}

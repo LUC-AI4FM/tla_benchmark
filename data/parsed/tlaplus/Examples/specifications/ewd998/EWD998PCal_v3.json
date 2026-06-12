@@ -1,0 +1,271 @@
+{
+  "id": null,
+  "Specification": "This module specifies Safra's distributed termination detection algorithm on a ring of N nodes, based on EWD 998. The PlusCal algorithm models a bag-based message network carrying payload messages and a circulating token with fields q and color; nodes can send payloads, receive payloads, become inactive, pass the token, and the initiator can restart the token circulation depending on token state and local state. The translated TLA+ specification defines the global transition relation, a weak fairness condition for every process action, an instance-based refinement-style comparison to another module EWD998, and a state constraint bounding counters for model checking.",
+  "ModuleName": "EWD998PCal",
+  "ExtendsModules": [
+    "Integers",
+    "Bags",
+    "BagsExt"
+  ],
+  "InstanceModules": [
+    "EWD998"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "network",
+    "active",
+    "color",
+    "counter"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "Node",
+    "Initiator",
+    "passMsg",
+    "sendMsg",
+    "dropMsg",
+    "pendingMsgs",
+    "vars",
+    "ProcSet",
+    "Init",
+    "node",
+    "Next",
+    "Spec",
+    "token",
+    "pending",
+    "EWD998Spec",
+    "Alias",
+    "StateConstraint"
+  ],
+  "ActionDefNames": [
+    "node",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "tpos",
+    "tok"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag",
+    "IF color[self] = \"black\" THEN \"black\" ELSE tok.color",
+    "IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{[type|-> \"tok\", q |-> 0, color |-> \"black\"]}",
+    "{self}"
+  ],
+  "SetOperators": [
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Node |-> IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]",
+    "[Node -> BOOLEAN]",
+    "[self \\in Node |-> \"black\"]",
+    "[self \\in Node |-> 0]",
+    "[n \\in Node |-> IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
+  ],
+  "FunctionApplication": [
+    "net[rcv]",
+    "active[self]",
+    "counter[self]",
+    "color[self]",
+    "network[i]",
+    "network[tpos]",
+    "network[n]",
+    "counter[i]",
+    "network[self]"
+  ],
+  "FunctionOverride": [
+    "[ net EXCEPT ![from] = BagRemove(@, oldMsg), ![to] = BagAdd(@, newMsg) ]",
+    "[ net EXCEPT ![to] = BagAdd(@, msg) ]",
+    "[ net EXCEPT ![to] = BagRemove(@, msg) ]",
+    "[counter EXCEPT ![self] = counter[self] + 1]",
+    "[counter EXCEPT ![self] = counter[self] - 1]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[color EXCEPT ![self] = \"black\"]",
+    "[active EXCEPT ![self] = FALSE]",
+    "[color EXCEPT ![self] = \"white\"]"
+  ],
+  "RecordConstructor": [
+    "[type|-> \"tok\", q |-> 0, color |-> \"black\"]",
+    "[type|-> \"pl\"]",
+    "[pos |-> tpos, q |-> tok.q, color |-> tok.color]",
+    "[type|->\"pl\"]",
+    "[network |-> network, active |-> active, color |-> color, counter |-> counter, token |-> token, pending |-> pending]",
+    "[type|-> \"tok\", q |-> tok.q + counter[self], color |-> (IF color[self] = \"black\" THEN \"black\" ELSE tok.color)]",
+    "[type|-> \"tok\", q |-> 0, color |-> \"white\"]"
+  ],
+  "RecordAccess": [
+    "msg.type",
+    "tok.type",
+    "tok.q",
+    "tok.color",
+    "m.type"
+  ],
+  "TupleConstructor": [
+    "<< network, active, color, counter >>",
+    "<<active, color>>",
+    "<<network, color, counter>>",
+    "<<active, counter>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. N-1"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Node : \\E m \\in DOMAIN network[i]: m.type = \"tok\"",
+    "CHOOSE m \\in DOMAIN network[tpos] : m.type = \"tok\""
+  ],
+  "StringLiterals": [
+    "tok",
+    "black",
+    "pl",
+    "white"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Bags"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "network",
+    "counter",
+    "active",
+    "color"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<network, color, counter>>",
+    "UNCHANGED <<active, counter>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))",
+    "[][EWD998!Next]_EWD998!vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][EWD998!Next]_EWD998!vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "ewd998"
+  ],
+  "PlusCalProcesses": [
+    "node \\in Node"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "\\A i \\in DOMAIN counter : counter[i] < 3"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained values `tpos`, `tok` | Reason: field name check; LET-bound names belong in `LetInNames`\nField: IfThenElse | Change: removed contextual annotations and duplicate PlusCal/translation variants; normalized to verbatim expressions only | Reason: values must be actual expressions from the file, not commentary\nField: FunctionApplication | Change: added `network[self]` | Reason: appears verbatim in `DOMAIN network[self]` inside `node(self)`\nField: FunctionOverride | Change: added `[counter EXCEPT ![self] = counter[self] - 1]` | Reason: distinct EXCEPT form present in `node(self)` and was missing\nField: RecordConstructor | Change: added `[type|-> \"tok\", q |-> tok.q + counter[self], color |-> (IF color[self] = \"black\" THEN \"black\" ELSE tok.color)]` and `[type|-> \"tok\", q |-> 0, color |-> \"white\"]` | Reason: both record literals appear verbatim in token-passing actions\nField: FairnessConditions | Change: replaced `\\A self \\in Node : WF_vars(node(self))` with `WF_vars(node(self))` | Reason: field must contain only WF/SF expressions from inside `Spec`, not surrounding quantified context\n\nCHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level `==` definitions: file count = 17, JSON count = 17 | Reason: Phase 2 completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "EWD998Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Node",
+    "Initiator",
+    "passMsg",
+    "sendMsg",
+    "dropMsg",
+    "pendingMsgs",
+    "vars",
+    "ProcSet",
+    "token",
+    "pending",
+    "Alias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> IF n = Initiator THEN SetToBag({[type|-> \"tok\", q |-> 0, color |-> \"black\"]}) ELSE EmptyBag]",
+    "[self \\in Node |-> \"black\"]",
+    "[self \\in Node |-> 0]",
+    "[n \\in Node |-> IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<network, color, counter>>",
+    "UNCHANGED <<active, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998PCal/EWD998PCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "EWD998Spec is placed in TemporalProperty because its body is `EWD998!Init /\\ [][EWD998!Next]_EWD998!vars`; the temporal operator appears as a top-level conjunct.",
+    "token, pending, Alias, ProcSet, vars, Node, Initiator, passMsg, sendMsg, dropMsg, and pendingMsgs are placed in ValueDef as non-action, non-temporal helper/value definitions.",
+    "Partition count: StatePredicate(1) + TemporalProperty(2) + Init(1) + ValueDef(11) + ActionDefNames(2) = OperatorDefNames(17). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

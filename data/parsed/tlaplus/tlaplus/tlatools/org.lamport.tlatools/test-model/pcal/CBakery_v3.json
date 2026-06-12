@@ -1,0 +1,273 @@
+{
+  "id": null,
+  "Specification": "This specification models Lamport's Bakery mutual exclusion algorithm for a fixed set of processes. It is a PlusCal algorithm translated into TLA+, with shared variables tracking ticket numbers, choosing flags, per-process local read sets, maxima, next process examined, and control locations. The spec verifies the standard safety property of mutual exclusion via an invariant asserting that at most one process can be in the critical section at a time, and it also includes a state constraint bounding ticket values for TLC model checking.",
+  "ModuleName": "CBakery",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NumProcs",
+    "MaxNum"
+  ],
+  "VariableNames": [
+    "pc",
+    "num",
+    "choosing",
+    "read",
+    "max",
+    "nxt"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "vars",
+    "ProcSet",
+    "Init",
+    "loop",
+    "d1",
+    "d2",
+    "d3",
+    "w1",
+    "w2",
+    "cs",
+    "exit",
+    "proc",
+    "Next",
+    "Spec",
+    "Constraint",
+    "Invariant"
+  ],
+  "ActionDefNames": [
+    "loop",
+    "d1",
+    "d2",
+    "d3",
+    "w1",
+    "w2",
+    "cs",
+    "exit",
+    "proc",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF read[self] # Proc THEN /\\ \\E p \\in Proc \\ read[self]: /\\ IF num[p] > max[self] THEN /\\ max' = [max EXCEPT ![self] = num[p]] ELSE /\\ TRUE /\\ max' = max /\\ read' = [read EXCEPT ![self] = read[self] \\cup {p}] /\\ pc' = [pc EXCEPT ![self] = \"d1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"d2\"] /\\ UNCHANGED << read, max >>",
+    "IF num[p] > max[self] THEN /\\ max' = [max EXCEPT ![self] = num[p]] ELSE /\\ TRUE /\\ max' = max",
+    "IF read[self] # Proc THEN /\\ \\E p \\in Proc \\ read[self]: /\\ ~ choosing[p] /\\ nxt' = [nxt EXCEPT ![self] = p] /\\ pc' = [pc EXCEPT ![self] = \"w2\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"] /\\ nxt' = nxt"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ }",
+    "{ self }",
+    "{p}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> FALSE]",
+    "[self \\in Proc |-> { }]",
+    "[self \\in Proc |-> 0]",
+    "[self \\in Proc |-> self]",
+    "[self \\in ProcSet |-> \"loop\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "read[self]",
+    "num[p]",
+    "max[self]",
+    "choosing[p]",
+    "num[nxt[self]]",
+    "num[self]",
+    "nxt[self]",
+    "num[i]",
+    "pc[i]",
+    "pc[j]"
+  ],
+  "FunctionOverride": [
+    "[choosing EXCEPT ![self] = TRUE]",
+    "[read EXCEPT ![self] = { self }]",
+    "[max EXCEPT ![self] = 0]",
+    "[pc EXCEPT ![self] = \"d1\"]",
+    "[max EXCEPT ![self] = num[p]]",
+    "[read EXCEPT ![self] = read[self] \\cup {p}]",
+    "[pc EXCEPT ![self] = \"d2\"]",
+    "[num EXCEPT ![self] = max[self] + 1]",
+    "[pc EXCEPT ![self] = \"d3\"]",
+    "[choosing EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"w1\"]",
+    "[nxt EXCEPT ![self] = p]",
+    "[pc EXCEPT ![self] = \"w2\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[read EXCEPT ![self] = read[self] \\cup { nxt[self] }]",
+    "[pc EXCEPT ![self] = \"exit\"]",
+    "[num EXCEPT ![self] = 0]",
+    "[pc EXCEPT ![self] = \"loop\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, num, choosing, read, max, nxt >>",
+    "<< num, nxt >>",
+    "<< read, max >>",
+    "<< num, choosing, nxt >>",
+    "<< choosing, read, max, nxt >>",
+    "<< num, max, nxt >>",
+    "<< num, choosing, read, max >>",
+    "<< num, choosing, max, nxt >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    "\\leq"
+  ],
+  "RangeExpr": [
+    "1..NumProcs"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "loop",
+    "d1",
+    "d2",
+    "d3",
+    "w1",
+    "w2",
+    "cs",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "choosing",
+    "read",
+    "max",
+    "pc",
+    "num",
+    "nxt"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << num, nxt >>",
+    "UNCHANGED << read, max >>",
+    "UNCHANGED << num, choosing, nxt >>",
+    "UNCHANGED << choosing, read, max, nxt >>",
+    "UNCHANGED << num, max, nxt >>",
+    "UNCHANGED << num, choosing, read, max >>",
+    "UNCHANGED << num, choosing, max, nxt >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "--algorithm Bakery"
+  ],
+  "PlusCalProcesses": [
+    "process (proc \\in Proc)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "Constraint == \\A i \\in Proc : num[i] \\leq MaxNum"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count remains 17 | Reason: Phase 2 completeness check: file count = 17, JSON count = 17\nField: IfThenElse | Change: replaced 3 paraphrased/non-verbatim entries with the actual TLA+ IF...THEN...ELSE expressions | Reason: field values must appear in the file verbatim; prior entries did not exist in the module\nField: ComparisonOps | Change: added \"\\\\leq\" | Reason: appears in `Constraint == \\\\A i \\\\in Proc : num[i] \\\\leq MaxNum`\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: no ASSUME/ASSUMPTION/AXIOM/proof command appears in the file\n",
+  "OperatorDefNames_StatePredicate": [
+    "Constraint",
+    "Invariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Proc |-> 0]",
+    "[i \\in Proc |-> FALSE]",
+    "[self \\in Proc |-> { }]",
+    "[self \\in Proc |-> 0]",
+    "[self \\in Proc |-> self]",
+    "[self \\in ProcSet |-> \"loop\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << num, nxt >>",
+    "UNCHANGED << read, max >>",
+    "UNCHANGED << num, choosing, nxt >>",
+    "UNCHANGED << choosing, read, max, nxt >>",
+    "UNCHANGED << num, max, nxt >>",
+    "UNCHANGED << num, choosing, read, max >>",
+    "UNCHANGED << num, choosing, max, nxt >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/CBakery/CBakery.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(3) + ActionDefNames(10) = OperatorDefNames(17). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Proc, vars, and ProcSet are placed in ValueDef as non-Boolean helper/value definitions."
+  ]
+}

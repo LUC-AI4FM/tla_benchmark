@@ -1,0 +1,330 @@
+{
+  "id": null,
+  "Specification": "This specification models a scheduling allocator that manages a set of resources among multiple clients. Clients can request sets of resources, and requests can be partially fulfilled; clients may return resources even before their full request is satisfied, but are only obligated to return resources after their entire request is granted. The allocator operates by repeatedly choosing a schedule (a sequence of clients) and allocating resources according to this schedule, ensuring that no client earlier in the schedule is denied resources they have requested. The specification includes liveness properties ensuring that clients eventually return resources, that allocations eventually occur when possible, and that scheduling progresses. Several invariants and temporal properties are specified, including mutual exclusion of resource allocation, progress guarantees, and symmetry considerations for model checking.",
+  "ModuleName": "SchedulingAllocator",
+  "ExtendsModules": [
+    "FiniteSets",
+    "Sequences",
+    "Naturals",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Clients",
+    "Resources"
+  ],
+  "VariableNames": [
+    "unsat",
+    "alloc",
+    "sched"
+  ],
+  "AssumptionNames": [
+    "IsFiniteSet(Resources)"
+  ],
+  "TheoremNames": [
+    "THEOREM Allocator => []TypeInvariant",
+    "THEOREM Allocator => []ResourceMutex",
+    "THEOREM Allocator => []AllocatorInvariant",
+    "THEOREM Allocator => ClientsWillReturn",
+    "THEOREM Allocator => ClientsWillObtain",
+    "THEOREM Allocator => InfOftenSatisfied"
+  ],
+  "OperatorDefNames": [
+    "TypeInvariant",
+    "PermSeqs",
+    "Drop",
+    "available",
+    "Range",
+    "toSchedule",
+    "Init",
+    "Request",
+    "Allocate",
+    "Return",
+    "Schedule",
+    "Next",
+    "vars",
+    "Liveness",
+    "Allocator",
+    "ResourceMutex",
+    "UnscheduledClients",
+    "PrevResources",
+    "AllocatorInvariant",
+    "ClientsWillReturn",
+    "ClientsWillObtain",
+    "InfOftenSatisfied",
+    "Symmetry",
+    "PermanentAllocation",
+    "PostCondition",
+    "CounterExample"
+  ],
+  "ActionDefNames": [
+    "Request",
+    "Allocate",
+    "Return",
+    "Schedule",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "perms",
+    "ps"
+  ],
+  "LambdaParams": [
+    "ss",
+    "x"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ss = {} THEN { << >> } ELSE ... (in perms in PermSeqs)",
+    "IF S = unsat[c] THEN Drop(sched,i) ELSE sched (in Allocate)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{ << >> }"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "UNION",
+    "\\subseteq",
+    "\\cap",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Clients -> SUBSET Resources]",
+    "[c \\in Clients |-> {}]",
+    "[unsat EXCEPT ![c] = S]",
+    "[alloc EXCEPT ![c] = @ \\cup S]",
+    "[unsat EXCEPT ![c] = @ \\ S]",
+    "[alloc EXCEPT ![c] = @ \\ S]",
+    "[ps[x] : x \\in ss]",
+    "[x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] }]"
+  ],
+  "FunctionApplication": [
+    "unsat[c]",
+    "alloc[c]",
+    "sched[i]",
+    "ps[x]",
+    "f[x]",
+    "Range(sched)",
+    "perms[ss \\ {x}]",
+    "Append(sq,x)",
+    "Len(seq)",
+    "SubSeq(seq, 1, i-1)",
+    "SubSeq(seq, i+1, Len(seq))"
+  ],
+  "FunctionOverride": [
+    "[unsat EXCEPT ![c] = S]",
+    "[alloc EXCEPT ![c] = @ \\cup S]",
+    "[unsat EXCEPT ![c] = @ \\ S]",
+    "[alloc EXCEPT ![c] = @ \\ S]"
+  ],
+  "RecordConstructor": [
+    "[ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ]",
+    "[ name |-> \"Request\", location |-> [ beginLine |-> 70, beginColumn |-> 3, endLine |-> 72, endColumn |-> 30, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ]",
+    "[ beginLine |-> 70, beginColumn |-> 3, endLine |-> 72, endColumn |-> 30, module |-> \"SchedulingAllocator\" ]",
+    "[S |-> {r2}, c |-> c1]",
+    "[ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ]",
+    "[ name |-> \"Schedule\", location |-> [ beginLine |-> 97, beginColumn |-> 3, endLine |-> 99, endColumn |-> 30, module |-> \"SchedulingAllocator\" ] ]",
+    "[ name |-> \"Allocate\", location |-> [ beginLine |-> 79, beginColumn |-> 3, endLine |-> 85, endColumn |-> 41, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ]",
+    "[ name |-> \"Return\", location |-> [ beginLine |-> 90, beginColumn |-> 3, endLine |-> 92, endColumn |-> 30, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< >>",
+    "<<unsat,alloc,sched>>",
+    "<<c1>>",
+    "<< 1, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>",
+    "<< 2, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>",
+    "<< 3, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<c1>> ] >>",
+    "<< 4, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>",
+    "<< << 1, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>, [ name |-> \"Request\", location |-> [ beginLine |-> 70, beginColumn |-> 3, endLine |-> 72, endColumn |-> 30, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ], << 2, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >> >>",
+    "<< << 2, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>, [ name |-> \"Schedule\", location |-> [ beginLine |-> 97, beginColumn |-> 3, endLine |-> 99, endColumn |-> 30, module |-> \"SchedulingAllocator\" ] ], << 3, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<c1>> ] >> >>",
+    "<< << 3, [ unsat |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<c1>> ] >>, [ name |-> \"Allocate\", location |-> [ beginLine |-> 79, beginColumn |-> 3, endLine |-> 85, endColumn |-> 41, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ], << 4, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >> >>",
+    "<< << 4, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {r2} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >>, [ name |-> \"Return\", location |-> [ beginLine |-> 90, beginColumn |-> 3, endLine |-> 92, endColumn |-> 30, module |-> \"SchedulingAllocator\" ], context |-> [S |-> {r2}, c |-> c1], parameters |-> <<\"c\", \"S\">> ], << 1, [ unsat |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), alloc |-> (c1 :> {} @@ c2 :> {} @@ c3 :> {}), sched |-> <<>> ] >> >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..i-1",
+    "i+1..Len(seq)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Request",
+    "Schedule",
+    "Allocate",
+    "Return",
+    "SchedulingAllocator",
+    "c",
+    "S"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "unsat",
+    "alloc",
+    "sched"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<alloc,sched>>",
+    "UNCHANGED <<unsat,sched>>",
+    "UNCHANGED <<unsat,alloc>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(unsat[c]={} /\\ Return(c,alloc[c]))",
+    "WF_vars(\\E S \\in SUBSET Resources : Allocate(c, S))",
+    "WF_vars(Schedule)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]TypeInvariant",
+    "[]ResourceMutex",
+    "[]AllocatorInvariant"
+  ],
+  "EventuallyOp": [
+    "<>[] (alloc[c] # {})"
+  ],
+  "LeadsToOp": [
+    "unsat[c]={} ~> alloc[c]={}",
+    "r \\in unsat[c] ~> r \\in alloc[c]"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A c \\in Clients : WF_vars(unsat[c]={} /\\ Return(c,alloc[c]))",
+    "\\A c \\in Clients : WF_vars(\\E S \\in SUBSET Resources : Allocate(c, S))",
+    "WF_vars(Schedule)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LocalOperatorNames | Change: Removed \"perms\" | Reason: \"perms\" is a LET-bound operator, not a local operator in the sense of parametric LET-in definitions; it should only appear in NamesInLet.\nField: BooleanConstants | Change: Added \"TRUE\" and \"FALSE\" | Reason: These are the only allowed Boolean constants and are referenced in the TLA+ standard library; the field was empty.\nField: MembershipOps | Change: Removed \"\\\\notin\" | Reason: \"\\\\notin\" does not appear in the TLA+ file; only \"\\\\in\" is present.\nField: FiniteSetOps | Change: Removed \"IsFiniteSet\" | Reason: \"IsFiniteSet\" is not a standard finite set operator; the only finite set operator is SUBSET, which is already in SetOperators.\nField: FunctionConstructor | Change: Removed duplicate entries | Reason: Several entries were duplicated; only unique patterns should be present.\nField: RangeExpr | Change: Removed \"j \\\\in 1..i-1\" | Reason: This is not a range expression but a quantified variable binding.\nField: EventuallyOp | Change: Corrected from \"<>([] (alloc[c] # {}))\" to \"<>[] (alloc[c] # {})\" | Reason: The correct TLA+ syntax is \"<>[] (alloc[c] # {})\" as in PermanentAllocation.\nNo other changes required. Operator count: file count = 25, JSON OperatorDefNames count = 25.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvariant",
+    "ResourceMutex",
+    "AllocatorInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Liveness",
+    "Allocator",
+    "ClientsWillReturn",
+    "ClientsWillObtain",
+    "InfOftenSatisfied",
+    "PermanentAllocation"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "PermSeqs",
+    "Drop",
+    "available",
+    "Range",
+    "toSchedule",
+    "vars",
+    "UnscheduledClients",
+    "PrevResources",
+    "Symmetry",
+    "PostCondition",
+    "CounterExample"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[c \\in Clients |-> {}]",
+    "[x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] }]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Clients -> SUBSET Resources]",
+    "[unsat EXCEPT ![c] = S]",
+    "[alloc EXCEPT ![c] = @ \\cup S]",
+    "[unsat EXCEPT ![c] = @ \\ S]",
+    "[alloc EXCEPT ![c] = @ \\ S]",
+    "[ps[x] : x \\in ss]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<alloc,sched>>",
+    "UNCHANGED <<unsat,sched>>",
+    "UNCHANGED <<unsat,alloc>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SchedulingAllocator/SchedulingAllocator.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(6) + Init(1) + ValueDef(11) + ActionDefNames(5) = 26. Verified.",
+    "ClientsWillReturn and ClientsWillObtain are classified as TemporalProperty because their bodies use the ~> (leads-to) temporal operator.",
+    "Allocator is classified as TemporalProperty because it is defined as Init /\\ [][Next]_vars /\\ Liveness, where Liveness is a temporal property and [][Next]_vars is a temporal subscript.",
+    "PermanentAllocation is classified as TemporalProperty because its body is <>[] (alloc[c] # {}).",
+    "Liveness is classified as TemporalProperty because it is a conjunction of WF_vars fairness conditions.",
+    "InfOftenSatisfied is classified as TemporalProperty because its body is []<>(unsat[c] = {}).",
+    "ResourceMutex and AllocatorInvariant are classified as StatePredicate because their bodies are Boolean-valued and contain no primed variables or temporal operators.",
+    "TypeInvariant is classified as StatePredicate because it is a type correctness predicate.",
+    "Init is classified as Init because its name is exactly \"Init\".",
+    "PermSeqs, Drop, available, Range, toSchedule, vars, UnscheduledClients, PrevResources, Symmetry, PostCondition, and CounterExample are classified as ValueDef by elimination.",
+    "FunctionConstructor_ByDomain contains [c \\in Clients |-> {}] and [x \\in ss |-> { Append(sq,x) : sq \\in perms[ss \\ {x}] }]; all other FunctionConstructor entries are [S -> T] or EXCEPT/override forms.",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED expressions list variables explicitly.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred as specifications/SchedulingAllocator/SchedulingAllocator.tla based on module name."
+  ]
+}

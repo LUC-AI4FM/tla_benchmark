@@ -1,0 +1,205 @@
+{
+  "id": null,
+  "Specification": "This module specifies part of a light client verification interface for blockchain headers, focusing on when an untrusted header can be considered valid relative to a trusted header and what invariants should hold of the light store. It models timing assumptions explicitly through a local clock, trusted and actual clock drift bounds, a trusting period, and validator-set overlap checks based on cardinalities and intersections. The specification defines preconditions and result-valued verification functions, plus store and correctness invariants, and a postcondition for verifying to a target height; it is a state-level specification with no transition system, no temporal Spec operator, and no fault actions, though it refers to peer correctness and faulty validator ratio as part of the intended security model.",
+  "ModuleName": "LCVerificationApi_003_draft",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "TRUSTING_PERIOD",
+    "CLOCK_DRIFT",
+    "REAL_CLOCK_DRIFT",
+    "FAULTY_RATIO"
+  ],
+  "VariableNames": [
+    "localClock"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "InTrustingPeriodLocal",
+    "InTrustingPeriodLocalSurely",
+    "IsLocalClockWithinDrift",
+    "SignedByOneThirdOfTrusted",
+    "ValidAndVerifiedPreUntimed",
+    "ValidAndVerifiedPre",
+    "ValidAndVerifiedUntimed",
+    "ValidAndVerified",
+    "LightStoreInv",
+    "CorrectnessInv",
+    "NoFailedBlocksOnSuccessInv",
+    "VerifyToTargetPost"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "TP",
+    "SP",
+    "thdr",
+    "uhdr",
+    "lhdr",
+    "rhdr",
+    "trustedHeader"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ~ValidAndVerifiedPreUntimed(trusted, untrusted)\n    THEN \"INVALID\"\n    ELSE IF untrusted.header.height = trusted.header.height + 1\n             \\/ SignedByOneThirdOfTrusted(trusted, untrusted)\n         THEN \"SUCCESS\"\n         ELSE \"NOT_ENOUGH_TRUST\"",
+    "IF untrusted.header.height = trusted.header.height + 1\n             \\/ SignedByOneThirdOfTrusted(trusted, untrusted)\n         THEN \"SUCCESS\"\n         ELSE \"NOT_ENOUGH_TRUST\"",
+    "IF ~ValidAndVerifiedPre(trusted, untrusted, checkFuture)\n    THEN \"INVALID\"\n    ELSE IF ~InTrustingPeriodLocal(untrusted.header)\n    THEN \"FAILED_TRUSTING_PERIOD\" \n    ELSE IF untrusted.header.height = trusted.header.height + 1\n             \\/ SignedByOneThirdOfTrusted(trusted, untrusted)\n         THEN \"SUCCESS\"\n         ELSE \"NOT_ENOUGH_TRUST\"",
+    "IF ~InTrustingPeriodLocal(untrusted.header)\n    THEN \"FAILED_TRUSTING_PERIOD\" \n    ELSE IF untrusted.header.height = trusted.header.height + 1\n             \\/ SignedByOneThirdOfTrusted(trusted, untrusted)\n         THEN \"SUCCESS\"\n         ELSE \"NOT_ENOUGH_TRUST\"",
+    "IF untrusted.header.height = trusted.header.height + 1\n             \\/ SignedByOneThirdOfTrusted(trusted, untrusted)\n         THEN \"SUCCESS\"\n         ELSE \"NOT_ENOUGH_TRUST\""
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "\\intersect",
+    "\\subseteq",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "lightBlockStatus[lh]",
+    "lightBlockStatus[rh]",
+    "fetchedLightBlocks[lh]",
+    "fetchedLightBlocks[rh]",
+    "lightBlockStatus[mh]",
+    "fetchedLightBlocks[h]",
+    "blockchain[h]",
+    "fetchedLightBlocks[trustedHeight]",
+    "blockchain[trustedHeight]",
+    "lightBlockStatus[trustedHeight]",
+    "lightBlockStatus[targetHeight]",
+    "fetchedLightBlocks[targetHeight]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "header.time",
+    "trusted.header.NextVS",
+    "untrusted.Commits",
+    "trusted.header",
+    "untrusted.header",
+    "thdr.height",
+    "uhdr.height",
+    "thdr.time",
+    "uhdr.time",
+    "uhdr.VS",
+    "untrusted.header.height",
+    "trusted.header.height",
+    "fetchedLightBlocks[h].header",
+    "fetchedLightBlocks[trustedHeight].header"
+  ],
+  "TupleConstructor": [
+    "<<a, b>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "INVALID",
+    "SUCCESS",
+    "NOT_ENOUGH_TRUST",
+    "FAILED_TRUSTING_PERIOD",
+    "StateVerified",
+    "StateFailed",
+    "finishedSuccess"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced all annotated/non-verbatim entries with the actual IF/THEN/ELSE expressions from the file | Reason: Values must appear in the TLA+ file verbatim; V1 added explanatory suffixes like \u201c(in ValidAndVerified)\u201d\nField: FunctionApplication | Change: Added `lightBlockStatus[mh]` and `fetchedLightBlocks[targetHeight]` | Reason: These applications appear in the file and completeness requires capturing them\nField: RecordAccess | Change: Removed duplicate `untrusted.header`; kept only literal record-access expressions that appear verbatim | Reason: Deduplication required and field must contain only literal occurrences\nField: TupleConstructor | Change: Added `<<a, b>>` | Reason: The constant comment contains the tuple literal form explicitly in the file\nField: OperatorDefNames | Change: Verified unchanged; count confirmed as 12 | Reason: Phase 2 completeness check: file count = 12, JSON OperatorDefNames count = 12",
+  "OperatorDefNames_StatePredicate": [
+    "InTrustingPeriodLocal",
+    "InTrustingPeriodLocalSurely",
+    "IsLocalClockWithinDrift",
+    "SignedByOneThirdOfTrusted",
+    "ValidAndVerifiedPreUntimed",
+    "ValidAndVerifiedPre",
+    "LightStoreInv",
+    "CorrectnessInv",
+    "NoFailedBlocksOnSuccessInv",
+    "VerifyToTargetPost"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "ValidAndVerifiedUntimed",
+    "ValidAndVerified"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/LCVerificationApi_003_draft/LCVerificationApi_003_draft.tla",
+  "VerificationTools": [],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(10) + TemporalProperty(0) + Init(0) + ValueDef(2) + ActionDefNames(0) = OperatorDefNames(12). Verified.",
+    "FunctionConstructor_ByDomain is empty because this file contains no FunctionConstructor entries; therefore all FunctionConstructor entries are [S -> T] forms vacuously.",
+    "ValidAndVerifiedUntimed and ValidAndVerified are placed in ValueDef by elimination: both are non-Boolean result-valued helper operators returning status strings such as \"INVALID\", \"SUCCESS\", \"FAILED_TRUSTING_PERIOD\", and \"NOT_ENOUGH_TRUST\".",
+    "TemporalNesting is false. No temporal operator ([], <>, ~>) appears in this file."
+  ]
+}

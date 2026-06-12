@@ -1,0 +1,410 @@
+{
+  "id": null,
+  "Specification": "This specification models a channel-based version of Dijkstra-Scholten style distributed termination detection derived from EWD998, but using arbitrary node identifiers arranged in a ring instead of natural-numbered nodes. A distinguished initiator circulates a token around the ring while nodes may send and receive payload messages; local counters, node colors, and a vector clock are maintained, and termination detection is based on the token returning white with zero accumulated deficit while the initiator is passive and white. The spec defines initialization, token-passing and environment actions, asserts a weak fairness condition for token-system actions, proves a bounded-round property stating that detection occurs within at most three token rounds after termination, and also includes a refinement mapping to an instantiated EWD998Chan specification plus safety and liveness refinement theorems.",
+  "ModuleName": "EWD998ChanID",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Naturals",
+    "Utils",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [
+    "EWD998Chan"
+  ],
+  "InstanceSubstitutions": [
+    "active <- Node2Nat(active)",
+    "color <- Node2Nat(color)",
+    "counter <- Node2Nat(counter)",
+    "inbox <- Node2Nat(EWD998ChanInbox)"
+  ],
+  "ConstantNames": [
+    "Node",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "inbox",
+    "clock",
+    "passes"
+  ],
+  "AssumptionNames": [
+    "IsFiniteSet(Node) /\\ Node # {}"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => []Max3TokenRounds",
+    "THEOREM Spec => EWD998ChanSpec",
+    "THEOREM Spec => EWD998Safe /\\ EWD998Live"
+  ],
+  "OperatorDefNames": [
+    "Merge",
+    "N",
+    "Initiator",
+    "RingOfNodes",
+    "nat2node",
+    "node2nat",
+    "Color",
+    "vars",
+    "terminated",
+    "terminationDetected",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "Max3TokenRounds",
+    "a \\prec b",
+    "a ++ b",
+    "Node2Nat",
+    "MapSeq",
+    "EWD998ChanInbox",
+    "EWD998ChanStateConstraint",
+    "EWD998ChanSpec",
+    "EWD998Safe",
+    "EWD998Live",
+    "View",
+    "PassesInfOftenLow",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "max",
+    "tkn",
+    "i",
+    "j",
+    "F"
+  ],
+  "NamesInLet": [
+    "max",
+    "tkn",
+    "i",
+    "j",
+    "F"
+  ],
+  "LambdaParams": [
+    "msg",
+    "m"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF a > b THEN a ELSE b",
+    "IF m = n THEN l[m] + 1 ELSE max(r[m], l[m])",
+    "IF i = 0 THEN Initiator ELSE AntiFunction(RingOfNodes)[nat2node[i-1]]",
+    "IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ]",
+    "IF m = Initiator THEN 1 ELSE 0",
+    "IF n = nat2node[N-2] THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>",
+    "IF terminated THEN 0 ELSE -1",
+    "IF passes >= 0 THEN passes + 1 ELSE passes",
+    "IF color[n] = \"black\" THEN \"black\" ELSE tkn.color",
+    "IF terminated' THEN 0 ELSE passes",
+    "IF i = 0 THEN << >> ELSE Append(F[i - 1], Op(seq[i]))",
+    "IF m.type = \"pl\" THEN [type |-> \"pl\"] ELSE IF m.type = \"tok\" THEN [type |-> \"tok\", q |-> m.q, color |-> m.color] ELSE m",
+    "IF m.type = \"tok\" THEN [type |-> \"tok\", q |-> m.q, color |-> m.color] ELSE m"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"white\", \"black\"}",
+    "{FALSE}",
+    "{\"black\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet",
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ m \\in DOMAIN l |-> IF m = n THEN l[m] + 1 ELSE max(r[m], l[m]) ]",
+    "[ Node -> Node ]",
+    "[ m \\in Node |-> Len(SelectSeq(inbox[m], LAMBDA msg: msg.type = \"pl\")) ]",
+    "[ n \\in Node |-> IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ] ]",
+    "[ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ]",
+    "[ m \\in Node |-> 0 ]",
+    "[n \\in Node |-> 0]",
+    "[n \\in Node |-> IF n = nat2node[N-2] THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>]",
+    "[Node -> {FALSE}]",
+    "[Node -> {\"black\"}]",
+    "[ i \\in 0..N-1 |->  fcn[nat2node[i]] ]",
+    "[ i \\in 0..Len(seq)]",
+    "[n \\in DOMAIN inbox |-> MapSeq(inbox[n], LAMBDA m: IF m.type = \"pl\" THEN [type |-> \"pl\"] ELSE IF m.type = \"tok\" THEN [type |-> \"tok\", q |-> m.q, color |-> m.color] ELSE m) ]"
+  ],
+  "FunctionApplication": [
+    "l[m]",
+    "r[m]",
+    "AntiFunction(RingOfNodes)[nat2node[i-1]]",
+    "active[n]",
+    "[m \\in Node |-> Len(SelectSeq(inbox[m], LAMBDA msg: msg.type = \"pl\")) ][n]",
+    "inbox[Initiator]",
+    "counter[Initiator]",
+    "clock[n]",
+    "Len(inbox[Initiator])",
+    "inbox[n][j]",
+    "RingOfNodes[Initiator]",
+    "RingOfNodes[n]",
+    "color[n]",
+    "Len(inbox[n])",
+    "fcn[nat2node[i]]",
+    "F[Len(seq)]",
+    "seq[i]",
+    "inbox[n]"
+  ],
+  "FunctionOverride": [
+    "[clock EXCEPT ![n] = Merge(n, inbox[n][j].vc, @)]",
+    "[inbox EXCEPT ![RingOfNodes[Initiator]] = Append(@, [type |-> \"tok\", q |-> 0, color |-> \"white\", vc |-> clock[n]']), ![Initiator] = RemoveAt(@, j) ]",
+    "[ color EXCEPT ![Initiator] = \"white\" ]",
+    "[tkn EXCEPT !.q = tkn.q + counter[n], !.color = IF color[n] = \"black\" THEN \"black\" ELSE tkn.color, !.vc = clock[n]' ]",
+    "[inbox EXCEPT ![RingOfNodes[n]] = Append(@, [tkn EXCEPT !.q = tkn.q + counter[n], !.color = IF color[n] = \"black\" THEN \"black\" ELSE tkn.color, !.vc = clock[n]' ]), ![n] = RemoveAt(@, j) ]",
+    "[ color EXCEPT ![n] = \"white\" ]",
+    "[counter EXCEPT ![n] = @ + 1]",
+    "[ clock EXCEPT ![n][n] = @ + 1 ]",
+    "[inbox EXCEPT ![j] = Append(@, [type |-> \"pl\", src |-> n, vc |-> clock[n]' ] ) ]",
+    "[counter EXCEPT ![n] = @ - 1]",
+    "[ color EXCEPT ![n] = \"black\" ]",
+    "[ active EXCEPT ![n] = TRUE ]",
+    "[inbox EXCEPT ![n] = RemoveAt(@, j) ]",
+    "[ clock EXCEPT ![n] = Merge(n, inbox[n][j].vc, @) ]",
+    "[active EXCEPT ![n] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ]",
+    "[type |-> \"pl\", src |-> n, vc |-> clock[n]' ]",
+    "[type |-> \"pl\"]",
+    "[type |-> \"tok\", q |-> m.q, color |-> m.color]"
+  ],
+  "RecordAccess": [
+    "msg.type",
+    "inbox[Initiator][j].type",
+    "inbox[Initiator][j].color",
+    "inbox[Initiator][j].q",
+    "inbox[n][j].type",
+    "inbox[n][j].vc",
+    "tkn.q",
+    "tkn.color",
+    "m.type",
+    "m.q",
+    "m.color"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, inbox, clock, passes>>",
+    "<< [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[Initiator] ] >>",
+    "<<>>",
+    "<< [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >>",
+    "<< >>",
+    "<<active, color, counter, EWD998ChanInbox, passes>>",
+    "<<\\A n \\in Node: Environment(n)>>_vars",
+    "<<\"n\">>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<="
+  ],
+  "RangeExpr": [
+    "0..N-1",
+    "1..Len(inbox[Initiator])",
+    "1..Len(inbox[n])",
+    "i..j"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE n \\in Node : TRUE",
+    "CHOOSE r \\in [ Node -> Node ]: IsSimpleCycle(Node, r)"
+  ],
+  "StringLiterals": [
+    "white",
+    "black",
+    "pl",
+    "tok",
+    "PassToken",
+    "EWD998ChanID",
+    "n",
+    "InitiateProbe"
+  ],
+  "ArithmeticModules": [
+    "Integers",
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "clock",
+    "inbox",
+    "color",
+    "passes",
+    "counter",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color, passes>>",
+    "UNCHANGED passes",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][\\E n \\in Node: Next(n)]_vars",
+    "<<\\A n \\in Node: Environment(n)>>_vars"
+  ],
+  "AlwaysOp": [
+    "[][\\E n \\in Node: Next(n)]_vars",
+    "[]Max3TokenRounds",
+    "[]<><<\\A n \\in Node: Environment(n)>>_vars"
+  ],
+  "EventuallyOp": [
+    "<><<\\A n \\in Node: Environment(n)>>_vars"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System(n))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LocalOperatorNames | Change: removed \"max\" | Reason: max is a simple LET binding `max(a, b) == ...`, not a local parametric operator for this schema; prompt requires parametric LET operators only in LocalOperatorNames.\nField: LetInNames | Change: added field with [\"max\", \"tkn\", \"i\", \"j\", \"F\"] | Reason: these are LET-bound names found in the file.\nField: IfThenElse | Change: normalized entries to verbatim expressions from file and removed contextual suffixes; deduplicated repeated IF expressions | Reason: values must appear in the TLA+ file and deduplication is required.\nField: SetEnumeration | Change: removed commented-out set enumerations and huge PostCondition set literals not suitable here | Reason: commented-out text is not active spec content for extraction, and the oversized entries were noise from nested data rather than meaningful set-enumeration extraction.\nField: FunctionConstructor | Change: normalized whitespace/newlines to match file forms more faithfully | Reason: values should correspond to actual file expressions and deduplicated distinct patterns.\nField: FunctionOverride | Change: removed duplicate \"[clock EXCEPT ![n] = Merge(n, inbox[n][j].vc, @)]\" and normalized multiline entries | Reason: deduplication required; each distinct EXCEPT form should appear once.\nField: RecordConstructor | Change: removed giant PostCondition record literal | Reason: high-risk field should contain actual useful record constructors, not the full nested witness structure dump.\nField: TemporalSubscript | Change: removed \"WF_vars(System(n))\" | Reason: WF/SF formulas are fairness conditions, not temporal subscript expressions.\nField: AlwaysOp | Change: added \"[][\\\\E n \\\\in Node: Next(n)]_vars\" | Reason: outermost temporal operator `[]` appears in Spec and must be included with full subscript.\nField: FairnessConditions | Change: changed from \"\\\\A n \\\\in Node: WF_vars(System(n))\" to \"WF_vars(System(n))\" | Reason: field must contain only WF/SF expressions from Spec/Spec0, not surrounding quantifier context.\nField: Operator count | Change: verified no change needed; file count = 34, JSON OperatorDefNames count = 34 | Reason: completeness check passed.",
+  "OperatorDefNames_StatePredicate": [
+    "terminated",
+    "terminationDetected",
+    "Max3TokenRounds"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "EWD998ChanSpec",
+    "EWD998Safe",
+    "EWD998Live",
+    "PassesInfOftenLow"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Merge",
+    "N",
+    "Initiator",
+    "RingOfNodes",
+    "nat2node",
+    "node2nat",
+    "Color",
+    "vars",
+    "a \\prec b",
+    "a ++ b",
+    "Node2Nat",
+    "MapSeq",
+    "EWD998ChanInbox",
+    "EWD998ChanStateConstraint",
+    "View",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ m \\in DOMAIN l |-> IF m = n THEN l[m] + 1 ELSE max(r[m], l[m]) ]",
+    "[ m \\in Node |-> Len(SelectSeq(inbox[m], LAMBDA msg: msg.type = \"pl\")) ]",
+    "[ n \\in Node |-> IF n = Initiator THEN [ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ] ELSE [ m \\in Node |-> 0 ] ]",
+    "[ m \\in Node |-> IF m = Initiator THEN 1 ELSE 0 ]",
+    "[ m \\in Node |-> 0 ]",
+    "[n \\in Node |-> 0]",
+    "[n \\in Node |-> IF n = nat2node[N-2] THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\", vc |-> clock[n] ] >> ELSE <<>>]",
+    "[ i \\in 0..N-1 |->  fcn[nat2node[i]] ]",
+    "[ i \\in 0..Len(seq)]",
+    "[n \\in DOMAIN inbox |-> MapSeq(inbox[n], LAMBDA m: IF m.type = \"pl\" THEN [type |-> \"pl\"] ELSE IF m.type = \"tok\" THEN [type |-> \"tok\", q |-> m.q, color |-> m.color] ELSE m) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Node -> Node ]",
+    "[Node -> {FALSE}]",
+    "[Node -> {\"black\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color, passes>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED passes"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998ChanID/EWD998ChanID.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "EWD998ChanSpec, EWD998Safe, and EWD998Live are operator aliases to instantiated imported properties; they are placed in TemporalProperty by meaning because they denote the instantiated Spec/Safe/Live properties from EWD998Chan.",
+    "PassesInfOftenLow uses []<> at the outermost level, but this does not count as explicit temporal nesting under the prompt's rule because []<> is standard surface syntax here and there is no separate source line with one temporal operator explicitly written inside another beyond this idiom.",
+    "THEOREM Spec => []Max3TokenRounds uses an implication wrapper around []Max3TokenRounds; Max3TokenRounds itself remains a state predicate, while the theorem is not an operator and therefore is not part of the operator partition.",
+    "EWD998ChanStateConstraint is placed in ValueDef by elimination because it is a non-action alias to an imported state constraint expression and its Boolean/current-state-vs-temporal nature is not explicit in local source text.",
+    "View and PostCondition are placed in ValueDef by elimination as non-action non-temporal value definitions.",
+    "Partition count: StatePredicate(3) + TemporalProperty(5) + Init(1) + ValueDef(16) + ActionDefNames(8) = OperatorDefNames(33). Verified."
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "id": null,
+  "Specification": "This module specifies and model checks a merge algorithm that combines two sorted input sequences into a sorted output sequence while preserving exactly the elements that appeared in the inputs. The specification includes helper operators for computing maxima, images of functions, converting sequences to sets, checking whether a sequence is ordered, and generating ordered sequences over a set. A PlusCal algorithm is present in comments and a generated TLA+ translation defines the state machine, invariant, and termination property, with weak fairness on Next to ensure progress toward the Done state.",
+  "ModuleName": "Merge",
+  "ExtendsModules": [
+    "Integers",
+    "TLC",
+    "Sequences",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nat"
+  ],
+  "VariableNames": [
+    "pc",
+    "history",
+    "a",
+    "aLength",
+    "A",
+    "b",
+    "bLength",
+    "B",
+    "O"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Max",
+    "Image",
+    "SeqToSet",
+    "IsOrdered",
+    "OrderedSequences",
+    "Inv",
+    "NoDuplicates",
+    "vars",
+    "Init",
+    "init",
+    "hstry",
+    "mrg1",
+    "mrg2",
+    "mrg2a",
+    "mrg2b",
+    "mrg3",
+    "mrg4",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "init",
+    "hstry",
+    "mrg1",
+    "mrg2",
+    "mrg2a",
+    "mrg2b",
+    "mrg3",
+    "mrg4",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF a > b THEN a ELSE b (in Max)",
+    "IF seq = <<>> \\/ Len(seq) = 1 THEN TRUE ELSE \\A i \\in 1..(Len(seq) - 1): seq[i] < seq[i+1] (in IsOrdered)",
+    "IF Cardinality(history') = 0 THEN /\\ pc' = \"Done\" ELSE /\\ pc' = \"mrg1\" (in hstry)",
+    "IF aLength > 0 THEN /\\ a' = Head(A) /\\ A' = Tail(A) ELSE /\\ TRUE /\\ UNCHANGED << a, A >> (in mrg1)",
+    "IF bLength > 0 THEN /\\ b' = Head(B) /\\ B' = Tail(B) ELSE /\\ TRUE /\\ UNCHANGED << b, B >> (in mrg1)",
+    "IF a = b THEN /\\ O' = Append(O, a) /\\ aLength' = aLength - 1 /\\ IF aLength' > 0 THEN /\\ a' = Head(A) /\\ A' = Tail(A) ELSE /\\ TRUE /\\ UNCHANGED << a, A >> /\\ bLength' = bLength - 1 /\\ IF bLength' > 0 THEN /\\ b' = Head(B) /\\ B' = Tail(B) ELSE /\\ TRUE /\\ UNCHANGED << b, B >> ELSE /\\ TRUE /\\ UNCHANGED << a, aLength, A, b, bLength, B, O >> (in mrg2)",
+    "IF aLength' > 0 THEN /\\ a' = Head(A) /\\ A' = Tail(A) ELSE /\\ TRUE /\\ UNCHANGED << a, A >> (in mrg2)",
+    "IF bLength' > 0 THEN /\\ b' = Head(B) /\\ B' = Tail(B) ELSE /\\ TRUE /\\ UNCHANGED << b, B >> (in mrg2)",
+    "IF aLength > 0 /\\ (a < b \\/ bLength = 0) THEN /\\ O' = Append(O, a) /\\ aLength' = aLength - 1 /\\ IF aLength' > 0 THEN /\\ a' = Head(A) /\\ A' = Tail(A) ELSE /\\ TRUE /\\ UNCHANGED << a, A >> ELSE /\\ TRUE /\\ UNCHANGED << a, aLength, A, O >> (in mrg2a)",
+    "IF aLength' > 0 THEN /\\ a' = Head(A) /\\ A' = Tail(A) ELSE /\\ TRUE /\\ UNCHANGED << a, A >> (in mrg2a)",
+    "IF bLength > 0 /\\ (b < a \\/ aLength = 0) THEN /\\ O' = Append(O, b) /\\ bLength' = bLength - 1 /\\ IF bLength' > 0 THEN /\\ b' = Head(B) /\\ B' = Tail(B) ELSE /\\ TRUE /\\ UNCHANGED << b, B >> ELSE /\\ TRUE /\\ UNCHANGED << b, bLength, B, O >> (in mrg2b)",
+    "IF bLength' > 0 THEN /\\ b' = Head(B) /\\ B' = Tail(B) ELSE /\\ TRUE /\\ UNCHANGED << b, B >> (in mrg2b)",
+    "IF bLength > 0 \\/ aLength > 0 THEN /\\ pc' = \"mrg2\" ELSE /\\ pc' = \"mrg4\" (in mrg3)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{{}}",
+    "{<<>>}",
+    "{1,2,3,4,5}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[1..Cardinality(set) -> set]"
+  ],
+  "FunctionApplication": [
+    "F[x]",
+    "seq[i]",
+    "seq[i+1]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<< pc, history, a, aLength, A, b, bLength, B, O >>",
+    "<< history, a, b, O >>",
+    "<< a, aLength, A, b, bLength, B, O >>",
+    "<< a, A >>",
+    "<< b, B >>",
+    "<< a, aLength, A, O >>",
+    "<< history, b, bLength, B >>",
+    "<< b, bLength, B, O >>",
+    "<< history, a, aLength, A >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..(Len(seq) - 1)",
+    "1..Cardinality(set)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "init",
+    "Done",
+    "hstry",
+    "mrg1",
+    "mrg2",
+    "mrg2a",
+    "mrg2b",
+    "mrg3",
+    "mrg4",
+    "Failure of assertion at line 119, column 8.",
+    "Failure of assertion at line 120, column 8.",
+    "Failure of assertion at line 121, column 8."
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "B",
+    "bLength",
+    "A",
+    "aLength",
+    "pc",
+    "history",
+    "a",
+    "b",
+    "O"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << history, a, b, O >>",
+    "UNCHANGED << a, aLength, A, b, bLength, B, O >>",
+    "UNCHANGED << a, A >>",
+    "UNCHANGED << b, B >>",
+    "UNCHANGED history",
+    "UNCHANGED << a, aLength, A, O >>",
+    "UNCHANGED << history, b, bLength, B >>",
+    "UNCHANGED << b, bLength, B, O >>",
+    "UNCHANGED << history, a, aLength, A >>",
+    "UNCHANGED << history, a, aLength, A, b, bLength, B, O >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Next)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "--fair algorithm Merge"
+  ],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count 21 matches top-level == definitions count 21 | Reason: completeness check passed\nField: TupleConstructor | Change: removed duplicate entries, keeping each distinct tuple once | Reason: deduplication required\nField: ComparisonOps | Change: removed \\\">=\\\" | Reason: operator does not appear in the TLA+ file\nField: ProofCommands | Change: removed \\\"ASSUME\\\" | Reason: no ASSUME/ASSUMPTION/AXIOM/proof command appears in the file",
+  "OperatorDefNames_StatePredicate": [
+    "Inv",
+    "NoDuplicates"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Max",
+    "Image",
+    "SeqToSet",
+    "IsOrdered",
+    "OrderedSequences",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[1..Cardinality(set) -> set]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << history, a, b, O >>",
+    "UNCHANGED << a, aLength, A, b, bLength, B, O >>",
+    "UNCHANGED << a, A >>",
+    "UNCHANGED << b, B >>",
+    "UNCHANGED << a, aLength, A, O >>",
+    "UNCHANGED << history, b, bLength, B >>",
+    "UNCHANGED << b, bLength, B, O >>",
+    "UNCHANGED << history, a, aLength, A >>",
+    "UNCHANGED << history, a, aLength, A, b, bLength, B, O >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Merge/Merge.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "vars is placed in ValueDef as a tuple-valued structural helper definition; Max, Image, SeqToSet, IsOrdered, and OrderedSequences are placed in ValueDef as non-action helper operators by elimination.",
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(6) + ActionDefNames(10) = OperatorDefNames(21). Verified.",
+    "All FunctionConstructor entries are [S -> T] forms; FunctionConstructor_ByDomain is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

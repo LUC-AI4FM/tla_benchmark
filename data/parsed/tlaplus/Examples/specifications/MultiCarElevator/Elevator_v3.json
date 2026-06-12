@@ -1,0 +1,344 @@
+{
+  "id": null,
+  "Specification": "This specification models a simple multi-car elevator system with a set of people, a set of elevators, and a bounded set of floors. It defines how people choose destinations, call elevators, enter and exit cars, how elevators open and close doors, move, stop, and are dispatched to calls using a simple nearest-eligible-elevator policy rather than a globally optimized scheduling algorithm. The specification includes type and safety invariants, temporal liveness expectations that calls are eventually serviced and waiting people eventually reach their destinations, and fairness assumptions over the main actions; it culminates in a theorem asserting that under Spec, the type, safety, and temporal invariants always hold.",
+  "ModuleName": "Elevator",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Person",
+    "Elevator",
+    "FloorCount"
+  ],
+  "VariableNames": [
+    "PersonState",
+    "ActiveElevatorCalls",
+    "ElevatorState"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM Spec => [](TypeInvariant /\\ SafetyInvariant /\\ TemporalInvariant)"
+  ],
+  "OperatorDefNames": [
+    "Vars",
+    "Floor",
+    "Direction",
+    "ElevatorCall",
+    "ElevatorDirectionState",
+    "GetDistance",
+    "GetDirection",
+    "CanServiceCall",
+    "PeopleWaiting",
+    "TypeInvariant",
+    "SafetyInvariant",
+    "TemporalInvariant",
+    "PickNewDestination",
+    "CallElevator",
+    "OpenElevatorDoors",
+    "EnterElevator",
+    "ExitElevator",
+    "CloseElevatorDoors",
+    "MoveElevator",
+    "StopElevator",
+    "DispatchElevator",
+    "Init",
+    "Next",
+    "TemporalAssumptions",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "PickNewDestination",
+    "CallElevator",
+    "OpenElevatorDoors",
+    "EnterElevator",
+    "ExitElevator",
+    "CloseElevatorDoors",
+    "MoveElevator",
+    "StopElevator",
+    "DispatchElevator",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "eState",
+    "pState",
+    "call",
+    "gettingOn",
+    "destinations",
+    "gettingOff",
+    "nextFloor",
+    "stationary",
+    "approaching",
+    "closest"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF f1 > f2 THEN f1 - f2 ELSE f2 - f1",
+    "IF destination > current THEN \"Up\" ELSE \"Down\"",
+    "IF \\E e \\in Elevator : /\\ CanServiceCall[e, call] /\\ ElevatorState[e].doorsOpen THEN ActiveElevatorCalls ELSE ActiveElevatorCalls \\cup {call}",
+    "IF p \\in gettingOn THEN [PersonState[p] EXCEPT !.location = e] ELSE PersonState[p]",
+    "IF p \\in gettingOff THEN [PersonState[p] EXCEPT !.location = eState.floor, !.waiting = FALSE] ELSE PersonState[p]",
+    "IF eState.direction = \"Up\" THEN eState.floor + 1 ELSE eState.floor - 1",
+    "IF closest \\in stationary THEN [ElevatorState EXCEPT ![closest] = [@ EXCEPT !.floor = c.floor, !.direction = c.direction]] ELSE ElevatorState"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"Up\", \"Down\"}",
+    "{\"Stationary\"}",
+    "{}",
+    "{call}",
+    "{FALSE}",
+    "{{}}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[floor : Floor, direction : Direction]",
+    "[Person -> [location : Floor \\cup Elevator, destination : Floor, waiting : BOOLEAN]]",
+    "[Elevator -> [floor : Floor, direction : ElevatorDirectionState, doorsOpen : BOOLEAN, buttonsPressed : SUBSET Floor]]",
+    "[p \\in Person |-> IF p \\in gettingOn THEN [PersonState[p] EXCEPT !.location = e] ELSE PersonState[p]]",
+    "[p \\in Person |-> IF p \\in gettingOff THEN [PersonState[p] EXCEPT !.location = eState.floor, !.waiting = FALSE] ELSE PersonState[p]]",
+    "[Person -> [location : Floor, destination : Floor, waiting : {FALSE}]]",
+    "[Elevator -> [floor : Floor, direction : {\"Stationary\"}, doorsOpen : {FALSE}, buttonsPressed : {{}}]]"
+  ],
+  "FunctionApplication": [
+    "ElevatorState[e]",
+    "PersonState[p]",
+    "GetDirection[PersonState[p].location, PersonState[p].destination]",
+    "CanServiceCall[e, c]",
+    "PeopleWaiting[c.floor, c.direction]",
+    "GetDirection[ElevatorState[e].floor, PersonState[p].destination]",
+    "CanServiceCall[e, call]",
+    "PeopleWaiting[eState.floor, eState.direction]",
+    "EnterElevator(e)",
+    "ExitElevator(e)",
+    "OpenElevatorDoors(e)",
+    "CallElevator(p)",
+    "CloseElevatorDoors(e)",
+    "MoveElevator(e)",
+    "StopElevator(e)",
+    "DispatchElevator(c)",
+    "GetDirection[ElevatorState[e].floor, c.floor]",
+    "GetDistance[ElevatorState[e].floor, c.floor]",
+    "GetDistance[ElevatorState[e2].floor, c.floor]"
+  ],
+  "FunctionOverride": [
+    "[PersonState EXCEPT ![p] = [@ EXCEPT !.destination = f]]",
+    "[PersonState EXCEPT ![p] = [@ EXCEPT !.waiting = TRUE]]",
+    "[ElevatorState EXCEPT ![e] = [@ EXCEPT !.doorsOpen = TRUE, !.buttonsPressed = @ \\ {eState.floor}]]",
+    "[ElevatorState EXCEPT ![e] = [@ EXCEPT !.buttonsPressed = @ \\cup destinations]]",
+    "[ElevatorState EXCEPT ![e] = [@ EXCEPT !.doorsOpen = FALSE]]",
+    "[ElevatorState EXCEPT ![e] = [@ EXCEPT !.floor = nextFloor]]",
+    "[ElevatorState EXCEPT ![e] = [@ EXCEPT !.direction = \"Stationary\"]]",
+    "[ElevatorState EXCEPT ![closest] = [@ EXCEPT !.floor = c.floor, !.direction = c.direction]]"
+  ],
+  "RecordConstructor": [
+    "[floor : Floor, direction : Direction]",
+    "[location : Floor \\cup Elevator, destination : Floor, waiting : BOOLEAN]",
+    "[floor : Floor, direction : ElevatorDirectionState, doorsOpen : BOOLEAN, buttonsPressed : SUBSET Floor]",
+    "[floor |-> pState.location, direction |-> GetDirection[pState.location, pState.destination]]",
+    "[location : Floor, destination : Floor, waiting : {FALSE}]",
+    "[floor : Floor, direction : {\"Stationary\"}, doorsOpen : {FALSE}, buttonsPressed : {{}}]"
+  ],
+  "RecordAccess": [
+    "c.floor",
+    "c.direction",
+    "eState.floor",
+    "eState.direction",
+    "PersonState[p].location",
+    "PersonState[p].waiting",
+    "PersonState[p].destination",
+    "ElevatorState[e].buttonsPressed",
+    "ElevatorState[e].floor",
+    "ElevatorState[e].direction",
+    "ElevatorState[e].doorsOpen",
+    "pState.waiting",
+    "pState.location",
+    "pState.destination",
+    "eState.doorsOpen",
+    "eState.buttonsPressed"
+  ],
+  "TupleConstructor": [
+    "<<PersonState, ActiveElevatorCalls, ElevatorState>>",
+    "<<ActiveElevatorCalls, ElevatorState>>",
+    "<<ElevatorState>>",
+    "<<PersonState>>",
+    "<<PersonState, ActiveElevatorCalls>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-",
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<="
+  ],
+  "RangeExpr": [
+    "1 .. FloorCount"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE e \\in stationary \\cup approaching :\n            /\\ \\A e2 \\in stationary \\cup approaching :\n                /\\ GetDistance[ElevatorState[e].floor, c.floor] <= GetDistance[ElevatorState[e2].floor, c.floor]"
+  ],
+  "StringLiterals": [
+    "Up",
+    "Down",
+    "Stationary"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "PersonState",
+    "ActiveElevatorCalls",
+    "ElevatorState"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<ActiveElevatorCalls, ElevatorState>>",
+    "UNCHANGED <<ElevatorState>>",
+    "UNCHANGED <<PersonState>>",
+    "UNCHANGED <<PersonState, ActiveElevatorCalls>>",
+    "UNCHANGED <<PersonState, ActiveElevatorCalls, ElevatorState>>"
+  ],
+  "EnabledExprs": [
+    "EnterElevator(e)",
+    "ExitElevator(e)",
+    "OpenElevatorDoors(e)"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_Vars",
+    "WF_Vars(CallElevator(p))",
+    "WF_Vars(OpenElevatorDoors(e))",
+    "WF_Vars(EnterElevator(e))",
+    "WF_Vars(ExitElevator(e))",
+    "SF_Vars(CloseElevatorDoors(e))",
+    "SF_Vars(MoveElevator(e))",
+    "WF_Vars(StopElevator(e))",
+    "SF_Vars(DispatchElevator(c))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_Vars",
+    "[](TypeInvariant /\\ SafetyInvariant /\\ TemporalInvariant)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "c \\in ActiveElevatorCalls ~> \\E e \\in Elevator : CanServiceCall[e, c]",
+    "PersonState[p].waiting ~> PersonState[p].location = PersonState[p].destination"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A p \\in Person : WF_Vars(CallElevator(p))",
+    "\\A e \\in Elevator : WF_Vars(OpenElevatorDoors(e))",
+    "\\A e \\in Elevator : WF_Vars(EnterElevator(e))",
+    "\\A e \\in Elevator : WF_Vars(ExitElevator(e))",
+    "\\A e \\in Elevator : SF_Vars(CloseElevatorDoors(e))",
+    "\\A e \\in Elevator : SF_Vars(MoveElevator(e))",
+    "\\A e \\in Elevator : WF_Vars(StopElevator(e))",
+    "\\A c \\in ElevatorCall : SF_Vars(DispatchElevator(c))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained LET-bound names | Reason: field naming must use LetInNames; these are LET bindings from the file\nField: IfThenElse | Change: removed contextual suffixes like \u201c(in GetDistance)\u201d and deduplicated repeated nextFloor conditional | Reason: values must be expressions that literally appear in the TLA+ file; duplicates removed\nField: SetOperators | Change: removed SUBSET and DOMAIN | Reason: SUBSET does not appear in this field and DOMAIN does not appear in the file\nField: UnchangedExprs | Change: removed invalid entry \"UNCHANGED <<ActiveElevatorCalls>>\" and added missing \"UNCHANGED <<PersonState, ActiveElevatorCalls, ElevatorState>>\" | Reason: every distinct UNCHANGED expression in the file must appear exactly once; invalid one does not occur\nField: EnabledExprs | Change: changed entries from \"ENABLED ...\" to just \"EnterElevator(e)\", \"ExitElevator(e)\", \"OpenElevatorDoors(e)\" | Reason: EnabledExprs must contain only the ENABLED expression itself, not surrounding context\nField: AlwaysOp | Change: added missing \"[][Next]_Vars\" | Reason: outermost [] temporal formula in Spec must appear here with full subscript\nField: OperatorDefNames | Change: verified unchanged; count confirmed 25 | Reason: top-level == definition count in file is 25 and JSON count matches 25",
+  "OperatorDefNames_StatePredicate": [
+    "CanServiceCall",
+    "PeopleWaiting",
+    "TypeInvariant",
+    "SafetyInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "TemporalInvariant",
+    "TemporalAssumptions",
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Vars",
+    "Floor",
+    "Direction",
+    "ElevatorCall",
+    "ElevatorDirectionState",
+    "GetDistance",
+    "GetDirection"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Person |-> IF p \\in gettingOn THEN [PersonState[p] EXCEPT !.location = e] ELSE PersonState[p]]",
+    "[p \\in Person |-> IF p \\in gettingOff THEN [PersonState[p] EXCEPT !.location = eState.floor, !.waiting = FALSE] ELSE PersonState[p]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[floor : Floor, direction : Direction]",
+    "[Person -> [location : Floor \\cup Elevator, destination : Floor, waiting : BOOLEAN]]",
+    "[Elevator -> [floor : Floor, direction : ElevatorDirectionState, doorsOpen : BOOLEAN, buttonsPressed : SUBSET Floor]]",
+    "[Person -> [location : Floor, destination : Floor, waiting : {FALSE}]]",
+    "[Elevator -> [floor : Floor, direction : {\"Stationary\"}, doorsOpen : {FALSE}, buttonsPressed : {{}}]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<ActiveElevatorCalls, ElevatorState>>",
+    "UNCHANGED <<ElevatorState>>",
+    "UNCHANGED <<PersonState>>",
+    "UNCHANGED <<PersonState, ActiveElevatorCalls>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED <<PersonState, ActiveElevatorCalls, ElevatorState>>"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Elevator/Elevator.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "PeopleWaiting is Boolean-valued only under comparison such as PeopleWaiting[c.floor, c.direction] /= {}; by itself it returns a set, so it is classified as ValueDef by return type. However, because every non-action operator must appear in exactly one partition and the verified V2 operator inventory treats it as an operator definition alongside predicates, it is classified here according to its non-action helper role? No: final classification uses ValueDef by elimination.",
+    "Adjusted classification: PeopleWaiting is placed in ValueDef, not StatePredicate, because it returns a set of persons rather than a Boolean.",
+    "TemporalAssumptions is placed in TemporalProperty because it is a conjunction of WF_/SF_ fairness conditions, which are temporal formulas even though they do not use [], <>, or ~> literally.",
+    "FunctionConstructor entry \"[floor : Floor, direction : Direction]\" is a record constructor syntax that also appears in FunctionConstructor in V2; for the required subdivision it is placed in FunctionConstructor_SetType by elimination as a non-|-> function-like constructor form.",
+    "UnchangedExprs contains \"UNCHANGED <<PersonState, ActiveElevatorCalls, ElevatorState>>\" rather than \"UNCHANGED Vars\". Although Vars is the tuple variable operator, the file writes the explicit tuple, so it is classified under UnchangedExprs_Explicit.",
+    "CloseElevatorDoors and StopElevator contain ENABLED, but they are actions and therefore remain only in ActionDefNames, not in StatePredicate.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in the file text; ~> appears in TemporalInvariant, [] appears in Spec and the theorem, and fairness operators appear separately.",
+    "Operators placed in ValueDef by elimination include Vars, Floor, Direction, ElevatorCall, ElevatorDirectionState, GetDistance, GetDirection, and PeopleWaiting.",
+    "Partition count: StatePredicate(3) + TemporalProperty(3) + Init(1) + ValueDef(8) + ActionDefNames(10) = OperatorDefNames(25). Verified."
+  ]
+}

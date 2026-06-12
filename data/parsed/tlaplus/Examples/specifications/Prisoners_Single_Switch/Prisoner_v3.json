@@ -1,0 +1,230 @@
+{
+  "id": null,
+  "Specification": "This specification models the classic prisoner light-switch puzzle with a designated counter prisoner and a single shared lamp in a special cell. The model includes both the standard variant where the initial light state is known to be off and a harder variant where the initial light state is unknown; in the unknown case, non-counter prisoners may signal twice and the counter waits for a threshold of 2N - 1 instead of N. The system verifies that under weak fairness of the warden's prisoner selection, the prisoners eventually announce victory, and it also asserts a safety property that any victory announcement implies every prisoner has actually visited the cell.",
+  "ModuleName": "Prisoner",
+  "ExtendsModules": [
+    "FiniteSets",
+    "Naturals"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Prisoner",
+    "Light_Unknown"
+  ],
+  "VariableNames": [
+    "count",
+    "announced",
+    "signalled",
+    "light",
+    "has_visited"
+  ],
+  "AssumptionNames": [
+    "Light_Unknown \\in BOOLEAN"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "SignalLimit",
+    "VictoryThreshold",
+    "DesignatedCounter",
+    "NormalPrisoner",
+    "Init",
+    "CounterAction",
+    "StandardAction",
+    "WardenAction",
+    "Next",
+    "Spec",
+    "Terminating",
+    "TypeOK",
+    "VictoryOK"
+  ],
+  "ActionDefNames": [
+    "CounterAction",
+    "StandardAction",
+    "WardenAction",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF Light_Unknown THEN 2 ELSE 1",
+    "IF Light_Unknown THEN Cardinality(Prisoner) * 2 - 1 ELSE Cardinality(Prisoner)",
+    "IF light = \"on\" THEN /\\ light' = \"off\" /\\ count' = count + 1 ELSE UNCHANGED <<light, count>>",
+    "IF light = \"off\" /\\ signalled[p] < SignalLimit THEN /\\ light' = \"on\" /\\ signalled' = [signalled EXCEPT ![p] = @ + 1] ELSE UNCHANGED <<light, signalled>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"off\", \"on\"}",
+    "{}",
+    "{p}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ p \\in NormalPrisoner |-> 0 ]",
+    "[ NormalPrisoner -> 0 .. 2 ]"
+  ],
+  "FunctionApplication": [
+    "signalled[p]",
+    "WardenAction(p)",
+    "CounterAction(p)",
+    "StandardAction(p)",
+    "WF_vars(WardenAction(p))"
+  ],
+  "FunctionOverride": [
+    "[signalled EXCEPT ![p] = @ + 1]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<count, announced, signalled, light, has_visited>>",
+    "<<light, count>>",
+    "<<signalled>>",
+    "<<light, signalled>>",
+    "<<count, announced>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">="
+  ],
+  "RangeExpr": [
+    "1 .. VictoryThreshold + 1",
+    "0 .. 2"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE p \\in Prisoner: TRUE"
+  ],
+  "StringLiterals": [
+    "off",
+    "on"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "light",
+    "count",
+    "announced",
+    "signalled",
+    "has_visited"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<light, count>>",
+    "UNCHANGED <<signalled>>",
+    "UNCHANGED <<light, signalled>>",
+    "UNCHANGED <<count, announced>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(WardenAction(p))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>announced"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A p \\in Prisoner: WF_vars(WardenAction(p))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count matches file; file count = 14, JSON count = 14 | Reason: Phase 2 completeness check passed\nField: NamesInLet -> LetInNames | Change: Renamed field and kept empty array | Reason: Required field name per prompt; file has no LET bindings\nField: IfThenElse | Change: Replaced all four entries with verbatim expressions from the file and removed annotation text like \"(in SignalLimit)\" | Reason: Values must appear in the TLA+ file; prior entries did not exist verbatim\nField: FunctionApplication | Change: Added \"CounterAction(p)\", \"StandardAction(p)\", and \"WF_vars(WardenAction(p))\" | Reason: These applications appear literally in the file and field was incomplete\nField: ProofCommands | Change: Removed \"ASSUME\" | Reason: ASSUME is not a proof command here; it is an assumption block and already captured in AssumptionNames\nField: Empty field confirmation | Change: Confirmed LocalOperatorNames, RecordAccess, EnabledExprs, ActionComposition, GuaranteesOp, LeadsToOp, CaseExpr, RecordConstructor, SequenceOps, InstanceModules, InstanceSubstitutions, RecursiveOperatorNames, TheoremNames, PlusCalAlgorithm, PlusCalProcesses are correctly empty | Reason: No corresponding constructs appear in the TLA+ file",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "VictoryOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Terminating"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "SignalLimit",
+    "VictoryThreshold",
+    "DesignatedCounter",
+    "NormalPrisoner"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ p \\in NormalPrisoner |-> 0 ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ NormalPrisoner -> 0 .. 2 ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<light, count>>",
+    "UNCHANGED <<signalled>>",
+    "UNCHANGED <<light, signalled>>",
+    "UNCHANGED <<count, announced>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Prisoner/Prisoner.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(5) + ActionDefNames(4) = OperatorDefNames(14). Verified.",
+    "VictoryOK is placed in StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators; the implication is purely state-level.",
+    "All non-action helper definitions by elimination are placed in ValueDef: vars, SignalLimit, VictoryThreshold, DesignatedCounter, NormalPrisoner.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

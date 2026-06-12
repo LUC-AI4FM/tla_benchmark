@@ -1,0 +1,385 @@
+{
+  "id": null,
+  "Specification": "This specification models a buffered random-access file implementation corresponding to BufferedRandomAccessFile.java, including the key in-memory fields, the underlying file state, and the operations seek, read, write, flush, and setLength. It defines internal invariants Inv1 through Inv5 about the relationship between the in-memory buffer, the logical file contents, and the on-disk file, and it checks both those invariants and refinement against an abstract RandomAccessFile specification. The module also states action-by-action refinement properties for the concrete operations, includes temporal safety properties over the next-state relation, and adds a liveness property that dirty data eventually leads to a clean state.",
+  "ModuleName": "BufferedRandomAccessFile",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "TLC",
+    "Common",
+    "TLCExt"
+  ],
+  "InstanceModules": [
+    "RandomAccessFile"
+  ],
+  "InstanceSubstitutions": [
+    "file_content <- LogicalFileContent",
+    "file_pointer <- curr"
+  ],
+  "ConstantNames": [
+    "BuffSz"
+  ],
+  "VariableNames": [
+    "dirty",
+    "length",
+    "curr",
+    "lo",
+    "buff",
+    "diskPos",
+    "file_content",
+    "file_pointer"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "TypeOK",
+    "RelevantBufferContent",
+    "LogicalFileContent",
+    "DiskF",
+    "BufferedIndexes",
+    "Inv1",
+    "Inv2",
+    "Inv3",
+    "Inv4",
+    "Inv5",
+    "Init",
+    "FlushBuffer",
+    "FillBuffer",
+    "Seek",
+    "SetLength",
+    "Read1",
+    "Write1",
+    "Read",
+    "WriteAtMost",
+    "Next",
+    "Spec",
+    "RAF",
+    "Safety",
+    "FlushBufferCorrect",
+    "SeekCorrect",
+    "SetLengthCorrect",
+    "SeekEstablishesInv2",
+    "Write1Correct",
+    "Read1Correct",
+    "WriteAtMostCorrect",
+    "ReadCorrect",
+    "FlushBufferPossibleWhenDirty",
+    "FlushBufferMakesProgress",
+    "SeekCurrPossibleWhenNotDirty",
+    "SeekCurrRestoresInv2",
+    "Inv2CanAlwaysBeRestored",
+    "Symmetry",
+    "Alias",
+    "DirtyLeadsToClean",
+    "Postcondition"
+  ],
+  "ActionDefNames": [
+    "FlushBuffer",
+    "FillBuffer",
+    "Seek",
+    "SetLength",
+    "Read1",
+    "Write1",
+    "Read",
+    "WriteAtMost",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "len",
+    "diskPosA",
+    "fileOffset",
+    "numReadableWithoutSeeking",
+    "numToRead",
+    "buffOff",
+    "numWriteableWithoutSeeking"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF ArrayLen(RelevantBufferContent) > 0 THEN WriteToFile(file_content, lo, RelevantBufferContent) ELSE file_content",
+    "IF i >= 0 /\\ i < ArrayLen(file_content) THEN ArrayGet(file_content, i) ELSE ArbitrarySymbol",
+    "IF len > 0 THEN LET diskPosA == lo IN /\\ file_content' = WriteToFile(file_content, diskPosA, ArraySlice(buff, 0, len)) /\\ file_pointer' = diskPosA + len /\\ diskPos' = lo + len ELSE UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol",
+    "IF pos < lo \\/ pos >= (lo + BuffSz) THEN /\\ ~dirty /\\ lo' = (pos \\div BuffSz) * BuffSz /\\ FillBuffer ELSE UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "IF ArrayLen(file_content) > newLength /\\ file_pointer > newLength THEN file_pointer' = newLength ELSE file_pointer' \\in Offset",
+    "IF curr > newLength THEN curr' = newLength ELSE UNCHANGED curr",
+    "IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol"
+  ],
+  "CaseExpr": [
+    "CASE i < offset -> IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol [] i >= offset /\\ i < offset + data_len -> ArrayGet(data_to_write, i - offset) [] i >= offset + data_len -> ArrayGet(file, i)"
+  ],
+  "SetEnumeration": [
+    "{ArbitrarySymbol}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 0..BuffSz |-> LET fileOffset == diskPosA + i IN IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(BuffSz-1) |-> IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol]"
+  ],
+  "FunctionApplication": [
+    "RAF!Seek(offset)",
+    "RAF!SetLength(offset)",
+    "RAF!Write(SeqToArray(<<symbol>>))",
+    "RAF!Read(SeqToArray(<<symbol>>))",
+    "RAF!Write(ArraySlice(data, 0, written))",
+    "RAF!Read(data)"
+  ],
+  "FunctionOverride": [
+    "[a EXCEPT !.elems[i+1] = x]"
+  ],
+  "RecordConstructor": [
+    "[action |-> {<<<<1, [dirty |-> FALSE, length |-> 0, curr |-> 0, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, [name |-> \"WriteAtMost\", location |-> [beginLine |-> 200, beginColumn |-> 5, endLine |-> 209, endColumn |-> 60, module |-> \"BufferedRandomAccessFile\"], context |-> [data |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>]], parameters |-> <<\"data\">>], <<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>>>, <<<<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, [name |-> \"SetLength\", location |-> [beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"], context |-> [newLength |-> 2], parameters |-> <<\"newLength\">>], <<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>>>, <<<<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>, [name |-> \"SetLength\", location |-> [beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"], context |-> [newLength |-> 2], parameters |-> <<\"newLength\">>], <<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>>>}, state |-> {<<1, [dirty |-> FALSE, length |-> 0, curr |-> 0, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, <<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, <<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>}]",
+    "[dirty |-> FALSE, length |-> 0, curr |-> 0, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]",
+    "[name |-> \"WriteAtMost\", location |-> [beginLine |-> 200, beginColumn |-> 5, endLine |-> 209, endColumn |-> 60, module |-> \"BufferedRandomAccessFile\"], context |-> [data |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>]], parameters |-> <<\"data\">>]",
+    "[beginLine |-> 200, beginColumn |-> 5, endLine |-> 209, endColumn |-> 60, module |-> \"BufferedRandomAccessFile\"]",
+    "[data |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>]]",
+    "[dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]",
+    "[name |-> \"SetLength\", location |-> [beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"], context |-> [newLength |-> 2], parameters |-> <<\"newLength\">>]",
+    "[beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"]",
+    "[newLength |-> 2]",
+    "[dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]",
+    "[elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>]",
+    "[elems |-> <<>>]"
+  ],
+  "RecordAccess": [
+    "a.elems",
+    "a1.elems",
+    "a2.elems"
+  ],
+  "TupleConstructor": [
+    "<<\n    dirty, length, curr, lo, buff, diskPos,\n    file_content, file_pointer>>",
+    "<<diskPos, file_pointer, file_content>>",
+    "<<length, curr, lo, buff>>",
+    "<<lo, diskPos, file_pointer, buff>>",
+    "<<dirty, length, file_content>>",
+    "<<dirty, lo>>",
+    "<<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
+    "<<lo, diskPos, file_pointer, file_content>>",
+    "<<buff, dirty, diskPos, file_content, file_pointer, length, lo>>",
+    "<<symbol>>",
+    "<<<<1, [dirty |-> FALSE, length |-> 0, curr |-> 0, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, [name |-> \"WriteAtMost\", location |-> [beginLine |-> 200, beginColumn |-> 5, endLine |-> 209, endColumn |-> 60, module |-> \"BufferedRandomAccessFile\"], context |-> [data |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>]], parameters |-> <<\"data\">>], <<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>>>",
+    "<<<<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>, [name |-> \"SetLength\", location |-> [beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"], context |-> [newLength |-> 2], parameters |-> <<\"newLength\">>], <<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>>>",
+    "<<<<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>, [name |-> \"SetLength\", location |-> [beginLine |-> 148, beginColumn |-> 5, endLine |-> 163, endColumn |-> 30, module |-> \"BufferedRandomAccessFile\"], context |-> [newLength |-> 2], parameters |-> <<\"newLength\">>], <<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>>>",
+    "<<1, [dirty |-> FALSE, length |-> 0, curr |-> 0, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>",
+    "<<2, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 0, file_content |-> [elems |-> <<>>], file_pointer |-> 0]>>",
+    "<<3, [dirty |-> TRUE, length |-> 2, curr |-> 2, lo |-> 0, buff |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], diskPos |-> 1, file_content |-> [elems |-> <<ArbitrarySymbol, ArbitrarySymbol>>], file_pointer |-> 1]>>",
+    "<<\"data\">>",
+    "<<\"newLength\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*",
+    "\\div"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "lo .. (Min(lo + BuffSz, length) - 1)",
+    "0 .. (length - 1)",
+    "1..MaxOffset",
+    "0..BuffSz",
+    "0..(BuffSz-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "WriteAtMost",
+    "BufferedRandomAccessFile",
+    "data",
+    "SetLength",
+    "newLength"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "file_content",
+    "file_pointer",
+    "diskPos",
+    "dirty",
+    "buff",
+    "lo",
+    "curr",
+    "length"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<length, curr, lo, buff>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "UNCHANGED <<dirty, length, file_content>>",
+    "UNCHANGED curr",
+    "UNCHANGED <<dirty, lo>>",
+    "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>",
+    "UNCHANGED RAF!vars"
+  ],
+  "EnabledExprs": [
+    "ENABLED FlushBuffer",
+    "ENABLED Seek(curr)"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][FlushBuffer => UNCHANGED RAF!vars]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => RAF!Seek(offset)]_vars",
+    "[][\\A offset \\in Offset: SetLength(offset) => RAF!SetLength(offset)]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => Inv2']_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \\E written \\in 1..len: RAF!Write(ArraySlice(data, 0, written))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]_vars",
+    "[][FlushBuffer => ~dirty']_vars",
+    "[][Seek(curr) => Inv2']_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][FlushBuffer => UNCHANGED RAF!vars]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => RAF!Seek(offset)]_vars",
+    "[][\\A offset \\in Offset: SetLength(offset) => RAF!SetLength(offset)]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => Inv2']_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \\E written \\in 1..len: RAF!Write(ArraySlice(data, 0, written))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]_vars",
+    "[][FlushBuffer => ~dirty']_vars",
+    "[][Seek(curr) => Inv2']_vars",
+    "[]FlushBufferPossibleWhenDirty",
+    "[]SeekCurrPossibleWhenNotDirty"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "dirty ~> ~dirty"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 42, JSON count = 42 | Reason: completeness check required before continuing\nField: IfThenElse | Change: removed non-file suffixes like \u201c(in LogicalFileContent)\u201d from all entries | Reason: entries must be expressions that literally appear in the TLA+ file\nField: CaseExpr | Change: replaced summary placeholder with verbatim CASE expression from WriteToFile | Reason: prior value did not appear in the file\nField: FunctionOverride | Change: added \"[a EXCEPT !.elems[i+1] = x]\" | Reason: ArraySet contains a function override and the field was incorrectly empty\nField: RecordAccess | Change: added \"a.elems\", \"a1.elems\", \"a2.elems\" | Reason: these literal record-access expressions appear in Common via ArrayLen, ArrayToSeq, ArrayGet, ArraySlice, and ArrayConcat; empty field was incorrect\nField: RecordConstructor | Change: removed one duplicate full Postcondition record constructor entry | Reason: deduplication required\nField: TemporalSubscript | Change: removed \"[]FlushBufferPossibleWhenDirty\" and \"[]SeekCurrPossibleWhenNotDirty\" | Reason: TemporalSubscript must contain only temporal formulas with explicit action subscript form like _vars; these are Always formulas but not subscripted-action formulas\n",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Inv1",
+    "Inv2",
+    "Inv3",
+    "Inv4",
+    "Inv5",
+    "Safety",
+    "FlushBufferPossibleWhenDirty",
+    "SeekCurrPossibleWhenNotDirty",
+    "Postcondition"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "FlushBufferCorrect",
+    "SeekCorrect",
+    "SetLengthCorrect",
+    "SeekEstablishesInv2",
+    "Write1Correct",
+    "Read1Correct",
+    "WriteAtMostCorrect",
+    "ReadCorrect",
+    "FlushBufferMakesProgress",
+    "SeekCurrRestoresInv2",
+    "Inv2CanAlwaysBeRestored",
+    "DirtyLeadsToClean"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "RelevantBufferContent",
+    "LogicalFileContent",
+    "DiskF",
+    "BufferedIndexes",
+    "RAF",
+    "Symmetry",
+    "Alias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 0..BuffSz |-> LET fileOffset == diskPosA + i IN IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(BuffSz-1) |-> IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<length, curr, lo, buff>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "UNCHANGED <<dirty, length, file_content>>",
+    "UNCHANGED <<dirty, lo>>",
+    "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<buff, dirty, diskPos, file_content, file_pointer, length, lo>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED curr",
+    "UNCHANGED RAF!vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/BufferedRandomAccessFile/BufferedRandomAccessFile.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "FlushBufferPossibleWhenDirty and SeekCurrPossibleWhenNotDirty are placed in StatePredicate because they are Boolean-valued, contain ENABLED, and contain no primed variables or temporal operators.",
+    "FlushBufferCorrect, SeekCorrect, SetLengthCorrect, SeekEstablishesInv2, Write1Correct, Read1Correct, WriteAtMostCorrect, ReadCorrect, FlushBufferMakesProgress, and SeekCurrRestoresInv2 are placed in TemporalProperty because their bodies are subscripted always formulas of the form [][... ]_vars.",
+    "Inv2CanAlwaysBeRestored is placed in TemporalProperty because its body conjuncts temporal formulas including []FlushBufferPossibleWhenDirty and []SeekCurrPossibleWhenNotDirty.",
+    "Safety is placed in StatePredicate because RAF!Spec is an instantiated operator reference with no explicit temporal syntax in this module text; classified by elimination as Boolean and non-action.",
+    "Postcondition is placed in StatePredicate by elimination. Its body is the Boolean equality CounterExample = [record].",
+    "vars, RelevantBufferContent, LogicalFileContent, DiskF, BufferedIndexes, RAF, Symmetry, and Alias are placed in ValueDef as non-Boolean, non-action, non-temporal definitions.",
+    "Partition count: StatePredicate(10) + TemporalProperty(13) + Init(1) + ValueDef(8) + ActionDefNames(9) = OperatorDefNames(41). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file; formulas like dirty ~> ~dirty and P => []Q do not count as explicit temporal-inside-temporal nesting."
+  ]
+}

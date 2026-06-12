@@ -1,0 +1,199 @@
+{
+  "id": null,
+  "Specification": "This specification models a refinement relationship between two channel instances, a low-level bit channel and a high-level channel carrying values in 1..12. The inner module introduces a state variable bitsSent and accumulates up to three transmitted bits, converting a completed bit sequence into a natural number with BitSeqToNat and forwarding it on the high-level channel. It also models an error behavior in which the low-level channel changes unexpectedly while no send or receive is occurring, forcing the high-level channel state to ErrorVal; the temporal properties define the inner behavior and then existentially hide bitsSent to obtain the overall refinement formula IR.",
+  "ModuleName": "ChannelRefinement",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "Channel",
+    "Channel",
+    "Inner"
+  ],
+  "InstanceSubstitutions": [
+    "chan <- h",
+    "Data <- 1..12",
+    "chan <- l",
+    "Data <- {0,1}"
+  ],
+  "ConstantNames": [],
+  "VariableNames": [
+    "h",
+    "l",
+    "bitsSent"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "ErrorVal",
+    "BitSeqToNat",
+    "H",
+    "L",
+    "Init",
+    "SendBit",
+    "RcvBit",
+    "Error",
+    "Next",
+    "InnerIR",
+    "I",
+    "IR"
+  ],
+  "ActionDefNames": [
+    "SendBit",
+    "RcvBit",
+    "Error",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF s = << >> THEN 0 ELSE Head(s) + 2 * BitSeqToNat[Tail(s)]",
+    "IF L!Init THEN H!Init ELSE h = ErrorVal",
+    "IF Len(bitsSent) < 3 THEN /\\ bitsSent' = <<b>> \\o bitsSent /\\ UNCHANGED h ELSE /\\ bitsSent' = <<>> /\\ H!Send(BitSeqToNat[<<b>> \\o bitsSent])",
+    "IF bitsSent = << >> THEN H!Rcv ELSE UNCHANGED h"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0, 1}",
+    "{0,1}"
+  ],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[s \\in Seq({0,1})]",
+    "[val : 1..12, rdy : {0, 1}, ack : {0, 1}]"
+  ],
+  "FunctionApplication": [
+    "BitSeqToNat[Tail(s)]",
+    "BitSeqToNat[<<b>> \\o bitsSent]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[val : 1..12, rdy : {0, 1}, ack : {0, 1}]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< >>",
+    "<<b>>",
+    "<<l,h,bitsSent>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "1..12"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin [val : 1..12, rdy : {0, 1}, ack : {0, 1}]"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "bitsSent",
+    "l",
+    "h"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED h",
+    "UNCHANGED bitsSent"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<l,h,bitsSent>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<l,h,bitsSent>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` to `LetInNames` and kept empty | Reason: required field name per schema; file has no LET bindings\nField: Quantifiers | Change: removed `\\\\A` | Reason: no universal quantifier appears anywhere in the file; only `\\\\E` occurs\nField: IfThenElse | Change: normalized all entries to the actual file expressions and removed contextual suffixes like `(in BitSeqToNat)` | Reason: entries must be expressions that literally appear in the TLA+ file\nField: IfThenElse | Change: corrected `bitsSent'= <<>>` to `bitsSent' = <<>>` | Reason: expression must match the file verbatim\nField: SetEnumeration | Change: removed `<< >>` and `<<b>>` | Reason: these are tuples, not set enumerations\nField: SetOperators | Change: removed `\\\\X` | Reason: Cartesian product does not appear in the file\nField: FunctionConstructor | Change: replaced `[s \\\\in Seq({0,1}) |-> e]` with `[s \\\\in Seq({0,1})]` | Reason: the file contains a function domain annotation in the operator definition header, not a function constructor with `|->`\nField: Operator count verification | Change: verified counts match: file count = 12, JSON OperatorDefNames count = 12 | Reason: completeness check required by Phase 2",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [
+    "InnerIR",
+    "IR"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "ErrorVal",
+    "BitSeqToNat",
+    "H",
+    "L",
+    "I"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[s \\in Seq({0,1})]",
+    "[val : 1..12, rdy : {0, 1}, ack : {0, 1}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED h",
+    "UNCHANGED bitsSent"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ChannelRefinement/ChannelRefinement.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ValueDef by elimination: ErrorVal, BitSeqToNat, H, L, and I are not actions, not temporal properties, and not Init operators. ErrorVal defines a chosen value, BitSeqToNat is a recursive helper computation, H and L are module instances used as value-level operator namespaces, and I is an instance-valued operator.",
+    "Partition count: StatePredicate(0) + TemporalProperty(2) + Init(1) + ValueDef(5) + ActionDefNames(4) = OperatorDefNames(12). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are classified as [S -> T]-style/schema forms per the available V2 extraction.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource folder is uncertain from file content alone; using module name as folder name."
+  ]
+}

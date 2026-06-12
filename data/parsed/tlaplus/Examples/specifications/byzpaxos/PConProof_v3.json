@@ -1,0 +1,368 @@
+{
+  "id": null,
+  "Specification": "This module specifies and proves properties of a variant of Paxos consensus in which leaders may send phase 1c messages to assert that values are safe at a ballot before sending phase 2a proposals. The system models message-passing among ballot-indexed leaders and acceptors using a history variable msgs together with per-acceptor state maxBal, maxVBal, and maxVVal, and it refines an instantiated voting specification from module VoteProof. The file contains a PlusCal algorithm and its translated TLA+ form, proves equivalence between the translated Next relation and a manually structured TLA+ next-state relation, states invariants used for refinement and safety, and states a liveness theorem under fairness assumptions; the fault model is omission faults, represented by enabled actions and message receipts that may simply never occur.",
+  "ModuleName": "PConProof",
+  "ExtendsModules": [
+    "Integers",
+    "TLAPS"
+  ],
+  "InstanceModules": [
+    "VoteProof"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Value",
+    "Acceptor",
+    "Quorum",
+    "bb",
+    "QQ"
+  ],
+  "VariableNames": [
+    "maxBal",
+    "maxVBal",
+    "maxVVal",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "QA",
+    "BallotAssump"
+  ],
+  "TheoremNames": [
+    "NextDef == (Next <=> TLANext)",
+    "PT1 == TypeOK /\\ P1bInv /\\ P1cInv =>\n                 \\A Q \\in Quorum, b \\in Ballot, v \\in Value :\n                     ShowsSafeAt(Q, b, v) => V!SafeAt(b, v)",
+    "Invariance == Spec => []PInv",
+    "Implementation == Spec => V!Spec",
+    "Spec => [](chosen = V!chosen)",
+    "Liveness ==\n  Spec => \\A b \\in Ballot, Q \\in Quorum :\n           ( ( /\\ (*********************************************************)\n                  (* Assumption 1a.                                        *)\n                  (*********************************************************)\n                  \\A m \\in msgs : (m.type = \"1a\") => (m.bal < b)\n               /\\ (*********************************************************)\n                  (* Assumption 1b.                                        *)\n                  (*********************************************************)\n                  \\A c \\in Ballot : (c > b) => [][~Phase1a(c)]_vars\n               /\\ (*********************************************************)\n                  (* Assumption 2.                                         *)\n                  (*********************************************************)\n                  WF_vars(Phase1a(b))\n               /\\ (*********************************************************)\n                  (* Assumption 4.                                         *)\n                  (*********************************************************)\n                  WF_vars(\\E v \\in Value : Phase2a(b, v))\n               /\\ (*********************************************************)\n                  (* Assumption 3.                                         *)\n                  (*********************************************************)\n                  \\A a \\in Q : /\\ WF_vars(Phase1b(a, b))\n                               /\\ WF_vars(Phase2b(a, b))\n            )\n            ~> (chosen # {}) )"
+  ],
+  "OperatorDefNames": [
+    "Ballot",
+    "None",
+    "Message",
+    "sentMsgs",
+    "ShowsSafeAt",
+    "vars",
+    "ProcSet",
+    "Init",
+    "acceptor",
+    "leader",
+    "Next",
+    "Spec",
+    "Phase1a",
+    "Phase1c",
+    "Phase2a",
+    "Phase1b",
+    "Phase2b",
+    "TLANext",
+    "TypeOK",
+    "chosen",
+    "votes",
+    "PAccInv",
+    "P1bInv",
+    "P1cInv",
+    "P2aInv",
+    "PInv",
+    "AbstractSpec",
+    "CSpec",
+    "CLiveness"
+  ],
+  "ActionDefNames": [
+    "acceptor",
+    "leader",
+    "Next",
+    "Phase1a",
+    "Phase1c",
+    "Phase2a",
+    "Phase1b",
+    "Phase2b",
+    "TLANext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "Q1b"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{-1}",
+    "{}",
+    "{\"1a\"}",
+    "{\"1b\"}",
+    "{None}",
+    "{\"1c\"}",
+    "{\"2a\"}",
+    "{\"2b\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]",
+    "[a \\in Acceptor |->  \n           {<<m.bal, m.val>> : m \\in {mm \\in msgs: /\\ mm.type = \"2b\"\n                                                   /\\ mm.acc = a }}]"
+  ],
+  "FunctionApplication": [
+    "maxBal[self]",
+    "maxVBal[self]",
+    "maxVVal[self]",
+    "sentMsgs(\"1a\", b)",
+    "sentMsgs(\"2a\", b)",
+    "sentMsgs(\"2a\", self)",
+    "V!DidNotVoteIn(a,b)",
+    "V!VotedFor(a, maxVBal[a], maxVVal[a])",
+    "V!SafeAt(m.bal, m.val)",
+    "ShowsSafeAt(Q, b, v)",
+    "V!SafeAt(b, v)",
+    "Phase1b(self, b)",
+    "Phase2b(self,b)",
+    "Phase1a(self)",
+    "Phase1c(self, S)",
+    "Phase2a(self, v)",
+    "maxBal[a]",
+    "maxVBal[a]",
+    "Phase1a(c)",
+    "Phase1a(b)",
+    "Phase2a(b, v)",
+    "Phase1b(a, b)",
+    "Phase2b(a, b)"
+  ],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![self] = b]",
+    "[maxVBal EXCEPT ![self] = b]",
+    "[maxVVal EXCEPT ![self] = m.val]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"1a\"}, bal : Ballot]",
+    "[type : {\"1b\"}, acc : Acceptor, bal : Ballot, \n                 mbal : Ballot \\cup {-1}, mval : Value \\cup {None}]",
+    "[type : {\"1c\"}, bal : Ballot, val : Value]",
+    "[type : {\"2a\"}, bal : Ballot, val : Value]",
+    "[type : {\"2b\"}, acc : Acceptor, bal : Ballot, val : Value]",
+    "[type |-> \"1c\", bal |-> m1c.bal, val |-> v]",
+    "[type |-> \"1b\", acc |-> self, bal |-> b,\n                                                       mbal |-> maxVBal[self], mval |-> maxVVal[self]]",
+    "[type |-> \"2b\", acc |-> self, bal |-> b, val |-> m.val]",
+    "[type |-> \"1a\", bal |-> self]",
+    "[type |-> \"1c\", bal |-> self, val |-> v]",
+    "[type |-> \"2a\", bal |-> self, val |-> v]",
+    "[type |-> \"1b\", acc |-> self, bal |-> b,\n                         mbal |-> maxVBal[self], mval |-> maxVVal[self]]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m.acc",
+    "m.mbal",
+    "m1c.bal",
+    "m.mval",
+    "m.val",
+    "mm.type",
+    "mm.acc"
+  ],
+  "TupleConstructor": [
+    "<< maxBal, maxVBal, maxVVal, msgs >>",
+    "<<maxVBal, maxVVal>>",
+    "<<m.bal, m.val>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    ">=",
+    "<="
+  ],
+  "RangeExpr": [
+    "(maxVBal[a]+1)..(maxBal[a]-1)",
+    "(m.mbal+1)..(m.bal-1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Value"
+  ],
+  "StringLiterals": [
+    "Leslie Lamport",
+    "The Part-Time Parliament",
+    "133--169",
+    "Leslie Lamport and Dahlia Malkhi and Lidong Zhou ",
+    "Vertical Paxos and Primary-Backup Replication",
+    "Proceedings of PODC 2009",
+    "312--313",
+    "1a",
+    "1b",
+    "1c",
+    "2a",
+    "2b"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "maxBal",
+    "msgs",
+    "maxVBal",
+    "maxVVal"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<maxVBal, maxVVal>>",
+    "UNCHANGED << maxBal, maxVBal, maxVVal >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][~Phase1a(c)]_vars",
+    "WF_vars(Phase1a(b))",
+    "WF_vars(\\E v \\in Value : Phase2a(b, v))",
+    "WF_vars(Phase1b(a, b))",
+    "WF_vars(Phase2b(a, b))",
+    "[][ /\\ Next\n                /\\ \\A c \\in Ballot : (c > bb) => ~Phase1a(c)]_vars",
+    "WF_vars(Phase1a(bb))",
+    "WF_vars(\\E v \\in Value : Phase2a(bb, v))",
+    "WF_vars(Phase1bForBallot(a, bb))",
+    "WF_vars(Phase2bForBallot(a, bb))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]PInv",
+    "[](chosen = V!chosen)",
+    "[][~Phase1a(c)]_vars",
+    "[][ /\\ Next\n                /\\ \\A c \\in Ballot : (c > bb) => ~Phase1a(c)]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "( ( /\\ (*********************************************************)\n                  (* Assumption 1a.                                        *)\n                  (*********************************************************)\n                  \\A m \\in msgs : (m.type = \"1a\") => (m.bal < b)\n               /\\ (*********************************************************)\n                  (* Assumption 1b.                                        *)\n                  (*********************************************************)\n                  \\A c \\in Ballot : (c > b) => [][~Phase1a(c)]_vars\n               /\\ (*********************************************************)\n                  (* Assumption 2.                                         *)\n                  (*********************************************************)\n                  WF_vars(Phase1a(b))\n               /\\ (*********************************************************)\n                  (* Assumption 4.                                         *)\n                  (*********************************************************)\n                  WF_vars(\\E v \\in Value : Phase2a(b, v))\n               /\\ (*********************************************************)\n                  (* Assumption 3.                                         *)\n                  (*********************************************************)\n                  \\A a \\in Q : /\\ WF_vars(Phase1b(a, b))\n                               /\\ WF_vars(Phase2b(a, b))\n            )\n            ~> (chosen # {}))",
+    "(\\A m \\in msgs : (m.type = \"1a\") => (m.bal < bb))~>(chosen # {})"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Phase1a(b))",
+    "WF_vars(\\E v \\in Value : Phase2a(b, v))",
+    "\\A a \\in Q : /\\ WF_vars(Phase1b(a, b))\n                               /\\ WF_vars(Phase2b(a, b))"
+  ],
+  "ProofHints": [
+    "Zenon"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "ASSUME",
+    "PROVE",
+    "DEF",
+    "NEW"
+  ],
+  "ProofStructureSteps": [
+    "<1>2",
+    "<1>3",
+    "<1>4"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME NEW self \\in Acceptor\n      PROVE  acceptor(self) <=> TLANext!1!(self)",
+    "ASSUME NEW self \\in Ballot\n      PROVE  leader(self) <=> TLANext!2!(self)"
+  ],
+  "PlusCalAlgorithm": [
+    "PCon"
+  ],
+  "PlusCalProcesses": [
+    "acceptor \\in Acceptor",
+    "leader \\in Ballot"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count matches top-level == definitions; file count = 29, JSON count = 29 | Reason: Phase 2 completeness check\nField: LetInNames | Change: Renamed field from NamesInLet to LetInNames and preserved value [\\\"Q1b\\\"] | Reason: Correct field name per schema; LET-bound name exists in ShowsSafeAt\nField: SetOperators | Change: Removed \\\"\\\\\\\\X\\\" | Reason: Value does not appear anywhere in the TLA+ file\nField: FunctionApplication | Change: Removed \\\"Phase1bForBallot(a, bb)\\\" and \\\"Phase2bForBallot(a, bb)\\\" | Reason: These names do not appear in the file; CSpec references them only inside WF terms, but no such operators are defined\nField: StringLiterals | Change: Added \\\"Leslie Lamport\\\", \\\"The Part-Time Parliament\\\", \\\"133--169\\\", \\\"Leslie Lamport and Dahlia Malkhi and Lidong Zhou \\\", \\\"Vertical Paxos and Primary-Backup Replication\\\", \\\"Proceedings of PODC 2009\\\", \\\"312--313\\\" | Reason: Phase 2 requires every double-quoted string literal in the file, including comment metadata entries, to appear in StringLiterals",
+  "OperatorDefNames_StatePredicate": [
+    "ShowsSafeAt",
+    "TypeOK",
+    "PAccInv",
+    "P1bInv",
+    "P1cInv",
+    "P2aInv",
+    "PInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "AbstractSpec",
+    "CSpec",
+    "CLiveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Ballot",
+    "None",
+    "Message",
+    "sentMsgs",
+    "vars",
+    "ProcSet",
+    "chosen",
+    "votes"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |->  \n           {<<m.bal, m.val>> : m \\in {mm \\in msgs: /\\ mm.type = \"2b\"\n                                                   /\\ mm.acc = a }}]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<maxVBal, maxVVal>>",
+    "UNCHANGED << maxBal, maxVBal, maxVVal >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/PConProof/PConProof.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(7) + TemporalProperty(4) + Init(1) + ValueDef(8) + ActionDefNames(9) = OperatorDefNames(29). Verified.",
+    "AbstractSpec is placed in TemporalProperty because it is defined as V!Spec, which denotes the instantiated temporal specification from module VoteProof.",
+    "CSpec is placed in TemporalProperty because its body contains temporal subformulas including [][ ... ]_vars and WF_vars(...).",
+    "CLiveness is placed in TemporalProperty because its body uses the leads-to operator ~>.",
+    "FunctionConstructor_ByDomain and FunctionConstructor_SetType together exactly partition FunctionConstructor.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in the file text; occurrences such as (c > b) => [][~Phase1a(c)]_vars are temporal under implication, not temporal-inside-temporal nesting.",
+    "ValueDef by elimination: Ballot, None, Message, sentMsgs, vars, ProcSet, chosen, votes."
+  ]
+}

@@ -1,0 +1,387 @@
+{
+  "id": null,
+  "Specification": "This module specifies a fast mutual exclusion algorithm with two distinct process classes, generated from a PlusCal algorithm named FastMutex. Processes in 1..M execute one control-flow copy and processes in (M+1)..N execute a second structurally similar copy, coordinating through shared variables x, y, and b to compete for entry to a critical section. The specification defines initialization, per-process actions, the overall next-state relation, a standard temporal specification with weak fairness for each process class, a mutual exclusion invariant asserting that no two distinct processes are simultaneously in the critical section, and a liveness property requiring that some process enters the critical section infinitely often.",
+  "ModuleName": "FastMutex2",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "M"
+  ],
+  "VariableNames": [
+    "pc",
+    "x",
+    "y",
+    "b",
+    "j",
+    "failed",
+    "j2",
+    "failed2"
+  ],
+  "AssumptionNames": [
+    "(N \\in Nat) /\\ (M \\in Nat)",
+    "Print(<<\"ProcSet =\" , ProcSet>>, TRUE)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "ProcSet",
+    "Init",
+    "start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "Proc1",
+    "2start",
+    "2l1",
+    "2l2",
+    "2l3",
+    "2l4",
+    "2l5",
+    "2l6",
+    "2l7",
+    "2l8",
+    "2l9",
+    "2l10",
+    "2cs",
+    "2l11",
+    "2l12",
+    "Proc2",
+    "Next",
+    "Spec",
+    "inCS",
+    "Invariant",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "Proc1",
+    "2start",
+    "2l1",
+    "2l2",
+    "2l3",
+    "2l4",
+    "2l5",
+    "2l6",
+    "2l7",
+    "2l8",
+    "2l9",
+    "2l10",
+    "2cs",
+    "2l11",
+    "2l12",
+    "Proc2",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF y # 0 THEN /\\ pc' = [pc EXCEPT ![self] = \"l4\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"l6\"]",
+    "IF x # self THEN /\\ pc' = [pc EXCEPT ![self] = \"l8\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]",
+    "IF (j[self] \\leq N) THEN /\\ ~b[j[self]] /\\ j' = [j EXCEPT ![self] = j[self]+1] /\\ pc' = [pc EXCEPT ![self] = \"l9\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"l10\"] /\\ j' = j",
+    "IF y # self THEN /\\ y = 0 /\\ failed' = [failed EXCEPT ![self] = TRUE] ELSE /\\ TRUE /\\ UNCHANGED failed",
+    "IF ~ failed[self] THEN /\\ TRUE /\\ pc' = [pc EXCEPT ![self] = \"l11\"] /\\ UNCHANGED failed ELSE /\\ failed' = [failed EXCEPT ![self] = FALSE] /\\ pc' = [pc EXCEPT ![self] = \"start\"]",
+    "IF y # 0 THEN /\\ pc' = [pc EXCEPT ![self] = \"2l4\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"2l6\"]",
+    "IF x # self THEN /\\ pc' = [pc EXCEPT ![self] = \"2l8\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"2cs\"]",
+    "IF (j2[self] \\leq N) THEN /\\ ~b[j2[self]] /\\ j2' = [j2 EXCEPT ![self] = j2[self]+1] /\\ pc' = [pc EXCEPT ![self] = \"2l9\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"2l10\"] /\\ j2' = j2",
+    "IF y # self THEN /\\ y = 0 /\\ failed2' = [failed2 EXCEPT ![self] = TRUE] ELSE /\\ TRUE /\\ UNCHANGED failed2",
+    "IF ~ failed2[self] THEN /\\ TRUE /\\ pc' = [pc EXCEPT ![self] = \"2l11\"] /\\ UNCHANGED failed2 ELSE /\\ failed2' = [failed2 EXCEPT ![self] = FALSE] /\\ pc' = [pc EXCEPT ![self] = \"2start\"]",
+    "IF i \\in 1..M THEN (pc[i] = \"cs\") /\\ (~failed[i]) ELSE (pc[i] = \"2cs\") /\\ (~failed2[i])"
+  ],
+  "CaseExpr": [
+    "CASE self \\in 1..M -> \"start\" [] self \\in (M+1)..N -> \"2start\""
+  ],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 1..N |-> FALSE]",
+    "[self \\in 1..M |-> 0]",
+    "[self \\in 1..M |-> FALSE]",
+    "[self \\in (M+1)..N |-> 0]",
+    "[self \\in (M+1)..N |-> FALSE]",
+    "[self \\in ProcSet |-> CASE self \\in 1..M -> \"start\"\n                                        [] self \\in (M+1)..N -> \"2start\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "j[self]",
+    "b[j[self]]",
+    "failed[self]",
+    "j2[self]",
+    "b[j2[self]]",
+    "failed2[self]",
+    "pc[i]",
+    "failed[i]",
+    "failed2[i]",
+    "inCS(i)",
+    "inCS(k)"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"l1\"]",
+    "[b EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"l2\"]",
+    "[pc EXCEPT ![self] = \"l4\"]",
+    "[pc EXCEPT ![self] = \"l6\"]",
+    "[b EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"l5\"]",
+    "[pc EXCEPT ![self] = \"start\"]",
+    "[pc EXCEPT ![self] = \"l7\"]",
+    "[pc EXCEPT ![self] = \"l8\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[j EXCEPT ![self] = 1]",
+    "[pc EXCEPT ![self] = \"l9\"]",
+    "[j EXCEPT ![self] = j[self]+1]",
+    "[pc EXCEPT ![self] = \"l10\"]",
+    "[failed EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"l11\"]",
+    "[failed EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"l12\"]",
+    "[pc EXCEPT ![self] = \"2l1\"]",
+    "[pc EXCEPT ![self] = \"2l2\"]",
+    "[pc EXCEPT ![self] = \"2l4\"]",
+    "[pc EXCEPT ![self] = \"2l6\"]",
+    "[pc EXCEPT ![self] = \"2l5\"]",
+    "[pc EXCEPT ![self] = \"2start\"]",
+    "[pc EXCEPT ![self] = \"2l7\"]",
+    "[pc EXCEPT ![self] = \"2l8\"]",
+    "[pc EXCEPT ![self] = \"2cs\"]",
+    "[j2 EXCEPT ![self] = 1]",
+    "[pc EXCEPT ![self] = \"2l9\"]",
+    "[j2 EXCEPT ![self] = j2[self]+1]",
+    "[pc EXCEPT ![self] = \"2l10\"]",
+    "[failed2 EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"2l11\"]",
+    "[failed2 EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"2l12\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, x, y, b, j, failed, j2, failed2 >>",
+    "<< x, y, b, j, failed, j2, failed2 >>",
+    "<< x, y, j, failed, j2, failed2 >>",
+    "<< y, b, j, failed, j2, failed2 >>",
+    "<< x, b, j, failed, j2, failed2 >>",
+    "<< x, y, failed, j2, failed2 >>",
+    "<< x, y, b, failed, j2, failed2 >>",
+    "<< x, y, b, j, j2, failed2 >>",
+    "<< x, y, b, j, failed, failed2 >>",
+    "<< x, y, b, j, failed, j2 >>",
+    "<< x, b, j, failed, j2, failed2 >>",
+    "<<\"ProcSet =\" , ProcSet>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<="
+  ],
+  "RangeExpr": [
+    "1..N",
+    "1..M",
+    "(M+1)..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "start",
+    "2start",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "l9",
+    "l10",
+    "cs",
+    "l11",
+    "l12",
+    "2l1",
+    "2l2",
+    "2l3",
+    "2l4",
+    "2l5",
+    "2l6",
+    "2l7",
+    "2l8",
+    "2l9",
+    "2l10",
+    "2cs",
+    "2l11",
+    "2l12",
+    "ProcSet ="
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "b",
+    "x",
+    "y",
+    "j",
+    "failed",
+    "j2",
+    "failed2"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << x, y, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, j, failed, j2, failed2 >>",
+    "UNCHANGED << y, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, b, failed, j2, failed2 >>",
+    "UNCHANGED failed",
+    "UNCHANGED << x, y, b, j, j2, failed2 >>",
+    "UNCHANGED << x, y, b, j, failed, failed2 >>",
+    "UNCHANGED failed2",
+    "UNCHANGED << x, y, b, j, failed, j2 >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Proc1(self))",
+    "WF_vars(Proc2(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]<> \\E i \\in 1..N : inCS(i)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in 1..M : WF_vars(Proc1(self))",
+    "\\A self \\in (M+1)..N : WF_vars(Proc2(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "FastMutex"
+  ],
+  "PlusCalProcesses": [
+    "Proc1",
+    "Proc2"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced all entries with verbatim IF expressions from the file and removed appended context markers like \u201c(in l3)\u201d | Reason: Values must appear in the TLA+ file; prior entries did not exist verbatim.\nField: CaseExpr | Change: Removed appended context marker \u201c(in Init)\u201d | Reason: Value must appear verbatim in the file.\nField: EventuallyOp | Change: Removed `<> \\\\E i \\\\in 1..N : inCS(i)` | Reason: No temporal formula in the file has `<>` as the outermost operator; the actual formula is `[]<> \\\\E i \\\\in 1..N : inCS(i)` with outermost `[]`.\nField: OperatorDefNames | Change: Verified count remains 39 | Reason: Phase 2 completeness check: top-level `==` definitions in file = 39, JSON count = 39.",
+  "OperatorDefNames_StatePredicate": [
+    "inCS",
+    "Invariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..N |-> FALSE]",
+    "[self \\in 1..M |-> 0]",
+    "[self \\in 1..M |-> FALSE]",
+    "[self \\in (M+1)..N |-> 0]",
+    "[self \\in (M+1)..N |-> FALSE]",
+    "[self \\in ProcSet |-> CASE self \\in 1..M -> \"start\"\n                                        [] self \\in (M+1)..N -> \"2start\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << x, y, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, j, failed, j2, failed2 >>",
+    "UNCHANGED << y, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, b, j, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, b, failed, j2, failed2 >>",
+    "UNCHANGED << x, y, b, j, j2, failed2 >>",
+    "UNCHANGED << x, y, b, j, failed, failed2 >>",
+    "UNCHANGED << x, y, b, j, failed, j2 >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED failed",
+    "UNCHANGED failed2"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/FastMutex2/FastMutex2.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ValueDef by elimination: vars and ProcSet are non-action, non-temporal, non-Init operator definitions that compute values rather than predicates.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "UnchangedExprs_VarRef contains UNCHANGED failed and UNCHANGED failed2 because these are single variable references. The file does not contain UNCHANGED vars.",
+    "TemporalNesting is false. The file contains []<> in `Liveness == []<> \\E i \\in 1..N : inCS(i)`, but this is not an explicitly nested temporal operator according to the stated rule; there is no line where one temporal operator appears inside the body of another temporal operator expression beyond such direct prefix chaining.",
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(2) + ActionDefNames(32) = OperatorDefNames(39). Verified."
+  ]
+}

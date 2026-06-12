@@ -1,0 +1,353 @@
+{
+  "id": null,
+  "Specification": "This specification models consistency of an abstract transactional service with histories of client-visible request/response events and a set of ledger branches representing views. Read-write transactions can be requested, executed onto a branch, responded to with an observed prefix, and later receive committed or invalid status messages; read-only transactions observe a branch and receive a response carrying the observed sequence and transaction identifier. The model includes view changes via ledger truncation and branch extension, checks typing and committed-event structure, and asserts a basic temporal specification `Spec == Init /\\ [][Next]_vars` together with state and temporal helper properties such as ledger monotonicity and a consistency invariant relating committed read-write responses to later committed read-only observations.",
+  "ModuleName": "Consistency",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "history",
+    "ledgerBranches",
+    "action"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "MySelectSeq",
+    "Max",
+    "Last",
+    "SelectLastInSeq",
+    "IsPrefix",
+    "Contains",
+    "RwTxRequest",
+    "RwTxResponse",
+    "RoTxRequest",
+    "RoTxResponse",
+    "TxStatusReceived",
+    "CommittedStatus",
+    "InvalidStatus",
+    "TxStatuses",
+    "FirstBranch",
+    "Views",
+    "SeqNums",
+    "TxIDs",
+    "Txs",
+    "HistoryTypeOK",
+    "CommittedEventIndexes",
+    "CommittedTxIDs",
+    "CommitSeqNum",
+    "RwTxResponseCommittedEventIndexes",
+    "RoTxResponseCommittedEventIndexes",
+    "RoTxRequestCommittedEventIndexes",
+    "AllCommittedObservedRoInv",
+    "LedgerTypeOK",
+    "LedgersMonoProp",
+    "vars",
+    "TypeOK",
+    "Init",
+    "IndexOfLastRequested",
+    "NextRequestId",
+    "RwTxRequestAction",
+    "RwTxExecuteAction",
+    "LedgerBranchTxOnly",
+    "RwTxResponseAction",
+    "StatusCommittedResponseAction",
+    "AppendOtherTxnAction",
+    "RoTxRequestAction",
+    "RoTxResponseAction",
+    "ViewWithAllCommitted",
+    "TruncateLedgerAction",
+    "StatusInvalidResponseAction",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "RwTxRequestAction",
+    "RwTxExecuteAction",
+    "RwTxResponseAction",
+    "StatusCommittedResponseAction",
+    "AppendOtherTxnAction",
+    "RoTxRequestAction",
+    "RoTxResponseAction",
+    "TruncateLedgerAction",
+    "StatusInvalidResponseAction",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "F",
+    "I",
+    "SubBranch"
+  ],
+  "LambdaParams": [
+    "e"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "\\lnot"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 0 THEN << >> ELSE IF Test(s[i]) THEN Append(F[i-1], s[i]) ELSE F[i-1]",
+    "IF Test(s[i]) THEN Append(F[i-1], s[i]) ELSE F[i-1]",
+    "IF I # {} THEN Max(I) ELSE 0",
+    "IF IndexOfLastRequested = 0 THEN 0 ELSE history[IndexOfLastRequested].tx+1"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{RwTxRequest, RoTxRequest}",
+    "{RwTxResponse, RoTxResponse}",
+    "{\n    CommittedStatus,\n    InvalidStatus\n    }",
+    "{0}",
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\X",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 0..Len(s) |-> IF i = 0 THEN << >> ELSE IF Test(s[i]) THEN Append(F[i-1], s[i]) ELSE F[i-1]]",
+    "[ x \\in 1..FirstBranch |-> <<>>]",
+    "[i \\in DOMAIN SubBranch |-> SubBranch[i].tx]"
+  ],
+  "FunctionApplication": [
+    "F[Len(s)]",
+    "s[i]",
+    "F[i-1]",
+    "seq[i]",
+    "history[i]",
+    "history[x]",
+    "history[y]",
+    "history[k]",
+    "history[j]",
+    "ledgerBranches[view]",
+    "ledgerBranches[view][seqnum]",
+    "history[IndexOfLastRequested]",
+    "SubBranch[i]",
+    "Last(ledgerBranches)[history[i].tx_id[2]]",
+    "ledgerBranches[view][Len(ledgerBranches[view])]",
+    "ledgerBranches[Len(ledgerBranches)]",
+    "ledgerBranches[Len(ledgerBranches)][history[i].tx_id[2]]",
+    "ledgerBranches[Len(ledgerBranches)][CommitSeqNum]"
+  ],
+  "FunctionOverride": [
+    "[ledgerBranches EXCEPT ![view] = \n                    Append(@,[view |-> view, tx |-> history[i].tx])]",
+    "[ledgerBranches EXCEPT ![view] = \n                    Append(@,[view |-> view])]"
+  ],
+  "RecordConstructor": [
+    "[type |-> RwTxRequest, tx |-> NextRequestId]",
+    "[type |-> RwTxResponse, \n                        tx |-> history[i].tx, \n                        observed |-> LedgerBranchTxOnly(SubSeq(ledgerBranches[view],1,seqnum)),\n                        tx_id |-> <<ledgerBranches[view][seqnum].view, seqnum>>]",
+    "[type |-> TxStatusReceived, \n                tx_id |-> history[i].tx_id,\n                status |-> CommittedStatus]",
+    "[view |-> view]",
+    "[type |-> RoTxRequest, tx |-> NextRequestId]",
+    "[type |-> RoTxResponse, \n                    tx |-> history[i].tx, \n                    observed |-> LedgerBranchTxOnly(ledgerBranches[view]),\n                    tx_id |-> <<ledgerBranches[view][Len(ledgerBranches[view])].view, Len(ledgerBranches[view])>>]",
+    "[type |-> TxStatusReceived, \n                tx_id |-> history[i].tx_id,\n                status |-> InvalidStatus]",
+    "[view |-> view, tx |-> history[i].tx]"
+  ],
+  "RecordAccess": [
+    "history[i].type",
+    "history[i].tx",
+    "history[i].observed",
+    "history[i].tx_id",
+    "history[i].status",
+    "history[x].type",
+    "history[x].tx_id",
+    "history[y].tx",
+    "history[j].tx",
+    "history[k].tx",
+    "history[k].observed",
+    "ledgerBranches[view][seqnum].view",
+    "ledgerBranches[view][seqnum].tx",
+    "SubBranch[i].tx",
+    "history[i].tx_id[2]",
+    "history[i].tx_id[1]",
+    "Last(ledgerBranches)[history[i].tx_id[2]].view",
+    "ledgerBranches[view][Len(ledgerBranches[view])].view",
+    "ledgerBranches[view][CommitSeqNum].view",
+    "ledgerBranches[Len(ledgerBranches)][history[i].tx_id[2]].view",
+    "ledgerBranches[Len(ledgerBranches)][CommitSeqNum].view"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<>>",
+    "<< history, ledgerBranches, action >>",
+    "<<ledgerBranches[view][seqnum].view, seqnum>>",
+    "<<ledgerBranches[view][Len(ledgerBranches[view])].view, Len(ledgerBranches[view])>>",
+    "<<ledgerBranches[view][CommitSeqNum].view, CommitSeqNum>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "0..Len(s)",
+    "1..Len(seq)",
+    "1..FirstBranch",
+    "FirstBranch..Len(ledgerBranches)",
+    "1..Len(s)",
+    "CommitSeqNum..Len(ledgerBranches[view])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in S : \\A y \\in S : x >= y"
+  ],
+  "StringLiterals": [
+    "RwTxRequest",
+    "RwTxResponse",
+    "RoTxRequest",
+    "RoTxResponse",
+    "TxStatusReceived",
+    "CommittedStatus",
+    "InvalidStatus",
+    "tx",
+    "Init",
+    "RwTxExecute",
+    "StatusCommittedResponse",
+    "AppendOtherTxn",
+    "TruncateLedger (CheckQuorum)",
+    "StatusInvalidResponse"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "ledgerBranches",
+    "history",
+    "action"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED ledgerBranches",
+    "UNCHANGED history"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][\\A view \\in DOMAIN ledgerBranches: IsPrefix(ledgerBranches[view], ledgerBranches'[view])]_ledgerBranches",
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][\\A view \\in DOMAIN ledgerBranches: IsPrefix(ledgerBranches[view], ledgerBranches'[view])]_ledgerBranches",
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained values `F`, `I`, `SubBranch` | Reason: LET-bound names must be stored in `LetInNames`; `NamesInLet` is not the required field.\nField: IfThenElse | Change: removed contextual suffixes `(in MySelectSeq)` and `(in SelectLastInSeq)` and `(in NextRequestId)` | Reason: values must be expressions that literally appear in the TLA+ file.\nField: FunctionConstructor | Change: corrected `\"[i \\\\in 0..Len(s)]\"` to `\"[i \\\\in 0..Len(s) |-> IF i = 0 THEN << >> ELSE IF Test(s[i]) THEN Append(F[i-1], s[i]) ELSE F[i-1]]\"` | Reason: the file contains a function definition/constructor with `|->`; the V1 entry did not literally appear in the file.\nField: FunctionApplication | Change: removed non-literal or record-access-containing entries `ledgerBranches[view][seqnum].tx`, `history[j].tx`, `history[i].tx`, `history[i].tx_id[2]`, `history[i].tx_id[1]`, `ledgerBranches[view][CommitSeqNum]` | Reason: these entries are not pure function-application expressions as stored and do not appear as standalone expressions verbatim in the file.\nField: RecordConstructor | Change: replaced invalid entry `\"[\\n              history,[\\n                type |-> TxStatusReceived, \\n                tx_id |-> history[i].tx_id,\\n                status |-> CommittedStatus]\\n              ]\"` with `\"[type |-> TxStatusReceived, \\n                tx_id |-> history[i].tx_id,\\n                status |-> CommittedStatus]\"` | Reason: original entry included surrounding `Append` context and did not literally appear as a record constructor.\nField: RecordConstructor | Change: normalized response record entries to contain only the literal record constructors from the file | Reason: field must contain only record constructors, not surrounding context.\nField: RecordAccess | Change: removed `history[j].status` | Reason: this expression does not appear anywhere in the TLA+ file.\nField: StringLiterals | Change: removed duplicate entries `RwTxRequest`, `RwTxResponse`, `RoTxRequest`, `RoTxResponse` from action strings list | Reason: these duplicated existing string literals and deduplication is required.\nField: StringLiterals | Change: removed `RoTxRequest` and `RoTxResponse` action-string duplicates while retaining literal protocol strings and actual action labels present in assignments | Reason: only distinct string literals should appear once.\nField: ProofCommands | Change: removed `ASSUME` | Reason: the TLA+ file contains no `ASSUME`, `ASSUMPTION`, proof, or `AXIOM` blocks; this value does not exist in the file.\nField: AssumptionNames | Change: confirmed empty | Reason: the file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks.\nField: LocalOperatorNames | Change: confirmed empty | Reason: there are no local parametric operator definitions inside LET blocks.\nField: EnabledExprs | Change: confirmed empty | Reason: the file contains no `ENABLED` expressions.\nField: FairnessConditions | Change: confirmed empty | Reason: `Spec` contains no `WF` or `SF` fairness conditions.\nField: EventuallyOp | Change: confirmed empty | Reason: the file contains no temporal formula with outermost `<>`.\nField: LeadsToOp | Change: confirmed empty | Reason: the file contains no temporal formula with outermost `~>`.\nField: GuaranteesOp | Change: confirmed empty | Reason: the file contains no temporal formula with outermost `-+->`.\nField: ActionComposition | Change: confirmed empty | Reason: the file contains no `A \\\\cdot B` action composition.\nField: BooleanConstants | Change: confirmed empty | Reason: the file contains neither `TRUE` nor `FALSE`.\nField: OperatorDefNames | Change: verified count matches top-level definitions exactly: file count = 47, JSON count = 47 | Reason: completeness check passed.",
+  "OperatorDefNames_StatePredicate": [
+    "HistoryTypeOK",
+    "AllCommittedObservedRoInv",
+    "LedgerTypeOK",
+    "TypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "LedgersMonoProp",
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "MySelectSeq",
+    "Max",
+    "Last",
+    "SelectLastInSeq",
+    "IsPrefix",
+    "Contains",
+    "RwTxRequest",
+    "RwTxResponse",
+    "RoTxRequest",
+    "RoTxResponse",
+    "TxStatusReceived",
+    "CommittedStatus",
+    "InvalidStatus",
+    "TxStatuses",
+    "FirstBranch",
+    "Views",
+    "SeqNums",
+    "TxIDs",
+    "Txs",
+    "CommittedEventIndexes",
+    "CommittedTxIDs",
+    "CommitSeqNum",
+    "RwTxResponseCommittedEventIndexes",
+    "RoTxResponseCommittedEventIndexes",
+    "RoTxRequestCommittedEventIndexes",
+    "vars",
+    "IndexOfLastRequested",
+    "NextRequestId",
+    "LedgerBranchTxOnly",
+    "ViewWithAllCommitted"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 0..Len(s) |-> IF i = 0 THEN << >> ELSE IF Test(s[i]) THEN Append(F[i-1], s[i]) ELSE F[i-1]]",
+    "[ x \\in 1..FirstBranch |-> <<>>]",
+    "[i \\in DOMAIN SubBranch |-> SubBranch[i].tx]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED ledgerBranches",
+    "UNCHANGED history"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Consistency/Consistency.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(30) + ActionDefNames(10) = OperatorDefNames(47). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_ByDomain contains all entries and FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CommittedEventIndexes, CommittedTxIDs, CommitSeqNum, RwTxResponseCommittedEventIndexes, RoTxResponseCommittedEventIndexes, RoTxRequestCommittedEventIndexes, IndexOfLastRequested, NextRequestId, and ViewWithAllCommitted are placed in ValueDef as non-Boolean computed values; MySelectSeq, Max, Last, SelectLastInSeq, IsPrefix, Contains, and LedgerBranchTxOnly are helper value definitions."
+  ]
+}

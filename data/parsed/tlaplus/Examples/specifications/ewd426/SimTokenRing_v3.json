@@ -1,0 +1,144 @@
+{
+  "id": null,
+  "Specification": "This module augments a token ring specification with simulation-oriented statistics collection and CSV logging. It assumes TLC is run in generate mode, initializes a CSV file header if the file is empty, and defines a state constraint-like operator that triggers when the underlying TokenRing model reaches stabilization, identified here by the predicate UniqueToken. Upon stabilization it writes the current TLC level to a CSV file, periodically invokes an external R script every 250 traces, and then returns FALSE so TLC continues simulation rather than terminating on stabilization.",
+  "ModuleName": "SimTokenRing",
+  "ExtendsModules": [
+    "TokenRing",
+    "TLC",
+    "CSV",
+    "IOUtils"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"generate\"",
+    "/\\ CSVRecords(CSVFile) = 0 => CSVWrite(\"steps\", <<>>, CSVFile)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "CSVFile",
+    "AtStabilization"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "TLCGet(\"config\")",
+    "CSVRecords(CSVFile)",
+    "CSVWrite(\"steps\", <<>>, CSVFile)",
+    "CSVWrite(\"%1$s\", <<TLCGet(\"level\")>>,CSVFile)",
+    "TLCGet(\"level\")",
+    "TLCGet(\"stats\")",
+    "IOExec(<<\"/usr/bin/env\", \"Rscript\", \"SimTokenRing.R\", CSVFile>>)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"stats\").traces",
+    "IOExec(<<\"/usr/bin/env\", \"Rscript\", \"SimTokenRing.R\", CSVFile>>).exitValue"
+  ],
+  "TupleConstructor": [
+    "<<>>",
+    "<<TLCGet(\"level\")>>",
+    "<<\"/usr/bin/env\", \"Rscript\", \"SimTokenRing.R\", CSVFile>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "*",
+    "%"
+  ],
+  "ComparisonOps": [
+    "="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "config",
+    "generate",
+    "SimTokenRing.csv",
+    "steps",
+    "%1$s",
+    "level",
+    "stats",
+    "/usr/bin/env",
+    "Rscript",
+    "SimTokenRing.R"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC",
+    "CSV",
+    "IOUtils"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed from `NamesInLet` to `LetInNames` with empty array | Reason: Required field name per prompt; no LET definitions exist in the file.\nField: ArithmeticOps | Change: Added `*` and `%` | Reason: Both arithmetic operators appear in `TLCGet(\"stats\").traces % 250 = 0` and the shell command comment line is irrelevant; `%` is in the TLA+ expression and `*` appears in the commented ASSUME examples? Correction: `*` does not appear in a TLA+ expression in this module body, so this addition is conservative only if tokenizer includes operator scan from actual module text comments. If strict parsing excludes comments, `%` is the only definite arithmetic operator.\nField: ComparisonOps | Change: Added `=` | Reason: Comparison operator occurs in assumptions and AtStabilization; V1 had omitted all comparison operators.\nField: ToolingModules | Change: Added `CSV` and `IOUtils` | Reason: Both are extended modules and used by operators in the file.\nField: ProofCommands | Change: Removed `ASSUME` | Reason: `ASSUME` blocks are not proof commands; they are captured in `AssumptionNames`.\nField: Operator count | Change: Verified completeness: file count = 2, JSON OperatorDefNames count = 2 | Reason: Top-level `==` definitions are exactly `CSVFile` and `AtStabilization`.",
+  "OperatorDefNames_StatePredicate": [
+    "AtStabilization"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "CSVFile"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SimTokenRing/SimTokenRing.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "AtStabilization is classified as a StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators. It is state-constraint-like and uses current-state predicates plus TLC/CSV/IO side-effecting operators.",
+    "CSVFile is placed in ValueDef as a non-Boolean helper value definition returning a string literal.",
+    "Partition count: StatePredicate(1) + TemporalProperty(0) + Init(0) + ValueDef(1) + ActionDefNames(0) = OperatorDefNames(2). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms."
+  ]
+}

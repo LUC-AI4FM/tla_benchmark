@@ -1,0 +1,271 @@
+{
+  "id": null,
+  "Specification": "This specification models traffic over a single-lane bridge where cars may travel in two opposite directions, represented by the disjoint sets CarsRight and CarsLeft. The bridge admits concurrent movement only for cars traveling in the same direction, and the specification enforces safety conditions preventing cars going in opposite directions from occupying the bridge simultaneously or colliding within bridge positions. The model defines movement, waiting behavior before entering the bridge, weak fairness assumptions for movement and entry actions, and verifies safety invariants, typing constraints, and liveness properties stating that cars eventually enter and eventually exit the bridge.",
+  "ModuleName": "SingleLaneBridge",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "CarsRight",
+    "CarsLeft",
+    "Bridge",
+    "Positions"
+  ],
+  "VariableNames": [
+    "Location",
+    "WaitingBeforeBridge"
+  ],
+  "AssumptionNames": [
+    "CarsRight \\cap CarsLeft = {}",
+    "Cardinality(CarsRight \\union CarsLeft ) # 0",
+    "StartPos < StartBridge /\\ EndPos > EndBridge /\\ Cardinality(Bridge) < Cardinality(Positions)"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => [] Invariants",
+    "THEOREM Spec => [] TypeOK",
+    "THEOREM Spec => CarsInBridgeExitBridge",
+    "THEOREM Spec => CarsEnterBridge"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "StartPos",
+    "EndPos",
+    "StartBridge",
+    "EndBridge",
+    "SeqFromSet",
+    "Cars",
+    "CarsInBridge",
+    "CarsBeforeBridge",
+    "RMove",
+    "LMove",
+    "NextLocation",
+    "ChangeLocation",
+    "HaveSameDirection",
+    "MoveOutsideBridge",
+    "MoveInsideBridge",
+    "EnterBridge",
+    "Init",
+    "Next",
+    "Fairness",
+    "Spec",
+    "Invariants",
+    "TypeOK",
+    "CarsInBridgeExitBridge",
+    "CarsEnterBridge"
+  ],
+  "ActionDefNames": [
+    "ChangeLocation",
+    "MoveOutsideBridge",
+    "MoveInsideBridge",
+    "EnterBridge",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "SeqFromSet"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "x"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF S = {} THEN << >> ELSE LET x == CHOOSE x \\in S : TRUE IN << x >> \\o SeqFromSet(S \\ {x}) (in SeqFromSet)",
+    "IF pos > StartPos THEN pos - 1 ELSE EndPos (in RMove)",
+    "IF pos < EndPos THEN pos + 1 ELSE StartPos (in LMove)",
+    "IF car \\in CarsRight THEN RMove(Location[car]) ELSE LMove(Location[car]) (in NextLocation)",
+    "IF \\/ car \\in CarsRight /\\ NextLocation(car) = EndBridge + 1 \\/ car \\in CarsLeft /\\ NextLocation(car) = StartBridge - 1 THEN WaitingBeforeBridge' = Append(WaitingBeforeBridge, car) ELSE UNCHANGED WaitingBeforeBridge (in ChangeLocation)",
+    "IF c \\in CarsRight THEN EndPos ELSE StartPos (in Init)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\union",
+    "\\cap",
+    "\\X",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ c \\in Cars |-> IF c \\in CarsRight THEN EndPos ELSE StartPos  ]",
+    "[ Cars -> Positions ]"
+  ],
+  "FunctionApplication": [
+    "Location[c]",
+    "Location[car]",
+    "Location[a]",
+    "Location[b]",
+    "Location[r]",
+    "Location[l]"
+  ],
+  "FunctionOverride": [
+    "[ Location EXCEPT ![car] = NextLocation(car) ]",
+    "[ Location EXCEPT ![Head(WaitingBeforeBridge)] = NextLocation(Head(WaitingBeforeBridge)) ]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<Location, WaitingBeforeBridge>>",
+    "<< >>",
+    "<< x >>",
+    "<<r,l>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE min \\in Positions : \\A p \\in Positions : min <= p",
+    "CHOOSE max \\in Positions : \\A p \\in Positions : max >= p",
+    "CHOOSE min \\in Bridge : \\A e \\in Bridge : min <= e",
+    "CHOOSE max \\in Bridge : \\A e \\in Bridge : max >= e",
+    "CHOOSE x \\in S : TRUE"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "WaitingBeforeBridge",
+    "Location"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED WaitingBeforeBridge"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_vars(MoveOutsideBridge(car))",
+    "WF_vars(MoveInsideBridge(car))",
+    "WF_vars(EnterBridge)",
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "\\A car \\in Cars : Location[car] \\in Bridge ~> Location[car] \\notin Bridge",
+    "\\A car \\in Cars : Location[car] \\notin Bridge ~> Location[car] \\in Bridge"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A car \\in Cars : WF_vars(MoveOutsideBridge(car))",
+    "\\A car \\in Cars : WF_vars(MoveInsideBridge(car))",
+    "\\A car \\in Cars : WF_vars(EnterBridge)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained `x` | Reason: required field name per verification guide; `x` is LET-bound in `SeqFromSet`\nField: AlwaysOp | Change: removed `[] Invariants` and `[] TypeOK` | Reason: outermost operator in file is `=>` in theorems `Spec => [] Invariants` and `Spec => [] TypeOK`; these are not standalone `AlwaysOp` formulas, and `AlwaysOp` must include full subscript when applicable\nField: LeadsToOp | Change: replaced `Location[car] \\\\in Bridge ~> Location[car] \\\\notin Bridge` with `\\\\A car \\\\in Cars : Location[car] \\\\in Bridge ~> Location[car] \\\\notin Bridge` | Reason: outermost temporal formula in `CarsInBridgeExitBridge` is the quantified leads-to formula, not the bare subexpression\nField: LeadsToOp | Change: replaced `Location[car] \\\\notin Bridge ~> Location[car] \\\\in Bridge` with `\\\\A car \\\\in Cars : Location[car] \\\\notin Bridge ~> Location[car] \\\\in Bridge` | Reason: outermost temporal formula in `CarsEnterBridge` is the quantified leads-to formula, not the bare subexpression\nField: Completeness check | Change: verified top-level operator counts match: file count = 25, JSON OperatorDefNames count = 25 | Reason: Phase 2 completeness requirement satisfied",
+  "OperatorDefNames_StatePredicate": [
+    "HaveSameDirection",
+    "Invariants",
+    "TypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Fairness",
+    "Spec",
+    "CarsInBridgeExitBridge",
+    "CarsEnterBridge"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "StartPos",
+    "EndPos",
+    "StartBridge",
+    "EndBridge",
+    "SeqFromSet",
+    "Cars",
+    "CarsInBridge",
+    "CarsBeforeBridge",
+    "RMove",
+    "LMove",
+    "NextLocation"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ c \\in Cars |-> IF c \\in CarsRight THEN EndPos ELSE StartPos  ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Cars -> Positions ]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED WaitingBeforeBridge"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SingleLaneBridge/SingleLaneBridge.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(4) + Init(1) + ValueDef(12) + ActionDefNames(5) = OperatorDefNames(25). Verified.",
+    "Fairness is placed in TemporalProperty because it is a conjunction of WF_vars fairness conditions, which are temporal formulas even though they do not use [], <>, or ~>.",
+    "CarsInBridgeExitBridge and CarsEnterBridge are placed in TemporalProperty because their bodies are quantified leads-to formulas using ~>.",
+    "UnchangedExprs_Explicit is empty; the only UNCHANGED expression is a single variable reference form.",
+    "Operators placed in ValueDef by elimination after excluding actions, Init, state predicates, and temporal properties: vars, StartPos, EndPos, StartBridge, EndBridge, SeqFromSet, Cars, CarsInBridge, CarsBeforeBridge, RMove, LMove, NextLocation.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because folder could not be determined from file content."
+  ]
+}

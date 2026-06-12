@@ -1,0 +1,282 @@
+{
+  "id": null,
+  "Specification": "This module specifies a solution to the classic prisoners-and-switches puzzle. One designated prisoner acts as a counter, while every other prisoner is allowed to move switch A up at most twice; the counter increments a count whenever he finds switch A up and turns it down, and everyone otherwise flips switch B. The specification models random repeated selection of prisoners under weak fairness assumptions that guarantee the counter and every non-counter prisoner are brought into the room infinitely often, and it states both a safety property saying that when the protocol declares completion then every prisoner has visited the room, and a liveness property saying that the declaration condition is eventually reached.",
+  "ModuleName": "Prisoners",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Prisoner",
+    "Counter",
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+  ],
+  "VariableNames": [
+    "switchAUp",
+    "switchBUp",
+    "timesSwitched",
+    "count"
+  ],
+  "AssumptionNames": [
+    "/\\ Counter \\in Prisoner\n  /\\ Cardinality(Prisoner) > 1"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => Safety /\\ Liveness"
+  ],
+  "OperatorDefNames": [
+    "OtherPrisoner",
+    "vars",
+    "TypeOK",
+    "Init",
+    "Done",
+    "NonCounterStep",
+    "CounterStep",
+    "Next",
+    "Fairness",
+    "Spec",
+    "Safety",
+    "Liveness",
+    "CountInvariant",
+    "CountInfOftenZero",
+    "PostCondition",
+    "CounterExample"
+  ],
+  "ActionDefNames": [
+    "NonCounterStep",
+    "CounterStep",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "sum"
+  ],
+  "LetInNames": [
+    "totalSwitched",
+    "sum",
+    "p",
+    "oneIfUp"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF (~switchAUp) /\\ (timesSwitched[i] < 2)\n       THEN /\\ switchAUp' = TRUE\n            /\\ timesSwitched' = [timesSwitched EXCEPT ![i] = @+1]\n            /\\ UNCHANGED switchBUp\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ UNCHANGED <<switchAUp, timesSwitched>>",
+    "IF switchAUp\n       THEN /\\ switchAUp' = FALSE\n            /\\ UNCHANGED switchBUp\n            /\\ count' =  count + 1\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ UNCHANGED <<switchAUp, count>>",
+    "IF S = {} THEN 0\n                        ELSE LET p == CHOOSE pr \\in S : TRUE\n                             IN  timesSwitched[p] + sum[S \\ {p}]",
+    "IF switchAUp THEN 1 ELSE 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{Counter}",
+    "{}",
+    "{totalSwitched - oneIfUp, totalSwitched - oneIfUp + 1}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[OtherPrisoner -> 0..2]",
+    "[i \\in OtherPrisoner |-> 0]"
+  ],
+  "FunctionApplication": [
+    "timesSwitched[i]",
+    "sum[OtherPrisoner]",
+    "sum[S \\ {p}]",
+    "timesSwitched[p]",
+    "NonCounterStep(i)"
+  ],
+  "FunctionOverride": [
+    "[timesSwitched EXCEPT ![i] = @+1]"
+  ],
+  "RecordConstructor": [
+    "[ action |->\n      { << << 1,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n                count |-> 0 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 2,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n                count |-> 1 ] >> >>,\n        << << 2,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n                count |-> 1 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p4],\n             parameters |-> <<\"i\">> ],\n           << 3,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 1 ] >> >>,\n        << << 3,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 1 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 4,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ] >> >>,\n        << << 4,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p2],\n             parameters |-> <<\"i\">> ],\n           << 5,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ] >> >>,\n        << << 5,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 6,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 3 ] >> >>,\n        << << 6,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 3 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p3],\n             parameters |-> <<\"i\">> ],\n           << 7,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 3 ] >> >>,\n        << << 7,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 3 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 8,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 4 ] >> >>,\n        << << 8,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 4 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p3],\n             parameters |-> <<\"i\">> ],\n           << 9,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 4 ] >> >>,\n        << << 9,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 4 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 10,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 5 ] >> >>,\n        << << 10,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 5 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p4],\n             parameters |-> <<\"i\">> ],\n           << 11,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 5 ] >> >>,\n        << << 11,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 5 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 12,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ] >> >>,\n        << << 12,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ] >>,\n           [ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p2],\n             parameters |-> <<\"i\">> ],\n           << 13,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ] >> >>,\n        << << 13,\n              [ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 14,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ] >> >>,\n        << << 14,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 15,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> TRUE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ] >> >>,\n        << << 15,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> TRUE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ] >>,\n           [ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ],\n           << 14,\n              [ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ] >> >> },\n  state |->\n      { << 1,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n             count |-> 0 ] >>,\n        << 2,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n             count |-> 1 ] >>,\n        << 3,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n             count |-> 1 ] >>,\n        << 4,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n             count |-> 2 ] >>,\n        << 5,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n             count |-> 2 ] >>,\n        << 6,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n             count |-> 3 ] >>,\n        << 7,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n             count |-> 3 ] >>,\n        << 8,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n             count |-> 4 ] >>,\n        << 9,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n             count |-> 4 ] >>,\n        << 10,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n             count |-> 5 ] >>,\n        << 11,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n             count |-> 5 ] >>,\n        << 12,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n             count |-> 6 ] >>,\n        << 13,\n           [ switchAUp |-> TRUE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n             count |-> 6 ] >>,\n        << 14,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> FALSE,\n             timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n             count |-> 7 ] >>,\n        << 15,\n           [ switchAUp |-> FALSE,\n             switchBUp |-> TRUE,\n             timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n             count |-> 7 ] >> } ]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n                count |-> 0 ]",
+    "[ name |-> \"CounterStep\",\n             location |->\n                 [ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ] ]",
+    "[ beginLine |-> 137,\n                   beginColumn |-> 3,\n                   endLine |-> 143,\n                   endColumn |-> 28,\n                   module |-> \"Prisoners\" ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 0),\n                count |-> 1 ]",
+    "[ name |-> \"NonCounterStep\",\n             location |->\n                 [ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ],\n             context |-> [i |-> p4],\n             parameters |-> <<\"i\">> ]",
+    "[ beginLine |-> 124,\n                   beginColumn |-> 3,\n                   endLine |-> 130,\n                   endColumn |-> 20,\n                   module |-> \"Prisoners\" ]",
+    "[i |-> p4]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 1 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 0 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ]",
+    "[i |-> p2]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 2 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 0 @@ p4 :> 1),\n                count |-> 3 ]",
+    "[i |-> p3]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 3 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 1 @@ p4 :> 1),\n                count |-> 4 ]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 4 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 1),\n                count |-> 5 ]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 5 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 1 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ]",
+    "[ switchAUp |-> TRUE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 6 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> FALSE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ]",
+    "[ switchAUp |-> FALSE,\n                switchBUp |-> TRUE,\n                timesSwitched |-> (p2 :> 2 @@ p3 :> 2 @@ p4 :> 2),\n                count |-> 7 ]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<switchAUp, switchBUp, timesSwitched, count>>",
+    "<<switchAUp, timesSwitched>>",
+    "<<switchAUp, count>>",
+    "<<\"i\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "0..2",
+    "0 .. (2 * Cardinality(Prisoner) - 1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE pr \\in S : TRUE"
+  ],
+  "StringLiterals": [
+    "CounterStep",
+    "Prisoners",
+    "NonCounterStep",
+    "i"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "switchAUp",
+    "timesSwitched",
+    "switchBUp",
+    "count"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED switchBUp",
+    "UNCHANGED <<switchAUp, timesSwitched>>",
+    "UNCHANGED count",
+    "UNCHANGED <<switchAUp, count>>",
+    "UNCHANGED timesSwitched"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_vars(CounterStep)",
+    "WF_vars(NonCounterStep(i))",
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](Done => (\\A i \\in Prisoner \\ {Counter} : timesSwitched[i] > 0))",
+    "[]<>(count = 0)"
+  ],
+  "EventuallyOp": [
+    "<>Done",
+    "<>(count = 0)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(CounterStep)",
+    "\\A i \\in OtherPrisoner : WF_vars(NonCounterStep(i))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: Replaced parenthesized assumption string with verbatim unnamed ASSUME body | Reason: Unnamed ASSUME entries must be stored as the full expression, and the V1 value added extra outer parentheses not present in the file\nField: LetInNames | Change: Renamed field from NamesInLet to LetInNames and preserved entries totalSwitched, sum, p, oneIfUp | Reason: Prompt explicitly identifies LetInNames as the correct field name\nField: IfThenElse | Change: Replaced prose summaries with verbatim TLA+ IF expressions | Reason: Field values must appear in the TLA+ file; V1 entries were descriptive paraphrases that do not occur verbatim\nField: SetOperators | Change: Removed DOMAIN, retained SUBSET and \\\\ | Reason: DOMAIN does not appear in the file; SUBSET belongs here and not in FiniteSetOps\nField: FunctionApplication | Change: Added NonCounterStep(i) | Reason: This function-style application appears in the file inside WF_vars and was missing\nField: RangeExpr | Change: Added 0 .. (2 * Cardinality(Prisoner) - 1) | Reason: Distinct range expression appears in TypeOK and completeness requires inclusion\nField: AlwaysOp | Change: Added [][Next]_vars | Reason: Outer temporal operator is [] in Spec, and AlwaysOp entries must include the full subscript\nField: EventuallyOp | Change: Added <>(count = 0) | Reason: []<>(count = 0) contains an outermost <> subformula that appears in the file and should be listed in EventuallyOp\nField: TheoremNames | Change: No textual change, but verified theorem entry | Reason: Completeness/correctness check confirmed theorem exists exactly once\nField: OperatorDefNames | Change: No textual change, but verified count 16 matches top-level == count 16 | Reason: Phase 2 completeness requirement satisfied: file count = 16, JSON OperatorDefNames count = 16",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Done",
+    "Fairness",
+    "CountInvariant",
+    "PostCondition"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Safety",
+    "Liveness",
+    "CountInfOftenZero"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "OtherPrisoner",
+    "vars",
+    "CounterExample"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in OtherPrisoner |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[OtherPrisoner -> 0..2]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<switchAUp, timesSwitched>>",
+    "UNCHANGED <<switchAUp, count>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/Prisoners/Prisoners.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(4) + Init(1) + ValueDef(3) + ActionDefNames(3) = OperatorDefNames(16). Verified.",
+    "Fairness is classified as a StatePredicate by the prompt's structural rule because its body contains no primed variables and no explicit [], <>, or ~>; it consists of fairness operators WF_vars(...), which are temporal in meaning but not part of the requested TemporalProperty trigger.",
+    "CountInvariant is classified as a StatePredicate because its body is Boolean-valued and contains no primed variables or temporal operators.",
+    "PostCondition is classified as a StatePredicate by elimination: it is a Boolean-valued operator with empty body text in the source.",
+    "CounterExample is classified as a ValueDef by elimination: it defines a non-Boolean structured value (a record containing action and state data).",
+    "TemporalNesting is true. Exact line: \"CountInfOftenZero == []<>(count = 0)\".",
+    "Safety is placed in TemporalProperty because its body has [] at the outermost level.",
+    "Spec is placed in TemporalProperty because it contains the temporal formula [][Next]_vars at top level.",
+    "FunctionConstructor_ByDomain and FunctionConstructor_SetType exactly partition FunctionConstructor."
+  ]
+}

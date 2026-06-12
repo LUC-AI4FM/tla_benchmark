@@ -1,0 +1,238 @@
+{
+  "id": null,
+  "Specification": "This specification models the classic prisoners-and-switches puzzle in which one designated prisoner acts as a counter and the others use a strategy involving two switches to determine when everyone has visited the room at least once. The model uses typed constants and variables, tracks how many times each non-counter prisoner has switched switch A up, and lets the counter increment a count whenever switch A is found up and turned down. The specification assumes weak fairness for the counter step and for each non-counter prisoner step, thereby capturing the puzzle's requirement that every prisoner is brought into the room infinitely often, and it asserts both a safety property and an eventuality property that together show the strategy works.",
+  "ModuleName": "PrisonersTyped",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Apalache"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Prisoner",
+    "Counter"
+  ],
+  "VariableNames": [
+    "switchAUp",
+    "switchBUp",
+    "timesSwitched",
+    "count"
+  ],
+  "AssumptionNames": [
+    "/\\ Counter \\in Prisoner\n  /\\ Cardinality(Prisoner) > 1"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => Safety /\\ Liveness"
+  ],
+  "OperatorDefNames": [
+    "OtherPrisoner",
+    "vars",
+    "TypeOK",
+    "Init",
+    "Done",
+    "NonCounterStep",
+    "CounterStep",
+    "Next",
+    "Fairness",
+    "Spec",
+    "Safety",
+    "Liveness",
+    "CountInvariant"
+  ],
+  "ActionDefNames": [
+    "NonCounterStep",
+    "CounterStep",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "sum",
+    "Add"
+  ],
+  "LetInNames": [
+    "totalSwitched",
+    "sum",
+    "Add",
+    "oneIfUp"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF (~switchAUp) /\\ (timesSwitched[i] < 2)\n       THEN /\\ switchAUp' = TRUE\n            /\\ timesSwitched' = [timesSwitched EXCEPT ![i] = @+1]\n            /\\ UNCHANGED switchBUp\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ UNCHANGED <<switchAUp, timesSwitched>>",
+    "IF switchAUp\n       THEN /\\ switchAUp' = FALSE\n            /\\ UNCHANGED switchBUp\n            /\\ count' =  count + 1\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ UNCHANGED <<switchAUp, count>>",
+    "IF switchAUp THEN 1 ELSE 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{Counter}",
+    "{totalSwitched - oneIfUp, totalSwitched - oneIfUp + 1}"
+  ],
+  "SetOperators": [
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[OtherPrisoner -> 0..2]",
+    "[i \\in OtherPrisoner |-> 0]"
+  ],
+  "FunctionApplication": [
+    "timesSwitched[i]",
+    "timesSwitched[p]",
+    "sum(OtherPrisoner)",
+    "ApaFoldSet(Add, 0, OtherPrisoner)",
+    "NonCounterStep(i)",
+    "WF_vars(CounterStep)",
+    "WF_vars(NonCounterStep(i))",
+    "Cardinality(Prisoner)"
+  ],
+  "FunctionOverride": [
+    "[timesSwitched EXCEPT ![i] = @+1]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<switchAUp, switchBUp, timesSwitched, count>>",
+    "<<switchAUp, timesSwitched>>",
+    "<<switchAUp, count>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<"
+  ],
+  "RangeExpr": [
+    "0..2",
+    "0 .. (2 * Cardinality(Prisoner) - 1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE pr \\in S : TRUE"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "Apalache"
+  ],
+  "PrimedVariables": [
+    "switchAUp",
+    "timesSwitched",
+    "switchBUp",
+    "count"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED switchBUp",
+    "UNCHANGED <<switchAUp, timesSwitched>>",
+    "UNCHANGED count",
+    "UNCHANGED <<switchAUp, count>>",
+    "UNCHANGED timesSwitched"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_vars(CounterStep)",
+    "WF_vars(NonCounterStep(i))",
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](Done => (\\A i \\in Prisoner \\ {Counter} : timesSwitched[i] > 0))"
+  ],
+  "EventuallyOp": [
+    "<>Done"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(CounterStep)",
+    "\\A i \\in OtherPrisoner : WF_vars(NonCounterStep(i))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: Replaced \"(/\\\\ Counter \\\\in Prisoner\\n  /\\\\ Cardinality(Prisoner) > 1)\" with \"/\\\\ Counter \\\\in Prisoner\\n  /\\\\ Cardinality(Prisoner) > 1\" | Reason: Unnamed ASSUME entry must be the full expression verbatim, without extra surrounding parentheses not present in the file.\nField: NamesInLet | Change: Renamed field to LetInNames | Reason: Phase 3 specifies LetInNames; LET-bound names must be recorded there.\nField: IfThenElse | Change: Replaced informal paraphrases with verbatim TLA+ IF/THEN/ELSE expressions | Reason: JSON values must appear in the TLA+ file; prior entries did not exist verbatim.\nField: SetOperators | Change: Removed \"DOMAIN\" | Reason: DOMAIN does not appear anywhere in the file.\nField: FunctionApplication | Change: Added \"sum(OtherPrisoner)\", \"ApaFoldSet(Add, 0, OtherPrisoner)\", \"NonCounterStep(i)\", \"WF_vars(CounterStep)\", \"WF_vars(NonCounterStep(i))\", and \"Cardinality(Prisoner)\" | Reason: These function/operator applications appear in the file and the field was incomplete.\nField: TupleConstructor | Change: Added \"<<switchAUp, count>>\" | Reason: This tuple appears in UNCHANGED <<switchAUp, count>> and was missing.\nField: ToolingModules | Change: Added \"Apalache\" | Reason: Apalache is extended by the module and should be captured as a tooling module.\nField: Operator count verification | Change: Verified top-level == definitions count = 13 and JSON OperatorDefNames count = 13 | Reason: Completeness check required; counts match.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Done",
+    "CountInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Fairness",
+    "Spec",
+    "Safety",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "OtherPrisoner",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in OtherPrisoner |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[OtherPrisoner -> 0..2]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<switchAUp, timesSwitched>>",
+    "UNCHANGED <<switchAUp, count>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/PrisonersTyped/PrisonersTyped.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(4) + Init(1) + ValueDef(2) + ActionDefNames(3) = OperatorDefNames(13). Verified.",
+    "Fairness is placed in TemporalProperty because its body consists of weak fairness conditions WF_vars(...), which are temporal formulas even though they do not use [], <>, or ~> syntax.",
+    "Spec always goes in TemporalProperty per the division rule.",
+    "CountInvariant is placed in StatePredicate by elimination: it is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "OtherPrisoner and vars are placed in ValueDef by elimination as non-Boolean helper/value definitions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef is empty because all UNCHANGED forms are either explicit variable references or explicit tuples; there is no occurrence of UNCHANGED vars in the file text."
+  ]
+}

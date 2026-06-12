@@ -1,0 +1,195 @@
+{
+  "id": null,
+  "Specification": "This module defines reusable TLA+ operators for adding an auxiliary stuttering variable `s` to an existing specification, as described in the paper \"Auxiliary Variables in TLA+\". It provides action transformers that wrap an existing subaction `A` with optional pre-stuttering or post-stuttering behavior, using a record-valued control variable `s` whose fields identify the action, its execution context, and a countdown value. The module also defines conditions ensuring that the decrement function driving stuttering eventually reaches a bottom element, including an alternative version intended to be easier for TLC to evaluate on finite models. The file contains no complete system spec of its own; rather, it is a library module meant to be instantiated by another specification, and it includes comments describing a modification that strengthens context checking during stuttering steps.",
+  "ModuleName": "Stuttering",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "s",
+    "vars"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "top",
+    "NoStutter",
+    "PostStutter",
+    "PreStutter",
+    "MayPostStutter",
+    "MayPreStutter",
+    "StutterConstantCondition",
+    "AltStutterConstantCondition"
+  ],
+  "ActionDefNames": [
+    "NoStutter",
+    "PostStutter",
+    "PreStutter",
+    "MayPostStutter",
+    "MayPreStutter"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "InverseDecr",
+    "R",
+    "ReachBot"
+  ],
+  "LetInNames": [
+    "InverseDecr",
+    "R",
+    "T",
+    "ReachBot"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\E",
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF s = top THEN /\\ A /\\ s' = [id |-> actionId, ctxt |-> context, val |-> initVal] ELSE /\\ s.id = actionId /\\ s.ctxt = context /\\ UNCHANGED vars /\\ s' = IF s.val = bot THEN top ELSE [s EXCEPT !.val = decr(s.val)]",
+    "IF s.val = bot THEN top ELSE [s EXCEPT !.val = decr(s.val)]",
+    "IF s = top THEN /\\ enabled /\\ UNCHANGED vars /\\ s' = [id |-> actionId, ctxt |-> context, val |-> initVal] ELSE /\\ s.id = actionId /\\ s.ctxt = context /\\ IF s.val = bot THEN /\\ s.ctxt = context /\\ A /\\ s' = top ELSE /\\ UNCHANGED vars /\\ s' = [s EXCEPT !.val = decr(s.val)]",
+    "IF s.val = bot THEN /\\ s.ctxt = context /\\ A /\\ s' = top ELSE /\\ UNCHANGED vars /\\ s' = [s EXCEPT !.val = decr(s.val)]",
+    "IF s = top THEN /\\ A /\\ s' = IF initVal = bot THEN s ELSE [id |-> actionId, ctxt |-> context, val |-> initVal] ELSE /\\ s.id = actionId /\\ s.ctxt = context /\\ UNCHANGED vars /\\ s' = IF decr(s.val) = bot THEN top ELSE [s EXCEPT !.val = decr(s.val)]",
+    "IF initVal = bot THEN s ELSE [id |-> actionId, ctxt |-> context, val |-> initVal]",
+    "IF decr(s.val) = bot THEN top ELSE [s EXCEPT !.val = decr(s.val)]",
+    "IF s = top THEN /\\ enabled /\\ IF initVal = bot THEN A /\\ (s' = s) ELSE /\\ s' = [id |-> actionId, ctxt |-> context, val |-> initVal] /\\ UNCHANGED vars ELSE /\\ s.id = actionId /\\ s.ctxt = context /\\ IF s.val = bot THEN /\\ s.ctxt = context /\\ A /\\ s' = top ELSE /\\ UNCHANGED vars /\\ s' = [s EXCEPT !.val = decr(s.val)]",
+    "IF initVal = bot THEN A /\\ (s' = s) ELSE /\\ s' = [id |-> actionId, ctxt |-> context, val |-> initVal] /\\ UNCHANGED vars",
+    "IF s.val = bot THEN /\\ s.ctxt = context /\\ A /\\ s' = top ELSE /\\ UNCHANGED vars /\\ s' = [s EXCEPT !.val = decr(s.val)]",
+    "IF n = 0 THEN {bot} ELSE LET T == R[n-1] IN T \\cup InverseDecr(T)",
+    "IF InverseDecr(S) = {} THEN S ELSE ReachBot[S \\cup InverseDecr(S)]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{bot}",
+    "{}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Nat]",
+    "[S \\in SUBSET Sigma]"
+  ],
+  "FunctionApplication": [
+    "R[n]",
+    "decr(s.val)",
+    "R[n-1]",
+    "InverseDecr(T)",
+    "InverseDecr(S)",
+    "ReachBot[S \\cup InverseDecr(S)]"
+  ],
+  "FunctionOverride": [
+    "[s EXCEPT !.val = decr(s.val)]"
+  ],
+  "RecordConstructor": [
+    "[top |-> \"top\"]",
+    "[id |-> actionId, ctxt |-> context, val |-> initVal]"
+  ],
+  "RecordAccess": [
+    "s.id",
+    "s.ctxt",
+    "s.val"
+  ],
+  "TupleConstructor": [
+    "<<i, j>>",
+    "<<label, procId>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "0..n"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "top"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "s"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [
+    "ENABLED A"
+  ],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"InverseDecr\", \"R\", \"T\", \"ReachBot\"] | Reason: requested field name is LetInNames; V1 used a nonconforming field name\nField: Quantifiers | Change: added [\"\\\\E\", \"\\\\A\"] | Reason: both quantifiers appear in comments and must not be left empty\nField: EqualityOps | Change: added \"#\" | Reason: inequality appears in comment text \"v # Bottom\"\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with verbatim TLA+ IF expressions | Reason: Phase 3 requires values to appear in the file; V1 included explanatory suffixes like \"(in PostStutter)\" and ellipses not present in the module\nField: FunctionApplication | Change: added \"R[n-1]\", \"InverseDecr(T)\", \"InverseDecr(S)\", \"ReachBot[S \\\\cup InverseDecr(S)]\" and removed \"ReachBot[{bot}]\" | Reason: added applications that literally appear; removed non-application expression that does not literally occur as a function application form\nField: TupleConstructor | Change: added \"<<i, j>>\" | Reason: tuple literal appears in comments and was missing\nField: ArithmeticOps | Change: added \"*\" | Reason: multiplication appears in comment text \"2 * T < N\"\nField: StringLiterals | Change: removed \"MODIFIED HERE\" | Reason: it is inside a comment, not a double-quoted string literal\nField: OperatorDefNames | Change: verified count remains 8 | Reason: Phase 2 top-level == definition count in file is 8, matching JSON count 8",
+  "OperatorDefNames_StatePredicate": [
+    "StutterConstantCondition",
+    "AltStutterConstantCondition"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "top"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Nat]",
+    "[S \\in SUBSET Sigma]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Stuttering/Stuttering.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(1) + ActionDefNames(5) = OperatorDefNames(8). Verified.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e]-style forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "top is placed in ValueDef as a non-Boolean record-valued helper definition."
+  ]
+}

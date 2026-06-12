@@ -1,0 +1,353 @@
+{
+  "id": null,
+  "Specification": "This module specifies a Tendermint-style light client as a state machine that attempts to verify a target block height starting from a socially trusted header. It models both the light-client local state and an instantiated blockchain environment, including time progression, validator sets, fetched light blocks, verification status, and whether the primary full node is correct or faulty. The specification defines the verification logic, scheduling strategy, store updates, and a single-step system transition, and checks a collection of safety-style invariants and conditional correctness properties about successful verification, faulty primaries, trusting-period expiration, and probe complexity.",
+  "ModuleName": "Lightclient_002_draft",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [
+    "Blockchain_002_draft"
+  ],
+  "InstanceSubstitutions": [
+    "now <- now",
+    "blockchain <- blockchain",
+    "Faulty <- Faulty"
+  ],
+  "ConstantNames": [
+    "TRUSTED_HEIGHT",
+    "TARGET_HEIGHT",
+    "TRUSTING_PERIOD",
+    "IS_PRIMARY_CORRECT",
+    "AllNodes"
+  ],
+  "VariableNames": [
+    "state",
+    "nextHeight",
+    "nprobes",
+    "fetchedLightBlocks",
+    "lightBlockStatus",
+    "latestVerified",
+    "prevVerified",
+    "prevCurrent",
+    "prevNow",
+    "prevVerdict",
+    "now",
+    "blockchain",
+    "Faulty"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "lcvars",
+    "InitMonitor",
+    "NextMonitor",
+    "bcvars",
+    "ULTIMATE_HEIGHT",
+    "HEIGHTS",
+    "States",
+    "ValidAndVerifiedPre",
+    "SignedByOneThirdOfTrusted",
+    "ValidAndVerified",
+    "LCInit",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "LightStoreUpdateBlocks",
+    "LightStoreUpdateStates",
+    "CanScheduleTo",
+    "VerifyToTargetLoop",
+    "VerifyToTargetDone",
+    "Init",
+    "Next",
+    "TypeOK",
+    "NeverFinish",
+    "NeverFinishNegative",
+    "NeverFinishNegativeWhenTrusted",
+    "NeverFinishPositive",
+    "CorrectnessInv",
+    "StoredHeadersAreVerifiedInv",
+    "StoredHeadersAreVerifiedOrNotTrustedInv",
+    "ProofOfChainOfTrustInv",
+    "NoFailedBlocksOnSuccessInv",
+    "PositiveBeforeTrustedHeaderExpires",
+    "CorrectPrimaryAndTimeliness",
+    "SuccessOnCorrectPrimaryAndChainOfTrust",
+    "PrecisionInv",
+    "PrecisionBuggyInv",
+    "Complexity"
+  ],
+  "ActionDefNames": [
+    "NextMonitor",
+    "VerifyToTargetLoop",
+    "VerifyToTargetDone",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "thdr",
+    "uhdr",
+    "TP",
+    "SP",
+    "trustedBlock",
+    "trustedLightBlock",
+    "ref",
+    "lastCommit",
+    "ht",
+    "verdict",
+    "lightBlock",
+    "N"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ~ValidAndVerifiedPre(trusted, untrusted) THEN \"INVALID\" ELSE IF ~BC!InTrustingPeriod(untrusted.header) THEN \"FAILED_TRUSTING_PERIOD\" ELSE IF untrusted.header.height = trusted.header.height + 1 \\/ SignedByOneThirdOfTrusted(trusted, untrusted) THEN \"SUCCESS\" ELSE \"NOT_ENOUGH_TRUST\"",
+    "IF height < ULTIMATE_HEIGHT THEN blockchain[height + 1].lastCommit ELSE blockchain[height].VS",
+    "IF IS_PRIMARY_CORRECT THEN CopyLightBlockFromChain(block, height) ELSE BC!IsLightBlockAllowedByDigitalSignatures(height, block)",
+    "IF h = ht THEN block ELSE lightBlocks[h]",
+    "IF h = ht THEN blockState ELSE statuses[h]",
+    "IF nextHeight \\in DOMAIN fetchedLightBlocks THEN /\\ current = fetchedLightBlocks[nextHeight] /\\ UNCHANGED fetchedLightBlocks ELSE /\\ FetchLightBlockInto(current, nextHeight) /\\ fetchedLightBlocks' = LightStoreUpdateBlocks(fetchedLightBlocks, current)",
+    "IF latestVerified'.header.height < TARGET_HEIGHT THEN \"working\" ELSE \"finishedSuccess\""
+  ],
+  "CaseExpr": [
+    "CASE verdict = \"SUCCESS\" -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateVerified\") /\\ latestVerified' = current /\\ state' = IF latestVerified'.header.height < TARGET_HEIGHT THEN \"working\" ELSE \"finishedSuccess\" /\\ \\E newHeight \\in HEIGHTS: /\\ CanScheduleTo(newHeight, current, nextHeight, TARGET_HEIGHT) /\\ nextHeight' = newHeight [] verdict = \"NOT_ENOUGH_TRUST\" -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateUnverified\") /\\ \\E newHeight \\in HEIGHTS: /\\ CanScheduleTo(newHeight, latestVerified, nextHeight, TARGET_HEIGHT) /\\ nextHeight' = newHeight /\\ UNCHANGED <<latestVerified, state>> [] OTHER -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateFailed\") /\\ state' = \"finishedFailure\" /\\ UNCHANGED <<latestVerified, nextHeight>>"
+  ],
+  "SetEnumeration": [
+    "{\"working\", \"finishedSuccess\", \"finishedFailure\"}",
+    "{TRUSTED_HEIGHT}",
+    "{ht}",
+    "{\"StateVerified\", \"StateUnverified\", \"StateFailed\"}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\intersect",
+    "\\subseteq",
+    "SUBSET",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in {TRUSTED_HEIGHT} |-> \"StateVerified\"]",
+    "[h \\in DOMAIN lightBlocks \\union {ht} |-> IF h = ht THEN block ELSE lightBlocks[h]]",
+    "[h \\in DOMAIN statuses \\union {ht} |-> IF h = ht THEN blockState ELSE statuses[h]]",
+    "[HS -> BC!LightBlocks]",
+    "[HS -> {\"StateVerified\", \"StateUnverified\", \"StateFailed\"}]"
+  ],
+  "FunctionApplication": [
+    "blockchain[TRUSTED_HEIGHT]",
+    "blockchain[height]",
+    "blockchain[height + 1]",
+    "lightBlocks[h]",
+    "statuses[h]",
+    "fetchedLightBlocks[nextHeight]",
+    "lightBlockStatus[h]",
+    "blockchain[h]",
+    "fetchedLightBlocks[lh]",
+    "fetchedLightBlocks[rh]",
+    "lightBlockStatus[lh]",
+    "lightBlockStatus[rh]",
+    "lightBlockStatus[mh]",
+    "fetchedLightBlocks[h]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[header |-> trustedBlock, Commits |-> AllNodes]",
+    "[header |-> ref, Commits |-> lastCommit]"
+  ],
+  "RecordAccess": [
+    "trusted.header",
+    "untrusted.header",
+    "thdr.height",
+    "uhdr.height",
+    "thdr.time",
+    "uhdr.time",
+    "untrusted.Commits",
+    "uhdr.VS",
+    "thdr.NextVS",
+    "trusted.header.NextVS",
+    "block.header.height",
+    "blockchain[height + 1].lastCommit",
+    "blockchain[height].VS",
+    "pLatestVerified.header.height",
+    "latestVerified.header.height",
+    "latestVerified'.header.height",
+    "fetchedLightBlocks[h].header",
+    "lightBlock.header",
+    "lightBlock.Commits",
+    "lightBlock.header.VS"
+  ],
+  "TupleConstructor": [
+    "<<state, nextHeight, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "<<now, blockchain, Faulty>>",
+    "<<latestVerified, state>>",
+    "<<latestVerified, nextHeight>>",
+    "<<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "<<prevVerified, prevCurrent, prevNow, prevVerdict>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "TRUSTED_HEIGHT..TARGET_HEIGHT"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "working",
+    "finishedSuccess",
+    "finishedFailure",
+    "INVALID",
+    "FAILED_TRUSTING_PERIOD",
+    "SUCCESS",
+    "NOT_ENOUGH_TRUST",
+    "StateVerified",
+    "StateUnverified",
+    "StateFailed"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "prevVerified",
+    "prevCurrent",
+    "prevNow",
+    "prevVerdict",
+    "fetchedLightBlocks",
+    "nprobes",
+    "lightBlockStatus",
+    "latestVerified",
+    "state",
+    "nextHeight"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED fetchedLightBlocks",
+    "UNCHANGED <<latestVerified, state>>",
+    "UNCHANGED <<latestVerified, nextHeight>>",
+    "UNCHANGED <<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "UNCHANGED <<prevVerified, prevCurrent, prevNow, prevVerdict>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries | Reason: required field name per schema/checklist; LET-bound names must not remain under a nonstandard field\nField: IfThenElse | Change: replaced abbreviated/contextual entries with verbatim IF/THEN/ELSE expressions from the file; merged nested IF chain in ValidAndVerified into one outer IF expression | Reason: Phase 3 requires values to appear in the TLA+ file; prior placeholders like \\\"... (in ValidAndVerified)\\\" do not appear verbatim\nField: CaseExpr | Change: replaced abbreviated entry with full CASE expression text | Reason: prior value contained ellipses and context text not present in the file\nField: SetEnumeration | Change: normalized first entry from `{ \\\"working\\\", \\\"finishedSuccess\\\", \\\"finishedFailure\\\" }` to `{\\\"working\\\", \\\"finishedSuccess\\\", \\\"finishedFailure\\\"}` | Reason: prior value did not appear verbatim in the file due to extra spaces after `{`\nField: SetOperators | Change: replaced `\\\\cup` with `\\\\union` | Reason: the file uses `\\\\union`, not `\\\\cup`\nField: SetOperators | Change: kept `SUBSET` in place | Reason: this is still an encoding-policy violation from Phase 1 because `SUBSET` should be moved to SetOperators from FiniteSetOps; however it already appears here and not in FiniteSetOps, matching the file content\nField: OperatorDefNames | Change: verified count matches file count: file count = 36, JSON count = 36 | Reason: Phase 2 completeness check passed; no additions/removals needed",
+  "OperatorDefNames_StatePredicate": [
+    "ValidAndVerifiedPre",
+    "SignedByOneThirdOfTrusted",
+    "CanScheduleTo",
+    "TypeOK",
+    "NeverFinish",
+    "NeverFinishNegative",
+    "NeverFinishNegativeWhenTrusted",
+    "NeverFinishPositive",
+    "CorrectnessInv",
+    "StoredHeadersAreVerifiedInv",
+    "StoredHeadersAreVerifiedOrNotTrustedInv",
+    "ProofOfChainOfTrustInv",
+    "NoFailedBlocksOnSuccessInv",
+    "PositiveBeforeTrustedHeaderExpires",
+    "CorrectPrimaryAndTimeliness",
+    "SuccessOnCorrectPrimaryAndChainOfTrust",
+    "PrecisionInv",
+    "PrecisionBuggyInv",
+    "Complexity"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitMonitor",
+    "Init",
+    "LCInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "lcvars",
+    "bcvars",
+    "ULTIMATE_HEIGHT",
+    "HEIGHTS",
+    "States",
+    "ValidAndVerified",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "LightStoreUpdateBlocks",
+    "LightStoreUpdateStates"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in {TRUSTED_HEIGHT} |-> \"StateVerified\"]",
+    "[h \\in DOMAIN lightBlocks \\union {ht} |-> IF h = ht THEN block ELSE lightBlocks[h]]",
+    "[h \\in DOMAIN statuses \\union {ht} |-> IF h = ht THEN blockState ELSE statuses[h]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[HS -> BC!LightBlocks]",
+    "[HS -> {\"StateVerified\", \"StateUnverified\", \"StateFailed\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<latestVerified, state>>",
+    "UNCHANGED <<latestVerified, nextHeight>>",
+    "UNCHANGED <<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "UNCHANGED <<prevVerified, prevCurrent, prevNow, prevVerdict>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED fetchedLightBlocks"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Lightclient_002_draft/Lightclient_002_draft.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(19) + TemporalProperty(0) + Init(3) + ValueDef(10) + ActionDefNames(4) = OperatorDefNames(36). Verified.",
+    "No temporal operators [], <>, or ~> appear in this file, so OperatorDefNames_TemporalProperty is empty and TemporalNesting is false.",
+    "ValidAndVerified, CopyLightBlockFromChain, FetchLightBlockInto, LightStoreUpdateBlocks, and LightStoreUpdateStates are placed in ValueDef because they compute non-Boolean values rather than define actions or temporal formulas.",
+    "lcvars and bcvars are placed in ValueDef as structural tuple definitions.",
+    "UNCHANGED fetchedLightBlocks is classified under UnchangedExprs_VarRef because it is of the form UNCHANGED varname, even though fetchedLightBlocks is a state variable rather than a tuple variable such as vars."
+  ]
+}

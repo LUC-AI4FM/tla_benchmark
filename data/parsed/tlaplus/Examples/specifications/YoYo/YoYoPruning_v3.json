@@ -1,0 +1,351 @@
+{
+  "id": null,
+  "Specification": "This specification models the Yo-Yo leader-election algorithm on a strongly connected undirected graph, extended with pruning so that the algorithm terminates. Nodes alternate between down and up phases, exchange structured messages through mailboxes, reverse or prune edges based on replies, and eventually eliminate all but one source so that the smallest node becomes an isolated leader. The spec assumes a connected undirected graph, uses weak fairness for the main next-state action, and states both safety-style properties about graph consistency and termination-style temporal properties such as eventual termination and equivalence between deadlock and the terminated condition.",
+  "ModuleName": "YoYoPruning",
+  "ExtendsModules": [
+    "TLC",
+    "Integers",
+    "FiniteSets",
+    "UndirectedGraphs"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nodes",
+    "Edges"
+  ],
+  "VariableNames": [
+    "active",
+    "phase",
+    "incoming",
+    "outgoing",
+    "mailbox"
+  ],
+  "AssumptionNames": [
+    "/\\ Nodes \\subseteq Int\n  /\\ Nodes # {} \n  /\\ LET G == [node |-> Nodes, edge |-> Edges]\n     IN  /\\ IsUndirectedGraph(G)\n         /\\ IsStronglyConnected(G)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Neighbors",
+    "Min",
+    "vars",
+    "kind",
+    "Messages",
+    "downMsg",
+    "upMsg",
+    "TypeOK",
+    "Init",
+    "DownSource",
+    "DownOther",
+    "Down",
+    "UpSource",
+    "UpOther",
+    "Up",
+    "Next",
+    "Spec",
+    "MoreThanOneSource",
+    "NeighborInv",
+    "NoNewSource",
+    "Termination",
+    "Liveness",
+    "FinishIffTerminated"
+  ],
+  "ActionDefNames": [
+    "DownSource",
+    "DownOther",
+    "Down",
+    "UpSource",
+    "UpOther",
+    "Up",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "senders",
+    "valSent"
+  ],
+  "NamesInLet": [
+    "G",
+    "downMsgs",
+    "min",
+    "upMsgs",
+    "noSndrs",
+    "pruned",
+    "valsRcvd",
+    "senders",
+    "valSent",
+    "isLoneSink",
+    "keep",
+    "minSndrs"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF incoming[n] = {} /\\ outgoing[n] = {} THEN \"leader\" ELSE IF incoming[n] = {} THEN \"source\" ELSE IF outgoing[n] = {} THEN \"sink\" ELSE \"internal\"",
+    "IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]",
+    "IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]",
+    "IF noSndrs = {} THEN LET min == Min({msg.val : msg \\in downMsgs}) minSndrs == {msg.sndr : msg \\in {mm \\in downMsgs : mm.val = min}} IN /\\ mailbox' = [m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\", (m # keep[valSent(m)]) \\\\/ isLoneSink)} ELSE IF m = n THEN mailbox[m] \\\\ (upMsgs \\union downMsgs) ELSE mailbox[m]] /\\ incoming' = [incoming EXCEPT ![n] = IF isLoneSink THEN {} ELSE {keep[min]}] /\\ outgoing' = [outgoing EXCEPT ![n] = (@ \\\\ pruned) \\union {keep[v] : v \\in valsRcvd \\\\ {min}}] ELSE /\\ mailbox' = [m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\", m # keep[valSent(m)])} ELSE IF m = n THEN mailbox[m] \\\\ (upMsgs \\union downMsgs) ELSE mailbox[m]] /\\ incoming' = [incoming EXCEPT ![n] = noSndrs \\\\ pruned] /\\ outgoing' = [outgoing EXCEPT ![n] = (@ \\\\ (noSndrs \\union pruned)) \\union {keep[v] : v \\in valsRcvd}]",
+    "IF m \\in minSndrs THEN \"yes\" ELSE \"no\"",
+    "IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\", (m # keep[valSent(m)]) \\\\/ isLoneSink)} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]",
+    "IF isLoneSink THEN {} ELSE {keep[min]}",
+    "IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\", m # keep[valSent(m)])} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]",
+    "IF n = Min(Nodes) THEN kind(n) = \"leader\" ELSE ~ active[n]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{m,n}",
+    "{\"down\"}",
+    "{\"up\"}",
+    "{\"yes\", \"no\"}",
+    "{\"internal\", \"sink\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\union",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[node |-> Nodes, edge |-> Edges]",
+    "[phase : {\"down\"}, sndr : Nodes, val : Nodes]",
+    "[phase : {\"up\"}, sndr : Nodes, reply : {\"yes\", \"no\"}, prune : BOOLEAN]",
+    "[phase |-> \"down\", sndr |-> s, val |-> v]",
+    "[phase |-> \"up\", sndr |-> s, reply |-> r, prune |-> p]",
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> {\"down\", \"up\"}]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes -> SUBSET Messages]",
+    "[n \\in Nodes |-> TRUE]",
+    "[n \\in Nodes |-> \"down\"]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m < n}]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m > n}]",
+    "[n \\in Nodes |-> {}]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]]",
+    "[mailbox EXCEPT ![n] = mailbox[n] \\ upMsgs]",
+    "[incoming EXCEPT ![n] = noSndrs \\ pruned]",
+    "[outgoing EXCEPT ![n] = @ \\ (noSndrs \\union pruned)]",
+    "[valsRcvd -> incoming[n]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\", (m # keep[valSent(m)]) \\\\/ isLoneSink)} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]",
+    "[incoming EXCEPT ![n] = IF isLoneSink THEN {} ELSE {keep[min]}]",
+    "[outgoing EXCEPT ![n] = (@ \\ pruned) \\union {keep[v] : v \\in valsRcvd \\ {min}}]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\", m # keep[valSent(m)])} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]",
+    "[outgoing EXCEPT ![n] = (@ \\ (noSndrs \\union pruned)) \\union {keep[v] : v \\in valsRcvd}]",
+    "[active EXCEPT ![n] = ~ isLoneSink]"
+  ],
+  "FunctionApplication": [
+    "incoming[n]",
+    "outgoing[n]",
+    "mailbox[n]",
+    "msg.sndr",
+    "msg.phase",
+    "msg.reply",
+    "msg.prune",
+    "msg.val",
+    "outgoing[msg.sndr]",
+    "active[n]",
+    "phase[n]",
+    "mailbox[m]",
+    "kind(n)",
+    "f[v]",
+    "senders(v)",
+    "keep[valSent(m)]",
+    "valSent(m)",
+    "keep[min]",
+    "keep[v]"
+  ],
+  "FunctionOverride": [
+    "[phase EXCEPT ![n] = \"up\"]",
+    "[mailbox EXCEPT ![n] = mailbox[n] \\ upMsgs]",
+    "[incoming EXCEPT ![n] = noSndrs \\ pruned]",
+    "[outgoing EXCEPT ![n] = @ \\ (noSndrs \\union pruned)]",
+    "[phase EXCEPT ![n] = \"down\"]",
+    "[incoming EXCEPT ![n] = IF isLoneSink THEN {} ELSE {keep[min]}]",
+    "[outgoing EXCEPT ![n] = (@ \\ pruned) \\union {keep[v] : v \\in valsRcvd \\ {min}}]",
+    "[outgoing EXCEPT ![n] = (@ \\ (noSndrs \\union pruned)) \\union {keep[v] : v \\in valsRcvd}]",
+    "[active EXCEPT ![n] = ~ isLoneSink]"
+  ],
+  "RecordConstructor": [
+    "[node |-> Nodes, edge |-> Edges]",
+    "[phase : {\"down\"}, sndr : Nodes, val : Nodes]",
+    "[phase : {\"up\"}, sndr : Nodes, reply : {\"yes\", \"no\"}, prune : BOOLEAN]",
+    "[phase |-> \"down\", sndr |-> s, val |-> v]",
+    "[phase |-> \"up\", sndr |-> s, reply |-> r, prune |-> p]"
+  ],
+  "RecordAccess": [
+    "msg.phase",
+    "msg.sndr",
+    "mm.phase",
+    "mm.sndr",
+    "msg.reply",
+    "msg.prune",
+    "msg.val",
+    "mm.val"
+  ],
+  "TupleConstructor": [
+    "<<active, phase, incoming, outgoing, mailbox>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE x \\in S : \\A y \\in S : x <= y",
+    "CHOOSE msg \\in downMsgs : msg.sndr = m"
+  ],
+  "StringLiterals": [
+    "leader",
+    "source",
+    "sink",
+    "internal",
+    "down",
+    "up",
+    "yes",
+    "no"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "mailbox",
+    "phase",
+    "incoming",
+    "outgoing",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, incoming, outgoing>>"
+  ],
+  "EnabledExprs": [
+    "ENABLED Next"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][\\A n \\in Nodes : kind(n)' = \"source\" => kind(n) = \"source\"]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][\\A n \\in Nodes : kind(n)' = \"source\" => kind(n) = \"source\"]_vars"
+  ],
+  "EventuallyOp": [
+    "<>Termination"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: NamesInLet | Change: added `keep` | Reason: existentially bound LET-local name inside `UpOther` was missing.\nField: IfThenElse | Change: replaced contextual/example-style entries with expressions that literally occur in the file; fixed JSON escaping for disjunction and set difference | Reason: values must correspond to actual TLA+ expressions and encode `\\/` as `\\\\\\\\/`.\nField: FunctionApplication | Change: removed duplicate `active[n]` | Reason: deduplication required.\nField: TemporalSubscript | Change: removed `WF_vars(Next)` | Reason: fairness expressions are not temporal subscripts; this field should contain subscripted temporal formulas only.\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` in this module is not a proof command.\nField: Operator count check | Change: verified no change needed; file count = 24, JSON OperatorDefNames count = 24 | Reason: completeness confirmed.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "MoreThanOneSource",
+    "NeighborInv",
+    "Termination",
+    "FinishIffTerminated"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "NoNewSource",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Neighbors",
+    "Min",
+    "vars",
+    "kind",
+    "Messages",
+    "downMsg",
+    "upMsg"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Nodes |-> TRUE]",
+    "[n \\in Nodes |-> \"down\"]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m < n}]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m > n}]",
+    "[n \\in Nodes |-> {}]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\", (m # keep[valSent(m)]) \\\\/ isLoneSink)} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\", m # keep[valSent(m)])} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> {\"down\", \"up\"}]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes -> SUBSET Messages]",
+    "[valsRcvd -> incoming[n]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, incoming, outgoing>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/YoYoPruning/YoYoPruning.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "FinishIffTerminated is placed in StatePredicate because it is Boolean-valued and contains no primed variables and no temporal operators; it contains ENABLED Next, which is allowed here by the prompt.",
+    "NoNewSource is placed in TemporalProperty because its body is a temporal subscript formula [][...]_vars.",
+    "Spec always belongs to TemporalProperty.",
+    "FunctionConstructor_ByDomain and FunctionConstructor_SetType partition only the true function-constructor forms [x \\in S |-> e] and [S -> T] from FunctionConstructor. Record constructors and EXCEPT expressions remain in FunctionConstructor but are not members of either sub-field.",
+    "Partition count: StatePredicate(5) + TemporalProperty(3) + Init(1) + ValueDef(7) + ActionDefNames(7) = OperatorDefNames(23). Verified."
+  ]
+}

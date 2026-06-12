@@ -1,0 +1,318 @@
+{
+  "id": null,
+  "Specification": "This specification models the behavior of Java's BufferedRandomAccessFile class, focusing on its core fields and operations such as seek, read, write, flush, and setLength. It defines both the internal invariants of the buffered file implementation and its refinement to a general RandomAccessFile, ensuring that the buffered version behaves correctly with respect to the abstract file semantics. The spec verifies that invariants are maintained, that each operation refines its abstract counterpart, and that the system as a whole refines the general RandomAccessFile specification. Notable design decisions include explicit modeling of undefined bytes with a special ArbitrarySymbol, careful handling of buffer boundaries, and the use of helper actions and invariants to capture the subtleties of the Java implementation.",
+  "ModuleName": "BufferedRandomAccessFile",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "TLC",
+    "Common"
+  ],
+  "InstanceModules": [
+    "RandomAccessFile"
+  ],
+  "InstanceSubstitutions": [
+    "file_content <- LogicalFileContent",
+    "file_pointer <- curr"
+  ],
+  "ConstantNames": [
+    "BuffSz"
+  ],
+  "VariableNames": [
+    "dirty",
+    "length",
+    "curr",
+    "lo",
+    "buff",
+    "diskPos",
+    "file_content",
+    "file_pointer"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "TypeOK",
+    "RelevantBufferContent",
+    "LogicalFileContent",
+    "DiskF",
+    "BufferedIndexes",
+    "Inv1",
+    "Inv2",
+    "Inv3",
+    "Inv4",
+    "Inv5",
+    "Init",
+    "FlushBuffer",
+    "FillBuffer",
+    "Seek",
+    "SetLength",
+    "Read1",
+    "Write1",
+    "Read",
+    "WriteAtMost",
+    "Next",
+    "Spec",
+    "RAF",
+    "Safety",
+    "FlushBufferCorrect",
+    "SeekCorrect",
+    "SetLengthCorrect",
+    "SeekEstablishesInv2",
+    "Write1Correct",
+    "Read1Correct",
+    "WriteAtMostCorrect",
+    "ReadCorrect",
+    "FlushBufferPossibleWhenDirty",
+    "FlushBufferMakesProgress",
+    "SeekCurrPossibleWhenNotDirty",
+    "SeekCurrRestoresInv2",
+    "Inv2CanAlwaysBeRestored",
+    "Symmetry",
+    "Alias"
+  ],
+  "ActionDefNames": [
+    "FlushBuffer",
+    "Seek",
+    "SetLength",
+    "Read1",
+    "Write1",
+    "Read",
+    "WriteAtMost",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "len",
+    "diskPosA",
+    "fileOffset",
+    "numReadableWithoutSeeking",
+    "numToRead",
+    "buffOff",
+    "numWriteableWithoutSeeking"
+  ],
+  "LambdaParams": [
+    "i"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF ArrayLen(RelevantBufferContent) > 0 THEN WriteToFile(file_content, lo, RelevantBufferContent) ELSE file_content (in LogicalFileContent)",
+    "IF i >= 0 /\\ i < ArrayLen(file_content) THEN ArrayGet(file_content, i) ELSE ArbitrarySymbol (in DiskF)",
+    "IF len > 0 THEN LET diskPosA == lo IN ... ELSE UNCHANGED <<diskPos, file_pointer, file_content>> (in FlushBuffer)",
+    "IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol (in FillBuffer)",
+    "IF pos < lo \\/ pos >= (lo + BuffSz) THEN ... ELSE UNCHANGED <<lo, diskPos, file_pointer, buff>> (in Seek)",
+    "IF ArrayLen(file_content) > newLength /\\ file_pointer > newLength THEN file_pointer' = newLength ELSE file_pointer' \\in Offset (in SetLength)",
+    "IF curr > newLength THEN curr' = newLength ELSE UNCHANGED curr (in SetLength)",
+    "IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol (in SetLength)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ArbitrarySymbol}"
+  ],
+  "SetOperators": [
+    "\\union"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in 0..BuffSz |-> LET fileOffset == diskPosA + i IN IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(BuffSz-1) |-> IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(length-1) |-> CASE i < offset -> IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol [] i >= offset /\\ i < offset + data_len -> ArrayGet(data_to_write, i - offset) [] i >= offset + data_len -> ArrayGet(file, i)]"
+  ],
+  "FunctionApplication": [
+    "ArrayGet(buff, i - lo)",
+    "ArrayGet(LogicalFileContent, i)",
+    "ArrayGet(buff, curr - lo)",
+    "ArrayGet(file_content, i)",
+    "ArrayGet(file_content, fileOffset)",
+    "ArrayGet(buff, i)",
+    "ArrayGet(data_to_write, i - offset)",
+    "ArrayGet(file, i)"
+  ],
+  "FunctionOverride": [
+    "[a EXCEPT !.elems[i+1] = x]"
+  ],
+  "RecordConstructor": [
+    "[BuffSz            |-> BuffSz, MaxOffset         |-> MaxOffset, dirty             |-> dirty, length            |-> length, curr              |-> curr, lo                |-> lo, buff              |-> buff, diskPos           |-> diskPos, file_content      |-> file_content, file_pointer      |-> file_pointer, abstract_contents |-> LogicalFileContent]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<dirty, length, curr, lo, buff, diskPos, file_content, file_pointer>>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "SubSeq",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*",
+    "\\div",
+    "Max"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "0..BuffSz",
+    "0..(BuffSz-1)",
+    "lo..(Min(lo + BuffSz, length) - 1)",
+    "1..MaxOffset",
+    "0..(length-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "dirty",
+    "length",
+    "curr",
+    "lo",
+    "buff",
+    "diskPos",
+    "file_content",
+    "file_pointer"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<length, curr, lo, buff>>",
+    "UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "UNCHANGED <<dirty, lo>>"
+  ],
+  "EnabledExprs": [
+    "ENABLED FlushBuffer",
+    "ENABLED Seek(curr)"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][FlushBuffer => UNCHANGED RAF!vars]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => RAF!Seek(offset)]_vars",
+    "[][\\A offset \\in Offset: SetLength(offset) => RAF!SetLength(offset)]_vars",
+    "[][\\A offset \\in Offset: Seek(offset) => Inv2']_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Write1(symbol) => RAF!Write(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A symbol \\in SymbolOrArbitrary: Read1(symbol) => RAF!Read(SeqToArray(<<symbol>>))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): WriteAtMost(data) => \\E written \\in 1..len: RAF!Write(ArraySlice(data, 0, written))]_vars",
+    "[][\\A len \\in 1..MaxOffset: \\A data \\in Array(SymbolOrArbitrary, len): Read(data) => RAF!Read(data)]_vars"
+  ],
+  "AlwaysOp": [
+    "[][FlushBufferPossibleWhenDirty]",
+    "[][SeekCurrPossibleWhenNotDirty]"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LocalOperatorNames | Change: Removed all entries | Reason: These are LET-bound names, not top-level local operator definitions; they belong in NamesInLet only.\nField: RecordAccess | Change: Removed \"a.elems\" | Reason: No direct record field access of this form appears in the BufferedRandomAccessFile module; \"a.elems\" is only used in Common and not as a direct record access in this module.\nField: AlwaysOp | Change: Changed entries from \"[]FlushBufferPossibleWhenDirty\" and \"[]SeekCurrPossibleWhenNotDirty\" to \"[][FlushBufferPossibleWhenDirty]\" and \"[][SeekCurrPossibleWhenNotDirty]\" | Reason: AlwaysOp entries must include the full subscript as it appears in the TLA+ file, i.e., with brackets.\nNo other changes required. Operator count: file count = 39, JSON OperatorDefNames count = 39.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Inv1",
+    "Inv2",
+    "Inv3",
+    "Inv4",
+    "Inv5",
+    "FlushBufferPossibleWhenDirty",
+    "SeekCurrPossibleWhenNotDirty"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Safety",
+    "FlushBufferCorrect",
+    "SeekCorrect",
+    "SetLengthCorrect",
+    "SeekEstablishesInv2",
+    "Write1Correct",
+    "Read1Correct",
+    "WriteAtMostCorrect",
+    "ReadCorrect",
+    "FlushBufferMakesProgress",
+    "SeekCurrRestoresInv2",
+    "Inv2CanAlwaysBeRestored"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "RelevantBufferContent",
+    "LogicalFileContent",
+    "DiskF",
+    "BufferedIndexes",
+    "RAF",
+    "Symmetry",
+    "Alias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 0..BuffSz |-> LET fileOffset == diskPosA + i IN IF fileOffset < ArrayLen(file_content) THEN ArrayGet(file_content, fileOffset) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(BuffSz-1) |-> IF lo + i < newLength THEN ArrayGet(buff, i) ELSE ArbitrarySymbol]",
+    "[i \\in 0..(length-1) |-> CASE i < offset -> IF i < file_len THEN ArrayGet(file, i) ELSE ArbitrarySymbol [] i >= offset /\\ i < offset + data_len -> ArrayGet(data_to_write, i - offset) [] i >= offset + data_len -> ArrayGet(file, i)]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<length, curr, lo, buff>>",
+    "UNCHANGED <<diskPos, file_pointer, file_content>>",
+    "UNCHANGED <<lo, diskPos, buff, file_pointer, dirty, file_content, length>>",
+    "UNCHANGED <<lo, diskPos, file_pointer, buff>>",
+    "UNCHANGED <<dirty, lo>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/BufferedRandomAccessFile/BufferedRandomAccessFile.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(8) + TemporalProperty(13) + Init(1) + ValueDef(7) + ActionDefNames(8) = 37 = OperatorDefNames total. Verified.",
+    "FlushBufferPossibleWhenDirty and SeekCurrPossibleWhenNotDirty are placed in StatePredicate because they are Boolean-valued, contain ENABLED but no temporal operators or primed variables.",
+    "FunctionConstructor_ByDomain contains all FunctionConstructor entries; FunctionConstructor_SetType is empty. All function constructors are [x \\in S |-> e] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Operators placed in ValueDef by elimination: vars, RelevantBufferContent, LogicalFileContent, DiskF, BufferedIndexes, RAF, Symmetry, Alias."
+  ]
+}

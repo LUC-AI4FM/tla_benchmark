@@ -1,0 +1,261 @@
+{
+  "id": null,
+  "Specification": "This module, IndInv_apa, encodes an inductive invariant search for a simplified TCP handshake protocol, based on the tcp.tla specification. The goal is to find an inductive strengthening of the original invariant (Inv) that is sufficient for bounded model checking (with MaxLen=4) using the Apalache model checker. The file documents the iterative process of refining the invariant, with each auxiliary clause added to eliminate specific counterexamples. The final candidate invariant, IndInv, is a conjunction of type correctness, queue bounds, the original Inv, and seven auxiliary properties, each justified by the counterexamples they prevent. The module is parameterized by a set of peers and a maximum queue length, and models the state of each peer's TCB, connection state, and network queue. The temporal property of interest is that Spec implies []IndInv, which in turn implies []Inv, for executions where all queues remain bounded.",
+  "ModuleName": "IndInv_apa",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Apalache"
+  ],
+  "InstanceModules": [
+    "tcp"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Peers",
+    "MaxLen"
+  ],
+  "VariableNames": [
+    "tcb",
+    "connstate",
+    "network"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "PeersVal",
+    "MaxLenVal",
+    "Msgs",
+    "GenTcb",
+    "GenConnstate",
+    "GenNetwork",
+    "TypeOKBounded",
+    "BoundedNetwork",
+    "HasMsg",
+    "PostEstStrict",
+    "PostEst",
+    "Aux_singleton_RST",
+    "Aux_singleton_ACK",
+    "Aux_singleton_ACKofFIN",
+    "Aux_EST_evidence",
+    "LastMsg",
+    "Aux_LastMsg",
+    "Aux_RST_at_end",
+    "IndInv",
+    "IndInit",
+    "NextBounded"
+  ],
+  "ActionDefNames": [
+    "NextBounded"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "#"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"p1_OF_PEER\", \"p2_OF_PEER\" }",
+    "{\"SYN\", \"SYN,ACK\", \"ACK\", \"RST\", \"FIN\", \"ACKofFIN\"}",
+    "{\"ESTABLISHED\", \"FIN-WAIT-1\", \"FIN-WAIT-2\", \"CLOSING\", \"CLOSE-WAIT\", \"LAST-ACK\", \"TIME-WAIT\"}",
+    "{\"CLOSED\"}",
+    "{\"FIN-WAIT-1\", \"CLOSING\", \"LAST-ACK\"}",
+    "{\"FIN\", \"RST\"}",
+    "{\"TIME-WAIT\", \"CLOSED\", \"LISTEN\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[p \\in Peers |-> Gen(1)]",
+    "[p \\in Peers |-> Gen(MaxLen)]",
+    "[p \\in Peers |-> Gen(1)]",
+    "[Peers -> BOOLEAN]",
+    "[Peers -> States]",
+    "[Peers -> Seq(Str)]"
+  ],
+  "FunctionApplication": [
+    "Gen(1)",
+    "Gen(MaxLen)",
+    "Len(network[p])",
+    "network[p][i]",
+    "network[p][Len(network[p])]",
+    "network[p]",
+    "network[q]",
+    "network[p][i]",
+    "network[q][i]",
+    "network'[p]",
+    "HasMsg(\"SYN\", p)",
+    "HasMsg(\"SYN\", q)",
+    "HasMsg(\"ACK\", q)",
+    "HasMsg(\"ACK\", p)",
+    "HasMsg(\"SYN,ACK\", q)",
+    "HasMsg(\"SYN,ACK\", p)",
+    "HasMsg(\"FIN\", p)",
+    "HasMsg(\"FIN\", q)",
+    "HasMsg(\"ACKofFIN\", p)",
+    "HasMsg(\"ACKofFIN\", q)",
+    "HasMsg(\"RST\", p)",
+    "HasMsg(\"RST\", q)",
+    "LastMsg(p)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<\"RST\">>",
+    "<<>>",
+    "<<\"ACK\">>",
+    "<<\"ACKofFIN\">>"
+  ],
+  "SequenceOps": [
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "<=",
+    "+"
+  ],
+  "ComparisonOps": [
+    "<="
+  ],
+  "RangeExpr": [
+    "1..MaxLen",
+    "0..MaxLen"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "p1_OF_PEER",
+    "p2_OF_PEER",
+    "SYN",
+    "SYN,ACK",
+    "ACK",
+    "RST",
+    "FIN",
+    "ACKofFIN",
+    "ESTABLISHED",
+    "FIN-WAIT-1",
+    "FIN-WAIT-2",
+    "CLOSING",
+    "CLOSE-WAIT",
+    "LAST-ACK",
+    "TIME-WAIT",
+    "CLOSED",
+    "SYN-RECEIVED",
+    "CLOSE-WAIT",
+    "LAST-ACK",
+    "SYN-SENT",
+    "LISTEN"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "network"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<tcb, connstate, network>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOKBounded",
+    "BoundedNetwork",
+    "Aux_singleton_RST",
+    "Aux_singleton_ACK",
+    "Aux_singleton_ACKofFIN",
+    "Aux_EST_evidence",
+    "Aux_LastMsg",
+    "Aux_RST_at_end",
+    "IndInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "IndInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "PeersVal",
+    "MaxLenVal",
+    "Msgs",
+    "GenTcb",
+    "GenConnstate",
+    "GenNetwork",
+    "HasMsg",
+    "PostEstStrict",
+    "PostEst",
+    "LastMsg"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Peers |-> Gen(1)]",
+    "[p \\in Peers |-> Gen(MaxLen)]",
+    "[p \\in Peers |-> Gen(1)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Peers -> BOOLEAN]",
+    "[Peers -> States]",
+    "[Peers -> Seq(Str)]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<tcb, connstate, network>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/IndInv_apa/IndInv_apa.tla",
+  "VerificationTools": [
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(9) + TemporalProperty(0) + Init(1) + ValueDef(10) + ActionDefNames(1) = 21 = OperatorDefNames total. Verified.",
+    "No temporal property operators are defined in this module; all invariants are state predicates.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "All FunctionConstructor entries are accounted for: 3 are [x \\in S |-> e] and 3 are [S -> T] forms.",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED expressions list variables explicitly.",
+    "CorpusSource inferred as specifications/IndInv_apa/IndInv_apa.tla by module name."
+  ]
+}

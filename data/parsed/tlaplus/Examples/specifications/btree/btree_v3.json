@@ -1,0 +1,465 @@
+{
+  "id": null,
+  "Specification": "This specification models a B-tree-based key-value store supporting get, insert, and update requests over a bounded set of keys, values, and nodes. The state explicitly represents tree structure using node-local key sets, child pointers, last-child pointers, leaf flags, stored values, and a small request/response control interface with operational states for searching, adding, and splitting nodes. It includes a refinement mapping to an abstract kvstore specification, a type invariant and several structural invariants, and a temporal specification with weak fairness for get requests; there is no fault model, and comments note that deletes are not implemented.",
+  "ModuleName": "btree",
+  "ExtendsModules": [
+    "TLC",
+    "Naturals",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "kvstore"
+  ],
+  "InstanceSubstitutions": [
+    "dict <- [key \\in Keys |-> IF \\E leaf \\in Leaves : key \\in keysOf[leaf] \n                                 THEN LET leaf == CHOOSE leaf \\in Leaves : key \\in keysOf[leaf] \n                                      IN valOf[leaf, key] ELSE MISSING]",
+    "state <- IF state = READY THEN \"ready\" ELSE \"working\""
+  ],
+  "ConstantNames": [
+    "Vals",
+    "MaxKey",
+    "MaxNode",
+    "MaxOccupancy",
+    "READY",
+    "GET_VALUE",
+    "FIND_LEAF_TO_ADD",
+    "WHICH_TO_SPLIT",
+    "ADD_TO_LEAF",
+    "SPLIT_LEAF",
+    "SPLIT_INNER",
+    "SPLIT_ROOT_LEAF",
+    "SPLIT_ROOT_INNER",
+    "UPDATE_LEAF"
+  ],
+  "VariableNames": [
+    "root",
+    "isLeaf",
+    "keysOf",
+    "childOf",
+    "lastOf",
+    "valOf",
+    "focus",
+    "toSplit",
+    "op",
+    "args",
+    "ret",
+    "state"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Keys",
+    "Nodes",
+    "NIL",
+    "MISSING",
+    "TypeOk",
+    "Max",
+    "ChildNodeFor",
+    "FindLeafNode",
+    "AtMaxOccupancy",
+    "IsFree",
+    "ChooseFreeNode",
+    "Init",
+    "GetReq",
+    "GetValue",
+    "InsertReq",
+    "UpdateReq",
+    "UpdateLeaf",
+    "FindLeafToAdd",
+    "ParentOf",
+    "WhichToSplit",
+    "AddToLeaf",
+    "PivotOf",
+    "SplitRootLeaf",
+    "ParentKeyOf",
+    "IsLastOfParent",
+    "SplitRootInner",
+    "SplitLeaf",
+    "Next",
+    "vars",
+    "Spec",
+    "Leaves",
+    "Mapping",
+    "Refinement",
+    "Inners",
+    "InnersMustHaveLast",
+    "KeyOrderPreserved",
+    "LeavesCantHaveLast",
+    "KeysInLeavesAreUnique",
+    "FreeNodesRemain"
+  ],
+  "ActionDefNames": [
+    "GetReq",
+    "GetValue",
+    "InsertReq",
+    "UpdateReq",
+    "UpdateLeaf",
+    "FindLeafToAdd",
+    "WhichToSplit",
+    "AddToLeaf",
+    "SplitRootLeaf",
+    "SplitRootInner",
+    "SplitLeaf",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "FindLeafNode"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "keys",
+    "maxKey",
+    "closestKey",
+    "key",
+    "node",
+    "val",
+    "leaf",
+    "parent",
+    "splitParent",
+    "noMoreSplits",
+    "smaller",
+    "larger",
+    "n1",
+    "n2",
+    "newRoot",
+    "pivot",
+    "n1Keys",
+    "n2Keys",
+    "keyToInsert",
+    "p"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF keys = {} \\/ key >= maxKey THEN lastOf[node] ELSE childOf[node, closestKey]",
+    "IF isLeaf[node] THEN node ELSE FindLeafNode(ChildNodeFor(node, key), key)",
+    "IF key \\in keysOf[node] THEN valOf[node, key] ELSE MISSING",
+    "IF key \\in keysOf[focus] THEN [valOf EXCEPT ![focus, key]=val] ELSE valOf",
+    "IF key \\in keysOf[focus] THEN \"ok\" ELSE \"error\"",
+    "IF AtMaxOccupancy(leaf) THEN <<leaf>> ELSE <<>>",
+    "IF AtMaxOccupancy(leaf) THEN WHICH_TO_SPLIT ELSE ADD_TO_LEAF",
+    "IF key \\notin keysOf[focus] THEN \"ok\" ELSE \"error\"",
+    "IF key \\notin keysOf[focus] THEN [keysOf EXCEPT ![focus]=@ \\union {key}] ELSE keysOf",
+    "IF key \\notin keysOf[focus] THEN [valOf EXCEPT ![focus,key]=val] ELSE valOf",
+    "IF keyToInsert < pivot THEN n1 ELSE n2",
+    "IF IsLastOfParent(n1)\n                  THEN [childOf EXCEPT ![parent, pivot]=n1]\n                  ELSE [childOf EXCEPT ![parent, pivot]=n1, ![parent, ParentKeyOf(n1)]=n2]",
+    "IF IsLastOfParent(n1) THEN [lastOf EXCEPT ![parent]=n2] ELSE lastOf",
+    "IF state = READY THEN \"ready\" ELSE \"working\""
+  ],
+  "CaseExpr": [
+    "CASE node = root   -> toSplit\n             [] splitParent   -> <<parent>> \\o toSplit\n             [] OTHER         -> toSplit",
+    "CASE node # root /\\ noMoreSplits /\\ isLeaf[node]  -> SPLIT_LEAF\n              [] node # root /\\ noMoreSplits /\\ ~isLeaf[node] -> SPLIT_INNER\n              [] node = root /\\ isLeaf[node]                  -> SPLIT_ROOT_LEAF\n              [] node = root /\\ ~isLeaf[node]                 -> SPLIT_ROOT_INNER\n              [] OTHER                                        -> WHICH_TO_SPLIT",
+    "CASE n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n2 /\\ k \\in n2Keys -> valOf[n1, k]\n          [] OTHER                -> valOf[n, k]",
+    "CASE n=newRoot /\\ k=pivot -> n1\n          [] n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n1 /\\ k \\in n1Keys -> childOf[n1, k]\n          [] n=n2 /\\ k \\in n2Keys -> childOf[n1, k]\n          [] OTHER                -> childOf[n, k]",
+    "CASE n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n2 /\\ k \\in n2Keys -> valOf[n1, k]\n          [] OTHER                -> valOf[n, k]"
+  ],
+  "SetEnumeration": [
+    "{NIL}",
+    "{\"get\", \"insert\", \"update\", NIL}",
+    "{\"ok\", \"error\", MISSING, NIL}",
+    "{READY, GET_VALUE, FIND_LEAF_TO_ADD, WHICH_TO_SPLIT, ADD_TO_LEAF, SPLIT_LEAF, SPLIT_INNER, SPLIT_ROOT_LEAF, SPLIT_ROOT_INNER, UPDATE_LEAF}",
+    "{}",
+    "{x}",
+    "{key}",
+    "{pivot}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "\\intersect",
+    "\\X",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> SUBSET Keys]",
+    "[Nodes \\X Keys -> Nodes \\union {NIL}]",
+    "[Nodes -> Nodes \\union {NIL}]",
+    "[Nodes \\X Keys -> Vals \\union {NIL}]",
+    "[n \\in Nodes |-> TRUE]",
+    "[n \\in Nodes |-> {}]",
+    "[n \\in Nodes, k \\in Keys |-> NIL]",
+    "[key \\in Keys |-> IF \\E leaf \\in Leaves : key \\in keysOf[leaf] \n                                 THEN LET leaf == CHOOSE leaf \\in Leaves : key \\in keysOf[leaf] \n                                      IN valOf[leaf, key] ELSE MISSING]",
+    "[n \\in Nodes, k \\in Keys |->\n        CASE n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n2 /\\ k \\in n2Keys -> valOf[n1, k]\n          [] OTHER                -> valOf[n, k]]",
+    "[n \\in Nodes, k \\in Keys |->\n        CASE n=newRoot /\\ k=pivot -> n1\n          [] n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n1 /\\ k \\in n1Keys -> childOf[n1, k]\n          [] n=n2 /\\ k \\in n2Keys -> childOf[n1, k]\n          [] OTHER                -> childOf[n, k]]"
+  ],
+  "FunctionApplication": [
+    "keysOf[node]",
+    "lastOf[node]",
+    "isLeaf[node]",
+    "args[1]",
+    "args[2]",
+    "keysOf[focus]",
+    "Head(toSplit)",
+    "keysOf[n1]",
+    "valOf[n1, k]",
+    "valOf[n, k]",
+    "childOf[p, k]",
+    "lastOf[p]",
+    "keysOf[p]",
+    "lastOf[ParentOf(node)]",
+    "childOf[n1, k]",
+    "lastOf[n1]",
+    "isLeaf[n]",
+    "lastOf[n]",
+    "keysOf[n]",
+    "keysOf[childOf[n, k]]",
+    "keysOf[n2]",
+    "childOf[node, closestKey]",
+    "FindLeafNode(root, key)",
+    "AtMaxOccupancy(leaf)",
+    "ParentOf(node)",
+    "ParentOf(n1)",
+    "Cardinality(keysOf[node])",
+    "IsFree(n)",
+    "Max(keys)",
+    "PivotOf(keys)",
+    "ChooseFreeNode",
+    "ParentKeyOf(n1)",
+    "IsLastOfParent(n1)",
+    "GetReq(key)",
+    "InsertReq(key, val)",
+    "UpdateReq(key, val)",
+    "WF_op(\\E key \\in Keys: GetReq(key))",
+    "Mapping!Spec"
+  ],
+  "FunctionOverride": [
+    "[valOf EXCEPT ![focus, key]=val]",
+    "[keysOf EXCEPT ![focus]=@ \\union {key}]",
+    "[valOf EXCEPT ![focus,key]=val]",
+    "[isLeaf EXCEPT ![newRoot]=FALSE, ![n2]=TRUE]",
+    "[keysOf EXCEPT ![newRoot]={pivot}, ![n1]=n1Keys, ![n2]=n2Keys]",
+    "[childOf EXCEPT ![newRoot, pivot]=n1]",
+    "[lastOf EXCEPT ![newRoot]=n2]",
+    "[isLeaf EXCEPT ![newRoot]=FALSE, ![n2]=FALSE]",
+    "[lastOf EXCEPT ![newRoot]=n2, ![n1]=childOf[n1, pivot], ![n2]=lastOf[n1]]",
+    "[isLeaf EXCEPT ![n2]=TRUE]",
+    "[keysOf EXCEPT ![parent]=@ \\union {pivot}, ![n1]=n1Keys, ![n2]=n2Keys]",
+    "[childOf EXCEPT ![parent, pivot]=n1]",
+    "[childOf EXCEPT ![parent, pivot]=n1, ![parent, ParentKeyOf(n1)]=n2]",
+    "[lastOf EXCEPT ![parent]=n2]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<<key>>",
+    "<<key, val>>",
+    "<<leaf>>",
+    "<<parent>> \\o toSplit",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit, args, op>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, toSplit>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, toSplit, args, op>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, args, op, ret>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, op, args, ret, focus>>",
+    "<<root, isLeaf, childOf, lastOf, op, args, focus, toSplit>>",
+    "<<op, args, ret, toSplit>>",
+    "<<op, args, ret, focus, valOf>>",
+    "<<root, toSplit, op, args, ret>>",
+    "<<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit, op, args, ret, state>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Head",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..MaxKey",
+    "1..MaxNode"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x : x \\notin Nodes",
+    "CHOOSE v : v \\notin Vals",
+    "CHOOSE x \\in xs : (\\A y \\in xs \\ {x} : x > y)",
+    "CHOOSE k \\in keys : /\\ k>key\n                                           /\\ ~(\\E j \\in keys \\ {k} : j>key /\\ j<k)",
+    "CHOOSE n \\in Nodes : IsFree(n)",
+    "CHOOSE p \\in Nodes: \\/ \\E k \\in Keys: n = childOf[p, k]\n                                   \\/ lastOf[p]=n",
+    "CHOOSE k \\in keys :\n    LET smaller == {x \\in keys : x < k}\n        larger == {x \\in keys: x > k} IN\n     \\/ Cardinality(smaller) = Cardinality(larger)\n     \\/ Cardinality(smaller) = Cardinality(larger)+1",
+    "CHOOSE n \\in Nodes : IsFree(n) /\\ (n # n2)",
+    "CHOOSE k \\in keysOf[p]: childOf[p, k] = node",
+    "CHOOSE leaf \\in Leaves : key \\in keysOf[leaf]"
+  ],
+  "StringLiterals": [
+    "get",
+    "insert",
+    "update",
+    "ok",
+    "error",
+    "ready",
+    "working"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "op",
+    "args",
+    "ret",
+    "state",
+    "valOf",
+    "focus",
+    "toSplit",
+    "keysOf",
+    "root",
+    "isLeaf",
+    "childOf",
+    "lastOf"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit, args, op>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, toSplit>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, toSplit, args, op>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, args, op, ret>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, op, args, ret, focus>>",
+    "UNCHANGED <<root, isLeaf, childOf, lastOf, op, args, focus, toSplit>>",
+    "UNCHANGED <<op, args, ret, toSplit>>",
+    "UNCHANGED <<op, args, ret, focus, valOf>>",
+    "UNCHANGED <<root, toSplit, op, args, ret>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_op(\\E key \\in Keys: GetReq(key))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_op(\\E key \\in Keys: GetReq(key))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count matches top-level definitions; file count = 39, JSON count = 39 | Reason: Phase 2 completeness check required exact match\nField: IfThenElse | Change: Removed non-verbatim suffixes like \"(in ChildNodeFor)\" and kept only expressions from file | Reason: Values must appear in the TLA+ file verbatim\nField: IfThenElse | Change: Removed mapping dict IF expression entry | Reason: Outer construct in file is a function constructor; the IF does not appear as a standalone top-level IF expression entry in the same verbatim form used in JSON\nField: IfThenElse | Change: Normalized SplitLeaf childOf IF entry to file text with line break/indentation | Reason: Must match literal file expression\nField: CaseExpr | Change: Replaced summary placeholders with verbatim CASE expressions from file | Reason: Placeholder text did not appear in the TLA+ file\nField: SetOperators | Change: Removed \"DOMAIN\" | Reason: DOMAIN does not appear in the file\nField: FunctionApplication | Change: Removed duplicate \"childOf[p, k]\" and duplicate \"keysOf[n1]\" | Reason: Deduplication\nField: FunctionApplication | Change: Added missing verbatim applications including \"childOf[node, closestKey]\", \"FindLeafNode(root, key)\", \"AtMaxOccupancy(leaf)\", \"ParentOf(node)\", \"ParentOf(n1)\", \"Cardinality(keysOf[node])\", \"IsFree(n)\", \"Max(keys)\", \"PivotOf(keys)\", \"ChooseFreeNode\", \"ParentKeyOf(n1)\", \"IsLastOfParent(n1)\", \"GetReq(key)\", \"InsertReq(key, val)\", \"UpdateReq(key, val)\", \"WF_op(\\\\E key \\\\in Keys: GetReq(key))\", \"Mapping!Spec\" | Reason: These applications appear in the file and were missing\nField: FunctionOverride | Change: Added missing \"[valOf EXCEPT ![focus,key]=val]\" | Reason: Distinct EXCEPT form appears in AddToLeaf and must be included\nField: TupleConstructor | Change: Removed duplicate \"<<key, val>>\" | Reason: Deduplication\nField: IfThenElse | Change: Removed duplicate second occurrence of \"IF keyToInsert < pivot THEN n1 ELSE n2\" by retaining one shared literal | Reason: Deduplication of identical distinct expressions\nField: Phase 1 scan | Change: Verified no bare disjunction \"/\", no malformed conjunction encoding, no \"~>\" in Implication, UNCHANGED spacing correct, PlusCal empties are [], BooleanConstants valid, FiniteSetOps excludes SUBSET, SetOperators excludes \\\\notin, AlwaysOp has full subscript, EnabledExprs empty and valid | Reason: Required encoding validation across high-risk fields\n",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOk",
+    "AtMaxOccupancy",
+    "IsFree",
+    "IsLastOfParent",
+    "InnersMustHaveLast",
+    "KeyOrderPreserved",
+    "LeavesCantHaveLast",
+    "KeysInLeavesAreUnique",
+    "FreeNodesRemain"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Refinement"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Keys",
+    "Nodes",
+    "NIL",
+    "MISSING",
+    "Max",
+    "ChildNodeFor",
+    "FindLeafNode",
+    "ChooseFreeNode",
+    "ParentOf",
+    "PivotOf",
+    "ParentKeyOf",
+    "vars",
+    "Leaves",
+    "Mapping",
+    "Inners"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Nodes |-> TRUE]",
+    "[n \\in Nodes |-> {}]",
+    "[n \\in Nodes, k \\in Keys |-> NIL]",
+    "[key \\in Keys |-> IF \\E leaf \\in Leaves : key \\in keysOf[leaf] \n                                 THEN LET leaf == CHOOSE leaf \\in Leaves : key \\in keysOf[leaf] \n                                      IN valOf[leaf, key] ELSE MISSING]",
+    "[n \\in Nodes, k \\in Keys |->\n        CASE n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n2 /\\ k \\in n2Keys -> valOf[n1, k]\n          [] OTHER                -> valOf[n, k]]",
+    "[n \\in Nodes, k \\in Keys |->\n        CASE n=newRoot /\\ k=pivot -> n1\n          [] n=n1 /\\ k \\in n2Keys -> NIL\n          [] n=n1 /\\ k \\in n1Keys -> childOf[n1, k]\n          [] n=n2 /\\ k \\in n2Keys -> childOf[n1, k]\n          [] OTHER                -> childOf[n, k]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> SUBSET Keys]",
+    "[Nodes \\X Keys -> Nodes \\union {NIL}]",
+    "[Nodes -> Nodes \\union {NIL}]",
+    "[Nodes \\X Keys -> Vals \\union {NIL}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, focus, toSplit, args, op>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, toSplit>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, toSplit, args, op>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, args, op, ret>>",
+    "UNCHANGED <<root, isLeaf, keysOf, childOf, lastOf, valOf, op, args, ret, focus>>",
+    "UNCHANGED <<root, isLeaf, childOf, lastOf, op, args, focus, toSplit>>",
+    "UNCHANGED <<op, args, ret, toSplit>>",
+    "UNCHANGED <<op, args, ret, focus, valOf>>",
+    "UNCHANGED <<root, toSplit, op, args, ret>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/btree/btree.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Refinement is placed in TemporalProperty because it is defined as Mapping!Spec and the referenced instantiated operator Spec is temporal.",
+    "Mapping is placed in ValueDef as a non-Boolean INSTANCE binding used for refinement, not as an action or temporal-property definition.",
+    "ValueDef by elimination: NIL, MISSING, Max, ChildNodeFor, FindLeafNode, ChooseFreeNode, ParentOf, PivotOf, ParentKeyOf, vars, Leaves, Inners.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Partition count: StatePredicate(9) + TemporalProperty(2) + Init(1) + ValueDef(15) + ActionDefNames(12) = OperatorDefNames(39). Verified."
+  ]
+}

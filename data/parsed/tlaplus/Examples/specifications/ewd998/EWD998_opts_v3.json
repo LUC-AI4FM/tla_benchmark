@@ -1,0 +1,253 @@
+{
+  "id": null,
+  "Specification": "This module defines an options and measurement wrapper around the underlying EWD998 termination-detection specification. It introduces feature flags for several algorithm variants, constrains the randomized initial states and environment behavior for TLC generation mode, and defines an alternative system/environment composition used for simulation and data collection. It also records statistics at termination and when termination is detected, using TLC, CSV, and IO utilities, while assuming probabilistic generation mode and disabling deadlock checking because the modeled algorithm is assumed to terminate.",
+  "ModuleName": "EWD998_opts",
+  "ExtendsModules": [
+    "EWD998",
+    "TLC",
+    "IOUtils",
+    "CSV",
+    "Randomization"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "F"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"generate\"",
+    "TLCGet(\"config\").depth = -1",
+    "TLCGet(\"config\").deadlock = FALSE",
+    "TLCGet(\"revision\").timestamp >= 1663391404",
+    "F \\subseteq FeatureFlags",
+    "TLCSet(1, 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "FeatureFlags",
+    "InitSim",
+    "InitiateProbeOpts",
+    "PassTokenOpts",
+    "SystemOpts",
+    "SendMsgOpts",
+    "EnvironmentOpts",
+    "SpecOpts",
+    "terminated",
+    "AtTermination",
+    "AtTerminationDetected",
+    "Features",
+    "Nodes"
+  ],
+  "ActionDefNames": [
+    "InitiateProbeOpts",
+    "PassTokenOpts",
+    "SystemOpts",
+    "SendMsgOpts",
+    "EnvironmentOpts",
+    "AtTermination"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "o"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \"pt5\" \\in F THEN ~ active[0] ELSE TRUE",
+    "IF color[i] = \"black\" THEN \"black\" ELSE @",
+    "IF terminated # terminated' THEN TLCSet(1, TLCGet(\"level\")) ELSE TRUE"
+  ],
+  "CaseExpr": [
+    "CASE \"pt3\" \\in F /\\ color[i] = \"black\" -> 0 [] \"pt4\" \\in F /\\ token.color = \"black\" -> 0 [] OTHER    ->  @ - 1"
+  ],
+  "SetEnumeration": [
+    "{\"pt1\",\"pt2\",\"pt3\",\"pt4\",\"pt5\"}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "\\",
+    "[",
+    "DOMAIN",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]"
+  ],
+  "FunctionApplication": [
+    "active[0]",
+    "active[i]",
+    "color[i]",
+    "counter[i]",
+    "pending[n]",
+    "o[\"InitiateProbeOpts\"]",
+    "o[\"PassTokenOpts\"]",
+    "o[\"SendMsgOpts\"]",
+    "o[\"RecvMsg\"]",
+    "o[\"Deactivate\"]"
+  ],
+  "FunctionOverride": [
+    "[token EXCEPT !.pos = CASE \"pt3\" \\in F /\\ color[i] = \"black\" -> 0\n                                      [] \"pt4\" \\in F /\\ token.color = \"black\" -> 0\n                                      [] OTHER    ->  @ - 1,\n                            !.q = @ + counter[i],\n                            !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[ color EXCEPT ![i] = \"white\" ]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"config\").depth",
+    "TLCGet(\"config\").deadlock",
+    "TLCGet(\"revision\").timestamp",
+    "token.pos",
+    "token.color",
+    "TLCGet(\"stats\").behavior.actions",
+    "IOEnv.Out",
+    "IOEnv.F",
+    "IOEnv.N"
+  ],
+  "TupleConstructor": [
+    "<<active, counter, pending>>",
+    "<< F, N, TLCGet(\"level\"), TLCGet(1), TLCGet(\"level\") - TLCGet(1), \n                 o[\"InitiateProbeOpts\"],o[\"PassTokenOpts\"], \n                 o[\"SendMsgOpts\"],o[\"RecvMsg\"],o[\"Deactivate\"] >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..TLCGet(\"level\")",
+    "1..512"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE s \\in SUBSET FeatureFlags : ToString(s) = IOEnv.F",
+    "CHOOSE n \\in 1..512 : ToString(n) = IOEnv.N"
+  ],
+  "StringLiterals": [
+    "generate",
+    "config",
+    "mode",
+    "depth",
+    "deadlock",
+    "revision",
+    "timestamp",
+    "pt1",
+    "pt2",
+    "pt3",
+    "pt4",
+    "pt5",
+    "black",
+    "white",
+    "level",
+    "stats",
+    "behavior",
+    "actions",
+    "InitiateProbeOpts",
+    "PassTokenOpts",
+    "SendMsgOpts",
+    "RecvMsg",
+    "Deactivate",
+    "Inconsistent action stats!",
+    "Detection follows termination!",
+    "%1$s#%2$s#%3$s#%4$s#%5$s#%6$s#%7$s#%8$s#%9$s#%10$s"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "token",
+    "color",
+    "terminated"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, pending>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][SystemOpts \\/ EnvironmentOpts]_vars"
+  ],
+  "AlwaysOp": [
+    "[][SystemOpts \\/ EnvironmentOpts]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and preserved value `[\"o\"]` | Reason: required field name per schema/checklist; `o` is LET-bound in `AtTerminationDetected`\nField: IfThenElse | Change: removed contextual suffixes `(in ...)` from all entries | Reason: entries must contain only expressions that literally appear in the TLA+ file\nField: CaseExpr | Change: removed contextual suffix `(in PassTokenOpts)` | Reason: entry must match the file expression only\nField: SetOperators | Change: ensured `SUBSET` is in `SetOperators` | Reason: `SUBSET` must not be in `FiniteSetOps`; it appears in the file in `ASSUME F \\\\subseteq FeatureFlags` and `CHOOSE s \\\\in SUBSET FeatureFlags`\nField: RecordAccess | Change: added `TLCGet(\"config\").mode`, `TLCGet(\"config\").depth`, `TLCGet(\"config\").deadlock`, `TLCGet(\"revision\").timestamp`, `TLCGet(\"stats\").behavior.actions` | Reason: these literal record-access expressions appear in the file and were missing\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` blocks are not proof commands and this value does not belong in `ProofCommands`\nField: AssumptionNames | Change: verified six entries, no textual correction needed | Reason: file has 6 ASSUME blocks total, all represented\nField: OperatorDefNames | Change: verified count remains 13 | Reason: top-level `==` definition count in file = 13, JSON OperatorDefNames count = 13, so completeness holds",
+  "OperatorDefNames_StatePredicate": [
+    "InitSim",
+    "terminated",
+    "AtTerminationDetected"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "SpecOpts"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "FeatureFlags",
+    "Features",
+    "Nodes"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, pending>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998_opts/EWD998_opts.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "AtTerminationDetected is classified as a StatePredicate because its body is Boolean-valued, contains no temporal operators, and no primed variables. Although it uses the implication form terminationDetected => ..., implication alone does not make it temporal.",
+    "InitSim is classified as a StatePredicate rather than Init because only operators named exactly Init or beginning with Init belong in OperatorDefNames_Init; InitSim does not begin with the string \"Init\".",
+    "FeatureFlags, Features, and Nodes are placed in ValueDef as non-Boolean value definitions.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Partition count: StatePredicate(3) + TemporalProperty(1) + Init(0) + ValueDef(3) + ActionDefNames(6) = OperatorDefNames(13). Verified."
+  ]
+}

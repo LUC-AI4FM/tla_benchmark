@@ -1,0 +1,290 @@
+{
+  "id": null,
+  "Specification": "This module specifies a simple key-value store that supports transactions with snapshot isolation. Each transaction takes a snapshot of the store, chooses nonempty read and write key sets, reads from its snapshot, applies its writes locally, and then commits only if its write set does not conflict with keys missed due to concurrent committed transactions. The specification includes a PlusCal algorithm translated to TLA+, a temporal specification with weak fairness for each transaction process, a termination property, type correctness conditions, and client-centric isolation checks for snapshot isolation and serializability through an instantiated module.",
+  "ModuleName": "KVsnap",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Util"
+  ],
+  "InstanceModules": [
+    "ClientCentric"
+  ],
+  "InstanceSubstitutions": [
+    "Keys <- Key",
+    "Values <- TxId \\union {NoVal}"
+  ],
+  "ConstantNames": [
+    "Key",
+    "TxId",
+    "NoVal"
+  ],
+  "VariableNames": [
+    "store",
+    "tx",
+    "missed",
+    "pc",
+    "snapshotStore",
+    "read_keys",
+    "write_keys",
+    "ops"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "CC",
+    "wOp",
+    "rOp",
+    "InitialState",
+    "SetToSeq",
+    "vars",
+    "ProcSet",
+    "Init",
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "t",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "SnapshotIsolation",
+    "TypeOK",
+    "Serialization"
+  ],
+  "ActionDefNames": [
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "t",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k]",
+    "IF o \\in tx' THEN missed[o] \\union write_keys[self] ELSE missed[o]",
+    "IF k \\in write_keys[self] THEN snapshotStore[self][k] ELSE store[k]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{NoVal}",
+    "{}",
+    "{self}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "\\intersect",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[1..Cardinality(S) -> S]",
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> {}]",
+    "[self \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[self \\in TxId |-> {}]",
+    "[self \\in TxId |-> <<>>]",
+    "[self \\in ProcSet |-> \"START\"]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k] ]",
+    "[o \\in TxId |-> IF o \\in tx' THEN missed[o] \\union write_keys[self] ELSE missed[o]]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN snapshotStore[self][k] ELSE store[k] ]",
+    "[Key -> TxId \\union {NoVal}]",
+    "[TxId -> SUBSET Key]"
+  ],
+  "FunctionApplication": [
+    "snapshotStore[k]",
+    "snapshotStore[self]",
+    "snapshotStore[self][k]",
+    "missed[self]",
+    "write_keys[self]",
+    "missed[o]",
+    "ops[self]",
+    "pc[self]",
+    "read_keys[self]",
+    "t(self)"
+  ],
+  "FunctionOverride": [
+    "[snapshotStore EXCEPT ![self] = store]",
+    "[read_keys EXCEPT ![self] = rk]",
+    "[write_keys EXCEPT ![self] = wk]",
+    "[pc EXCEPT ![self] = \"READ\"]",
+    "[ops EXCEPT ![self] = ops[self] \\o SetToSeq({rOp(k, snapshotStore[self][k]): k \\in read_keys[self]})]",
+    "[pc EXCEPT ![self] = \"UPDATE\"]",
+    "[snapshotStore EXCEPT ![self] = [k \\in Key |-> IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k] ]]",
+    "[pc EXCEPT ![self] = \"COMMIT\"]",
+    "[ops EXCEPT ![self] = ops[self] \\o SetToSeq({wOp(k, self): k \\in write_keys[self]})]",
+    "[pc EXCEPT ![self] = \"Done\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<< store, tx, missed, pc, snapshotStore, read_keys, write_keys, ops\n        >>",
+    "<< store, missed, ops >>",
+    "<< store, tx, missed, snapshotStore, read_keys, \n                              write_keys >>",
+    "<< store, tx, missed, read_keys, write_keys, ops >>",
+    "<< snapshotStore, read_keys, write_keys >>"
+  ],
+  "SequenceOps": [
+    "\\o"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "1..Cardinality(S)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE f \\in [1..Cardinality(S) -> S] : IsInjective(f)"
+  ],
+  "StringLiterals": [
+    "START",
+    "READ",
+    "UPDATE",
+    "COMMIT",
+    "Done"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "tx",
+    "snapshotStore",
+    "read_keys",
+    "write_keys",
+    "pc",
+    "ops",
+    "missed",
+    "store"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << store, missed, ops >>",
+    "UNCHANGED << store, tx, missed, snapshotStore, read_keys, \n                              write_keys >>",
+    "UNCHANGED << store, tx, missed, read_keys, write_keys, ops >>",
+    "UNCHANGED << snapshotStore, read_keys, write_keys >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(t(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "KVsnap"
+  ],
+  "PlusCalProcesses": [
+    "fair process (t \\in TxId)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed from NamesInLet to LetInNames and kept empty | Reason: Field name must match required schema; module has no LET-IN bindings\nField: IfThenElse | Change: Replaced explanatory/non-verbatim entries with exact expressions from file and removed PlusCal-only paraphrases | Reason: Values must appear literally in the TLA+ file\nField: SetEnumeration | Change: Added \"{self}\" | Reason: This set enumeration appears in `tx' = (tx \\\\union {self})`\nField: FiniteSetOps | Change: Removed \"IsFiniteSet\" | Reason: It does not appear in the file\nField: FunctionConstructor | Change: Removed all EXCEPT forms from this field; retained only actual function constructors | Reason: EXCEPT expressions belong in FunctionOverride, not FunctionConstructor\nField: FunctionApplication | Change: Removed generic \"f[e]\" | Reason: It does not appear literally in the file\nField: TupleConstructor | Change: Removed \"<< store, tx, missed, ops >>\" | Reason: This tuple does not appear verbatim; only `UNCHANGED << store, tx, missed, ops >>` appears, and that expression is already captured in UnchangedExprs\nField: SequenceOps | Change: Removed \"Seq\" and \"Len\" | Reason: Neither appears in the file; only `\\\\o` does\nField: UnchangedExprs | Change: Removed \"UNCHANGED << store, tx, missed, ops >>\" | Reason: This string does not appear as a distinct UNCHANGED expression; it occurs only nested inside the ELSE branch as part of `/\\\\ UNCHANGED << store, tx, missed, ops >>`, not as a standalone top-level UNCHANGED expression in the translated file\nField: TemporalSubscript | Change: Removed \"WF_vars(t(self))\" | Reason: TemporalSubscript should contain temporal subscript forms like `[][Next]_vars`; fairness expressions belong in FairnessConditions\nField: FairnessConditions | Change: Replaced \"\\\\A self \\\\in TxId : WF_vars(t(self))\" with \"WF_vars(t(self))\" | Reason: Field must contain only WF/SF expressions from Spec/Spec0, not surrounding quantified context\nField: CompletenessCheck | Change: Verified top-level operator count file count = 20, JSON OperatorDefNames count = 20 | Reason: Phase 2 completeness requirement satisfied",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination",
+    "SnapshotIsolation",
+    "Serialization"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitialState"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "CC",
+    "wOp",
+    "rOp",
+    "SetToSeq",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> {}]",
+    "[self \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[self \\in TxId |-> {}]",
+    "[self \\in TxId |-> <<>>]",
+    "[self \\in ProcSet |-> \"START\"]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN self ELSE snapshotStore[self][k] ]",
+    "[o \\in TxId |-> IF o \\in tx' THEN missed[o] \\union write_keys[self] ELSE missed[o]]",
+    "[k \\in Key |-> IF k \\in write_keys[self] THEN snapshotStore[self][k] ELSE store[k] ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[1..Cardinality(S) -> S]",
+    "[Key -> TxId \\union {NoVal}]",
+    "[TxId -> SUBSET Key]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << store, missed, ops >>",
+    "UNCHANGED << store, tx, missed, snapshotStore, read_keys, \n                              write_keys >>",
+    "UNCHANGED << store, tx, missed, read_keys, write_keys, ops >>",
+    "UNCHANGED << snapshotStore, read_keys, write_keys >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/KVsnap/KVsnap.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InitialState is placed in Init because its name begins with \"Init\", per the required naming rule, even though it is a non-action value definition.",
+    "SnapshotIsolation and Serialization are placed in TemporalProperty because they denote client-centric isolation/serializability properties imported from the instantiated module `CC`; although their bodies are written as operator applications rather than explicit `[]`, `<>`, or `~>`, they function as named temporal properties in this spec.",
+    "Termination is placed in TemporalProperty because its body is `<>(\\A self \\in ProcSet: pc[self] = \"Done\")`.",
+    "CC, wOp, rOp, SetToSeq, vars, and ProcSet are placed in ValueDef as non-action helper/value definitions.",
+    "Partition count: StatePredicate(1) + TemporalProperty(4) + Init(2) + ValueDef(6) + ActionDefNames(7) = OperatorDefNames(20). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

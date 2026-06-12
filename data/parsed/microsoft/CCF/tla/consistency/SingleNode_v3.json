@@ -1,0 +1,231 @@
+{
+  "id": null,
+  "Specification": "This specification models the externally visible behaviour of a single-node CCF service. It tracks an abstract external history of requests and responses together with abstract per-view ledger branches, and it assumes there are no view changes because only a single node is considered. The spec checks type correctness of the history and ledgers, defines append-only ledger monotonicity as a temporal property, and gives actions for submitting, executing, and responding to read-write transactions as well as reporting committed transaction status and appending unrelated transactions.",
+  "ModuleName": "SingleNode",
+  "ExtendsModules": [
+    "ExternalHistoryInvars",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "ledgerBranches"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "LedgerTypeOK",
+    "TypeOK",
+    "LedgersMonoProp",
+    "vars",
+    "Init",
+    "IndexOfLastRequested",
+    "NextRequestId",
+    "RwTxRequestAction",
+    "RwTxExecuteAction",
+    "LedgerBranchTxOnly",
+    "RwTxResponseAction",
+    "StatusCommittedResponseAction",
+    "AppendOtherTxnAction",
+    "NextSingleNodeAction",
+    "SpecSingleNode"
+  ],
+  "ActionDefNames": [
+    "RwTxRequestAction",
+    "RwTxExecuteAction",
+    "RwTxResponseAction",
+    "StatusCommittedResponseAction",
+    "AppendOtherTxnAction",
+    "NextSingleNodeAction"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "SubBranch",
+    "view",
+    "seqno"
+  ],
+  "LambdaParams": [
+    "e"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "\\lnot"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF IndexOfLastRequested = 0 THEN 0 ELSE history[IndexOfLastRequested].tx+1"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{RwTxRequest, RoTxRequest}",
+    "{}"
+  ],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ x \\in 1..FirstBranch |-> <<>>]",
+    "[i \\in DOMAIN SubBranch |-> SubBranch[i].tx]"
+  ],
+  "FunctionApplication": [
+    "ledgerBranches[view]",
+    "history[IndexOfLastRequested]",
+    "history[i]",
+    "history[j]",
+    "ledgerBranches[view][seqnum]",
+    "SubBranch[i]",
+    "history[i].tx_id[1]",
+    "history[i].tx_id[2]",
+    "Last(ledgerBranches)[seqno]"
+  ],
+  "FunctionOverride": [
+    "[ledgerBranches EXCEPT ![view] = Append(@,[view |-> view, tx |-> history[i].tx])]",
+    "[ledgerBranches EXCEPT ![view] = Append(@,[view |-> view])]"
+  ],
+  "RecordConstructor": [
+    "[type |-> RwTxRequest, tx |-> NextRequestId]",
+    "[view |-> view, tx |-> history[i].tx]",
+    "[type |-> RwTxResponse, tx |-> history[i].tx, observed |-> LedgerBranchTxOnly(SubSeq(ledgerBranches[view],1,seqnum)), tx_id |-> <<ledgerBranches[view][seqnum].view, seqnum>>]",
+    "[type |-> TxStatusReceived, tx_id |-> history[i].tx_id, status |-> CommittedStatus]",
+    "[view |-> view]"
+  ],
+  "RecordAccess": [
+    "ledgerBranches[view][seqnum].view",
+    "ledgerBranches[view][seqnum].tx",
+    "e.type",
+    "history[IndexOfLastRequested].tx",
+    "history[i].type",
+    "history[i].tx",
+    "history[j].type",
+    "history[j].tx",
+    "SubBranch[i].tx",
+    "history[i].tx_id",
+    "Last(ledgerBranches)[seqno].view",
+    "history[j].status",
+    "history[j].tx_id"
+  ],
+  "TupleConstructor": [
+    "<< history, ledgerBranches >>",
+    "<<>>",
+    "<<ledgerBranches[view][seqnum].view, seqnum>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "SubSeq",
+    "Len",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">=",
+    ">",
+    "<="
+  ],
+  "RangeExpr": [
+    "1..FirstBranch",
+    "FirstBranch..Len(ledgerBranches)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "tx"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "ledgerBranches",
+    "history"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED ledgerBranches",
+    "UNCHANGED history"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][\\A view \\in DOMAIN ledgerBranches: IsPrefix(ledgerBranches[view], ledgerBranches'[view])]_ledgerBranches",
+    "[][NextSingleNodeAction]_vars"
+  ],
+  "AlwaysOp": [
+    "[][\\A view \\in DOMAIN ledgerBranches: IsPrefix(ledgerBranches[view], ledgerBranches'[view])]_ledgerBranches",
+    "[][NextSingleNodeAction]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed from NamesInLet and retained values [\"SubBranch\", \"view\", \"seqno\"] | Reason: Phase 3 requires LET-bound names to be stored in LetInNames; NamesInLet is not the specified field name\nField: IfThenElse | Change: Replaced \"IF IndexOfLastRequested = 0 THEN 0 ELSE history[IndexOfLastRequested].tx+1 (in NextRequestId)\" with \"IF IndexOfLastRequested = 0 THEN 0 ELSE history[IndexOfLastRequested].tx+1\" | Reason: Enabled/categorized expressions must appear verbatim from the TLA+ file without added contextual annotation\nField: Completeness | Change: Verified top-level operator count file count = 15, JSON OperatorDefNames count = 15 | Reason: Phase 2 completeness check passed with exact match; no operator additions/removals required",
+  "OperatorDefNames_StatePredicate": [
+    "LedgerTypeOK",
+    "TypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "LedgersMonoProp",
+    "SpecSingleNode"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "IndexOfLastRequested",
+    "NextRequestId",
+    "LedgerBranchTxOnly"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ x \\in 1..FirstBranch |-> <<>>]",
+    "[i \\in DOMAIN SubBranch |-> SubBranch[i].tx]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED ledgerBranches",
+    "UNCHANGED history"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SingleNode/SingleNode.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(4) + ActionDefNames(6) = OperatorDefNames(15). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_ByDomain exhausts FunctionConstructor and FunctionConstructor_SetType is empty.",
+    "vars, IndexOfLastRequested, NextRequestId, and LedgerBranchTxOnly are placed in ValueDef as non-Boolean helper/value operators by elimination.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef contains UNCHANGED ledgerBranches and UNCHANGED history because these are single variable references rather than explicit tuple forms."
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "id": null,
+  "Specification": "This module specifies a parameterized model of a reliable broadcast by message diffusion under crashed process failures, based on the Chandra-Toueg folklore broadcast algorithm. Processes may start either initialized with value \"V1\" or not, can receive ECHO messages, may accept and rebroadcast ECHO, and may crash up to a bound F; the model tracks correct processes, crash count, program counters, received messages, and sent messages. The specification defines an initial configuration, a no-broadcast variant, a transition relation with receive/accept/crash behavior, a temporal specification with weak fairness for receive-and-progress steps, and several safety/liveness-style properties such as no acceptance without broadcast, eventual acceptance, and reliable channel delivery.",
+  "ModuleName": "bcastFolklore",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "T",
+    "F"
+  ],
+  "VariableNames": [
+    "Corr",
+    "nCrashed",
+    "pc",
+    "rcvd",
+    "sent"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat /\\ T \\in Nat /\\ F \\in Nat",
+    "(N > 2 * T) /\\ (T >= F) /\\ (F >= 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "M",
+    "vars",
+    "Init",
+    "InitNoBcast",
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next",
+    "Spec",
+    "SpecNoBcast",
+    "TypeOK",
+    "UnforgLtl",
+    "Unforg",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan",
+    "StateConstraint",
+    "CrashCountInfOftenZero"
+  ],
+  "ActionDefNames": [
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"ECHO\" }",
+    "{}",
+    "{\"V0\", \"V1\"}",
+    "{ <<self, \"ECHO\">> }",
+    "{ self }",
+    "{\"V0\", \"V1\", \"AC\", \"CR\"}"
+  ],
+  "SetOperators": [
+    "\\subseteq",
+    "\\times",
+    "\\cup",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]",
+    "[ Proc -> {\"V0\", \"V1\", \"AC\", \"CR\"} ]",
+    "[ Proc -> SUBSET (Proc \\times M) ]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "rcvd[self]",
+    "pc[i]",
+    "rcvd'[self]",
+    "rcvd[p]"
+  ],
+  "FunctionOverride": [
+    "[rcvd EXCEPT ![self] = msgs ]",
+    "[pc EXCEPT ![self] = \"AC\"]",
+    "[pc EXCEPT ![self] = \"CR\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, rcvd, sent, nCrashed, Corr >>",
+    "<<self, \"ECHO\">>",
+    "<< pc, sent, nCrashed, Corr >>",
+    "<<sndr, \"ECHO\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "*"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<"
+  ],
+  "RangeExpr": [
+    "1 .. N",
+    "0..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ECHO",
+    "V0",
+    "V1",
+    "CR",
+    "AC",
+    "level"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "rcvd",
+    "pc",
+    "sent",
+    "nCrashed",
+    "Corr"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](\\A i \\in Corr: pc[i] /= \"AC\")",
+    "[]((\\E i \\in Corr: pc[i] = \"AC\") => <>(\\A i \\in Corr: pc[i] = \"AC\"))",
+    "[]( \\E sndr \\in 1..N : (<<sndr, \"ECHO\">> \\in sent => <>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])))"
+  ],
+  "EventuallyOp": [
+    "<>(\\E i \\in Corr: pc[i] = \"AC\")",
+    "<>(\\A i \\in Corr: pc[i] = \"AC\")",
+    "<>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])",
+    "[]<>(\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                          /\\ \\/ UponV1(self)                                             \n                                             \\/ UponAccept(self)\n                                             \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                                        /\\ \\/ UponV1(self)\n                                                           \\/ UponAccept(self)\n                                                           \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count 21 matches module top-level definitions count 21 | Reason: completeness check required before continuing\nField: SetOperators | Change: removed invalid/corrupted entries `SUBSET`, `\\\\X`, `\\\"\\\\n  ],\\\\n  `, `FiniteSetOps`, `[]`, and embedded object structure; retained `\\\\subseteq`, `\\\\times`, `\\\\cup`, `\\\\` | Reason: `SUBSET` must not be in SetOperators, `\\\\X` does not appear literally, and several entries were JSON corruption artifacts not present in the TLA+ file\nField: FiniteSetOps | Change: added empty field `[]` at top level | Reason: field was missing due to malformed nesting; confirmed no finite-set operators other than `SUBSET`, which belongs in SetOperators\nField: FunctionConstructor | Change: moved field out of corrupted nested SetOperators payload to top level | Reason: malformed JSON structure; field content corresponds to actual file constructs\nField: FunctionApplication | Change: moved field to top level, removed non-existent entries `pc[p]` and `pc[sndr]`, added missing `rcvd'[self]` | Reason: only literal applications appearing in file should be listed\nField: FunctionOverride | Change: moved field to top level from corrupted nesting | Reason: malformed JSON structure; all three overrides appear in file\nField: RecordConstructor | Change: moved field to top level | Reason: malformed JSON structure\nField: RecordAccess | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty because no `e.field` syntax appears\nField: TupleConstructor | Change: moved field to top level | Reason: malformed JSON structure\nField: SequenceOps | Change: moved field to top level | Reason: malformed JSON structure\nField: ArithmeticOps | Change: moved field to top level and removed `-` | Reason: subtraction operator does not appear in the file\nField: ComparisonOps | Change: moved field to top level | Reason: malformed JSON structure\nField: RangeExpr | Change: moved field to top level | Reason: malformed JSON structure\nField: ChoiceExpr | Change: moved field to top level | Reason: malformed JSON structure\nField: StringLiterals | Change: moved field to top level | Reason: malformed JSON structure\nField: ArithmeticModules | Change: moved field to top level | Reason: malformed JSON structure\nField: DataStructureModules | Change: moved field to top level | Reason: malformed JSON structure\nField: ToolingModules | Change: moved field to top level | Reason: malformed JSON structure\nField: PrimedVariables | Change: moved field to top level | Reason: malformed JSON structure; verified complete against all primed occurrences\nField: UnchangedExprs | Change: moved field to top level | Reason: malformed JSON structure; verified single distinct UNCHANGED expression\nField: EnabledExprs | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty\nField: TemporalSubscript | Change: moved field to top level and removed two WF expressions, keeping only `[][Next]_vars` | Reason: TemporalSubscript should contain temporal subscript forms, not fairness expressions\nField: AlwaysOp | Change: moved field to top level and corrected corrupted entries to `[]((\\\\E i \\\\in Corr: pc[i] = \\\"AC\\\") => <>(\\\\A i \\\\in Corr: pc[i] = \\\"AC\\\"))` and `[]( \\\\E sndr \\\\in 1..N : (<<sndr, \\\"ECHO\\\">> \\\\in sent => <>[](\\\\A p \\\\in Corr : <<sndr, \\\"ECHO\\\">> \\\\in rcvd[p])))` | Reason: Phase 1 encoding scan found malformed split strings; Phase 2 requires every outermost `[]` formula\nField: EventuallyOp | Change: moved field to top level and corrected `<>[] (\\\\A p \\\\in Corr : <<sndr, \\\"ECHO\\\">> \\\\in rcvd[p])` to `< >[](\\u2026)` form stored as `<>[](\\\\A p \\\\in Corr : <<sndr, \\\"ECHO\\\">> \\\\in rcvd[p])` | Reason: malformed spacing/encoding; Phase 2 requires every outermost `<>` and `[]<>` occurrence\nField: LeadsToOp | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty because no `~>` occurs\nField: GuaranteesOp | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty because no `-+->` occurs\nField: ActionComposition | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty because no `A \\\\cdot B` occurs\nField: FairnessConditions | Change: moved field to top level | Reason: malformed JSON structure; verified both WF expressions are exactly the ones in `Spec` and `SpecNoBcast`\nField: ProofHints | Change: moved field to top level | Reason: malformed JSON structure\nField: ProofCommands | Change: moved field to top level | Reason: malformed JSON structure\nField: ProofStructureSteps | Change: moved field to top level | Reason: malformed JSON structure\nField: AssumeProveBlocks | Change: moved field to top level | Reason: malformed JSON structure\nField: PlusCalAlgorithm | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty\nField: PlusCalProcesses | Change: moved field to top level | Reason: malformed JSON structure; confirmed empty\nField: ModelValues | Change: moved field to top level | Reason: malformed JSON structure\nField: OperatorOverrides | Change: moved field to top level | Reason: malformed JSON structure\nField: SymmetrySet | Change: moved field to top level | Reason: malformed JSON structure\nField: StateConstraint | Change: moved field to top level | Reason: malformed JSON structure; left empty because `StateConstraint` here is an operator name, not a model field entry\nField: ActionConstraint | Change: moved field to top level | Reason: malformed JSON structure\nField: ViewExpr | Change: moved field to top level | Reason: malformed JSON structure\nField: ComplexityTier | Change: moved field to top level | Reason: malformed JSON structure\nField: LetInNames | Change: added empty field `[]` | Reason: Phase 3 requires LET-bound names be separated; confirmed there are no LET blocks in file",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Unforg",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "SpecNoBcast",
+    "UnforgLtl",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan",
+    "CrashCountInfOftenZero"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitNoBcast"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "M",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ Proc -> {\"V0\", \"V1\", \"AC\", \"CR\"} ]",
+    "[ Proc -> SUBSET (Proc \\times M) ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/bcastFolklore/bcastFolklore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(7) + Init(2) + ValueDef(3) + ActionDefNames(6) = OperatorDefNames(21). Verified.",
+    "UnforgLtl and CorrLtl are placed in TemporalProperty because their bodies are of the form P => []Q and P => <>Q respectively. The outermost operator is => but the meaning is temporal.",
+    "StateConstraint is placed in StatePredicate because it is a non-primed Boolean-valued state-level condition, even though it calls TLCGet(\"level\") and is tool-oriented rather than a semantic invariant.",
+    "Proc, M, and vars are placed in ValueDef as non-Boolean helper/structural definitions.",
+    "TemporalNesting is true. Exact line:   []( \\E sndr \\in 1..N : (<<sndr, \"ECHO\">> \\in sent ",
+    "TemporalNesting is also witnessed by the continuation line containing explicit nested temporal operators:                             => <>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])))"
+  ]
+}

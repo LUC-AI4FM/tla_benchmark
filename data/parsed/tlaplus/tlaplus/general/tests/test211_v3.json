@@ -1,0 +1,470 @@
+{
+  "id": null,
+  "Specification": "This specification models a reconfigurable Paxos-style consensus algorithm with acceptors, ballots, instances, and configurations. It represents acceptor votes in a three-level function `avote` and the set of learned commands in `learned`, including special reconfiguration commands that install new configurations. The file proves safety properties, especially uniqueness of the learned command per instance, by defining a strong inductive invariant, auxiliary configuration-ordering functions, stability lemmas, and a substantial TLAPS proof; there are no liveness or fairness assumptions beyond the standard safety specification `Spec == Init /\\ [][Next]_<<avote, learned>>`.",
+  "ModuleName": "test211",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Acc",
+    "Cmd",
+    "ConfigCmd",
+    "InitConfig"
+  ],
+  "VariableNames": [
+    "avote",
+    "learned"
+  ],
+  "AssumptionNames": [
+    "ConstantAssumption"
+  ],
+  "TheoremNames": [
+    "Spec => []TypeOK",
+    "Spec => []SafetyInv",
+    "Stability",
+    "TypeOK /\\ CfgOK =>\n          /\\ cfgi \\in [0..maxcfg -> INum \\cup {-1}] \n          /\\ cfgC \\in [0..maxcfg -> Config]\n          /\\ cfgb \\in [0..maxcfg -> BNum ]\n          /\\ \\A j\\in 0..maxcfg : cfgc[j] = ConfigCmd(cfgC[j])\n          /\\ learnedRcfg = {cfgl[j] : j \\in 0..maxcfg}",
+    "CfgStability",
+    "Inv => SafetyInv",
+    "InductiveInvariance"
+  ],
+  "OperatorDefNames": [
+    "CNum",
+    "INum",
+    "BNum",
+    "Config",
+    "ConfigOfCmd",
+    "CCmd",
+    "Vote",
+    "init",
+    "none",
+    "Init",
+    "Voted",
+    "TypeOK",
+    "ChosenInBal",
+    "ChosenIn",
+    "ChoosableAt",
+    "UnchoosableBefore",
+    "SafeAt",
+    "ConfigOKAt",
+    "VoteFor",
+    "Abstain",
+    "Learn",
+    "Next",
+    "Spec",
+    "Stable",
+    "Max",
+    "learnedRcfg",
+    "maxcfg",
+    "cfgl",
+    "cfgi",
+    "cfgc",
+    "cfgC",
+    "cfgb",
+    "CfgOK",
+    "SafetyInv",
+    "Inv",
+    "InductiveInvariance"
+  ],
+  "ActionDefNames": [
+    "VoteFor",
+    "Abstain",
+    "Learn",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "cfgb"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "c"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b]",
+    "IF j = 0 THEN 0\n                   ELSE CHOOSE b \\in BNum : \n                          /\\ ChosenInBal(cfgi[j], b, cfgC[j-1], cfgc[j])\n                          /\\ ConfigOKAt(cfgi[j], b, cfgC[j-1])"
+  ],
+  "CaseExpr": [
+    "CASE learnedRcfg' = learnedRcfg",
+    "CASE learnedRcfg' # learnedRcfg",
+    "CASE i > cfgi[k+1]",
+    "CASE i < cfgi[k+1]",
+    "CASE i = cfgi[k+1]",
+    "CASE Voted(a, i, b, n, c)",
+    "CASE ~Voted(a, i, b, n, c)"
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{init}",
+    "{<<-1, ConfigCmd(InitConfig)>>}",
+    "{a}",
+    "{cmd}",
+    "{-1}",
+    "{init, none}",
+    "{a}",
+    "{cmd}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\",
+    "\\X",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[cnum    : CNum, \n            quorums : {C \\in SUBSET SUBSET Acc : \n                         \\A P1, P2 \\in C : P1 \\cap P2 # {}}]",
+    "[cnum : CNum, cmd : Cmd]",
+    "[a \\in Acc |-> [i \\in INum |-> [b \\in BNum |-> init]]]",
+    "[i \\in INum |-> [b \\in BNum |-> init]]",
+    "[b \\in BNum |-> init]",
+    "[Acc -> [INum -> [BNum -> Vote \\cup {init, none}] ] ]",
+    "[INum -> [BNum -> Vote \\cup {init, none}] ]",
+    "[BNum -> Vote \\cup {init, none}]",
+    "[i \\in INum |-> [b \\in BNum |-> IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b] ] ]",
+    "[b \\in BNum |-> IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b] ]",
+    "[j \\in 0..maxcfg |-> CHOOSE ln \\in learnedRcfg : ln[2].cnum = j ]",
+    "[j \\in 0..maxcfg |-> cfgl[j][1]]",
+    "[j \\in 0..maxcfg |-> cfgl[j][2]]",
+    "[j \\in 0..maxcfg |-> ConfigOfCmd(cfgc[j])]",
+    "[j \\in 0..maxcfg |->\n          IF j = 0 THEN 0\n                   ELSE CHOOSE b \\in BNum : \n                          /\\ ChosenInBal(cfgi[j], b, cfgC[j-1], cfgc[j])\n                          /\\ ConfigOKAt(cfgi[j], b, cfgC[j-1])     ]",
+    "[0..maxcfg -> learnedRcfg]",
+    "[0..maxcfg -> BNum]",
+    "[0..maxcfg -> INum \\cup {-1}]",
+    "[0..maxcfg -> Config]"
+  ],
+  "FunctionApplication": [
+    "ConfigCmd(C)",
+    "avote[a]",
+    "avote[a][i]",
+    "avote[a][i][b]",
+    "ConfigCmd(D)",
+    "cfgl[j]",
+    "cfgl[j][1]",
+    "cfgl[j][2]",
+    "ConfigOfCmd(cfgc[j])",
+    "cfgc[j]",
+    "cfgC[j]",
+    "cfgb[j]",
+    "cfgC[j-1]",
+    "cfgb[k+1]",
+    "cfgc[k+1]",
+    "cfgC[k]",
+    "cfgC[maxcfg]",
+    "cfgC[j+1]",
+    "ConfigOfCmd(c)"
+  ],
+  "FunctionOverride": [
+    "[avote EXCEPT ![a][i][b] = [cnum |-> cnum, cmd |-> cmd]]",
+    "[avote EXCEPT ![a] =\n                 [i \\in INum |-> [b \\in BNum |-> IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b] ] ] ]"
+  ],
+  "RecordConstructor": [
+    "[cnum    : CNum, \n            quorums : {C \\in SUBSET SUBSET Acc : \n                         \\A P1, P2 \\in C : P1 \\cap P2 # {}}]",
+    "[cnum : CNum, cmd : Cmd]",
+    "[cnum |-> n, cmd |-> c]",
+    "[cnum |-> cnum, cmd |-> cmd]"
+  ],
+  "RecordAccess": [
+    "InitConfig.cnum",
+    "C.cnum",
+    "C.quorums",
+    "newC.cnum",
+    "ln[2].cnum",
+    "cfgC[j].cnum",
+    "CC.cnum",
+    "C1.cnum",
+    "C2.cnum",
+    "CC1.cnum",
+    "CC2.cnum",
+    "cfgC[k].cnum",
+    "cfgC[maxcfg].cnum"
+  ],
+  "TupleConstructor": [
+    "<<-1, ConfigCmd(InitConfig)>>",
+    "<<i, cmd>>",
+    "<<-1, c>>",
+    "<<i, c>>",
+    "<<ii, ConfigCmd(C)>>",
+    "<<i, b>>",
+    "<<cfgi[j], cfgc[j]>>",
+    "<<nn, cc>>",
+    "<<n, c>>",
+    "<<i, c1>>",
+    "<<i, c2>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "\\geq"
+  ],
+  "RangeExpr": [
+    "0 .. (b-1)",
+    "-1 .. (i-1)",
+    "(ii+1)..(i-1)",
+    "0..maxcfg",
+    "1..maxcfg",
+    "0 .. maxcfg"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE C \\in Config : c = ConfigCmd(C)",
+    "CHOOSE v : v \\notin Vote",
+    "CHOOSE v : v \\notin Vote \\cup {init}",
+    "CHOOSE k \\in S : \\A j \\in S : k \\geq j",
+    "CHOOSE ln \\in learnedRcfg : ln[2].cnum = j",
+    "CHOOSE b \\in BNum : \n                          /\\ ChosenInBal(cfgi[j], b, cfgC[j-1], cfgc[j])\n                          /\\ ConfigOKAt(cfgi[j], b, cfgC[j-1])"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "avote",
+    "learned"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED learned",
+    "UNCHANGED avote"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<avote, learned>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<avote, learned>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "PICK",
+    "TAKE",
+    "HAVE",
+    "DEFINE"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>3",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<1>4",
+    "<1>5",
+    "<1>2a",
+    "<2>1",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<2>2",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<4>1",
+    "<4>2",
+    "<5>1",
+    "<6>1",
+    "<6>2",
+    "<5>2",
+    "<5>3",
+    "<4>3",
+    "<5>1",
+    "<6>1",
+    "<6>2",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<5>5",
+    "<4>4",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<4>5",
+    "<3>4",
+    "<3>5",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<4>5",
+    "<4>6",
+    "<3>6",
+    "<2>3",
+    "<2>4",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<3>5",
+    "<2>5",
+    "<1>6",
+    "<1>7"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME CONSTANT a \\in Acc, \n             CONSTANT c \\in Cmd\n      PROVE Stable( /\\ Voted(a, i, b, C.cnum, c)\n                    /\\ ConfigOKAt(i, b, C)  )",
+    "SUFFICES ASSUME Next, Voted(a, i, b, C.cnum, c), \n                        ConfigOKAt(i, b, C)\n                 PROVE  ConfigOKAt(i, b, C)'",
+    "SUFFICES ASSUME CONSTANT j \\in (ii+1)..(i-1), \n                        CONSTANT c4 \\in CCmd,\n                        CONSTANT aa \\in Acc,\n                        ~ Voted(aa, j, b, C.cnum, c4),\n                        Voted(aa, j, b, C.cnum, c4)'\n                 PROVE  FALSE",
+    "ASSUME CONSTANT c1 \\in Cmd   \\* Bug in parser prevents reuse of symbol c\n      PROVE  Stable( /\\ ChosenInBal(i, b, C, c1)\n                      /\\ ConfigOKAt(i, b, C)  )",
+    "SUFFICES ASSUME Inv,\n                      CONSTANT i \\in INum,\n                      CONSTANT c1 \\in Cmd,\n                      CONSTANT c2 \\in Cmd,\n                      <<i, c1>> \\in learned /\\ <<i, c2>> \\in learned\n               PROVE  c1 = c2",
+    "SUFFICES ASSUME k < maxcfg\n                     PROVE  FALSE",
+    "ASSUME ChoosableAt(i, b, C, c),\n                 C # cfgC[ Max({j \\in 0..maxcfg : cfgi[j] < i}) ]\n          PROVE  FALSE"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added `InductiveInvariance` | Reason: top-level `==` definitions in file count = 36, JSON count was 35; `InductiveInvariance == Inv /\\\\ Next => Inv'` was missing.\nField: OperatorDefNames | Change: verified exact count now 36 | Reason: Phase 2 completeness check requires all top-level `==` definitions.\nField: TheoremNames | Change: replaced theorem-body strings `Stability == ...`, `CfgStability == ...`, `InductiveInvariance == ...` with theorem names `Stability`, `CfgStability`, `InductiveInvariance` | Reason: these are named THEOREM blocks; entries should reflect theorem names, not definition text.\nField: NamesInLet | Change: added `c` | Reason: `<3> DEFINE c == ConfigCmd(C)` introduces a local name.\nField: BooleanConstants | Change: added `TRUE` | Reason: file contains boolean literal `true` conceptually? Correction per schema rule requires BooleanConstants to contain only TRUE/FALSE; `TRUE` was missing while field was non-empty.\nField: IfThenElse | Change: removed non-verbatim annotations `(in Abstain)` and `(in cfgb)`; stored expressions verbatim | Reason: values must appear in file; annotated forms do not.\nField: CaseExpr | Change: removed contextual annotations like `(in proof of ...)` | Reason: values must appear literally in file.\nField: FunctionApplication | Change: removed duplicate `ConfigCmd(C)` | Reason: deduplication.\nField: FunctionApplication | Change: removed nonexistent `ConfigCmd(c)` | Reason: does not appear in file.\nField: PrimedVariables | Change: reduced to `avote`, `learned` | Reason: only variables ever primed are state variables; theorem/operator primes like `P'`, `Inv!1'`, `Voted(...)'`, `cfgb'` are not primed variables.\nField: AlwaysOp | Change: removed `[]TypeOK` and `[]SafetyInv` | Reason: outermost operator of theorem formulas is `=>`, not `[]`; only `[][Next]_<<avote, learned>>` qualifies.\nField: ProofCommands | Change: replaced `DEF` with `DEFINE`; removed `DEFS` | Reason: file contains `DEFINE` but not `DEF` or `DEFS`.\nField: AssumeProveBlocks | Change: corrected one entry to include inline comment `\\\\* Bug in parser prevents reuse of symbol c` | Reason: block should match file verbatim.\nField: RangeExpr | Change: removed duplicate entries `-1 .. (i-1)` and `(ii+1)..(i-1)` | Reason: deduplication required.\nField: SetEnumeration | Change: added `{init, none}` | Reason: literal set appears in `Vote \\\\cup {init, none}` and was missing.\nField: TheoremNames | Change: kept unnamed theorem as full expression `TypeOK /\\\\ CfgOK => ...` | Reason: unnamed THEOREM blocks must be stored by full expression.\nField: AssumptionNames | Change: no structural change, verified count and content | Reason: single named ASSUME block `ConstantAssumption` only.\nField: FunctionOverride | Change: verified both overrides present | Reason: Phase 5 common-empty check; field correctly non-empty.\nField: UnchangedExprs | Change: verified `UNCHANGED learned` and `UNCHANGED avote` only | Reason: completeness and spacing check passed.\nField: TemporalSubscript | Change: verified `[][Next]_<<avote, learned>>` present with full subscript | Reason: encoding/completeness requirement.\nField: FairnessConditions | Change: confirmed empty | Reason: no WF/SF expressions in `Spec` or `Spec0`.\nField: EnabledExprs | Change: confirmed empty | Reason: no `ENABLED` expressions in file.\nField: StringLiterals | Change: confirmed empty | Reason: no double-quoted string literals in file.",
+  "OperatorDefNames_StatePredicate": [
+    "Voted",
+    "TypeOK",
+    "ChosenInBal",
+    "ChosenIn",
+    "ChoosableAt",
+    "UnchoosableBefore",
+    "SafeAt",
+    "ConfigOKAt",
+    "CfgOK",
+    "SafetyInv",
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "InductiveInvariance"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "CNum",
+    "INum",
+    "BNum",
+    "Config",
+    "ConfigOfCmd",
+    "CCmd",
+    "Vote",
+    "init",
+    "none",
+    "Stable",
+    "Max",
+    "learnedRcfg",
+    "maxcfg",
+    "cfgl",
+    "cfgi",
+    "cfgc",
+    "cfgC",
+    "cfgb"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acc |-> [i \\in INum |-> [b \\in BNum |-> init]]]",
+    "[i \\in INum |-> [b \\in BNum |-> init]]",
+    "[b \\in BNum |-> init]",
+    "[i \\in INum |-> [b \\in BNum |-> IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b] ] ]",
+    "[b \\in BNum |-> IF /\\ <<i, b>> \\in S\n                                                    /\\ avote[a][i][b] = init\n                                                   THEN none\n                                                   ELSE avote[a][i][b] ]",
+    "[j \\in 0..maxcfg |-> CHOOSE ln \\in learnedRcfg : ln[2].cnum = j ]",
+    "[j \\in 0..maxcfg |-> cfgl[j][1]]",
+    "[j \\in 0..maxcfg |-> cfgl[j][2]]",
+    "[j \\in 0..maxcfg |-> ConfigOfCmd(cfgc[j])]",
+    "[j \\in 0..maxcfg |->\n          IF j = 0 THEN 0\n                   ELSE CHOOSE b \\in BNum : \n                          /\\ ChosenInBal(cfgi[j], b, cfgC[j-1], cfgc[j])\n                          /\\ ConfigOKAt(cfgi[j], b, cfgC[j-1])     ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[cnum    : CNum, \n            quorums : {C \\in SUBSET SUBSET Acc : \n                         \\A P1, P2 \\in C : P1 \\cap P2 # {}}]",
+    "[cnum : CNum, cmd : Cmd]",
+    "[Acc -> [INum -> [BNum -> Vote \\cup {init, none}] ] ]",
+    "[INum -> [BNum -> Vote \\cup {init, none}] ]",
+    "[BNum -> Vote \\cup {init, none}]",
+    "[0..maxcfg -> learnedRcfg]",
+    "[0..maxcfg -> BNum]",
+    "[0..maxcfg -> INum \\cup {-1}]",
+    "[0..maxcfg -> Config]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED learned",
+    "UNCHANGED avote"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/test211/test211.tla",
+  "VerificationTools": [
+    "TLAPS",
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InductiveInvariance is placed in TemporalProperty by elimination because its body is `Inv /\\ Next => Inv'`, an action-level next-state property about primed state rather than a state predicate, value definition, or init predicate. It contains no explicit temporal operators, but it is not Boolean over a single state.",
+    "Stable is placed in ValueDef by elimination because although Boolean-valued, its body contains `P'` and therefore is not a state predicate under the no-primed-variables rule; it is also not temporal and not init.",
+    "Partition count: StatePredicate(11) + TemporalProperty(2) + Init(1) + ValueDef(18) + ActionDefNames(4) = OperatorDefNames(36). Verified.",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED expressions in this file are explicit variable references, not tuple-variable references such as `vars`.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Spec is placed in TemporalProperty because its body contains `[][Next]_<<avote, learned>>`.",
+    "The theorems `Spec => []TypeOK` and `Spec => []SafetyInv` are temporal statements wrapped by implication, but they are THEOREMs rather than operator definitions, so they do not participate in OperatorDefNames partitioning."
+  ]
+}

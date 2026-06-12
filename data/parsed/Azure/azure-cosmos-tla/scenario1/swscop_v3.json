@@ -1,0 +1,372 @@
+{
+  "id": null,
+  "Specification": "This module models a simple cloud storage system with one cloud process and a set of client processes, originally written in PlusCal and then translated to TLA+. Clients repeatedly perform a write followed by a read, and the cloud replies according to a selected consistency model: Eventual, Consistent_Prefix, Session, Bounded_Staleness, or Strong. The specification includes the translated operational semantics, a standard safety-style temporal specification Spec == Init /\\ [][Next]_vars, and state predicates expressing the intended consistency condition for the single-client case under the assumption NumClients = 1 and MaxNumOp < 10.",
+  "ModuleName": "swscop",
+  "ExtendsModules": [
+    "Naturals",
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC",
+    "Bags"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NumClients",
+    "MaxNumOp",
+    "Consistency",
+    "K"
+  ],
+  "VariableNames": [
+    "chan",
+    "pc",
+    "Database",
+    "msg",
+    "m",
+    "op",
+    "chistory",
+    "ses"
+  ],
+  "AssumptionNames": [
+    "Consistency \\in {\"Eventual\", \"Consistent_Prefix\", \"Session\", \"Bounded_Staleness\", \"Strong\"}",
+    "MaxNumOp<10 /\\ NumClients=1"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Cloud",
+    "Clients",
+    "vars",
+    "ProcSet",
+    "Init",
+    "D",
+    "DW",
+    "DE",
+    "DP",
+    "DS",
+    "DB",
+    "DG",
+    "cosmosdb",
+    "CW",
+    "CWA",
+    "CR",
+    "CRA",
+    "client",
+    "Next",
+    "Spec",
+    "Messages",
+    "Eventual",
+    "Consistent_Prefix",
+    "Session",
+    "Bounded_Staleness",
+    "Strong"
+  ],
+  "ActionDefNames": [
+    "D",
+    "DW",
+    "DE",
+    "DP",
+    "DS",
+    "DB",
+    "DG",
+    "cosmosdb",
+    "CW",
+    "CWA",
+    "CR",
+    "CRA",
+    "client",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "k"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF msg'[self].type=\"Write\" THEN /\\ Database' = [Database EXCEPT ![self] = Append(Database[self],msg'[self].dat)] /\\ pc' = [pc EXCEPT ![self] = \"DW\"] ELSE /\\ IF msg'[self].type=\"Eventual\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DE\"] ELSE /\\ IF msg'[self].type=\"Consistent_Prefix\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DP\"] ELSE /\\ IF msg'[self].type=\"Session\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DS\"] ELSE /\\ IF msg'[self].type=\"Bounded_Staleness\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DB\"] ELSE /\\ IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"] /\\ UNCHANGED Database",
+    "IF msg'[self].type=\"Eventual\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DE\"] ELSE /\\ IF msg'[self].type=\"Consistent_Prefix\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DP\"] ELSE /\\ IF msg'[self].type=\"Session\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DS\"] ELSE /\\ IF msg'[self].type=\"Bounded_Staleness\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DB\"] ELSE /\\ IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"]",
+    "IF msg'[self].type=\"Consistent_Prefix\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DP\"] ELSE /\\ IF msg'[self].type=\"Session\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DS\"] ELSE /\\ IF msg'[self].type=\"Bounded_Staleness\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DB\"] ELSE /\\ IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"]",
+    "IF msg'[self].type=\"Session\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DS\"] ELSE /\\ IF msg'[self].type=\"Bounded_Staleness\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DB\"] ELSE /\\ IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"]",
+    "IF msg'[self].type=\"Bounded_Staleness\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DB\"] ELSE /\\ IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"]",
+    "IF msg'[self].type=\"Strong\" THEN /\\ pc' = [pc EXCEPT ![self] = \"DG\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"D\"]",
+    "IF Len(Database[self])>K THEN Len(Database[self])-K ELSE 1",
+    "IF op[self]<MaxNumOp THEN /\\ op' = [op EXCEPT ![self] = op[self]+1] /\\ chan' = [chan EXCEPT ![Cloud] = Append(chan[Cloud], ([type |-> \"Write\", dat |-> op'[self], ses|->ses[self], orig |-> self]))] /\\ pc' = [pc EXCEPT ![self] = \"CWA\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Done\"] /\\ UNCHANGED << chan, op >>",
+    "IF Len(Database[Cloud])>K THEN Len(Database[Cloud])-K ELSE 1"
+  ],
+  "CaseExpr": [
+    "CASE self \\in {Cloud} -> \"D\" [] self \\in Clients -> \"CW\""
+  ],
+  "SetEnumeration": [
+    "{\"Eventual\", \"Consistent_Prefix\", \"Session\", \"Bounded_Staleness\", \"Strong\"}",
+    "{Cloud}",
+    "{\"D\"}",
+    "{\"Eventual\",\"Consistent_Prefix\",\"Bounded_Staleness\",\"Strong\"}",
+    "{\"Reply\", \"Ack\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in 0..NumClients |-> <<>>]",
+    "[self \\in {Cloud} |-> <<0>>]",
+    "[self \\in {Cloud} |-> <<>>]",
+    "[self \\in Clients |-> <<>>]",
+    "[self \\in Clients |-> 0]",
+    "[self \\in Clients |-> <<0>>]",
+    "[self \\in Clients |-> 1]",
+    "[self \\in ProcSet |-> CASE self \\in {Cloud} -> \"D\" [] self \\in Clients -> \"CW\"]"
+  ],
+  "FunctionApplication": [
+    "chan[self]",
+    "pc[self]",
+    "msg'[self]",
+    "msg[self]",
+    "Database[self]",
+    "chan[(msg[self].orig)]",
+    "op[self]",
+    "chan[Cloud]",
+    "ses[self]",
+    "m'[self]",
+    "chistory[self]",
+    "chistory[1]",
+    "Database[Cloud]",
+    "pc[1]",
+    "ses[1]",
+    "Database[Cloud][i]"
+  ],
+  "FunctionOverride": [
+    "[msg EXCEPT ![self] = Head(chan[self])]",
+    "[chan EXCEPT ![self] = Tail(chan[self])]",
+    "[Database EXCEPT ![self] = Append(Database[self],msg'[self].dat)]",
+    "[pc EXCEPT ![self] = \"DW\"]",
+    "[pc EXCEPT ![self] = \"DE\"]",
+    "[pc EXCEPT ![self] = \"DP\"]",
+    "[pc EXCEPT ![self] = \"DS\"]",
+    "[pc EXCEPT ![self] = \"DB\"]",
+    "[pc EXCEPT ![self] = \"DG\"]",
+    "[pc EXCEPT ![self] = \"D\"]",
+    "[chan EXCEPT ![(msg[self].orig)] = Append(chan[(msg[self].orig)], ([type|-> \"Ack\", dat|->Database[self][Len(Database[self])], ses|->Len(Database[self])]))]",
+    "[chan EXCEPT ![(msg[self].orig)] = Append(chan[(msg[self].orig)], ([type|-> \"Reply\", dat|->Database[self][k], ses|->k]))]",
+    "[op EXCEPT ![self] = op[self]+1]",
+    "[chan EXCEPT ![Cloud] = Append(chan[Cloud], ([type |-> \"Write\", dat |-> op'[self], ses|->ses[self], orig |-> self]))]",
+    "[pc EXCEPT ![self] = \"CWA\"]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[m EXCEPT ![self] = Head(chan[self])]",
+    "[ses EXCEPT ![self] = m'[self].ses]",
+    "[pc EXCEPT ![self] = \"CR\"]",
+    "[chan EXCEPT ![Cloud] = Append(chan[Cloud], ([type |-> Consistency, ses|->ses[self], orig |-> self]))]",
+    "[pc EXCEPT ![self] = \"CRA\"]",
+    "[chistory EXCEPT ![self] = Append(chistory[self],m'[self].dat)]",
+    "[pc EXCEPT ![self] = \"CW\"]"
+  ],
+  "RecordConstructor": [
+    "[type|-> \"Ack\", dat|->Database[self][Len(Database[self])], ses|->Len(Database[self])]",
+    "[type|-> \"Reply\", dat|->Database[self][k], ses|->k]",
+    "[type |-> \"Write\", dat |-> op'[self], ses|->ses[self], orig |-> self]",
+    "[type |-> Consistency, ses|->ses[self], orig |-> self]",
+    "[type : {\"Eventual\",\"Consistent_Prefix\",\"Bounded_Staleness\",\"Strong\"}, dat: {0..Nat}, ses: {0..Nat}, orig: Clients]",
+    "[type : {\"Reply\", \"Ack\"}, dat: {0..Nat}, ses: {0..Nat}]"
+  ],
+  "RecordAccess": [
+    "msg'[self].type",
+    "msg'[self].dat",
+    "msg[self].orig",
+    "msg[self].ses",
+    "m'[self].ses",
+    "m'[self].dat"
+  ],
+  "TupleConstructor": [
+    "<<>>",
+    "<<0>>",
+    "<< chan, pc, Database, msg, m, op, chistory, ses >>",
+    "<< m, op, chistory, ses >>",
+    "<< Database, msg, m, op, chistory, ses >>",
+    "<< chan, op >>",
+    "<< Database, msg, m, chistory, ses >>",
+    "<< Database, msg, op, chistory >>",
+    "<< Database, msg, m, op, chistory >>",
+    "<< Database, msg, op >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..NumClients",
+    "0..NumClients",
+    "1..Len(Database[self])",
+    "msg[self].ses..Len(Database[self])",
+    "(IF Len(Database[self])>K THEN Len(Database[self])-K ELSE 1)..Len(Database[self])",
+    "1..Len(Database[Cloud])",
+    "ses[1]..Len(Database[Cloud])",
+    "(IF Len(Database[Cloud])>K THEN Len(Database[Cloud])-K ELSE 1)..Len(Database[Cloud])"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Eventual",
+    "Consistent_Prefix",
+    "Session",
+    "Bounded_Staleness",
+    "Strong",
+    "Write",
+    "Ack",
+    "Reply",
+    "D",
+    "CW",
+    "DE",
+    "DP",
+    "DS",
+    "DB",
+    "DG",
+    "CWA",
+    "Done",
+    "CR",
+    "CRA",
+    "DW"
+  ],
+  "ArithmeticModules": [
+    "Naturals",
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets",
+    "Bags"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "msg",
+    "chan",
+    "Database",
+    "pc",
+    "op",
+    "m",
+    "ses",
+    "chistory"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED Database",
+    "UNCHANGED << m, op, chistory, ses >>",
+    "UNCHANGED << Database, msg, m, op, chistory, ses >>",
+    "UNCHANGED << chan, op >>",
+    "UNCHANGED << Database, msg, m, chistory, ses >>",
+    "UNCHANGED << Database, msg, op, chistory >>",
+    "UNCHANGED << Database, msg, m, op, chistory >>",
+    "UNCHANGED << Database, msg, op >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "swscop"
+  ],
+  "PlusCalProcesses": [
+    "cosmosdb",
+    "client"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and preserved value [\"k\"] | Reason: field name must match required schema; LET-bound name comes from `LET k == Len(Database[self]) IN`.\nField: Quantifiers | Change: removed \"\\\\A\" | Reason: no universal quantifier appears anywhere in the file; only `\\\\E` occurs.\nField: IfThenElse | Change: replaced paraphrased/operator-context placeholders with verbatim expressions from file | Reason: values must literally appear in the TLA+ file.\nField: CaseExpr | Change: removed trailing context marker `(in Init)` | Reason: entry must be an expression that literally appears in the file.\nField: SetEnumeration | Change: removed \"{}\" | Reason: empty set literal does not appear in the file.\nField: SetOperators | Change: removed \"\\\\X\" | Reason: Cartesian product operator does not appear in the file.\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: `ASSUME` blocks belong in `AssumptionNames`; this is not a proof script file.\nField: OperatorDefNames | Change: verified count unchanged at 26 | Reason: top-level `==` definition count in file is 26 and matches JSON count 26.",
+  "OperatorDefNames_StatePredicate": [
+    "Eventual",
+    "Consistent_Prefix",
+    "Session",
+    "Bounded_Staleness",
+    "Strong"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Cloud",
+    "Clients",
+    "vars",
+    "ProcSet",
+    "Messages"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in 0..NumClients |-> <<>>]",
+    "[self \\in {Cloud} |-> <<0>>]",
+    "[self \\in {Cloud} |-> <<>>]",
+    "[self \\in Clients |-> <<>>]",
+    "[self \\in Clients |-> 0]",
+    "[self \\in Clients |-> <<0>>]",
+    "[self \\in Clients |-> 1]",
+    "[self \\in ProcSet |-> CASE self \\in {Cloud} -> \"D\" [] self \\in Clients -> \"CW\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED Database",
+    "UNCHANGED << m, op, chistory, ses >>",
+    "UNCHANGED << Database, msg, m, op, chistory, ses >>",
+    "UNCHANGED << chan, op >>",
+    "UNCHANGED << Database, msg, m, chistory, ses >>",
+    "UNCHANGED << Database, msg, op, chistory >>",
+    "UNCHANGED << Database, msg, m, op, chistory >>",
+    "UNCHANGED << Database, msg, op >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/swscop/swscop.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Session, Bounded_Staleness, and Strong are placed in StatePredicate even though their outermost operator is implication, because they are Boolean-valued state predicates with no primed variables and no temporal operators.",
+    "Messages is placed in ValueDef by elimination: it defines a set of records, not a state predicate, action, init predicate, or temporal property.",
+    "Partition count: StatePredicate(5) + TemporalProperty(1) + Init(1) + ValueDef(5) + ActionDefNames(14) = OperatorDefNames(26). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

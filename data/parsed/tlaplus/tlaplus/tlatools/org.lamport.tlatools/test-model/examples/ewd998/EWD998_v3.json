@@ -1,0 +1,311 @@
+{
+  "id": null,
+  "Specification": "This module specifies Safra's distributed termination detection algorithm on a ring, following EWD 998. Nodes communicate asynchronously, can be active or inactive, maintain local counters for sent minus received messages, and a circulating token records position, accumulated counter information, and color to determine whether global termination has been detected. The specification includes a type invariant, an inductive invariant, a safety property stating that a detected white-token condition implies actual termination, a liveness property asserting eventual detection after termination, a fairness condition on the system token actions, and a TLC state constraint to bound the otherwise infinite state space.",
+  "ModuleName": "EWD998",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Functions",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [
+    "AsyncTerminationDetection"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => TDSpec"
+  ],
+  "OperatorDefNames": [
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "terminationDetected",
+    "Sum",
+    "B",
+    "Termination",
+    "TerminationDetection",
+    "Rng",
+    "Inv",
+    "TypedInv",
+    "Liveness",
+    "TD",
+    "TDSpec",
+    "TokenAwayFromZero",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE token.color",
+    "IF token.pos = N-1 THEN token.q = 0 ELSE token.q = Sum(counter, Rng(token.pos+1,N-1))"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{\"white\", \"black\"}",
+    "{\"black\"}"
+  ],
+  "SetOperators": [
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]",
+    "[pos : Node, q : Int, color : Color]",
+    "[ pos: Node, q: {0}, color: {\"black\"} ]",
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionApplication": [
+    "color[0]",
+    "active[i]",
+    "color[i]",
+    "counter[i]",
+    "pending[i]",
+    "counter[0]"
+  ],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[pos |-> N-1, q |-> 0, color |-> \"white\"]",
+    "[pos |-> token.pos - 1,\n               q |-> token.q + counter[i],\n               color |-> IF color[i] = \"black\" THEN \"black\" ELSE token.color]",
+    "[ action |->\n      { << << 1,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ] >>,\n           [ name |-> \"InitiateProbe\",\n             location |->\n                 [ beginLine |-> 52,\n                   beginColumn |-> 3,\n                   endLine |-> 60,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ] ],\n           << 2,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >> >>,\n        << << 2,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >>,\n           [ name |-> \"PassToken\",\n             location |->\n                 [ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ],\n             context |-> [i |-> 1],\n             parameters |-> <<\"i\">> ],\n           << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >> >>,\n        << << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >>,\n           [ name |-> \"PassToken\",\n             location |->\n                 [ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ],\n             context |-> [i |-> 1],\n             parameters |-> <<\"i\">> ],\n           << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >> >> },\n  state |->\n      { << 1,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ] >>,\n        << 2,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >>,\n        << 3,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >> } ]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ]",
+    "[ name |-> \"InitiateProbe\",\n             location |->\n                 [ beginLine |-> 52,\n                   beginColumn |-> 3,\n                   endLine |-> 60,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ] ]",
+    "[ beginLine |-> 52,\n                   beginColumn |-> 3,\n                   endLine |-> 60,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ]",
+    "[ name |-> \"PassToken\",\n             location |->\n                 [ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ],\n             context |-> [i |-> 1],\n             parameters |-> <<\"i\">> ]",
+    "[ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ]",
+    "[i |-> 1]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ]",
+    "[ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ]"
+  ],
+  "RecordAccess": [
+    "token.pos",
+    "token.color",
+    "token.q"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, pending, token>>",
+    "<<token>>",
+    "<< 1,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ] >>",
+    "<< 2,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >>",
+    "<< << 1,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ] >>,\n           [ name |-> \"InitiateProbe\",\n             location |->\n                 [ beginLine |-> 52,\n                   beginColumn |-> 3,\n                   endLine |-> 60,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ] ],\n           << 2,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >> >>",
+    "<< 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >>",
+    "<< << 2,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >>,\n           [ name |-> \"PassToken\",\n             location |->\n                 [ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ],\n             context |-> [i |-> 1],\n             parameters |-> <<\"i\">> ],\n           << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >> >>",
+    "<< << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >>,\n           [ name |-> \"PassToken\",\n             location |->\n                 [ beginLine |-> 64,\n                   beginColumn |-> 3,\n                   endLine |-> 72,\n                   endColumn |-> 43,\n                   module |-> \"EWD998\" ],\n             context |-> [i |-> 1],\n             parameters |-> <<\"i\">> ],\n           << 3,\n              [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n                active |-> (0 :> FALSE @@ 1 :> FALSE),\n                counter |-> (0 :> 0 @@ 1 :> 0),\n                pending |-> (0 :> 0 @@ 1 :> 0),\n                token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >> >>",
+    "<< 1,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"black\"] ] >>",
+    "<< 2,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 1, q |-> 0, color |-> \"white\"] ] >>",
+    "<< 3,\n           [ color |-> (0 :> \"white\" @@ 1 :> \"white\"),\n             active |-> (0 :> FALSE @@ 1 :> FALSE),\n             counter |-> (0 :> 0 @@ 1 :> 0),\n             pending |-> (0 :> 0 @@ 1 :> 0),\n             token |-> [pos |-> 0, q |-> 0, color |-> \"white\"] ] >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<="
+  ],
+  "RangeExpr": [
+    "0 .. N-1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "white",
+    "black",
+    "InitiateProbe",
+    "EWD998",
+    "PassToken",
+    "i"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "token",
+    "color",
+    "counter",
+    "pending",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "<>[] (token.pos > 0)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Termination ~> terminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced contextualized entries with verbatim expressions only | Reason: Field values must literally appear in the TLA+ file\nField: SetEnumeration | Change: Removed \"{}\" | Reason: Empty set literal does not appear in the file\nField: SetOperators | Change: Removed \"\\\\subseteq\" | Reason: \"\\\\subseteq\" does not appear in the file\nField: FunctionConstructor | Change: Corrected \"[ pos : Node, q : Int, color : Color]\" to \"[pos : Node, q : Int, color : Color]\" | Reason: Entry must match file verbatim\nField: ComparisonOps | Change: Removed \"<\" and \">=\" | Reason: These operators do not appear in the file\nField: TemporalSubscript | Change: Removed \"WF_vars(System)\" | Reason: TemporalSubscript should contain only subscripted temporal forms like \"[][Next]_vars\"\nField: AlwaysOp | Change: Replaced \"[] (token.pos > 0)\" with \"<>[] (token.pos > 0)\" | Reason: TokenAwayFromZero has outermost [] with inner <>; the full formula in the file is \"<>[] (token.pos > 0)\"\nField: EventuallyOp | Change: Removed \"<>[] (token.pos > 0)\" | Reason: Outermost operator is [] in the actual formula, so it belongs in AlwaysOp, not EventuallyOp\nField: OperatorDefNames | Change: Verified no change; count confirmed as 29 | Reason: Top-level == definition count in file = 29, JSON OperatorDefNames count = 29",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "StateConstraint",
+    "terminationDetected",
+    "Termination",
+    "TerminationDetection",
+    "Inv",
+    "TypedInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness",
+    "TokenAwayFromZero"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "Sum",
+    "B",
+    "Rng",
+    "TD",
+    "TDSpec",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]",
+    "[pos : Node, q : Int, color : Color]",
+    "[ pos: Node, q: {0}, color: {\"black\"} ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/EWD998/EWD998.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(7) + TemporalProperty(3) + Init(1) + ValueDef(10) + ActionDefNames(8) = OperatorDefNames(29). Verified.",
+    "TerminationDetection is placed in StatePredicate because its body is a non-temporal implication between state predicates and contains no primed variables or temporal operators.",
+    "TDSpec is placed in ValueDef by elimination. It is an imported instantiated operator value (TD!Spec) and its temporal/action/state classification cannot be determined from local body syntax alone.",
+    "PostCondition is placed in ValueDef by elimination. It defines a structured TLC value, not a state predicate, action, init predicate, or temporal property.",
+    "TemporalNesting is true. Exact line: \"TokenAwayFromZero == <>[](token.pos > 0)\"",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED expressions in this file are explicit forms.",
+    "VerificationTools includes Apalache because the file comment explicitly says the Rng definition helps Apalache construct a bounded set."
+  ]
+}

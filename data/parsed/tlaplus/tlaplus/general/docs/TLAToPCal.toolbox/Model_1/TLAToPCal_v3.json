@@ -1,0 +1,274 @@
+{
+  "id": null,
+  "Specification": "This module specifies the mapping between TLA+ and PlusCal (PCal) code regions, focusing on the syntactic correspondence between regions in the TLA+ specification and their representation in PlusCal. It defines data structures for locations, regions, and translation objects (TPObject), and provides predicates to check well-formedness and ordering of these objects in sequences. The specification includes detailed invariants for matching parentheses, token ordering, and the structure of translation sequences, supporting the correctness of TLA-to-PlusCal translation tools. The design is intended for use in debugging and verifying translation mappings, with additional constructs for simplified debugging scenarios.",
+  "ModuleName": "TLAToPCal",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Location",
+    "loc1 <: loc2",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "IsWellFormed",
+    "TokensInOrder",
+    "MatchingParen",
+    "IsTPSpec",
+    "TPSpec",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "ObjSeq1"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [
+    "ParenDepth"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "obj",
+    "j",
+    "dp"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pos = 0 THEN 0 ELSE LET obj == objSeq[pos] IN ... (in ParenDepth)",
+    "IF i = 1 THEN PrintT(<<\"k\", k>>) ELSE TRUE (in IsTPSpec)",
+    "IF k = 4 THEN PrintT(<<\"m\", m>>) ELSE TRUE (in IsTPSpec)"
+  ],
+  "CaseExpr": [
+    "CASE obj.type = \"begin\" -> 1 [] obj.type = \"end\" -> -1 [] OTHER -> 0 (in ParenDepth)"
+  ],
+  "SetEnumeration": [
+    "{\"token\"}",
+    "{\"begin\", \"end\"}",
+    "{\"break\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]",
+    "[i \\in 1..Len(seq) |-> ...]",
+    "[s \\in Seq(TPObject) : IsTPSpec(s)]"
+  ],
+  "FunctionApplication": [
+    "objSeq[pos]",
+    "seq[1]",
+    "seq[i]",
+    "seq[j]",
+    "seq[k]",
+    "seq[m]",
+    "Len(seq)",
+    "ParenDepth(seq, i)",
+    "ParenDepth(seq, pos-1)",
+    "ParenDepth(seq, i-1)",
+    "ParenDepth(seq, k-1)",
+    "ParenDepth(seq, k)",
+    "ParenDepth(seq, Len(seq))",
+    "MatchingParen(seq, i)",
+    "PrintT(<<j, dp>>)",
+    "PrintT(<<\"k\", k>>)",
+    "PrintT(ParenDepth(seq, k-1))",
+    "PrintT(<<\"m\", m>>)",
+    "Loc(beg)",
+    "Loc(end)",
+    "Reg(beg, end)",
+    "T(beg, end)",
+    "L(pos)",
+    "R(pos)",
+    "B(dep)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type |->\"token\", region |-> Reg(beg, end)]",
+    "[type |-> \"begin\", loc |-> Loc(pos)]",
+    "[type |-> \"end\", loc |-> Loc(pos)]",
+    "[type |-> \"break\", depth |-> dep]"
+  ],
+  "RecordAccess": [
+    "loc1.line",
+    "loc2.line",
+    "loc1.column",
+    "loc2.column",
+    "r.begin",
+    "r.end",
+    "seq[i].type",
+    "seq[j].type",
+    "seq[k].type",
+    "seq[m].type",
+    "seq[i].region",
+    "seq[j].region",
+    "seq[i].region.end",
+    "seq[j].region.begin",
+    "seq[i].loc",
+    "seq[j].loc",
+    "seq[k].loc",
+    "seq[m].loc"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<j, dp>>",
+    "<<\"k\", k>>",
+    "<<\"m\", m>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..(Len(seq)-1)",
+    "(i+1)..Len(seq)",
+    "pos+1..Len(seq)",
+    "(pos)..(i-1)",
+    "(i+1)..(j-1)",
+    "(k+1)..(j-1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in pos+1..Len(seq) : /\\ ParenDepth(seq,i) = ParenDepth(seq, pos-1) /\\ \\A j \\in (pos)..(i-1) : ParenDepth(seq, j) > ParenDepth(seq, pos-1)"
+  ],
+  "StringLiterals": [
+    "token",
+    "begin",
+    "end",
+    "break",
+    "k",
+    "m"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "IsWellFormed",
+    "TokensInOrder",
+    "IsTPSpec"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "Location",
+    "loc1 <: loc2",
+    "Region",
+    "TLAToken",
+    "Paren",
+    "Break",
+    "TPObject",
+    "ParenDepth",
+    "MatchingParen",
+    "TPSpec",
+    "Loc",
+    "Reg",
+    "T",
+    "L",
+    "R",
+    "B",
+    "ObjSeq1"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..Len(seq) |-> ...]",
+    "[s \\in Seq(TPObject) : IsTPSpec(s)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[line : Nat, column : Nat]",
+    "[begin : Location, end : Location]",
+    "[type : {\"token\"}, region  : Region]",
+    "[type : {\"begin\", \"end\"}, loc : Location]",
+    "[type : {\"break\"}, depth : Nat]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/TLAToPCal/TLAToPCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(0) + Init(0) + ValueDef(16) + ActionDefNames(0) = 19 = OperatorDefNames total. Verified.",
+    "No temporal operators ([]/<>/~>) appear anywhere in the file, so TemporalNesting is false.",
+    "All FunctionConstructor entries are either [S -> T] or [x \\in S |-> e] forms; [i \\in 1..Len(seq) |-> ...] and [s \\in Seq(TPObject) : IsTPSpec(s)] are by-domain, the rest are set-type.",
+    "No Init operator is present.",
+    "No ENABLED expressions or action operators are present.",
+    "Operators placed in ValueDef by elimination: Location, loc1 <: loc2, Region, TLAToken, Paren, Break, TPObject, ParenDepth, MatchingParen, TPSpec, Loc, Reg, T, L, R, B, ObjSeq1."
+  ]
+}

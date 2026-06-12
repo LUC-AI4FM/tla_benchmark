@@ -1,0 +1,344 @@
+{
+  "id": null,
+  "Specification": "This module specifies Safra's distributed termination detection algorithm on a ring of N nodes. It models message channels explicitly as sequences, distinguishes a circulating token message from ordinary payload messages, and includes both system actions for token handling and environment actions for sending, receiving, and deactivating nodes. The specification checks a refinement to another module EWD998, asserts a temporal specification with weak fairness for the system actions, and adds state and action constraints to bound the state space for model checking.",
+  "ModuleName": "EWD998Chan",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Utils"
+  ],
+  "InstanceModules": [
+    "EWD998",
+    "TLC",
+    "TLC"
+  ],
+  "InstanceSubstitutions": [
+    "active <- active",
+    "token <- LET tkn == CHOOSE i \\in 1 .. Len(inbox[tpos]):\n                                                     inbox[tpos][i].type = \"tok\"\n                                  IN  [pos   |-> tpos, \n                                       q     |-> inbox[tpos][tkn].q,\n                                       color |-> inbox[tpos][tkn].color]",
+    "pending <- [n \\in Nodes |-> \n                                     Len(SelectSeq(inbox[n], \n                                         LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "inbox"
+  ],
+  "AssumptionNames": [
+    "NAssumption",
+    "LET x == 1 + 1 IN x = 2",
+    "Reduce(LAMBDA a,b : a + b, [i \\in Nodes |-> i], 0, N-1, 0) = 3"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "Nodes",
+    "Color",
+    "vars",
+    "TokenMsg",
+    "BasicMsg",
+    "Message",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "NumberOfMsg",
+    "StateConstraint",
+    "tpos",
+    "EWD998Spec",
+    "EWD998Inv",
+    "Stop",
+    "ActionConstraint",
+    "EnabledAlias",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "ccounter(idx)"
+  ],
+  "LetInNames": [
+    "x",
+    "tkn",
+    "ccounter",
+    "T"
+  ],
+  "LambdaParams": [
+    "a",
+    "b",
+    "msg"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 0 THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >> ELSE <<>>",
+    "IF color[i] = \"black\" THEN \"black\" ELSE tkn.color"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{\"white\", \"black\"}",
+    "{\"tok\"}",
+    "{\"pl\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Nodes |-> i]",
+    "[Nodes -> Int]",
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Seq(Message)]",
+    "[i \\in Nodes |-> 0]",
+    "[i \\in Nodes |-> IF i = 0 \n                              THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >> \n                              ELSE <<>>]",
+    "[n \\in Nodes |-> \n                                     Len(SelectSeq(inbox[n], \n                                         LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "FunctionApplication": [
+    "inbox[i]",
+    "counter[i]",
+    "active[i]",
+    "color[i]",
+    "inbox[0]",
+    "inbox[0][j]",
+    "inbox[i][j]",
+    "inbox[j]",
+    "inbox[tpos]",
+    "inbox[tpos][i]",
+    "inbox[tpos][tkn]",
+    "counter[idx]",
+    "inbox[n]"
+  ],
+  "FunctionOverride": [
+    "[inbox EXCEPT ![N-1] = Append(@, \n           [type |-> \"tok\", q |-> 0,\n             (* Rule 6 *)\n             color |-> \"white\"]), \n             ![0] = RemoveAt(@, j) ]",
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[inbox EXCEPT ![i-1] = \n                                       Append(@, [tkn EXCEPT !.q = tkn.q + counter[i],\n                                                             !.color = IF color[i] = \"black\"\n                                                                       THEN \"black\"\n                                                                       ELSE tkn.color]),\n                                    ![i] = RemoveAt(@, j) ]",
+    "[tkn EXCEPT !.q = tkn.q + counter[i],\n                                                             !.color = IF color[i] = \"black\"\n                                                                       THEN \"black\"\n                                                                       ELSE tkn.color]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[inbox EXCEPT ![j] = Append(@, [type |-> \"pl\" ] ) ]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[inbox EXCEPT ![i] = RemoveAt(@, j) ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"tok\"}, q : Int, color : Color]",
+    "[type : {\"pl\"}]",
+    "[type |-> \"tok\", q |-> 0, color |-> \"black\" ]",
+    "[type |-> \"tok\", q |-> 0,\n             color |-> \"white\"]",
+    "[type |-> \"pl\" ]",
+    "[pos   |-> tpos, \n                                       q     |-> inbox[tpos][tkn].q,\n                                       color |-> inbox[tpos][tkn].color]",
+    "[\n        InitiateProbe |-> ENABLED InitiateProbe, \n        PassToken |-> \\E n \\in Nodes: ENABLED PassToken(n),\n        SendMsg |-> \\E n \\in Nodes: ENABLED SendMsg(n),\n        RecvMsg |-> \\E n \\in Nodes: ENABLED RecvMsg(n),\n        Deactivate |-> \\E n \\in Nodes: ENABLED Deactivate(n)\n    ]"
+  ],
+  "RecordAccess": [
+    "inbox[i][j].type",
+    "inbox[0][j].type",
+    "inbox[0][j].color",
+    "tkn.q",
+    "tkn.color",
+    "msg.type",
+    "inbox[tpos][i].type",
+    "inbox[tpos][tkn].q",
+    "inbox[tpos][tkn].color"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, inbox>>",
+    "<< [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >>",
+    "<<>>",
+    "<<active, counter>>",
+    "<<active, color>>",
+    "<<color, inbox, counter>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "1..Len(inbox[i])",
+    "1 .. Len(inbox[i])",
+    "1 .. Len(inbox[j])",
+    "1..Len(inbox[0])",
+    "1 .. Len(inbox[tpos])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Nodes : \\E j \\in 1..Len(inbox[i]) : inbox[i][j].type = \"tok\"",
+    "CHOOSE i \\in 1 .. Len(inbox[tpos]):\n                                                     inbox[tpos][i].type = \"tok\""
+  ],
+  "StringLiterals": [
+    "white",
+    "black",
+    "tok",
+    "pl",
+    "exit",
+    "distinct",
+    "generated"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "inbox",
+    "color",
+    "counter",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "EnabledExprs": [
+    "ENABLED InitiateProbe",
+    "ENABLED PassToken(n)",
+    "ENABLED SendMsg(n)",
+    "ENABLED RecvMsg(n)",
+    "ENABLED Deactivate(n)"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: CompletenessCheck | Change: file count = 26, JSON OperatorDefNames count = 26 | Reason: verified all top-level `==` definitions are present and no extras exist\nField: LocalOperatorNames | Change: changed `ccounter` to `ccounter(idx)` | Reason: local operator names must contain only parametric LET-defined operators in their defined form\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: prompt requires `LetInNames`; original field name was nonconforming\nField: IfThenElse | Change: removed contextual suffixes `(in Init)` and `(in PassToken)` | Reason: values must be the expressions that appear in the TLA+ file, not annotated text\nField: SetEnumeration | Change: removed `{}` | Reason: empty set literal does not appear anywhere in the file\nField: FunctionApplication | Change: removed duplicate/non-needed repeated entries `counter[i]`, `active[i]`, `color[0]`, `color[i]`, `active[i]` | Reason: deduplicated and kept only literal applications appearing in the file\nField: TupleConstructor | Change: removed duplicate `<<>>` entry | Reason: deduplication required\n",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "StateConstraint",
+    "ActionConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "EWD998Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nodes",
+    "Color",
+    "vars",
+    "TokenMsg",
+    "BasicMsg",
+    "Message",
+    "NumberOfMsg",
+    "tpos",
+    "EWD998Inv",
+    "Stop",
+    "EnabledAlias",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Nodes |-> i]",
+    "[i \\in Nodes |-> 0]",
+    "[i \\in Nodes |-> IF i = 0 \n                              THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >> \n                              ELSE <<>>]",
+    "[n \\in Nodes |-> \n                                     Len(SelectSeq(inbox[n], \n                                         LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> Int]",
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Seq(Message)]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998Chan/EWD998Chan.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ActionConstraint is classified as StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators, despite its model-checking-oriented name.",
+    "EnabledAlias is classified as ValueDef because it defines a record-valued helper mapping action names to ENABLED expressions; it is not itself a Boolean state predicate.",
+    "EWD998Spec is classified as TemporalProperty because it is defined as EWD998!Spec, which denotes an imported temporal specification.",
+    "EWD998Inv, Stop, and PostCondition are placed in ValueDef by elimination: they are non-action operators that are neither Init nor temporal properties nor Boolean-valued current-state predicates.",
+    "Partition count: StatePredicate(3) + TemporalProperty(2) + Init(1) + ValueDef(12) + ActionDefNames(8) = OperatorDefNames(26). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

@@ -1,0 +1,262 @@
+{
+  "id": null,
+  "Specification": "This module specifies a parallel multiprocess version of Misra's reachability algorithm. It models a set of processes that cooperatively explore nodes reachable from a distinguished root, maintaining a shared set `marked` and work set `vroot`, with per-process local variables `u` and `toVroot`; the algorithm terminates iff the reachable set from `Root` is finite, and on termination `marked` equals that reachable set. The specification includes the PlusCal translation, a fairness-based temporal specification for all processes, an inductive invariant used for refinement, and theorems asserting that the parallel algorithm refines the imported reachability specification and satisfies both its safety and fairness parts.",
+  "ModuleName": "ParReach",
+  "ExtendsModules": [
+    "Reachability",
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [
+    "Reachable"
+  ],
+  "InstanceSubstitutions": [
+    "vroot <- vrootBar",
+    "pc <- pcBar"
+  ],
+  "ConstantNames": [
+    "Root",
+    "Procs"
+  ],
+  "VariableNames": [
+    "marked",
+    "vroot",
+    "pc",
+    "u",
+    "toVroot"
+  ],
+  "AssumptionNames": [
+    "RootAssump",
+    "ProcsAssump"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => Refines",
+    "THEOREM Spec => R!Init /\\ [][R!Next]_R!vars",
+    "THEOREM Spec => WF_R!vars(R!Next)"
+  ],
+  "OperatorDefNames": [
+    "Reachable",
+    "vars",
+    "ProcSet",
+    "Init",
+    "a",
+    "b",
+    "c",
+    "p",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "Inv",
+    "vrootBar",
+    "pcBar",
+    "Refines"
+  ],
+  "ActionDefNames": [
+    "a",
+    "b",
+    "c",
+    "p",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF vroot /= {} THEN /\\ \\E v \\in vroot:\n      u' = [u EXCEPT ![self] = v]\n   /\\ pc' = [pc EXCEPT ![self] = \"b\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Done\"]\n   /\\ u' = u",
+    "IF u[self] \\notin marked THEN /\\ marked' = (marked \\cup {u[self]})\n   /\\ toVroot' = [toVroot EXCEPT ![self] = Succ[u[self]]]\n   /\\ pc' = [pc EXCEPT ![self] = \"c\"]\n   /\\ vroot' = vroot ELSE /\\ vroot' = vroot \\ {u[self]}\n   /\\ pc' = [pc EXCEPT ![self] = \"a\"]\n   /\\ UNCHANGED << marked, toVroot >>",
+    "IF toVroot[self] /= {} THEN /\\ \\E w \\in toVroot[self]:\n      /\\ vroot' = (vroot \\cup {w})\n      /\\ toVroot' = [toVroot EXCEPT ![self] = toVroot[self] \\ {w}]\n   /\\ pc' = [pc EXCEPT ![self] = \"c\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"a\"]\n   /\\ UNCHANGED << vroot, toVroot >>",
+    "IF \\A q \\in Procs : pc[q] = \"Done\" THEN \"Done\" ELSE \"a\""
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{Root}",
+    "{u[self]}",
+    "{\"a\", \"b\", \"c\", \"Done\"}",
+    "{\"a\", \"b\", \"Done\"}",
+    "{w}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[self \\in Procs |-> Root]",
+    "[self \\in Procs |-> {}]",
+    "[self \\in ProcSet |-> \"a\"]",
+    "[Procs -> Nodes]",
+    "[Procs -> SUBSET Nodes]",
+    "[Procs -> {\"a\", \"b\", \"c\", \"Done\"}]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "u[self]",
+    "Succ[u[self]]",
+    "toVroot[self]",
+    "pc[q]",
+    "toVroot[q]",
+    "u[q]",
+    "toVroot[i]"
+  ],
+  "FunctionOverride": [
+    "[u EXCEPT ![self] = v]",
+    "[pc EXCEPT ![self] = \"b\"]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[toVroot EXCEPT ![self] = Succ[u[self]]]",
+    "[pc EXCEPT ![self] = \"c\"]",
+    "[pc EXCEPT ![self] = \"a\"]",
+    "[toVroot EXCEPT ![self] = toVroot[self] \\ {w}]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< marked, vroot, pc, u, toVroot >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "a",
+    "b",
+    "c",
+    "Done"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "u",
+    "pc",
+    "marked",
+    "toVroot",
+    "vroot"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << marked, vroot, toVroot >>",
+    "UNCHANGED << marked, toVroot >>",
+    "UNCHANGED << vroot, toVroot >>",
+    "UNCHANGED << marked, u >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(p(self))",
+    "[][R!Next]_R!vars",
+    "WF_R!vars(R!Next)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][R!Next]_R!vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in Procs : WF_vars(p(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "ParallelReachability"
+  ],
+  "PlusCalProcesses": [
+    "fair process (p \\in Procs)"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count unchanged at 16 | Reason: top-level `==` definitions in file count = 16, matching JSON count = 16\nField: LetInNames | Change: renamed from `NamesInLet` to `LetInNames` and kept empty | Reason: schema consistency; file contains no LET/IN bindings\nField: BooleanConstants | Change: removed `FALSE` | Reason: `FALSE` does not appear anywhere in the TLA+ file\nField: IfThenElse | Change: replaced 4 paraphrased summaries with 4 expressions matching the actual TLA+ IF/THEN/ELSE forms | Reason: values must appear in the file verbatim or near-verbatim, not as English descriptions\nField: SetEnumeration | Change: added `{w}` | Reason: set literal `{w}` appears in `vroot' = (vroot \\\\cup {w})` and was missing\nField: FairnessConditions | Change: removed `WF_R!vars(R!Next)` | Reason: FairnessConditions must contain only WF/SF expressions from inside `Spec` or `Spec0`; `WF_R!vars(R!Next)` appears only in a theorem\nField: PlusCalProcesses | Change: changed `process (p \\\\in Procs)` to `fair process (p \\\\in Procs)` | Reason: must match the actual PlusCal process declaration in the file",
+  "OperatorDefNames_StatePredicate": [
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination",
+    "Refines"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Reachable",
+    "vars",
+    "ProcSet",
+    "vrootBar",
+    "pcBar"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[self \\in Procs |-> Root]",
+    "[self \\in Procs |-> {}]",
+    "[self \\in ProcSet |-> \"a\"]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Procs -> Nodes]",
+    "[Procs -> SUBSET Nodes]",
+    "[Procs -> {\"a\", \"b\", \"c\", \"Done\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << marked, vroot, toVroot >>",
+    "UNCHANGED << marked, toVroot >>",
+    "UNCHANGED << vroot, toVroot >>",
+    "UNCHANGED << marked, u >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ParReach/ParReach.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Refines is placed in TemporalProperty because its body is R!Spec, an instantiated temporal specification.",
+    "Termination is placed in TemporalProperty because its body is an eventuality formula using <>.",
+    "Reachable, vars, ProcSet, vrootBar, and pcBar are placed in ValueDef as non-action, non-temporal value definitions.",
+    "Partition count: StatePredicate(1) + TemporalProperty(3) + Init(1) + ValueDef(5) + ActionDefNames(6) = OperatorDefNames(16). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder is not stated in the file content."
+  ]
+}

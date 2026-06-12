@@ -1,0 +1,288 @@
+{
+  "id": null,
+  "Specification": "This module specifies trace validation for an implementation of the EWD998 channel-based termination-detection system by relating implementation log entries to steps of a higher-level TLA+ model imported from EWD998Chan. It deserializes a JSON log, reorders distributed log entries into causal order using vector clocks, constrains each trace line to correspond to a particular high-level action or to stuttering for unmodeled termination messages, and uses TLC breadth-first search together with a custom trace view to permit repeated high-level states along the trace. The specification also defines a postcondition TraceAccepted to check that the entire log matches a prefix of some behavior, includes an invariant about failure-free log entries and termination messages, and provides a debugging alias exposing enabledness and selected state information.",
+  "ModuleName": "EWD998ChanTrace",
+  "ExtendsModules": [
+    "EWD998Chan",
+    "Json",
+    "TLC",
+    "IOUtils",
+    "VectorClocks"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"bfs\""
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "JsonLog",
+    "TraceN",
+    "TraceLog",
+    "TraceInit",
+    "TraceSpec",
+    "PayloadPred",
+    "IsInitiateToken",
+    "IsPassToken",
+    "IsRecvToken",
+    "IsSendMsg",
+    "IsRecvMsg",
+    "IsDeactivate",
+    "IsTrm",
+    "TraceNextConstraint",
+    "TraceInv",
+    "TraceView",
+    "TraceAccepted",
+    "TraceAlias"
+  ],
+  "ActionDefNames": [
+    "IsInitiateToken",
+    "IsPassToken",
+    "IsRecvToken",
+    "IsSendMsg",
+    "IsRecvMsg",
+    "IsDeactivate",
+    "IsTrm",
+    "TraceNextConstraint"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "suffix",
+    "snd",
+    "msg",
+    "rcv",
+    "i",
+    "logline",
+    "l",
+    "d"
+  ],
+  "LambdaParams": [
+    "l",
+    "vc"
+  ],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF \"JSON\" \\in DOMAIN IOEnv THEN IOEnv.JSON ELSE \"specifications/ewd998/EWD998ChanTrace.ndjson\"",
+    "IF d - 1 = Len(TraceLog) THEN TRUE ELSE Print(<<\"Failed matching the trace to (a prefix of) a behavior:\", TraceLog[d], \"TLA+ debugger breakpoint hit count \" \\o ToString(d+1)>>, FALSE)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{TRUE}",
+    "{\"white\"}",
+    "{\"<\", \">\"}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "DOMAIN",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Node -> {TRUE}]",
+    "[Node -> {\"white\"}]"
+  ],
+  "FunctionApplication": [
+    "JsonLog[1]",
+    "TraceLog[i]",
+    "inbox[n]",
+    "inbox[rcv]",
+    "inbox'[n]",
+    "inbox'[rcv]",
+    "inbox'[rcv][idx]",
+    "TraceLog[TLCGet(\"level\")]",
+    "active[n]",
+    "TraceLog[d]",
+    "TraceLog[TLCGet(\"level\") - 1]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[\n        log     |-> <<TLCGet(\"level\"), TraceLog[TLCGet(\"level\") - 1]>>,\n        active  |-> active,\n        color   |-> color,\n        counter |-> counter,\n        inbox   |-> inbox,\n        term    |-> <<EWD998!terminationDetected, \"=>\", EWD998!Termination>>,\n        enabled |-> \n            [\n                InitToken  |-> ENABLED InitiateProbe,\n                PassToken  |-> ENABLED \\E i \\in Node \\ {0} : PassToken(i),\n                SendMsg    |-> ENABLED \\E i \\in Node : SendMsg(i),\n                RecvMsg    |-> ENABLED \\E i \\in Node : RecvMsg(i),\n                Deactivate |-> ENABLED \\E i \\in Node : Deactivate(i)\n            ]\n    ]",
+    "[\n                InitToken  |-> ENABLED InitiateProbe,\n                PassToken  |-> ENABLED \\E i \\in Node \\ {0} : PassToken(i),\n                SendMsg    |-> ENABLED \\E i \\in Node : SendMsg(i),\n                RecvMsg    |-> ENABLED \\E i \\in Node : RecvMsg(i),\n                Deactivate |-> ENABLED \\E i \\in Node : Deactivate(i)\n            ]"
+  ],
+  "RecordAccess": [
+    "IOEnv.JSON",
+    "JsonLog[1].N",
+    "l.node",
+    "msg.type",
+    "l.event",
+    "l.pkt.msg.type",
+    "l.pkt.rcv",
+    "l.pkt.snd",
+    "l.pkt.msg",
+    "msg.q",
+    "msg.color",
+    "inbox'[rcv][idx].type",
+    "inbox'[rcv][idx].q",
+    "inbox'[rcv][idx].color",
+    "l.pkt.msg .type",
+    "TLCGet(\"stats\").diameter"
+  ],
+  "TupleConstructor": [
+    "<<InitiateProbe>>",
+    "<<PassToken(snd)>>",
+    "<<active, counter, color>>",
+    "<<SendMsg(l.pkt.snd)>>",
+    "<<RecvMsg(l.pkt.rcv)>>",
+    "<<Deactivate(l.node)>>",
+    "<<vars, TLCGet(\"level\")>>",
+    "<<\"Failed matching the trace to (a prefix of) a behavior:\", TraceLog[d], \n                    \"TLA+ debugger breakpoint hit count \" \\o ToString(d+1)>>",
+    "<<TLCGet(\"level\"), TraceLog[TLCGet(\"level\") - 1]>>",
+    "<<EWD998!terminationDetected, \"=>\", EWD998!Termination>>"
+  ],
+  "SequenceOps": [
+    "SubSeq",
+    "Len",
+    "SelectSeq",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "config",
+    "mode",
+    "bfs",
+    "JSON",
+    "specifications/ewd998/EWD998ChanTrace.ndjson",
+    "white",
+    "pl",
+    ">",
+    "tok",
+    "<",
+    "d",
+    "trm",
+    "failure",
+    "level",
+    "stats",
+    "diameter",
+    "Failed matching the trace to (a prefix of) a behavior:",
+    "TLA+ debugger breakpoint hit count "
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "inbox",
+    "active",
+    "counter",
+    "color",
+    "vars"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, color>>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [
+    "ENABLED InitiateProbe",
+    "ENABLED \\E i \\in Node \\ {0} : PassToken(i)",
+    "ENABLED \\E i \\in Node : SendMsg(i)",
+    "ENABLED \\E i \\in Node : RecvMsg(i)",
+    "ENABLED \\E i \\in Node : Deactivate(i)"
+  ],
+  "TemporalSubscript": [
+    "[][Next \\/ UNCHANGED vars]_vars",
+    "<<InitiateProbe>>_vars",
+    "<<PassToken(snd)>>_vars",
+    "<<SendMsg(l.pkt.snd)>>_vars",
+    "<<RecvMsg(l.pkt.rcv)>>_vars",
+    "<<Deactivate(l.node)>>_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next \\/ UNCHANGED vars]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 18, JSON count = 18 | Reason: Phase 2 completeness check\nField: ActionDefNames | Change: removed `TraceSpec` | Reason: `TraceSpec` is a temporal formula/spec, not an action definition\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: prompt requires `LetInNames`; LET-bound names must not remain under a nonstandard field\nField: IfThenElse | Change: removed appended context markers `(in JsonLog)` and `(in TraceAccepted)` from both entries | Reason: field values must be expressions that appear in the TLA+ file verbatim\nField: FunctionApplication | Change: removed `TLCGet(\\\"config\\\")[\\\"mode\\\"]` | Reason: this expression does not appear in the file; the file uses record access `TLCGet(\\\"config\\\").mode`\nField: FunctionApplication | Change: removed `l.pkt.vc` | Reason: this is record access, not function application\nField: RecordAccess | Change: removed duplicate `l.node` entry | Reason: Phase 4 deduplication\nField: RecordAccess | Change: removed `l.pkt.vc` | Reason: expression does not literally appear as record access syntax in the file; it appears only as part of `LAMBDA l : l.pkt.vc`, and high-risk field requires literal verbatim occurrences only\nField: FunctionOverride | Change: confirmed empty | Reason: no `[f EXCEPT ![e] = v]` forms occur in the file\nField: AssumptionNames | Change: confirmed single entry only | Reason: exactly one unnamed `ASSUME` block appears in the file\nField: LocalOperatorNames | Change: confirmed empty | Reason: no local parametric operator definitions inside LET blocks\nField: RecordAccess | Change: confirmed remaining entries appear verbatim in file | Reason: Phase 3 correctness\nField: FairnessConditions | Change: confirmed empty | Reason: no `WF_` or `SF_` expressions appear in `Spec` or `Spec0`\n",
+  "OperatorDefNames_StatePredicate": [
+    "TraceInit",
+    "PayloadPred",
+    "TraceInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "TraceSpec"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "JsonLog",
+    "TraceN",
+    "TraceLog",
+    "TraceAccepted",
+    "TraceView",
+    "TraceAlias"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[Node -> {TRUE}]",
+    "[Node -> {\"white\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, color>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ewd998/EWD998ChanTrace.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(1) + Init(0) + ValueDef(6) + ActionDefNames(8) = OperatorDefNames(18). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "TraceAccepted is placed in ValueDef by elimination: it is a state-level computed Boolean/postcondition expression with no primed variables and no temporal operators, but it is not naturally a state predicate over the current system state; it computes acceptance from TLC statistics and trace length.",
+    "TraceView is placed in ValueDef by elimination: it is a tuple-valued helper used as a TLC VIEW expression, not a predicate/action/temporal formula.",
+    "TraceAlias is placed in ValueDef by elimination: it is a record-valued debugging aid, not a predicate/action/temporal formula.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

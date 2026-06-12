@@ -1,0 +1,171 @@
+{
+  "id": null,
+  "Specification": "This module defines helper operators for tracking and aggregating named occurrences of boolean conditions, apparently for instrumentation or analysis rather than for a complete state-machine specification. It uses TLC and auxiliary runtime operators to store per-name counters, merge them across workers, and check whether a named condition has been observed. The file contains only helper definitions and state-level/value-level operators, with no declared constants or variables, no transition relation, no temporal specification, and no fault model or correctness property being verified in this module itself.",
+  "ModuleName": "_Possible",
+  "ExtendsModules": [],
+  "InstanceModules": [
+    "TLC",
+    "TLCExt",
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "_Update",
+    "_Track",
+    "_Merge",
+    "_Counts",
+    "_CheckName",
+    "_PrintCounts"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Op"
+  ],
+  "NamesInLet": [
+    "workers",
+    "n",
+    "Fold",
+    "counts"
+  ],
+  "LambdaParams": [
+    "old",
+    "b"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF b THEN IF name \\in DOMAIN old THEN [old EXCEPT ![name] = @ + 1] ELSE old @@ (name :> 1) ELSE old @@ (name :> 0)",
+    "IF name \\in DOMAIN old THEN [old EXCEPT ![name] = @ + 1] ELSE old @@ (name :> 1)",
+    "IF name \\in DOMAIN a THEN a[name] ELSE 0",
+    "IF name \\in DOMAIN b THEN b[name] ELSE 0",
+    "IF i = 0 THEN <<>> ELSE _Merge(Fold[i-1], workers[i])"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "\\cup",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[name \\in (DOMAIN a) \\cup (DOMAIN b) |-> (IF name \\in DOMAIN a THEN a[name] ELSE 0) + (IF name \\in DOMAIN b THEN b[name] ELSE 0)]",
+    "[i \\in 0..n |-> IF i = 0 THEN <<>> ELSE _Merge(Fold[i-1], workers[i])]"
+  ],
+  "FunctionApplication": [
+    "Op(TLCGetOrDefault(\"s:_possible\", <<>>), val)",
+    "TLCGet(\"all:named\")[\"s:_possible\"]",
+    "Fold[i-1]",
+    "workers[i]",
+    "a[name]",
+    "b[name]",
+    "counts[name]",
+    "Fold[n]",
+    "TLCSet(\"s:_possible\", Op(TLCGetOrDefault(\"s:_possible\", <<>>), val))",
+    "PrintT(counts)",
+    "PrintT(_Counts)",
+    "Len(workers)",
+    "_Merge(Fold[i-1], workers[i])"
+  ],
+  "FunctionOverride": [
+    "[old EXCEPT ![name] = @ + 1]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "TLCGet(\"all:named\")[\"s:_possible\"]"
+  ],
+  "TupleConstructor": [
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "0..n"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "s:_possible",
+    "all:named"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count matches top-level definitions; file count = 6, JSON count = 6 | Reason: Phase 2 completeness check required exact match\nField: LocalOperatorNames | Change: Added \"Op\" | Reason: Op is a local parametric operator binder in `LOCAL _Update(Op(_,_), val) ==`\nField: IfThenElse | Change: Removed non-verbatim suffixes `(in _Track)`, `(in _Merge)`, `(in _Counts)` from all entries | Reason: Phase 3 requires values to appear in the TLA+ file verbatim\nField: FunctionConstructor | Change: Replaced `[i \\\\in 0..n] == IF i = 0 THEN <<>> ELSE _Merge(Fold[i-1], workers[i])` with `[i \\\\in 0..n |-> IF i = 0 THEN <<>> ELSE _Merge(Fold[i-1], workers[i])]` | Reason: Original JSON entry does not appear in the file; the actual function constructor inside the LET-bound operator body is the `|->` form\nField: FunctionApplication | Change: Added `TLCSet(\"s:_possible\", Op(TLCGetOrDefault(\"s:_possible\", <<>>), val))`, `PrintT(counts)`, `PrintT(_Counts)`, `Len(workers)`, `_Merge(Fold[i-1], workers[i])` | Reason: These function/operator applications appear in the file and the field was incomplete\nField: RecordAccess | Change: Added `TLCGet(\"all:named\")[\"s:_possible\"]` | Reason: This literal access appears in the file; empty field was incorrect under Phase 5\nField: AssumptionNames | Change: Confirmed remains empty | Reason: No ASSUME, ASSUMPTION, or AXIOM blocks appear in the file\nField: FunctionOverride | Change: Confirmed remains `[\\\"[old EXCEPT ![name] = @ + 1]\\\"]` with no additional entries | Reason: Exactly one distinct EXCEPT form appears in the file\nField: PrimedVariables | Change: Confirmed remains empty | Reason: No primed variables appear anywhere in the file\nField: UnchangedExprs | Change: Confirmed remains empty | Reason: No UNCHANGED expressions appear in the file\nField: TemporalSubscript | Change: Confirmed remains empty | Reason: No temporal subscript formulas appear in the file\nField: AlwaysOp | Change: Confirmed remains empty | Reason: No outermost `[]` temporal formulas appear in the file\nField: EventuallyOp | Change: Confirmed remains empty | Reason: No outermost `<>` temporal formulas appear in the file\nField: LeadsToOp | Change: Confirmed remains empty | Reason: No `~>` formulas appear in the file\nField: GuaranteesOp | Change: Confirmed remains empty | Reason: No `-+->` formulas appear in the file\nField: FairnessConditions | Change: Confirmed remains empty | Reason: No WF/SF fairness conditions appear in Spec or Spec0; neither operator exists here\nField: PlusCalAlgorithm | Change: Confirmed remains `[]` | Reason: No PlusCal algorithm in the file\nField: PlusCalProcesses | Change: Confirmed remains `[]` | Reason: No PlusCal processes in the file",
+  "OperatorDefNames_StatePredicate": [
+    "_CheckName"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "_Update",
+    "_Track",
+    "_Merge",
+    "_Counts",
+    "_PrintCounts"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[name \\in (DOMAIN a) \\cup (DOMAIN b) |-> (IF name \\in DOMAIN a THEN a[name] ELSE 0) + (IF name \\in DOMAIN b THEN b[name] ELSE 0)]",
+    "[i \\in 0..n |-> IF i = 0 THEN <<>> ELSE _Merge(Fold[i-1], workers[i])]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/_Possible/_Possible.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "_CheckName is classified as a StatePredicate because its body is Boolean-valued, contains no primed variables, and contains no temporal operators, even though it invokes PrintT as part of the consequent.",
+    "_Update, _Track, _Merge, _Counts, and _PrintCounts are placed in ValueDef by elimination: they define computed values or TLC instrumentation helpers rather than actions, init predicates, or temporal properties.",
+    "Partition count: StatePredicate(1) + TemporalProperty(0) + Init(0) + ValueDef(5) + ActionDefNames(0) = OperatorDefNames(6). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

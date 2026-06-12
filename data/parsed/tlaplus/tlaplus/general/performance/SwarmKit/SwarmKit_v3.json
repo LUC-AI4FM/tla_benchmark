@@ -1,0 +1,364 @@
+{
+  "id": null,
+  "Specification": "This module specifies a TLA+ model of Docker SwarmKit at a high level, combining user actions, orchestrator behavior, allocation, scheduling, worker behavior, and reaping of tasks. It models services and tasks, including replicated and global services, task replacement, cleanup of terminated tasks, service removal, task scheduling to nodes, and convergence toward a desired running configuration. The spec uses weak fairness for core progress actions and verifies type correctness, a task-transition sanity property, and a liveness-style property asserting that unless disruptive events continue forever, the system eventually stabilizes in the desired state.",
+  "ModuleName": "SwarmKit",
+  "ExtendsModules": [
+    "Integers",
+    "TLC",
+    "FiniteSets",
+    "Types",
+    "Tasks",
+    "WorkerSpec",
+    "EventCounter"
+  ],
+  "InstanceModules": [
+    "User",
+    "Orchestrator",
+    "Allocator",
+    "Scheduler",
+    "Reaper"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "maxTerminated"
+  ],
+  "VariableNames": [
+    "services"
+  ],
+  "AssumptionNames": [
+    "maxTerminated \\in Nat",
+    "Cardinality(TaskId) >= 1 + maxTerminated"
+  ],
+  "TheoremNames": [
+    "AgentTLC = AgentReal"
+  ],
+  "OperatorDefNames": [
+    "IsReplicated",
+    "IsGlobal",
+    "TasksOf",
+    "TasksOfVSlot",
+    "VSlotsOf",
+    "TypeOK",
+    "CreateService",
+    "UpdateService",
+    "RemoveService",
+    "User",
+    "RunnableTasks",
+    "RunnableWantedTasks",
+    "UnusedVSlot",
+    "UnusedId",
+    "CreateSlot",
+    "ReplaceTask",
+    "RequestRemoval",
+    "CleanupTerminated",
+    "RestartTask",
+    "ReleaseReady",
+    "CleanupService",
+    "OrchestratorProgress",
+    "Orchestrator",
+    "AllocateTask",
+    "AllocatorProgress",
+    "Allocator",
+    "Scheduler",
+    "Reaper",
+    "vars",
+    "Init",
+    "AgentReal",
+    "AgentTLC",
+    "Next",
+    "Spec",
+    "Inv",
+    "Get",
+    "StepTransitionsOK",
+    "TransitionsOK",
+    "InDesiredState",
+    "EventuallyAsDesired"
+  ],
+  "ActionDefNames": [
+    "CreateService",
+    "UpdateService",
+    "RemoveService",
+    "User",
+    "CreateSlot",
+    "ReplaceTask",
+    "RequestRemoval",
+    "CleanupTerminated",
+    "RestartTask",
+    "ReleaseReady",
+    "CleanupService",
+    "OrchestratorProgress",
+    "Orchestrator",
+    "AllocateTask",
+    "AllocatorProgress",
+    "Allocator",
+    "Scheduler",
+    "Reaper",
+    "AgentReal",
+    "AgentTLC",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "swarmTaskIds",
+    "current",
+    "termTasksInSlot",
+    "replacement",
+    "candidateNodes",
+    "cand",
+    "permitted",
+    "oldIds",
+    "newIds",
+    "runningTasks",
+    "nRunning",
+    "terminated"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF IsReplicated(sid) THEN Slot \\ VSlotsOf(sid) ELSE Node \\ VSlotsOf(sid)",
+    "IF t.node = unassigned THEN Node ELSE { t.node }",
+    "IF cand = {} THEN null ELSE State(CHOOSE x \\in cand : TRUE)"
+  ],
+  "CaseExpr": [
+    "CASE Orchestrator -> Transitions.orchestrator [] Allocator -> Transitions.allocator [] Scheduler -> Transitions.scheduler [] Agent -> Transitions.agent [] Reaper -> Transitions.reaper [] OTHER -> {}",
+    "CASE IsReplicated(sid) -> /\\ nRunning = services[sid].replicas [] IsGlobal(sid) -> /\\ nRunning = Cardinality(Node) /\\ { t.node : t \\in runningTasks } = Node"
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{ NewTask(sid, slot, id, running) }",
+    "{ complete, shutdown, failed, rejected }",
+    "{oldT}",
+    "{\n                  [oldT EXCEPT !.desired_state = shutdown],\n                  replacement\n                }",
+    "{sid}",
+    "{ t.node }",
+    "{t}"
+  ],
+  "SetOperators": [
+    "\\subseteq",
+    "DOMAIN",
+    "\\",
+    "\\union"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ DOMAIN services -> ServiceSpec ]",
+    "[ t \\in TasksOf(sid) |->\n                          [t EXCEPT !.desired_state = remove] ]",
+    "[ i \\in DOMAIN services \\ {sid} |-> services[i] ]",
+    "[ n \\in Node |-> nodeUp ]"
+  ],
+  "FunctionApplication": [
+    "services[sid]",
+    "services[i]"
+  ],
+  "FunctionOverride": [
+    "[ services EXCEPT ![sid] = newSpec ]",
+    "[services EXCEPT ![sid].remove = TRUE]",
+    "[t EXCEPT !.desired_state = remove]",
+    "[t EXCEPT !.desired_state = running]",
+    "[t EXCEPT !.status.state = pending]",
+    "[t EXCEPT !.status.state = assigned,\n                                      !.node = node ]",
+    "[oldT EXCEPT !.desired_state = shutdown]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "services[sid].replicas",
+    "t.service",
+    "spec.remove",
+    "services[sid].remove",
+    "newSpec.remove",
+    "task.desired_state",
+    "t.slot",
+    "oldT.service",
+    "oldT.desired_state",
+    "t.desired_state",
+    "t.node",
+    "t.id"
+  ],
+  "TupleConstructor": [
+    "<< tasks, nodes, nEvents >>",
+    "<< tasks, nodes >>",
+    "<< nodes >>",
+    "<< tasks, services, nodes, nEvents >>",
+    "<< x, x >>",
+    "<< Get(tasks, id), Get(tasks', id) >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE x \\in cand : TRUE"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "services",
+    "tasks",
+    "nEvents"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << tasks, nodes, nEvents >>",
+    "UNCHANGED << tasks, nodes >>",
+    "UNCHANGED << nodes >>",
+    "UNCHANGED << services, nodes, nEvents >>",
+    "UNCHANGED services",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(OrchestratorProgress)",
+    "WF_vars(AllocatorProgress)",
+    "WF_vars(Scheduler)",
+    "WF_vars(AgentProgress /\\ UNCHANGED services)",
+    "WF_vars(Reaper)",
+    "WF_vars(WorkerUp /\\ UNCHANGED services)",
+    "[][StepTransitionsOK]_vars",
+    "<<User>>_vars",
+    "<<RestartTask>>_vars",
+    "<<WorkerDown>>_vars",
+    "<<RejectTask>>_vars",
+    "<<ContainerExit>>_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][StepTransitionsOK]_vars",
+    "[]<> <<User>>_vars",
+    "[]<> <<RestartTask>>_vars",
+    "[]<> <<WorkerDown>>_vars",
+    "[]<> <<RejectTask>>_vars",
+    "[]<> <<ContainerExit>>_vars"
+  ],
+  "EventuallyOp": [
+    "<>[] InDesiredState",
+    "<> <<User>>_vars",
+    "<> <<RestartTask>>_vars",
+    "<> <<WorkerDown>>_vars",
+    "<> <<RejectTask>>_vars",
+    "<> <<ContainerExit>>_vars"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(OrchestratorProgress)",
+    "WF_vars(AllocatorProgress)",
+    "WF_vars(Scheduler)",
+    "WF_vars(AgentProgress /\\ UNCHANGED services)",
+    "WF_vars(Reaper)",
+    "WF_vars(WorkerUp /\\ UNCHANGED services)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [
+    "BY",
+    "DEF"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: TheoremNames | Change: replaced `THEOREM AgentTLC = AgentReal` with `AgentTLC = AgentReal` | Reason: named theorem list should contain the theorem identity as it appears, not include the `THEOREM` keyword.\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: prompt requires `LetInNames`; this is a schema mismatch.\nField: IfThenElse | Change: removed contextual suffixes `(in UnusedVSlot)`, `(in Scheduler)`, `(in Get)` | Reason: values must be expressions appearing in the file, not annotated metadata.\nField: CaseExpr | Change: removed contextual suffixes `(in StepTransitionsOK)` and `(in InDesiredState)` | Reason: values must appear verbatim in the TLA+ file.\nField: FunctionApplication | Change: removed `tasks[i]` | Reason: `tasks[i]` does not appear anywhere in the file.\nField: RecordAccess | Change: added `t.id` | Reason: literal record access appears in `UnusedId` and was missing.\nField: EventuallyOp | Change: removed duplicate `<>[] InDesiredState` | Reason: deduplication required.\nField: OperatorDefNames | Change: verified complete with 40 top-level `==` definitions and 40 entries in JSON | Reason: Phase 2 completeness check passed.",
+  "OperatorDefNames_StatePredicate": [
+    "IsReplicated",
+    "IsGlobal",
+    "TypeOK",
+    "Inv",
+    "InDesiredState"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "TransitionsOK",
+    "EventuallyAsDesired"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "TasksOf",
+    "TasksOfVSlot",
+    "VSlotsOf",
+    "RunnableTasks",
+    "RunnableWantedTasks",
+    "UnusedVSlot",
+    "UnusedId",
+    "vars",
+    "Get",
+    "StepTransitionsOK"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ t \\in TasksOf(sid) |->\n                          [t EXCEPT !.desired_state = remove] ]",
+    "[ i \\in DOMAIN services \\ {sid} |-> services[i] ]",
+    "[ n \\in Node |-> nodeUp ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ DOMAIN services -> ServiceSpec ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << tasks, nodes, nEvents >>",
+    "UNCHANGED << tasks, nodes >>",
+    "UNCHANGED << nodes >>",
+    "UNCHANGED << services, nodes, nEvents >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/SwarmKit/SwarmKit.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "StepTransitionsOK is placed in ValueDef because it is a helper operator that computes a Boolean relation over current and next state, contains primed variables, and is therefore neither a state predicate nor a temporal property nor an init predicate.",
+    "TemporalNesting is true. Exact line:   \\/ []<> <<User>>_vars               \\* Either the user keeps changing the configuration,",
+    "TemporalNesting also appears in analogous lines using []<> and <>[] in EventuallyAsDesired.",
+    "UnchangedExprs contains one non-tuple explicit variable form, `UNCHANGED services`, which is neither an `UNCHANGED <<...>>` form nor an `UNCHANGED varname` tuple-variable reference; it is therefore excluded from both V3 sub-fields as required by their narrower definitions.",
+    "Partition count: StatePredicate(5) + TemporalProperty(3) + Init(1) + ValueDef(10) + ActionDefNames(21) = OperatorDefNames(40). Verified.",
+    "ValueDef includes helper predicates/functions by elimination: TasksOf, TasksOfVSlot, VSlotsOf, RunnableTasks, RunnableWantedTasks, UnusedVSlot, UnusedId, vars, Get, StepTransitionsOK."
+  ]
+}

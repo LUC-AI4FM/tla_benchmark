@@ -1,0 +1,299 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Yo-Yo leader election algorithm on arbitrary strongly connected undirected graphs without self-loops, where nodes are identified by integers and the node with the smallest identifier is the eventual leader. The algorithm maintains an orientation of graph edges via incoming and outgoing neighbor sets and alternates between a down phase, where minimum identifiers are propagated toward sinks, and an up phase, where yes/no replies propagate back and edges receiving a \"no\" are reversed. The specification models asynchronous node steps as a state machine, assumes a strongly connected undirected input graph, and verifies type correctness, structural neighbor consistency, absence of newly created sources, and eventual stabilization to a state where only the minimum node remains the unique source and all up messages are \"yes\".",
+  "ModuleName": "YoYoNoPruning",
+  "ExtendsModules": [
+    "TLC",
+    "Integers",
+    "FiniteSets",
+    "UndirectedGraphs"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nodes",
+    "Edges"
+  ],
+  "VariableNames": [
+    "phase",
+    "incoming",
+    "outgoing",
+    "mailbox"
+  ],
+  "AssumptionNames": [
+    "/\\ Nodes \\subseteq Int\n  /\\ Nodes # {}\n  /\\ LET G == [node |-> Nodes, edge |-> Edges]\n     IN  /\\ IsUndirectedGraph(G)\n         /\\ IsStronglyConnected(G)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Neighbors",
+    "Min",
+    "vars",
+    "kind",
+    "Messages",
+    "downMsg",
+    "upMsg",
+    "TypeOK",
+    "Init",
+    "DownSource",
+    "DownOther",
+    "Down",
+    "UpSource",
+    "UpOther",
+    "Up",
+    "Next",
+    "Spec",
+    "MoreThanOneSource",
+    "NeighborInv",
+    "NoNewSource",
+    "Stabilization",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "DownSource",
+    "DownOther",
+    "Down",
+    "UpSource",
+    "UpOther",
+    "Up",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "G",
+    "downMsgs",
+    "min",
+    "upMsgs",
+    "noSndrs",
+    "minSndrs"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF incoming[n] = {} THEN \"source\" ELSE IF outgoing[n] = {} THEN \"sink\" ELSE \"internal\"",
+    "IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]",
+    "IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]",
+    "IF noSndrs = {} THEN LET min == Min({msg.val : msg \\in downMsgs}) minSndrs == {msg.sndr : msg \\in {mm \\in downMsgs : mm.val = min}} IN /\\ mailbox' = [m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]] /\\ incoming' = [incoming EXCEPT ![n] = minSndrs] /\\ outgoing' = [outgoing EXCEPT ![n] = @ \\union (incoming[n] \\ minSndrs)] ELSE /\\ mailbox' = [m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]] /\\ incoming' = [incoming EXCEPT ![n] = noSndrs] /\\ outgoing' = [outgoing EXCEPT ![n] = (@ \\ noSndrs) \\union incoming[n]]",
+    "IF m \\in minSndrs THEN \"yes\" ELSE \"no\"",
+    "IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]",
+    "IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{m,n}",
+    "{\"down\"}",
+    "{\"up\"}",
+    "{\"yes\", \"no\"}",
+    "{\"internal\", \"sink\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\union",
+    "\\subseteq",
+    "\\",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[node |-> Nodes, edge |-> Edges]",
+    "[phase : {\"down\"}, sndr : Nodes, val : Nodes]",
+    "[phase : {\"up\"}, sndr : Nodes, reply : {\"yes\", \"no\"}]",
+    "[Nodes -> {\"down\", \"up\"}]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes -> SUBSET Messages]",
+    "[n \\in Nodes |-> \"down\"]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m < n}]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m > n}]",
+    "[n \\in Nodes |-> {}]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]"
+  ],
+  "FunctionApplication": [
+    "incoming[n]",
+    "outgoing[n]",
+    "mailbox[n]",
+    "outgoing[msg.sndr]",
+    "mailbox[m]",
+    "phase[n]",
+    "incoming[m]",
+    "outgoing[m]"
+  ],
+  "FunctionOverride": [
+    "[phase EXCEPT ![n] = \"up\"]",
+    "[mailbox EXCEPT ![n] = mailbox[n] \\ upMsgs]",
+    "[incoming EXCEPT ![n] = noSndrs]",
+    "[outgoing EXCEPT ![n] = @ \\ noSndrs]",
+    "[incoming EXCEPT ![n] = minSndrs]",
+    "[outgoing EXCEPT ![n] = @ \\union (incoming[n] \\ minSndrs)]",
+    "[outgoing EXCEPT ![n] = (@ \\ noSndrs) \\union incoming[n]]",
+    "[phase EXCEPT ![n] = \"down\"]"
+  ],
+  "RecordConstructor": [
+    "[node |-> Nodes, edge |-> Edges]",
+    "[phase |-> \"down\", sndr |-> s, val |-> v]",
+    "[phase |-> \"up\", sndr |-> s, reply |-> r]",
+    "[phase : {\"down\"}, sndr : Nodes, val : Nodes]",
+    "[phase : {\"up\"}, sndr : Nodes, reply : {\"yes\", \"no\"}]"
+  ],
+  "RecordAccess": [
+    "msg.phase",
+    "msg.sndr",
+    "mm.phase",
+    "mm.sndr",
+    "msg.val",
+    "mm.reply",
+    "msg.reply"
+  ],
+  "TupleConstructor": [
+    "<<phase, incoming, outgoing, mailbox>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE x \\in S : \\A y \\in S : x <= y"
+  ],
+  "StringLiterals": [
+    "source",
+    "sink",
+    "internal",
+    "down",
+    "up",
+    "yes",
+    "no"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "mailbox",
+    "phase",
+    "incoming",
+    "outgoing"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<incoming, outgoing>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][\\A n \\in Nodes : kind(n)' = \"source\" => kind(n) = \"source\"]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][\\A n \\in Nodes : kind(n)' = \"source\" => kind(n) = \"source\"]_vars"
+  ],
+  "EventuallyOp": [
+    "<>[]Stabilization"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained entries | Reason: required field name per schema/check instructions; LET-bound names must be stored here\nField: AssumptionNames | Change: normalized expression formatting by removing extra trailing space after `{}` | Reason: store actual unnamed ASSUME expression verbatim/cleanly from file\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with expressions that literally appear in the file | Reason: Phase 3 requires values to appear in the TLA+ file; V1 included commentary like `(in kind)` and ellipses\nField: TemporalSubscript | Change: removed `WF_vars(Next)` | Reason: fairness expression is not a temporal subscript; this field should contain subscripted temporal formulas only\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` here is a module assumption, not a proof command\nField: SetOperators | Change: kept `SUBSET` under this field after verification | Reason: the file uses `SUBSET` as a set operator; no separate valid destination content existed in V1 besides correcting the earlier empty `FiniteSetOps`\nField: OperatorDefNames | Change: verified count remains 22 | Reason: top-level `==` definition count in file is 22, matching JSON completeness\nField: ActionDefNames | Change: verified entries only | Reason: all listed operators either prime variables directly or compose actions; no correction needed but classification was checked\nField: FunctionOverride | Change: verified completeness remains 8 entries | Reason: all EXCEPT forms in file are captured, including distinct outgoing updates\nField: UnchangedExprs | Change: verified single entry remains | Reason: only one distinct UNCHANGED expression appears in file\nField: StringLiterals | Change: verified entries remain | Reason: all string literals in file are exactly `source`, `sink`, `internal`, `down`, `up`, `yes`, `no`\nField: PrimedVariables | Change: verified entries remain | Reason: all variables appearing primed anywhere in file are `mailbox`, `phase`, `incoming`, `outgoing` only",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "MoreThanOneSource",
+    "NeighborInv",
+    "Stabilization"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "NoNewSource",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Neighbors",
+    "Min",
+    "vars",
+    "kind",
+    "Messages",
+    "downMsg",
+    "upMsg"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Nodes |-> \"down\"]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m < n}]",
+    "[n \\in Nodes |-> { m \\in Neighbors(n) : m > n}]",
+    "[n \\in Nodes |-> {}]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,n)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in outgoing[n] THEN mailbox[m] \\cup {downMsg(n,min)} ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, IF m \\in minSndrs THEN \"yes\" ELSE \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]",
+    "[m \\in Nodes |-> IF m \\in incoming[n] THEN mailbox[m] \\union {upMsg(n, \"no\")} ELSE IF m = n THEN mailbox[m] \\ (upMsgs \\union downMsgs) ELSE mailbox[m]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[node |-> Nodes, edge |-> Edges]",
+    "[phase : {\"down\"}, sndr : Nodes, val : Nodes]",
+    "[phase : {\"up\"}, sndr : Nodes, reply : {\"yes\", \"no\"}]",
+    "[Nodes -> {\"down\", \"up\"}]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes -> SUBSET Messages]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<incoming, outgoing>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/YoYoNoPruning/YoYoNoPruning.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Stabilization is classified as StatePredicate because it is Boolean-valued and contains no primed variables or temporal operators.",
+    "NoNewSource is classified as TemporalProperty because its body is a temporal subscript formula [][...]_vars.",
+    "Partition count: StatePredicate(4) + TemporalProperty(3) + Init(1) + ValueDef(7) + ActionDefNames(7) = OperatorDefNames(22). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "ValueDef includes vars, Messages, downMsg, upMsg, Neighbors, Min, and kind as non-action, non-temporal helper/value definitions.",
+    "UnchangedExprs_VarRef is empty because the file contains no UNCHANGED vars form; all UNCHANGED expressions are explicit tuple forms.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

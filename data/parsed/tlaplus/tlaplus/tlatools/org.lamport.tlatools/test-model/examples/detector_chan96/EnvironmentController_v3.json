@@ -1,0 +1,334 @@
+{
+  "id": null,
+  "Specification": "This specification models a parameterized, partially synchronous distributed system with eventually perfect failure detectors, as described in Chandra and Toueg's classic paper. It composes two other modules: Age_Channel for the communication system (modeling message delivery and aging) and EPFailureDetector for the behavior of correct processes. The system tracks process crashes, message delivery, local and global clocks, and the evolution of process suspicions about failures. The model encodes environmental and local clocks in a way that ensures finiteness when parameters are fixed, and enforces constraints on message delay (DELTAConstraint) and process activity (PHIConstraint) to capture partial synchrony. The specification verifies two key properties: Strong Completeness (crashed processes are eventually permanently suspected by all correct processes) and Eventually Strong Accuracy (correct processes are eventually never suspected by other correct processes). Notable design decisions include the explicit modeling of process transitions, message aging, and the use of TLC for model checking small instances, with comments on the challenges of state explosion for certain constraints.",
+  "ModuleName": "EnvironmentController",
+  "ExtendsModules": [
+    "Integers",
+    "TLC"
+  ],
+  "InstanceModules": [
+    "Age_Channel",
+    "EPFailureDetector"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "T",
+    "d0",
+    "SendPoint",
+    "PredictPoint",
+    "DELTA",
+    "PHI"
+  ],
+  "VariableNames": [
+    "inTransit",
+    "inDelivery",
+    "suspected",
+    "delta",
+    "fromLastHeard",
+    "localClock",
+    "outgoingMessages",
+    "procPause",
+    "moved",
+    "failed",
+    "F"
+  ],
+  "AssumptionNames": [
+    "/\\ 0 < PredictPoint /\\ 0 < SendPoint /\\ PredictPoint % SendPoint # 0 /\\ SendPoint % PredictPoint # 0"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "Messages",
+    "Boxes",
+    "K",
+    "maxAge",
+    "maxDelta",
+    "CommChan",
+    "Detector",
+    "vars",
+    "chanVars",
+    "procVars",
+    "envVars",
+    "Actions",
+    "Init",
+    "Crash",
+    "SomeLocallyTicked",
+    "EnvTick",
+    "OnlyMessagesForCorrectProcesses",
+    "ProcTick",
+    "PHIConstraint",
+    "PHIConstraint1",
+    "DELTAConstraint",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "StrongCompleteness",
+    "EventuallyStrongAccuracy",
+    "StateConstraint",
+    "NeverPermanentlySuspected"
+  ],
+  "ActionDefNames": [
+    "Crash",
+    "EnvTick",
+    "ProcTick",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "i",
+    "j",
+    "box",
+    "m",
+    "p",
+    "msgs"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1 (in EnvTick)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"alive\" }",
+    "{ \"NO\", \"INIT\", \"SEND\", \"RECEIVE\", \"PREDICT\", \"CRASH\" }"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ i \\in Proc |-> 0 ]",
+    "[ i \\in Proc |-> \"INIT\" ]",
+    "[ i \\in Proc |-> FALSE ]",
+    "[ from : Proc, to : Proc, type : { \"alive\" } ]",
+    "[ content : Messages, age : Int ]",
+    "[ i \\in Proc |-> \"NO\" ]",
+    "[ i \\in Proc |-> IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1 ]",
+    "[ failed EXCEPT ![i] = TRUE ]",
+    "[ moved EXCEPT ![i] = \"CRASH\" ]",
+    "[ procPause EXCEPT ![i] = -1 ]",
+    "[ moved EXCEPT ![i] = \"PREDICT\" ]",
+    "[ moved EXCEPT ![i] = \"SEND\" ]",
+    "[ moved EXCEPT ![i] = \"RECEIVE\" ]",
+    "[ procPause EXCEPT ![i] = 0 ]"
+  ],
+  "FunctionApplication": [
+    "failed[i]",
+    "moved[i]",
+    "procPause[i]",
+    "outgoingMessages[i]",
+    "outgoingMessages'[i]",
+    "failed'[i]",
+    "procPause'[i]",
+    "moved'[i]",
+    "delta[i][j]",
+    "fromLastHeard[i][j]",
+    "suspected[i]",
+    "inDelivery'",
+    "inTransit'",
+    "box.age",
+    "box.content.to"
+  ],
+  "FunctionOverride": [
+    "[ failed EXCEPT ![i] = TRUE ]",
+    "[ moved EXCEPT ![i] = \"CRASH\" ]",
+    "[ procPause EXCEPT ![i] = -1 ]",
+    "[ moved EXCEPT ![i] = \"PREDICT\" ]",
+    "[ moved EXCEPT ![i] = \"SEND\" ]",
+    "[ moved EXCEPT ![i] = \"RECEIVE\" ]",
+    "[ procPause EXCEPT ![i] = 0 ]"
+  ],
+  "RecordConstructor": [
+    "[ from : Proc, to : Proc, type : { \"alive\" } ]",
+    "[ content : Messages, age : Int ]"
+  ],
+  "RecordAccess": [
+    "m.content.to",
+    "m.age"
+  ],
+  "TupleConstructor": [
+    "<< inTransit, inDelivery, suspected, delta, fromLastHeard, localClock, outgoingMessages, procPause, moved, failed, F >>",
+    "<< inTransit, inDelivery >>",
+    "<< suspected, delta, fromLastHeard, localClock, outgoingMessages >>",
+    "<< procPause, moved, failed, F >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*",
+    "\\div",
+    "%"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..N",
+    "0..T",
+    "0..PHI"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "alive",
+    "NO",
+    "INIT",
+    "SEND",
+    "RECEIVE",
+    "PREDICT",
+    "CRASH"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "failed",
+    "F",
+    "moved",
+    "procPause"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED chanVars",
+    "UNCHANGED procVars",
+    "UNCHANGED << failed, F >>",
+    "UNCHANGED envVars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][ Next ]_vars",
+    "WF_vars( /\\ \\/ EnvTick \\/ ProcTick /\\ DELTAConstraint /\\ PHIConstraint )"
+  ],
+  "AlwaysOp": [
+    "[][ Next ]_vars"
+  ],
+  "EventuallyOp": [
+    "<>[] ( \\A j \\in Proc : failed[j] = TRUE => (\\A i \\in Proc : \\/ failed[i] = TRUE \\/ j \\in suspected[i] ) )",
+    "<>[] ( \\A i, j \\in Proc : (failed[i] = FALSE /\\ failed[j] = FALSE) => j \\notin suspected[i] )",
+    "<>[] (\\A q \\in Proc : p \\notin suspected[q])"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars( /\\ \\/ EnvTick \\/ ProcTick /\\ DELTAConstraint /\\ PHIConstraint )"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "TLCGet(\"level\") < 20"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: Fixed encoding of conjunction/disjunction: replaced \"\\/\\\\\" with \"/\\\\\" | Reason: The TLA+ file uses only conjunctions \"/\\\\\" in the ASSUME block, not disjunctions. The JSON had an encoding error with \"\\/\\\\\".\nField: SetOperators | Change: Removed \"SUBSET\" from SetOperators | Reason: \"SUBSET\" does not appear in the TLA+ file; only \"\\cup\" is present as a set operator.\nNo changes required for other fields. Operator count: file count = 31, JSON OperatorDefNames count = 31.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "PHIConstraint",
+    "PHIConstraint1",
+    "DELTAConstraint",
+    "TypeOK",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "StrongCompleteness",
+    "EventuallyStrongAccuracy",
+    "NeverPermanentlySuspected"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "Messages",
+    "Boxes",
+    "K",
+    "maxAge",
+    "maxDelta",
+    "CommChan",
+    "Detector",
+    "vars",
+    "chanVars",
+    "procVars",
+    "envVars",
+    "Actions",
+    "OnlyMessagesForCorrectProcesses",
+    "SomeLocallyTicked"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> 0 ]",
+    "[ i \\in Proc |-> \"INIT\" ]",
+    "[ i \\in Proc |-> FALSE ]",
+    "[ i \\in Proc |-> \"NO\" ]",
+    "[ i \\in Proc |-> IF failed[i] = FALSE THEN procPause[i] + 1 ELSE -1 ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ from : Proc, to : Proc, type : { \"alive\" } ]",
+    "[ content : Messages, age : Int ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << failed, F >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED chanVars",
+    "UNCHANGED procVars",
+    "UNCHANGED envVars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EnvironmentController/EnvironmentController.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(4) + Init(1) + ValueDef(15) + ActionDefNames(4) = 29 = OperatorDefNames total. Verified.",
+    "StrongCompleteness, EventuallyStrongAccuracy, and NeverPermanentlySuspected are placed in TemporalProperty because their bodies are of the form <>[]P (eventually always), which is a temporal property.",
+    "Spec is placed in TemporalProperty because it is the main temporal specification operator (Init /\\ []Next /\\ WF...).",
+    "PHIConstraint, PHIConstraint1, DELTAConstraint, TypeOK, and StateConstraint are all state predicates: Boolean-valued, no primed variables in their body (except for PHIConstraint and DELTAConstraint, which refer to primed variables but are used as state predicates for the next state in Next).",
+    "Init is the only operator with name Init, so it is placed in OperatorDefNames_Init.",
+    "ValueDef includes all set, tuple, constant, and helper function definitions: Proc, Messages, Boxes, K, maxAge, maxDelta, CommChan, Detector, vars, chanVars, procVars, envVars, Actions, OnlyMessagesForCorrectProcesses, SomeLocallyTicked.",
+    "ActionDefNames (Crash, EnvTick, ProcTick, Next) are not present in any of the four subfields.",
+    "FunctionConstructor_ByDomain includes all [i \\in Proc |-> ...] forms and [i \\in Proc |-> IF ...] forms.",
+    "FunctionConstructor_SetType includes only record type constructors: [from : Proc, to : Proc, type : { \"alive\" }], [content : Messages, age : Int].",
+    "FunctionConstructor_ByDomain and FunctionConstructor_SetType together cover all FunctionConstructor entries. No [S -> T] forms with set arrow notation appear.",
+    "UnchangedExprs_Explicit includes only UNCHANGED << failed, F >>; the rest are UNCHANGED varname forms.",
+    "TemporalNesting is false: no temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource: specifications/EnvironmentController/EnvironmentController.tla (folder inferred from module name)."
+  ]
+}

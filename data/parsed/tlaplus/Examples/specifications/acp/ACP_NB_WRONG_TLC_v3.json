@@ -1,0 +1,202 @@
+{
+  "id": null,
+  "Specification": "This module specifies an erroneous non-blocking atomic commitment protocol variant built on top of definitions imported from ACP_SB. The comments explain that the mistake is that a participant delivers a broadcast decision locally before forwarding it to other participants, which can violate the atomic commitment consistency property AC1. The module adds a forwarding field to participants, defines the corresponding type invariant and initial condition, specifies forwarding, deciding on a forwarded decision, and aborting on timeout, and then gives a temporal specification with weak fairness and a leads-to property stating that if one participant decides commit, then every participant eventually decides commit.",
+  "ModuleName": "ACP_NB_WRONG_TLC",
+  "ExtendsModules": [
+    "ACP_SB"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "TypeInvParticipantNB",
+    "TypeInvNB",
+    "InitParticipantNB",
+    "InitNB",
+    "forward",
+    "decideOnForward",
+    "abortOnTimeout",
+    "parProgNB",
+    "parProgNNB",
+    "progNNB",
+    "fairnessNB",
+    "SpecNB",
+    "CommitLeadsToAllCommit"
+  ],
+  "ActionDefNames": [
+    "forward",
+    "decideOnForward",
+    "abortOnTimeout",
+    "parProgNB",
+    "parProgNNB",
+    "progNNB"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{yes, no}",
+    "{undecided, commit, abort}",
+    "{notsent, commit, abort}",
+    "{TRUE}",
+    "{undecided}",
+    "{FALSE}",
+    "{notsent}"
+  ],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ participants -> [ vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [ participants -> {notsent, commit, abort} ] ] ]",
+    "[ participants -> {notsent, commit, abort} ]",
+    "[ participants -> [ vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [ participants -> {notsent} ] ] ]",
+    "[ participants -> {notsent} ]"
+  ],
+  "FunctionApplication": [
+    "participant[i]",
+    "participant[i].forward[j]",
+    "participant[j].forward[i]",
+    "coordinator.broadcast[j]",
+    "participant[j].forward[k]"
+  ],
+  "FunctionOverride": [
+    "[participant EXCEPT ![i] = [@ EXCEPT !.forward = [@ EXCEPT ![j] = participant[i].decision] ]]",
+    "[@ EXCEPT !.forward = [@ EXCEPT ![j] = participant[i].decision]]",
+    "[@ EXCEPT ![j] = participant[i].decision]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = participant[j].forward[i]]]",
+    "[@ EXCEPT !.decision = participant[j].forward[i]]",
+    "[participant EXCEPT ![i] = [@ EXCEPT !.decision = abort]]",
+    "[@ EXCEPT !.decision = abort]"
+  ],
+  "RecordConstructor": [
+    "[ vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [ participants -> {notsent, commit, abort} ] ]",
+    "[ vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [ participants -> {notsent} ] ]"
+  ],
+  "RecordAccess": [
+    "participant[i].alive",
+    "participant[i].decision",
+    "participant[i].forward[j]",
+    "participant[j].forward[i]",
+    "coordinator.alive",
+    "coordinator.broadcast[j]",
+    "participant[j].forward[k]",
+    "participant[p].decision",
+    "participant[q].decision"
+  ],
+  "TupleConstructor": [
+    "<<coordinator>>",
+    "<<coordinator, participant>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "participant"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<coordinator>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_<<coordinator, participant>>(\\E j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)",
+    "[][progNNB]_<<coordinator, participant>>"
+  ],
+  "AlwaysOp": [
+    "[][progNNB]_<<coordinator, participant>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "(participant[p].decision = commit) ~> (participant[q].decision = commit)"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_<<coordinator, participant>>(\\E j \\in participants : parProgNB(i,j))",
+    "WF_<<coordinator, participant>>(coordProgB)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: FairnessConditions | Change: Replaced \"\\\\A i \\\\in participants : WF_<<coordinator, participant>>(\\\\E j \\\\in participants : parProgNB(i,j))\" with \"WF_<<coordinator, participant>>(\\\\E j \\\\in participants : parProgNB(i,j))\" | Reason: FairnessConditions must contain only WF/SF expressions from inside Spec/Spec0, not surrounding quantifier context.\nField: CompletenessCheck | Change: Verified top-level operator counts match: file count = 13, JSON OperatorDefNames count = 13 | Reason: Phase 2 completeness requirement.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvParticipantNB",
+    "TypeInvNB",
+    "fairnessNB"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "SpecNB",
+    "CommitLeadsToAllCommit"
+  ],
+  "OperatorDefNames_Init": [
+    "InitParticipantNB",
+    "InitNB"
+  ],
+  "OperatorDefNames_ValueDef": [],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[ participants -> [ vote : {yes, no}, alive : BOOLEAN, decision : {undecided, commit, abort}, faulty : BOOLEAN, voteSent : BOOLEAN, forward : [ participants -> {notsent, commit, abort} ] ] ]",
+    "[ participants -> {notsent, commit, abort} ]",
+    "[ participants -> [ vote : {yes, no}, alive : {TRUE}, decision : {undecided}, faulty : {FALSE}, voteSent : {FALSE}, forward : [ participants -> {notsent} ] ] ]",
+    "[ participants -> {notsent} ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<coordinator>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ACP_NB_WRONG_TLC/ACP_NB_WRONG_TLC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "fairnessNB is classified as StatePredicate because its body contains fairness operators WF but no explicit temporal operators [], <>, or ~>, and no primed variables.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "CommitLeadsToAllCommit is placed in TemporalProperty because it uses the leads-to operator ~>.",
+    "Partition count: StatePredicate(3) + TemporalProperty(2) + Init(2) + ValueDef(0) + ActionDefNames(6) = OperatorDefNames(13). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because folder cannot be determined from file content."
+  ]
+}

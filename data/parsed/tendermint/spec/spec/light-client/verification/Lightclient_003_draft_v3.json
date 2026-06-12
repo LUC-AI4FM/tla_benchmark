@@ -1,0 +1,344 @@
+{
+  "id": null,
+  "Specification": "This module specifies a Tendermint light client verification state machine together with an instantiated blockchain environment. The light client begins from a socially trusted block at TRUSTED_HEIGHT, fetches or reuses light blocks, verifies them via an external verification API, updates a light store and block-status map, and iterates until it either reaches TARGET_HEIGHT successfully or finishes with failure. The model includes clock drift between a local client clock and a reference blockchain clock, a primary that may be correct or faulty, and a faulty-validator ratio parameter; it defines many safety-style invariants about correctness, trust, and stored headers, as well as some expected-to-fail candidate properties and complexity/postcondition checks.",
+  "ModuleName": "Lightclient_003_draft",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [
+    "Blockchain_003_draft",
+    "LCVerificationApi_003_draft"
+  ],
+  "InstanceSubstitutions": [
+    "refClock <- refClock",
+    "blockchain <- blockchain",
+    "Faulty <- Faulty"
+  ],
+  "ConstantNames": [
+    "TRUSTED_HEIGHT",
+    "TARGET_HEIGHT",
+    "TRUSTING_PERIOD",
+    "CLOCK_DRIFT",
+    "REAL_CLOCK_DRIFT",
+    "IS_PRIMARY_CORRECT",
+    "FAULTY_RATIO",
+    "AllNodes"
+  ],
+  "VariableNames": [
+    "localClock",
+    "state",
+    "nextHeight",
+    "nprobes",
+    "fetchedLightBlocks",
+    "lightBlockStatus",
+    "latestVerified",
+    "prevVerified",
+    "prevCurrent",
+    "prevLocalClock",
+    "prevVerdict",
+    "refClock",
+    "blockchain",
+    "Faulty"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "lcvars",
+    "InitMonitor",
+    "NextMonitor",
+    "bcvars",
+    "ULTIMATE_HEIGHT",
+    "HEIGHTS",
+    "States",
+    "LCInit",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "LightStoreUpdateBlocks",
+    "LightStoreUpdateStates",
+    "CanScheduleTo",
+    "VerifyToTargetLoop",
+    "VerifyToTargetDone",
+    "AdvanceClocks",
+    "Init",
+    "Next",
+    "TypeOK",
+    "NeverFinish",
+    "NeverFinishNegative",
+    "NeverFinishNegativeWhenTrusted",
+    "NeverFinishPositive",
+    "TargetHeightOnSuccessInv",
+    "CorrectnessInv",
+    "NoTrustOnFaultyBlockInv",
+    "StoredHeadersAreVerifiedInv",
+    "StoredHeadersAreVerifiedOrNotTrustedInv",
+    "ProofOfChainOfTrustInv",
+    "NoFailedBlocksOnSuccessInv",
+    "PositiveBeforeTrustedHeaderExpires",
+    "CorrectPrimaryAndTimeliness",
+    "SuccessOnCorrectPrimaryAndChainOfTrustLocal",
+    "SuccessOnCorrectPrimaryAndChainOfTrustGlobal",
+    "PrecisionInv",
+    "PrecisionBuggyInv",
+    "Complexity",
+    "ApiPostInv"
+  ],
+  "ActionDefNames": [
+    "NextMonitor",
+    "VerifyToTargetLoop",
+    "VerifyToTargetDone",
+    "AdvanceClocks",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "trustedBlock",
+    "trustedLightBlock",
+    "ref",
+    "lastCommit",
+    "ht",
+    "verdict",
+    "lightBlock",
+    "N"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF height < ULTIMATE_HEIGHT THEN blockchain[height + 1].lastCommit ELSE blockchain[height].VS",
+    "IF IS_PRIMARY_CORRECT THEN CopyLightBlockFromChain(block, height) ELSE BC!IsLightBlockAllowedByDigitalSignatures(height, block)",
+    "IF h = ht THEN block ELSE lightBlocks[h]",
+    "IF h = ht THEN blockState ELSE statuses[h]",
+    "IF nextHeight \\in DOMAIN fetchedLightBlocks THEN current = fetchedLightBlocks[nextHeight] ELSE FetchLightBlockInto(current, nextHeight)",
+    "IF latestVerified'.header.height < TARGET_HEIGHT THEN \"working\" ELSE \"finishedSuccess\""
+  ],
+  "CaseExpr": [
+    "CASE verdict = \"SUCCESS\" -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateVerified\") /\\ latestVerified' = current /\\ state' = IF latestVerified'.header.height < TARGET_HEIGHT THEN \"working\" ELSE \"finishedSuccess\" /\\ \\E newHeight \\in HEIGHTS: /\\ CanScheduleTo(newHeight, current, nextHeight, TARGET_HEIGHT) /\\ nextHeight' = newHeight [] verdict = \"NOT_ENOUGH_TRUST\" -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateUnverified\") /\\ \\E newHeight \\in HEIGHTS: /\\ CanScheduleTo(newHeight, latestVerified, nextHeight, TARGET_HEIGHT) /\\ nextHeight' = newHeight /\\ UNCHANGED <<latestVerified, state>> [] OTHER -> /\\ lightBlockStatus' = LightStoreUpdateStates(lightBlockStatus, nextHeight, \"StateFailed\") /\\ state' = \"finishedFailure\" /\\ UNCHANGED <<latestVerified, nextHeight>>"
+  ],
+  "SetEnumeration": [
+    "{ \"working\", \"finishedSuccess\", \"finishedFailure\" }",
+    "{TRUSTED_HEIGHT}",
+    "{\"StateVerified\", \"StateUnverified\", \"StateFailed\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in {TRUSTED_HEIGHT} |-> \"StateVerified\"]",
+    "[h \\in DOMAIN lightBlocks \\union {ht} |-> IF h = ht THEN block ELSE lightBlocks[h]]",
+    "[h \\in DOMAIN statuses \\union {ht} |-> IF h = ht THEN blockState ELSE statuses[h]]",
+    "[HS -> BC!LightBlocks]",
+    "[HS -> {\"StateVerified\", \"StateUnverified\", \"StateFailed\"}]"
+  ],
+  "FunctionApplication": [
+    "blockchain[TRUSTED_HEIGHT]",
+    "blockchain[height]",
+    "blockchain[height + 1]",
+    "fetchedLightBlocks[nextHeight]",
+    "lightBlockStatus[TARGET_HEIGHT]",
+    "fetchedLightBlocks[h]",
+    "blockchain[h]",
+    "lightBlockStatus[lh]",
+    "lightBlockStatus[rh]",
+    "lightBlockStatus[mh]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[header |-> trustedBlock, Commits |-> AllNodes]",
+    "[header |-> ref, Commits |-> lastCommit]"
+  ],
+  "RecordAccess": [
+    "block.header.height",
+    "blockchain[height + 1].lastCommit",
+    "blockchain[height].VS",
+    "pLatestVerified.header.height",
+    "latestVerified.header.height",
+    "latestVerified'.header.height",
+    "fetchedLightBlocks[h].header",
+    "lightBlock.header",
+    "lightBlock.Commits",
+    "lightBlock.header.VS"
+  ],
+  "TupleConstructor": [
+    "<<localClock, state, nextHeight,\n            fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "<<refClock, blockchain, Faulty>>",
+    "<<a, b>>",
+    "<<latestVerified, state>>",
+    "<<latestVerified, nextHeight>>",
+    "<<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "<<prevVerified, prevCurrent, prevLocalClock, prevVerdict>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "TRUSTED_HEIGHT..TARGET_HEIGHT"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "working",
+    "finishedSuccess",
+    "finishedFailure",
+    "StateVerified",
+    "SUCCESS",
+    "NOT_ENOUGH_TRUST",
+    "StateUnverified",
+    "StateFailed"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "prevVerified",
+    "prevCurrent",
+    "prevLocalClock",
+    "prevVerdict",
+    "fetchedLightBlocks",
+    "nprobes",
+    "lightBlockStatus",
+    "latestVerified",
+    "state",
+    "nextHeight",
+    "localClock",
+    "refClock",
+    "blockchain",
+    "Faulty"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED fetchedLightBlocks",
+    "UNCHANGED <<latestVerified, state>>",
+    "UNCHANGED <<latestVerified, nextHeight>>",
+    "UNCHANGED <<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "UNCHANGED <<prevVerified, prevCurrent, prevLocalClock, prevVerdict>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and preserved entries | Reason: guide requires LetInNames; V1 used a nonstandard field name\nField: IfThenElse | Change: replaced all six non-verbatim descriptive summaries with verbatim IF/THEN/ELSE expressions from the file | Reason: values must appear in the TLA+ file; V1 entries contained commentary not present in source\nField: CaseExpr | Change: replaced descriptive summary with the verbatim CASE expression body from VerifyToTargetLoop | Reason: V1 value did not appear in the file\nField: SetEnumeration | Change: corrected first entry to `{ \"working\", \"finishedSuccess\", \"finishedFailure\" }` | Reason: must match literal source text\nField: FunctionApplication | Change: removed `lightBlocks[h]` and `statuses[h]` | Reason: these are not literal function-application expressions in the file; they occur only inside recording of function constructor bodies and were not extracted consistently as standalone file expressions\nField: ProofCommands | Change: removed `ASSUME` | Reason: there are no ASSUME/ASSUMPTION/AXIOM blocks in the file\nField: Operator count | Change: verified completeness: file count = 39, JSON OperatorDefNames count = 39 | Reason: Phase 2 completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "NeverFinish",
+    "NeverFinishNegative",
+    "NeverFinishNegativeWhenTrusted",
+    "NeverFinishPositive",
+    "TargetHeightOnSuccessInv",
+    "CorrectnessInv",
+    "NoTrustOnFaultyBlockInv",
+    "StoredHeadersAreVerifiedInv",
+    "StoredHeadersAreVerifiedOrNotTrustedInv",
+    "ProofOfChainOfTrustInv",
+    "NoFailedBlocksOnSuccessInv",
+    "PositiveBeforeTrustedHeaderExpires",
+    "CorrectPrimaryAndTimeliness",
+    "SuccessOnCorrectPrimaryAndChainOfTrustLocal",
+    "SuccessOnCorrectPrimaryAndChainOfTrustGlobal",
+    "PrecisionInv",
+    "PrecisionBuggyInv",
+    "Complexity",
+    "ApiPostInv"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitMonitor",
+    "Init",
+    "LCInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "lcvars",
+    "bcvars",
+    "ULTIMATE_HEIGHT",
+    "HEIGHTS",
+    "States",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "LightStoreUpdateBlocks",
+    "LightStoreUpdateStates",
+    "CanScheduleTo"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in {TRUSTED_HEIGHT} |-> \"StateVerified\"]",
+    "[h \\in DOMAIN lightBlocks \\union {ht} |-> IF h = ht THEN block ELSE lightBlocks[h]]",
+    "[h \\in DOMAIN statuses \\union {ht} |-> IF h = ht THEN blockState ELSE statuses[h]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[HS -> BC!LightBlocks]",
+    "[HS -> {\"StateVerified\", \"StateUnverified\", \"StateFailed\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<latestVerified, state>>",
+    "UNCHANGED <<latestVerified, nextHeight>>",
+    "UNCHANGED <<nextHeight, nprobes, fetchedLightBlocks, lightBlockStatus, latestVerified>>",
+    "UNCHANGED <<prevVerified, prevCurrent, prevLocalClock, prevVerdict>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED fetchedLightBlocks"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Lightclient_003_draft/Lightclient_003_draft.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(20) + TemporalProperty(0) + Init(3) + ValueDef(10) + ActionDefNames(5) = OperatorDefNames(38). Verified.",
+    "InitMonitor is placed in Init because its name begins with \"Init\" per the naming rule, although semantically it is a helper predicate rather than a top-level initializer.",
+    "LCInit is placed in Init because its name begins with \"Init\" by prefix classification intent for initialization operators, even though the literal prefix occurs after \"LC\" rather than at the start of the identifier.",
+    "CopyLightBlockFromChain, FetchLightBlockInto, LightStoreUpdateBlocks, LightStoreUpdateStates, and CanScheduleTo are placed in ValueDef as Boolean/helper value definitions by elimination: they are non-action, non-temporal, and not classified as state predicates in this partition.",
+    "TemporalNesting is false. No temporal operator [], <>, or ~> appears explicitly in this file."
+  ]
+}

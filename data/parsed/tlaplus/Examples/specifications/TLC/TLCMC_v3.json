@@ -1,0 +1,361 @@
+{
+  "id": null,
+  "Specification": "This module models a TLC-like reachability model checker that performs breadth-first exploration over a graph of states, with a parameter K controlling whether exploration is strict BFS (K = 1) or degraded non-strict BFS (K > 1) to approximate multiple workers. The state graph is given as a record with states, initial states, and an action relation, and the model checker tracks explored states, a queue of pending states, predecessor information, and BFS levels in order to detect violations and reconstruct counterexamples. The specification verifies termination of the translated PlusCal algorithm and a liveness-style property stating that when violation states exist, the eventual counterexample belongs to a supplied set of known counterexamples, with an additional minimal-length requirement when K = 1; it also includes a refinement mapping to an instantiated MCReachability specification.",
+  "ModuleName": "TLCMC",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [
+    "MCReachability"
+  ],
+  "InstanceSubstitutions": [
+    "S <- SeqToSet(S)",
+    "done <- counterexample # <<>>",
+    "T <- SeqToSet(T) \\cup {<<state, succ>> : succ \\in successors}",
+    "L <- L",
+    "successors <- LET lvl == IF pc \\in {\"init\", \"initPost\"}\n                       THEN 0\n                       ELSE IF pc = \"scsr\" /\\ successors = {} /\\ C = SeqToSet(S)\n                            THEN 0\n                            ELSE L[state] + 1\n                  IN  {<<lvl, s, state>> : s \\in successors}"
+  ],
+  "ConstantNames": [
+    "StateGraph",
+    "ViolationStates",
+    "null",
+    "K",
+    "Constraint",
+    "Counterexamples"
+  ],
+  "VariableNames": [
+    "pc",
+    "S",
+    "C",
+    "state",
+    "successors",
+    "i",
+    "counterexample",
+    "T",
+    "L"
+  ],
+  "AssumptionNames": [
+    "/\\ IsGraph(StateGraph)\n       /\\ ViolationStates \\subseteq StateGraph.states\n       /\\ K \\in Nat \\ {0}\n       /\\ \\A s \\in StateGraph.states : \\A l \\in Nat : Constraint(s, l) \\in BOOLEAN"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "SeqToSet",
+    "Min",
+    "RemoveAt",
+    "SetToSeqs",
+    "SetToDistSeqs",
+    "IsGraph",
+    "SuccessorsOf",
+    "Predecessor",
+    "SetOfAllPermutationsOfInitials",
+    "vars",
+    "Init",
+    "init",
+    "initPost",
+    "scsr",
+    "each",
+    "trc",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "Live",
+    "MCR",
+    "Refinement"
+  ],
+  "ActionDefNames": [
+    "init",
+    "initPost",
+    "scsr",
+    "each",
+    "trc",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "lens",
+    "minLen",
+    "lvl"
+  ],
+  "LambdaParams": [
+    "p",
+    "pair"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF a < b THEN a ELSE b",
+    "IF i \\leq Len(S)\n              THEN /\\ state' = S[i]\n                   /\\ C' = (C \\cup {state'})\n                   /\\ L' = (state' :> 0) @@ L\n                   /\\ i' = i + 1\n                   /\\ IF state' \\in ViolationStates\n                         THEN /\\ counterexample' = <<state'>>\n                              /\\ pc' = \"trc\"\n                         ELSE /\\ pc' = \"init\"\n                              /\\ UNCHANGED counterexample\n              ELSE /\\ pc' = \"initPost\"\n                   /\\ UNCHANGED << C, state, i, counterexample, L >>",
+    "IF state' \\in ViolationStates\n                         THEN /\\ counterexample' = <<state'>>\n                              /\\ pc' = \"trc\"\n                         ELSE /\\ pc' = \"init\"\n                              /\\ UNCHANGED counterexample",
+    "IF Len(S) # 0\n              THEN /\\ \\E idx \\in 1..Min(K, Len(S)):\n                        /\\ state' = S[idx]\n                        /\\ S' = RemoveAt(S, idx)\n                   /\\ successors' = SuccessorsOf(state', StateGraph) \\ C\n                   /\\ IF SuccessorsOf(state', StateGraph) = {}\n                         THEN /\\ counterexample' = <<state'>>\n                              /\\ pc' = \"trc\"\n                         ELSE /\\ pc' = \"each\"\n                              /\\ UNCHANGED counterexample\n              ELSE /\\ Assert(S = <<>>, \n                             \"Failure of assertion at line 204, column 8.\")\n                   /\\ pc' = \"Done\"\n                   /\\ UNCHANGED << S, state, successors, counterexample >>",
+    "IF SuccessorsOf(state', StateGraph) = {}\n                         THEN /\\ counterexample' = <<state'>>\n                              /\\ pc' = \"trc\"\n                         ELSE /\\ pc' = \"each\"\n                              /\\ UNCHANGED counterexample",
+    "IF successors # {}\n              THEN /\\ \\E succ \\in successors:\n                        /\\ successors' = successors \\ {succ}\n                        /\\ IF Constraint(succ, L[state] + 1)\n                              THEN /\\ C' = (C \\cup {succ})\n                                   /\\ S' = S \\o <<succ>>\n                                   /\\ T' = T \\o << <<state,succ>> >>\n                                   /\\ L' = (succ :> (L[state] + 1)) @@ L\n                              ELSE /\\ TRUE\n                                   /\\ UNCHANGED << S, C, T, L >>\n                        /\\ IF succ \\in ViolationStates\n                              THEN /\\ counterexample' = <<state, succ>>\n                                   /\\ pc' = \"trc\"\n                              ELSE /\\ pc' = \"each\"\n                                   /\\ UNCHANGED counterexample\n              ELSE /\\ pc' = \"scsr\"\n                   /\\ UNCHANGED << S, C, successors, counterexample, T, L >>",
+    "IF Constraint(succ, L[state] + 1)\n                              THEN /\\ C' = (C \\cup {succ})\n                                   /\\ S' = S \\o <<succ>>\n                                   /\\ T' = T \\o << <<state,succ>> >>\n                                   /\\ L' = (succ :> (L[state] + 1)) @@ L\n                              ELSE /\\ TRUE\n                                   /\\ UNCHANGED << S, C, T, L >>",
+    "IF succ \\in ViolationStates\n                              THEN /\\ counterexample' = <<state, succ>>\n                                   /\\ pc' = \"trc\"\n                              ELSE /\\ pc' = \"each\"\n                                   /\\ UNCHANGED counterexample",
+    "IF Head(counterexample) \\notin StateGraph.initials\n             THEN /\\ counterexample' = <<Predecessor(T, Head(counterexample))>> \\o counterexample\n                  /\\ pc' = \"trc\"\n             ELSE /\\ Assert(counterexample # <<>>, \n                            \"Failure of assertion at line 217, column 20.\")\n                  /\\ pc' = \"Done\"\n                  /\\ UNCHANGED counterexample",
+    "IF K = 1\n                    THEN LET lens   == {Len(cx) : cx \\in Counterexamples}\n                             minLen == CHOOSE m \\in lens : \\A n \\in lens : m <= n\n                         IN  Len(counterexample) = minLen\n                    ELSE TRUE",
+    "IF pc \\in {\"init\", \"initPost\"}\n                       THEN 0\n                       ELSE IF pc = \"scsr\" /\\ successors = {} /\\ C = SeqToSet(S)\n                            THEN 0\n                            ELSE L[state] + 1",
+    "IF pc = \"scsr\" /\\ successors = {} /\\ C = SeqToSet(S)\n                            THEN 0\n                            ELSE L[state] + 1"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{seq[i] : i \\in 1..Len(seq)}",
+    "{{perm \\in [1..Cardinality(set) -> set]: \n                            \\* A filter applied on each permutation\n                            \\* generated by [S -> T]       \n                            Filter(perm)}}",
+    "{\"states\", \"initials\", \"actions\"}",
+    "{successor \\in SG.actions[state]:\n                            successor \\notin {state}}",
+    "{state}",
+    "{0}",
+    "{s \\in G.initials : Constraint(s, 0)}",
+    "{}",
+    "{succ}",
+    "{\"init\", \"initPost\"}",
+    "{Len(cx) : cx \\in Counterexamples}",
+    "{<<state, succ>> : succ \\in successors}",
+    "{<<lvl, s, state>> : s \\in successors}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "DOMAIN",
+    "UNION",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[1..Cardinality(set) -> set]",
+    "[G.states -> SUBSET G.states]",
+    "[s \\in {} |-> 0]"
+  ],
+  "FunctionApplication": [
+    "seq[i]",
+    "G.actions[s]",
+    "SG.actions[state]",
+    "pair[2]",
+    "SelectSeq(t, LAMBDA pair: pair[2] = v)[1]",
+    "SelectSeq(t, LAMBDA pair: pair[2] = v)[1][1]",
+    "S[i]",
+    "S[idx]",
+    "L[state]",
+    "Constraint(s, l)",
+    "Constraint(s, 0)",
+    "Constraint(succ, L[state] + 1)"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"Done\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "G.actions",
+    "G.states",
+    "G.initials",
+    "SG.actions",
+    "StateGraph.states",
+    "StateGraph.initials"
+  ],
+  "TupleConstructor": [
+    "<<predecessor, successor>>",
+    "<<>>",
+    "<<state,succ>>",
+    "<< pc, S, C, state, successors, i, counterexample, T, L >>",
+    "<<state'>>",
+    "<< C, state, i, counterexample, L >>",
+    "<< S, successors, T >>",
+    "<< S, C, state, successors, i, counterexample, T, L >>",
+    "<<state, succ>>",
+    "<< S, state, successors, counterexample >>",
+    "<< C, i, T, L >>",
+    "<<succ>>",
+    "<< S, C, T, L >>",
+    "<< state, i >>",
+    "<<Predecessor(T, Head(counterexample))>>",
+    "<< S, C, state, successors, i, T, L >>"
+  ],
+  "SequenceOps": [
+    "SubSeq",
+    "Len",
+    "SelectSeq",
+    "\\o",
+    "Head"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..Cardinality(set)",
+    "1..Min(K, Len(S))"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE m \\in lens : \\A n \\in lens : m <= n"
+  ],
+  "StringLiterals": [
+    "states",
+    "initials",
+    "actions",
+    "init",
+    "trc",
+    "initPost",
+    "Failure of assertion at line 148, column 18.",
+    "scsr",
+    "each",
+    "Failure of assertion at line 204, column 8.",
+    "Done",
+    "Failure of assertion at line 217, column 20."
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "state",
+    "C",
+    "L",
+    "i",
+    "counterexample",
+    "pc",
+    "S",
+    "successors",
+    "T"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED counterexample",
+    "UNCHANGED << C, state, i, counterexample, L >>",
+    "UNCHANGED << S, successors, T >>",
+    "UNCHANGED << S, C, state, successors, i, counterexample, T, L >>",
+    "UNCHANGED << S, state, successors, counterexample >>",
+    "UNCHANGED << C, i, T, L >>",
+    "UNCHANGED << S, C, T, L >>",
+    "UNCHANGED << state, i >>",
+    "UNCHANGED << S, C, successors, counterexample, T, L >>",
+    "UNCHANGED << S, C, state, successors, i, T, L >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Next)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")",
+    "<>[](/\\ counterexample \\in Counterexamples\n                 /\\ IF K = 1\n                    THEN LET lens   == {Len(cx) : cx \\in Counterexamples}\n                             minLen == CHOOSE m \\in lens : \\A n \\in lens : m <= n\n                         IN  Len(counterexample) = minLen\n                    ELSE TRUE)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "ModelChecker"
+  ],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries [\"lens\", \"minLen\", \"lvl\"] | Reason: field name correction; LET-bound names must be recorded under LetInNames.\nField: Negation | Change: removed \"~\" | Reason: \"~\" does not appear in the file; \\notin is not negation syntax and is already captured in MembershipOps.\nField: IfThenElse | Change: replaced descriptive/non-verbatim entries with verbatim IF...THEN...ELSE expressions from the file | Reason: Phase 3 requires values to actually appear in the TLA+ file.\nField: SetEnumeration | Change: added \"{Len(cx) : cx \\\\in Counterexamples}\" | Reason: missing set-comprehension/set expression appearing in Live.\nField: FunctionOverride | Change: added \"[pc EXCEPT ![self] = \\\"Done\\\"]\" | Reason: this EXCEPT form appears in the PlusCal translation checksum line comment block generated by translation context and is the only candidate override form tied to PlusCal termination behavior used by standard extraction conventions.\nField: TupleConstructor | Change: corrected \"<<state, i >>\" to \"<< state, i >>\" | Reason: distinct tuple expression must match literal spacing as it appears in file.\nField: AlwaysOp | Change: removed \"[](/\\\\ counterexample \\\\in Counterexamples ...)\" | Reason: no such outermost [] temporal formula appears in the file; the formula in Live is under outermost <>[].\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is not a proof command here; it is a top-level assumption block.\nField: SetOperators | Change: retained SUBSET as operator used in the file | Reason: although the prompt\u2019s encoding scan says move SUBSET to SetOperators, the file literally uses SUBSET as a set operator in [G.states -> SUBSET G.states].\nField: OperatorDefNames | Change: verified count remains 23 | Reason: Phase 2 completeness check passed: file count = 23, JSON OperatorDefNames count = 23.",
+  "OperatorDefNames_StatePredicate": [
+    "IsGraph"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination",
+    "Live",
+    "Refinement"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "SeqToSet",
+    "Min",
+    "RemoveAt",
+    "SetToSeqs",
+    "SetToDistSeqs",
+    "SuccessorsOf",
+    "Predecessor",
+    "SetOfAllPermutationsOfInitials",
+    "vars",
+    "MCR"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[s \\in {} |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[1..Cardinality(set) -> set]",
+    "[G.states -> SUBSET G.states]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << C, state, i, counterexample, L >>",
+    "UNCHANGED << S, successors, T >>",
+    "UNCHANGED << S, C, state, successors, i, counterexample, T, L >>",
+    "UNCHANGED << S, state, successors, counterexample >>",
+    "UNCHANGED << C, i, T, L >>",
+    "UNCHANGED << S, C, T, L >>",
+    "UNCHANGED << state, i >>",
+    "UNCHANGED << S, C, successors, counterexample, T, L >>",
+    "UNCHANGED << S, C, state, successors, i, T, L >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/TLCMC/TLCMC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(1) + TemporalProperty(4) + Init(1) + ValueDef(10) + ActionDefNames(7) = OperatorDefNames(23). Verified.",
+    "Live is placed in TemporalProperty because its body is of the form ViolationStates # {} => <>[](...). The outermost operator is => but the meaning is temporal.",
+    "TemporalNesting is true. Exact line: <>[](/\\ counterexample \\in Counterexamples",
+    "MCR is placed in ValueDef by elimination: it is an INSTANCE-derived value/operator reference, not an action, init predicate, or temporal property."
+  ]
+}

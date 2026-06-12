@@ -1,0 +1,281 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Paxos Commit algorithm, focusing exclusively on safety properties and not liveness. The model simplifies the protocol by letting the variable msgs be the set of all messages ever sent, and does not explicitly model message receipt; instead, actions are enabled based on the presence of messages in msgs. Leader selection is not modeled, and actions that a leader may perform are defined without specifying which process acts as leader. The resource managers (RMs) can spontaneously issue Prepared messages, and Prepare messages are ignored. The specification defines the types and initial states of resource managers, acceptors, and messages, and models the protocol's actions for RMs, leaders, and acceptors. The main temporal property asserts that the protocol maintains type correctness, and the module also asserts that Paxos Commit implements the transaction commit protocol of another module (TCommit) via an INSTANCE statement.",
+  "ModuleName": "PaxosCommit",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [
+    "TCommit"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "RM",
+    "Acceptor",
+    "Majority",
+    "Ballot"
+  ],
+  "VariableNames": [
+    "rmState",
+    "aState",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "PaxosCommitAssumptions"
+  ],
+  "TheoremNames": [
+    "PCSpec => PCTypeOK",
+    "PCSpec => TC!TCSpec"
+  ],
+  "OperatorDefNames": [
+    "Maximum",
+    "PCTypeOK",
+    "PCInit",
+    "Send",
+    "RMPrepare",
+    "RMChooseToAbort",
+    "RMRcvCommitMsg",
+    "RMRcvAbortMsg",
+    "Phase1a",
+    "Phase2a",
+    "Decide",
+    "Phase1b",
+    "Phase2b",
+    "PCNext",
+    "PCSpec",
+    "Message",
+    "TC"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "RMPrepare",
+    "RMChooseToAbort",
+    "RMRcvCommitMsg",
+    "RMRcvAbortMsg",
+    "Phase1a",
+    "Phase2a",
+    "Decide",
+    "Phase1b",
+    "Phase2b",
+    "PCNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "Max",
+    "mset",
+    "maxbal",
+    "val",
+    "Decided"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF T = {} THEN -1 ELSE LET n == CHOOSE n \\in T : TRUE rmax == Max[T \\ {n}] IN IF n \\geq rmax THEN n ELSE rmax (in Max)",
+    "IF maxbal = -1 THEN \"aborted\" ELSE (CHOOSE m \\in mset : m.bal = maxbal).val (in Phase2a)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"phase1a\"}",
+    "{\"phase1b\"}",
+    "{\"prepared\", \"aborted\", \"none\"}",
+    "{\"phase2a\"}",
+    "{\"prepared\", \"aborted\"}",
+    "{\"Commit\", \"Abort\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "SUBSET"
+  ],
+  "FunctionConstructor": [
+    "[T \\in SUBSET S]",
+    "[rm \\in RM |-> \"working\"]",
+    "[ins \\in RM |-> [ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]]",
+    "[rmState EXCEPT ![rm] = \"prepared\"]",
+    "[rmState EXCEPT ![rm] = \"aborted\"]",
+    "[rmState EXCEPT ![rm] = \"committed\"]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal, ![m.ins][acc].bal = m.bal, ![m.ins][acc].val = m.val]"
+  ],
+  "FunctionApplication": [
+    "rmState[rm]",
+    "aState[m.ins][acc].mbal",
+    "aState[m.ins][acc].bal",
+    "aState[m.ins][acc].val",
+    "aState[m.ins][acc]",
+    "rmState[rm]",
+    "rmState",
+    "aState",
+    "msgs",
+    "m.type",
+    "m.bal",
+    "m.ins",
+    "m.mbal",
+    "m.val",
+    "m.acc",
+    "mset",
+    "maxbal",
+    "val"
+  ],
+  "FunctionOverride": [
+    "[rmState EXCEPT ![rm] = \"prepared\"]",
+    "[rmState EXCEPT ![rm] = \"aborted\"]",
+    "[rmState EXCEPT ![rm] = \"committed\"]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal]",
+    "[aState EXCEPT ![m.ins][acc].mbal = m.bal, ![m.ins][acc].bal = m.bal, ![m.ins][acc].val = m.val]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> 0, val |-> \"prepared\"]",
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> 0, val |-> \"aborted\"]",
+    "[type |-> \"Commit\"]",
+    "[type |-> \"Abort\"]",
+    "[type |-> \"phase1a\", ins |-> rm, bal |-> bal]",
+    "[type |-> \"phase2a\", ins |-> rm, bal |-> bal, val |-> val]",
+    "[type |-> \"phase1b\", ins |-> m.ins, mbal |-> m.bal, bal |-> aState[m.ins][acc].bal, val |-> aState[m.ins][acc].val, acc |-> acc]",
+    "[type |-> \"phase2b\", ins |-> m.ins, bal |-> m.bal, val |-> m.val, acc |-> acc]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m.ins",
+    "m.mbal",
+    "m.val",
+    "m.acc"
+  ],
+  "TupleConstructor": [
+    "<<rmState, aState, msgs>>",
+    "<<aState, msgs>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "\\leq",
+    "\\geq"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE n \\in T : TRUE",
+    "CHOOSE m \\in mset : m.bal = maxbal"
+  ],
+  "StringLiterals": [
+    "working",
+    "prepared",
+    "committed",
+    "aborted",
+    "none",
+    "phase1a",
+    "phase1b",
+    "phase2a",
+    "phase2b",
+    "Commit",
+    "Abort"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "msgs",
+    "rmState",
+    "aState"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED aState",
+    "UNCHANGED <<aState, msgs>>",
+    "UNCHANGED <<rmState, aState>>",
+    "UNCHANGED rmState"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][PCNext]_<<rmState, aState, msgs>>"
+  ],
+  "AlwaysOp": [
+    "[][PCNext]_<<rmState, aState, msgs>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "PCTypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "PCSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "PCInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Maximum",
+    "Message",
+    "TC"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[T \\in SUBSET S]",
+    "[rm \\in RM |-> \"working\"]",
+    "[ins \\in RM |-> [ac \\in Acceptor |-> [mbal |-> 0, bal |-> -1, val |-> \"none\"]]]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED aState",
+    "UNCHANGED <<aState, msgs>>",
+    "UNCHANGED <<rmState, aState>>",
+    "UNCHANGED rmState"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/PaxosCommit/PaxosCommit.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(1) + ValueDef(3) + ActionDefNames(11) = 17 = OperatorDefNames total. Verified.",
+    "PCSpec is placed in TemporalProperty because its body is PCInit /\\ [][PCNext]_<<rmState, aState, msgs>>, which is a temporal formula with [] at the outermost level.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e] or EXCEPT forms. Confirmed.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "TC is placed in ValueDef by elimination: it is an INSTANCE, not a Boolean predicate, action, or temporal property."
+  ]
+}

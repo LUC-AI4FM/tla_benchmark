@@ -1,0 +1,316 @@
+{
+  "id": null,
+  "Specification": "This module models heaps, objects, and promise-like objects in an object-capability style setting, including resolved and unresolved promises and actions that resolve or garbage-collect them. It defines the shape of objects, heaps, eventuals, promises, and heap well-formedness conditions such as absence of dangling pointers and acyclicity of promise chains, and it assumes semantic properties of an abstract method evaluator Eval. The file contains state-level structure definitions and three heap-updating actions for resolving when-promises, resolving non-when-promises, and garbage collecting resolved promises, but it does not define a full temporal specification or liveness/fairness properties.",
+  "ModuleName": "Promises",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Id",
+    "Value",
+    "Type",
+    "Field",
+    "Exception",
+    "EventualType"
+  ],
+  "VariableNames": [
+    "heap"
+  ],
+  "AssumptionNames": [
+    "Id \\cap Value = {}",
+    "/\\ Field \\subseteq STRING\n        /\\ \"type\" \\in Field",
+    "Exception \\cap Value = {}",
+    "EventualType \\in Type",
+    "\\A M \\in Method, \n          obj \\in OKObject,\n          args \\in Seq(Value \\cup Id) : \n         LET E(H) == Eval(M, obj, args, H)\n             UseableId(H) == ReachableWithoutPromises(obj, H) \\cup \n                               UNION {ReachableWithoutPromises(args[i], H) : \n                                        i \\in 1..Len(args)}\n         IN  /\\ \\A H \\in OKHeap : \n                  /\\ E(H) \\in [result : Value \\cup Id, heap : OKHeap]\n                  /\\ \\A id \\in Id :\n                        (H[id] # E(H).heap[id]) => \\/ id \\in UseableId(H)\n                                                   \\/ H[id] = << >>\n             /\\ \\A H1, H2 \\in OKHeap : \n                  /\\ UseableId(H1) = UseableId(H2)\n                  /\\ \\A id \\in UseableId(H1) : H1[id] = H2[id]\n                  =>  /\\ E(H1).result = E(H2).result\n                      /\\ \\A id \\in Id : (H1[id] # E(H1).heap[id]) =>\n                                          (E(H1).heap[id] = E(H2).heap[id])"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "R && S",
+    "Object",
+    "Heap",
+    "ReachableFrom",
+    "NotAValue",
+    "ToDo",
+    "Eventual",
+    "ResolvedPromise",
+    "UnresolvedPromise",
+    "Promise",
+    "OKObject",
+    "OKHeap",
+    "ReachableWithoutPromises",
+    "ResolveWhenPromise",
+    "ResolveNonWhenPromise",
+    "GarbageCollectResolvedPromise"
+  ],
+  "ActionDefNames": [
+    "ResolveWhenPromise",
+    "ResolveNonWhenPromise",
+    "GarbageCollectResolvedPromise"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Concat",
+    "Rcd",
+    "Range",
+    "IdsOf",
+    "IdSetOf",
+    "UseableId"
+  ],
+  "LetInNames": [
+    "Concat",
+    "Rcd",
+    "LabelSets",
+    "Range",
+    "IdsOf",
+    "IdSetOf",
+    "promise",
+    "E",
+    "obj",
+    "thePromise",
+    "UseableId"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF x \\in DOMAIN r THEN r[x] ELSE s[x]",
+    "IF o \\in Object\n          THEN  LET IdSetOf(x) == IF x \\in Value\n                                    THEN {} \n                                    ELSE IF x \\in Id\n                                           THEN {x}\n                                           ELSE Range(x) \\cap Id \n                IN  UNION {IdSetOf(o[fld]) : fld \\in (DOMAIN o) \\\\ {\"type\"}}\n          ELSE {}",
+    "IF x \\in Value\n                                    THEN {} \n                                    ELSE IF x \\in Id\n                                           THEN {x}\n                                           ELSE Range(x) \\cap Id",
+    "IF n = 0 THEN IdsOf(obj)\n                  ELSE R[n-1] \\cup { IdsOf(H[i]) : i \\in R[n-1] }",
+    "IF H[i].resolved \n                               THEN i\n                               ELSE IF H[i].isWhen THEN H[i].argPromise\n                                                   ELSE H[i].objIdPromise",
+    "IF n = 0 THEN id\n                                       ELSE thePromise(R[n-1])",
+    "IF (o \\in Object) /\\ (o.type # \"promise\")\n          THEN {i \\in {o[x] : x \\in DOMAIN o} : i \\in Id}\n          ELSE {}",
+    "IF n = 0 THEN IdsOf(obj)\n                  ELSE R[n-1] \\cup { IdsOf(H[i]) : i \\in R[n-1] }"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"type\"}",
+    "{<< >>}",
+    "{x}",
+    "{EventualType}",
+    "{\"promise\"}",
+    "{TRUE}",
+    "{FALSE}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "\\X",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[x \\in (DOMAIN r) \\cup (DOMAIN s) |-> \n                         IF x \\in DOMAIN r THEN r[x] ELSE s[x]]",
+    "[Labels -> Value \\cup Id \\cup Seq(Value \\cup Id) \\cup Type]",
+    "[Id -> Object \\cup {<< >>}]",
+    "[ args : Seq(Id \\cup Value),\n    val : Value \\cup Exception \\cup {NotAValue},\n    out : Seq(Id),\n    successCode : [ Value \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    brokenCode : [ Exception \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    canMarshall : BOOLEAN\n  ]",
+    "[ Value \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ]",
+    "[ Exception \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ]",
+    "[ type : {EventualType},\n    todos : Seq(ToDo)\n  ]",
+    "[ a : TRUE\n    ]",
+    "[ type     : {\"promise\"},\n    resolved : {TRUE},\n    value    : Value \\cup Id\n  ]",
+    "[ type       : {\"promise\"},\n    resolved   : {FALSE},\n    method     : Method,\n    isWhen     : {TRUE},\n    objId      : Id,\n    argPromise : Id\n  ]",
+    "[ type         : {\"promise\"},\n    resolved     : {FALSE},\n    method       : Method,\n    isWhen       : {FALSE},\n    objIdPromise : Id,\n    args         : Seq(Value \\cup Id)\n  ]",
+    "[result : Value \\cup Id, heap : OKHeap]"
+  ],
+  "FunctionApplication": [
+    "r[x]",
+    "s[x]",
+    "f[x]",
+    "R[n]",
+    "IdSetOf(o[fld])",
+    "H[i]",
+    "heap[id]",
+    "heap[promise.argPromise]",
+    "heap[promise.objId]",
+    "heap[promise.objIdPromise]",
+    "heap[heap[promise.objIdPromise].value]",
+    "heap[i]",
+    "heap[i][fldName]",
+    "heap[heap[i][fldName]]",
+    "Eval(M, obj, args, H)",
+    "E(H)",
+    "ReachableWithoutPromises(args[i], H)",
+    "H[id]",
+    "E(H).heap[id]",
+    "thePromise(R[n-1])",
+    "H1[id]",
+    "E(H1).heap[id]",
+    "E(H2).heap[id]"
+  ],
+  "FunctionOverride": [
+    "[E.heap EXCEPT ![id] = [type     |-> \"promise\",\n                                       resolved |-> TRUE,\n                                       value    |-> E.result]]",
+    "[heap EXCEPT ![id] = << >>]"
+  ],
+  "RecordConstructor": [
+    "[ args : Seq(Id \\cup Value),\n    val : Value \\cup Exception \\cup {NotAValue},\n    out : Seq(Id),\n    successCode : [ Value \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    brokenCode : [ Exception \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    canMarshall : BOOLEAN\n  ]",
+    "[ type : {EventualType},\n    todos : Seq(ToDo)\n  ]",
+    "[ a : TRUE\n    ]",
+    "[ type     : {\"promise\"},\n    resolved : {TRUE},\n    value    : Value \\cup Id\n  ]",
+    "[ type       : {\"promise\"},\n    resolved   : {FALSE},\n    method     : Method,\n    isWhen     : {TRUE},\n    objId      : Id,\n    argPromise : Id\n  ]",
+    "[ type         : {\"promise\"},\n    resolved     : {FALSE},\n    method       : Method,\n    isWhen       : {FALSE},\n    objIdPromise : Id,\n    args         : Seq(Value \\cup Id)\n  ]",
+    "[result : Value \\cup Id, heap : OKHeap]",
+    "[type     |-> \"promise\",\n                                       resolved |-> TRUE,\n                                       value    |-> E.result]"
+  ],
+  "RecordAccess": [
+    "R.type",
+    "obj.resolved",
+    "o.type",
+    "promise.resolved",
+    "promise.isWhen",
+    "H[i].resolved",
+    "H[i].isWhen",
+    "H[i].argPromise",
+    "H[i].objIdPromise",
+    "E(H).heap",
+    "E(H1).heap",
+    "E(H2).heap",
+    "E(H1).result",
+    "E(H2).result",
+    "heap[promise.argPromise].resolved",
+    "heap[promise.argPromise].value",
+    "heap[promise.objIdPromise].resolved",
+    "heap[heap[promise.objIdPromise].value]",
+    "heap[id].resolved"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<heap[promise.argPromise].value>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "1..Len(args)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Value \\cup Exception"
+  ],
+  "StringLiterals": [
+    "type",
+    "promise"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "heap"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: added `Exception \\\\cap Value = {}` | Reason: missing top-level ASSUME block; all ASSUME blocks must be listed\nField: LocalOperatorNames | Change: removed `E` | Reason: `E` is a simple LET-bound name (`E == ...`), not a parametric local operator\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: required field name per verification guide\nField: IfThenElse | Change: replaced all contextual/non-verbatim entries with verbatim TLA+ conditional expressions | Reason: values must appear in the file; prior entries included annotations like `(in ReachableFrom)` that do not exist in the source\nField: RecordAccess | Change: removed `obj.argPromise` | Reason: expression does not appear verbatim in the TLA+ file\nField: OperatorDefNames | Change: verified count remains 16 | Reason: top-level `==` definitions in file count = 16, JSON count = 16, so completeness matches",
+  "OperatorDefNames_StatePredicate": [
+    "OKObject",
+    "OKHeap"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "R && S",
+    "Object",
+    "Heap",
+    "ReachableFrom",
+    "NotAValue",
+    "ToDo",
+    "Eventual",
+    "ResolvedPromise",
+    "UnresolvedPromise",
+    "Promise",
+    "ReachableWithoutPromises"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[x \\in (DOMAIN r) \\cup (DOMAIN s) |-> \n                         IF x \\in DOMAIN r THEN r[x] ELSE s[x]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Labels -> Value \\cup Id \\cup Seq(Value \\cup Id) \\cup Type]",
+    "[Id -> Object \\cup {<< >>}]",
+    "[ args : Seq(Id \\cup Value),\n    val : Value \\cup Exception \\cup {NotAValue},\n    out : Seq(Id),\n    successCode : [ Value \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    brokenCode : [ Exception \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ],\n    canMarshall : BOOLEAN\n  ]",
+    "[ Value \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ]",
+    "[ Exception \\X Seq(Id \\cup Value) \\X Heap ->\n                     Seq(Id \\cup Value \\cup Exception) \\X Heap ]",
+    "[ type : {EventualType},\n    todos : Seq(ToDo)\n  ]",
+    "[ a : TRUE\n    ]",
+    "[ type     : {\"promise\"},\n    resolved : {TRUE},\n    value    : Value \\cup Id\n  ]",
+    "[ type       : {\"promise\"},\n    resolved   : {FALSE},\n    method     : Method,\n    isWhen     : {TRUE},\n    objId      : Id,\n    argPromise : Id\n  ]",
+    "[ type         : {\"promise\"},\n    resolved     : {FALSE},\n    method       : Method,\n    isWhen       : {FALSE},\n    objIdPromise : Id,\n    args         : Seq(Value \\cup Id)\n  ]",
+    "[result : Value \\cup Id, heap : OKHeap]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Promises/Promises.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(11) + ActionDefNames(3) = OperatorDefNames(16). Verified.",
+    "OKObject and OKHeap are Boolean-valued state predicates with no primed variables or temporal operators.",
+    "R && S, Object, Heap, ReachableFrom, NotAValue, ToDo, Eventual, ResolvedPromise, UnresolvedPromise, Promise, and ReachableWithoutPromises are placed in ValueDef by elimination: they define sets, records, helper computations, or chosen values rather than actions, init predicates, or temporal properties.",
+    "TemporalNesting is false. No temporal operators [], <>, or ~> appear in the file.",
+    "CorpusSource folder inferred from module name because no repository subfolder is indicated in file content."
+  ]
+}

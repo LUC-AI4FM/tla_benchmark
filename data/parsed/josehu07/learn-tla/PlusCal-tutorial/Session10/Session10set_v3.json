@@ -1,0 +1,242 @@
+{
+  "id": null,
+  "Specification": "This module specifies a graph-based message-passing algorithm that computes parent pointers and depths from a distinguished root over an undirected graph, together with recursive definitions of graph reachability used to justify the network structure. The assumptions require that every edge connects exactly two nodes, that the root is a node, that MaxNodes bounds the number of nodes, and that every node is reachable from the root. The PlusCal algorithm PathsToRoot is translated into TLA+ with variables msgs, depth, and parent; the temporal specification asserts initialization, step behavior, and weak fairness for each node process.",
+  "ModuleName": "Session10set",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nodes",
+    "Edges",
+    "root",
+    "MaxNodes"
+  ],
+  "VariableNames": [
+    "msgs",
+    "depth",
+    "parent"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A e \\in Edges : (e \\subseteq Nodes) /\\ HasTwoElts(e)\n       /\\ root \\in Nodes\n       /\\ MaxNodes >= Cardinality(Nodes)",
+    "ReachableFrom({root}) = Nodes"
+  ],
+  "TheoremNames": [
+    "RFCorrect"
+  ],
+  "OperatorDefNames": [
+    "HasTwoElts",
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "RF",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "vars",
+    "ProcSet",
+    "Init",
+    "node",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "node",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ReachableFrom",
+    "RF"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "R"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF R \\subseteq S THEN S ELSE ReachableFrom(R \\cup S)",
+    "IF B = {} THEN T ELSE RF(SetNbrs(B) \\ T, B \\cup T)",
+    "IF q[1] = root THEN {0} ELSE { }",
+    "IF self = root THEN 0 ELSE MaxNodes",
+    "IF d < depth[self] - 1 THEN /\\ depth' = [depth EXCEPT ![self] = d + 1] /\\ parent' = [parent EXCEPT ![self] = q[1]] /\\ msgs' = [r \\in Queues |-> IF r = q THEN msgs[r] \\ {d} ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN msgs[r] \\cup {depth'[self]} ELSE msgs[r]] ELSE /\\ msgs' = [msgs EXCEPT ![q] = msgs[q] \\ {d}] /\\ UNCHANGED << depth, parent >>",
+    "IF r = q THEN msgs[r] \\ {d} ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN msgs[r] \\cup {depth'[self]} ELSE msgs[r]",
+    "IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN msgs[r] \\cup {depth'[self]} ELSE msgs[r]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{a,b}",
+    "{root}",
+    "{}",
+    "{0}",
+    "{ }",
+    "{d}",
+    "{<<self, q[1]>>}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[q \\in Queues |-> IF q[1] = root THEN {0} ELSE { }]",
+    "[self \\in Nodes |-> IF self = root THEN 0 ELSE MaxNodes]",
+    "[self \\in Nodes |-> self]",
+    "[r \\in Queues |-> IF r = q THEN msgs[r] \\ {d} ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN msgs[r] \\cup {depth'[self]} ELSE msgs[r]]"
+  ],
+  "FunctionApplication": [
+    "q[1]",
+    "msgs[r]",
+    "msgs[q]",
+    "depth[self]",
+    "depth'[self]"
+  ],
+  "FunctionOverride": [
+    "[depth EXCEPT ![self] = d + 1]",
+    "[parent EXCEPT ![self] = q[1]]",
+    "[msgs EXCEPT ![q] = msgs[q] \\ {d}]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<n, m>>",
+    "<<m, n>>",
+    "<< msgs, depth, parent >>",
+    "<<self, q[1]>>",
+    "<< depth, parent >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "370fe203",
+    "665e3feb"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "depth",
+    "parent",
+    "msgs"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "PathsToRoot"
+  ],
+  "PlusCalProcesses": [
+    "node \\in Nodes"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: TheoremNames | Change: Replaced `THEOREM RFCorrect == \\A S \\in SUBSET Nodes : RF(S, {}) = ReachableFrom(S)` with `RFCorrect` | Reason: Named theorem entries must contain the theorem name only.\nField: NamesInLet | Change: Renamed field to `LetInNames` | Reason: Correct field name per schema/check instructions.\nField: IfThenElse | Change: Removed contextual suffixes like `(in ReachableFrom)`, `(in RF)`, `(in Init)`, `(in node)` from all entries | Reason: Values must be expressions that literally appear in the TLA+ file; annotated variants do not appear verbatim.\nField: FunctionApplication | Change: Added `depth'[self]` | Reason: This function application appears literally in the file and was missing.\nField: StringLiterals | Change: Added `370fe203` and `665e3feb` | Reason: These are the double-quoted string literals in the translation checksum comment.\nField: FairnessConditions | Change: Replaced `\\A self \\in Nodes : WF_vars(node(self))` with `WF_vars(node(self))` | Reason: FairnessConditions must contain only WF/SF expressions from inside `Spec` or `Spec0`, not surrounding quantified context.\nField: Completeness | Change: Verified top-level operator count: file count = 14, JSON OperatorDefNames count = 14 | Reason: Phase 2 completeness check passed.",
+  "OperatorDefNames_StatePredicate": [
+    "HasTwoElts"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "RF",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[q \\in Queues |-> IF q[1] = root THEN {0} ELSE { }]",
+    "[self \\in Nodes |-> IF self = root THEN 0 ELSE MaxNodes]",
+    "[self \\in Nodes |-> self]",
+    "[r \\in Queues |-> IF r = q THEN msgs[r] \\ {d} ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN msgs[r] \\cup {depth'[self]} ELSE msgs[r]]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Session10set/Session10set.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(1) + ValueDef(9) + ActionDefNames(2) = OperatorDefNames(14). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "ReachableFrom, RF, Nbrs, SetNbrs, QueuesFrom, QueuesTo, Queues, vars, and ProcSet are placed in ValueDef because they define computed values rather than state predicates, actions, or temporal properties.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because folder cannot be determined from file content."
+  ]
+}

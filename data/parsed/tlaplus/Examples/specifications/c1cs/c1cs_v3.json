@@ -1,0 +1,312 @@
+{
+  "id": null,
+  "Specification": "This specification models the one-communication-step consensus algorithm with crash faults from the cited paper, focusing only on the algorithm itself and not the underlying consensus mechanism. Processes can propose values, receive broadcast messages, crash subject to a bound, decide based on thresholds over received proposed messages, and relay decision messages. The spec defines the transition system, a weak fairness condition for message receipt and progress actions, and asserts safety and liveness-style properties such as type correctness, validity, agreement, weak agreement, termination, and a stronger inductive strengthening predicate.",
+  "ModuleName": "c1cs",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "F",
+    "T",
+    "Values",
+    "Bottom"
+  ],
+  "VariableNames": [
+    "pc",
+    "v",
+    "dValue",
+    "bcastMsg",
+    "rcvdMsg"
+  ],
+  "AssumptionNames": [
+    "3 * T < N /\\ 0 <= F /\\ F <= T /\\ 0 < N"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "Proc",
+    "Location",
+    "makeProposedMsg",
+    "makeDecisionMsg",
+    "PMsg",
+    "DMsg",
+    "Msg",
+    "Init",
+    "Crash",
+    "Receive",
+    "Propose",
+    "Core_T1",
+    "T2",
+    "DoNothing",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "Validity",
+    "Agreement",
+    "WeakAgreement",
+    "Termination",
+    "IndStrengthens"
+  ],
+  "ActionDefNames": [
+    "Crash",
+    "Receive",
+    "Propose",
+    "Core_T1",
+    "T2",
+    "DoNothing",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF /\\ (\\E tV \\in Values : \\A msg \\in rcvdMsg[i] : msg.type = \"Proposed\" => msg.value = tV) THEN /\\ dValue' = [ dValue EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T) ] /\\ bcastMsg' = bcastMsg \\cup { makeDecisionMsg(dValue'[i], i) } /\\ pc' = [ pc EXCEPT ![i] = \"DONE\" ] /\\ UNCHANGED << v >> ELSE /\\ IF \\E tV \\in Values : Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T THEN /\\ v' = [ v EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T) ] /\\ UNCHANGED << dValue, bcastMsg >> ELSE UNCHANGED << dValue, v, bcastMsg >> /\\ pc' = [ pc EXCEPT ![i] = \"CALL\" ]",
+    "IF \\E tV \\in Values : Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T THEN /\\ v' = [ v EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T) ] /\\ UNCHANGED << dValue, bcastMsg >> ELSE UNCHANGED << dValue, v, bcastMsg >>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"PROPOSE\", \"DECIDE\", \"CALL\", \"CRASH\", \"DONE\" }",
+    "{\"Proposed\"}",
+    "{\"Decision\"}",
+    "{}",
+    "{ msg }",
+    "{ Bottom }"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "SUBSET",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ Proc -> Values ]",
+    "[ i \\in Proc |-> \"PROPOSE\" ]",
+    "[ i \\in Proc |-> Bottom ]",
+    "[ i \\in Proc |-> {} ]",
+    "[ type : {\"Proposed\"} , value : Values, sndr : Proc ]",
+    "[ type : {\"Decision\"}, value : Values, sndr : Proc ]",
+    "[ Proc -> Location ]",
+    "[ Proc -> SUBSET (PMsg \\cup DMsg) ]",
+    "[ Proc -> { Bottom } \\cup Values ]"
+  ],
+  "FunctionApplication": [
+    "pc[i]",
+    "pc[p]",
+    "rcvdMsg[i]",
+    "v[i]",
+    "dValue'[i]",
+    "dValue[i]",
+    "v[j]"
+  ],
+  "FunctionOverride": [
+    "[ pc EXCEPT ![i] = \"CRASH\" ]",
+    "[ rcvdMsg EXCEPT ![i] = rcvdMsg[i] \\cup { msg } ]",
+    "[ pc EXCEPT ![i] = \"DECIDE\" ]",
+    "[ dValue EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T) ]",
+    "[ pc EXCEPT ![i] = \"DONE\" ]",
+    "[ v EXCEPT ![i] = CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T) ]",
+    "[ dValue EXCEPT ![i] = msg.value ]",
+    "[ pc EXCEPT ![i] = \"CALL\" ]"
+  ],
+  "RecordConstructor": [
+    "[ type |-> \"Proposed\", value |-> v_i, sndr |-> i ]",
+    "[ type |-> \"Decision\", value |-> v_i, sndr |-> i ]",
+    "[ type : {\"Proposed\"} , value : Values, sndr : Proc ]",
+    "[ type : {\"Decision\"}, value : Values, sndr : Proc ]"
+  ],
+  "RecordAccess": [
+    "msg.type",
+    "msg.value",
+    "msg.sndr",
+    "msg1.sndr",
+    "msg2.sndr",
+    "msg1.type",
+    "msg2.type",
+    "msg1.value",
+    "msg2.value"
+  ],
+  "TupleConstructor": [
+    "<< pc, v, dValue, bcastMsg, rcvdMsg >>",
+    "<< dValue, v, bcastMsg, rcvdMsg >>",
+    "<< pc, v, dValue, bcastMsg >>",
+    "<< v, dValue, rcvdMsg >>",
+    "<< v >>",
+    "<< dValue, bcastMsg >>",
+    "<< dValue, v, bcastMsg >>",
+    "<< rcvdMsg >>",
+    "<< v, rcvdMsg >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..N"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - T)",
+    "CHOOSE tV \\in Values : (Cardinality({ msg \\in rcvdMsg[i] : msg.type = \"Proposed\" /\\ msg.value = tV }) >= N - 2 * T)"
+  ],
+  "StringLiterals": [
+    "PROPOSE",
+    "DECIDE",
+    "CALL",
+    "CRASH",
+    "DONE",
+    "Proposed",
+    "Decision"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "rcvdMsg",
+    "dValue",
+    "bcastMsg",
+    "v"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << dValue, v, bcastMsg, rcvdMsg >>",
+    "UNCHANGED << pc, v, dValue, bcastMsg >>",
+    "UNCHANGED << v, dValue, rcvdMsg >>",
+    "UNCHANGED << v >>",
+    "UNCHANGED << dValue, bcastMsg >>",
+    "UNCHANGED << dValue, v, bcastMsg >>",
+    "UNCHANGED << rcvdMsg >>",
+    "UNCHANGED << v, rcvdMsg >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<< pc, v, dValue, bcastMsg, rcvdMsg >>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<< pc, v, dValue, bcastMsg, rcvdMsg >>"
+  ],
+  "EventuallyOp": [
+    "<>(\\A i \\in Proc : pc[i] = \"CRASH\" \\/ pc[i] = \"DONE\" \\/ pc[i] = \"CALL\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(\\E i \\in Proc : \\/ Receive(i) \\/ Propose(i) \\/ Core_T1(i) \\/ T2(i))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count remains 23 | Reason: top-level `==` definition count in file is 23 and JSON count is 23\nField: LetInNames | Change: added empty field `LetInNames` | Reason: correctness check requires this field; there are no LET-bound names in the file\nField: IfThenElse | Change: replaced both paraphrased entries with verbatim TLA+ IF expressions | Reason: values must appear in the file; V1 entries contained non-TLA summaries not present verbatim\nField: FunctionOverride | Change: added `[ pc EXCEPT ![i] = \"CALL\" ]` | Reason: distinct EXCEPT form appears in `Core_T1` and was missing\nField: TupleConstructor | Change: added `<< dValue, v, bcastMsg >>` and `<< rcvdMsg >>` | Reason: both tuple expressions occur in UNCHANGED expressions and must be captured\nField: UnchangedExprs | Change: added `UNCHANGED << dValue, v, bcastMsg >>` | Reason: distinct UNCHANGED expression appears in `Core_T1` else branch and was missing\nField: TemporalSubscript | Change: removed `WF_vars(\\\\E i \\\\in Proc : \\\\/ Receive(i) ... )` | Reason: fairness expressions are not temporal subscript forms; `TemporalSubscript` should contain only subscripted temporal formulas such as `[][Next]_...`\nField: FairnessConditions | Change: normalized fairness entry to `WF_vars(\\\\E i \\\\in Proc : \\\\/ Receive(i) \\\\/ Propose(i) \\\\/ Core_T1(i) \\\\/ T2(i))` | Reason: preserve only the WF expression from `Spec`; field must contain only WF/SF expressions from `Spec` or `Spec0`\nField: Phase 1 scan | Change: no encoding corrections required in disjunction/conjunction escaping, implication placement, UNCHANGED spacing, PlusCal empties, BooleanConstants, FiniteSetOps, SetOperators, AlwaysOp, EnabledExprs | Reason: these checks passed after corrections above",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Validity",
+    "Agreement",
+    "WeakAgreement",
+    "IndStrengthens"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Proc",
+    "Location",
+    "makeProposedMsg",
+    "makeDecisionMsg",
+    "PMsg",
+    "DMsg",
+    "Msg"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> \"PROPOSE\" ]",
+    "[ i \\in Proc |-> Bottom ]",
+    "[ i \\in Proc |-> {} ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Proc -> Values ]",
+    "[ Proc -> Location ]",
+    "[ Proc -> SUBSET (PMsg \\cup DMsg) ]",
+    "[ Proc -> { Bottom } \\cup Values ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << dValue, v, bcastMsg, rcvdMsg >>",
+    "UNCHANGED << pc, v, dValue, bcastMsg >>",
+    "UNCHANGED << v, dValue, rcvdMsg >>",
+    "UNCHANGED << v >>",
+    "UNCHANGED << dValue, bcastMsg >>",
+    "UNCHANGED << dValue, v, bcastMsg >>",
+    "UNCHANGED << rcvdMsg >>",
+    "UNCHANGED << v, rcvdMsg >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/c1cs/c1cs.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(2) + Init(1) + ValueDef(8) + ActionDefNames(7) = OperatorDefNames(23). Verified.",
+    "Termination is placed in TemporalProperty because its body is an eventuality formula headed by <>.",
+    "Record-set constructors PMsg and DMsg use record-function-set syntax `[ type : {..}, value : .., sndr : .. ]` and are therefore retained in FunctionConstructor but excluded from FunctionConstructor_ByDomain and FunctionConstructor_SetType, whose union partitions only the [x \\in S |-> e] and [S -> T] forms requested.",
+    "vars, Proc, Location, makeProposedMsg, makeDecisionMsg, PMsg, DMsg, and Msg are placed in ValueDef by elimination as non-Boolean, non-action, non-temporal helper/value definitions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the folder cannot be determined from file content."
+  ]
+}

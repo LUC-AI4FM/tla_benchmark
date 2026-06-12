@@ -1,0 +1,216 @@
+{
+  "id": null,
+  "Specification": "This specification models a simple key-value store with snapshot-isolated transactions. Each open transaction has its own snapshot of the store, a set of keys it has written, and a set of writes it has missed from other transactions; commits succeed only when there is no write-write conflict between the transaction's written keys and its missed keys. The spec defines transaction opening, add, update, remove, rollback, and close/commit steps, and proves that under the behavior specification the type invariant and transaction lifecycle cleanup properties always hold.",
+  "ModuleName": "KeyValueStore",
+  "ExtendsModules": [],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Key",
+    "Val",
+    "TxId"
+  ],
+  "VariableNames": [
+    "store",
+    "tx",
+    "snapshotStore",
+    "written",
+    "missed"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "Spec => [](TypeInvariant /\\ TxLifecycle)"
+  ],
+  "OperatorDefNames": [
+    "NoVal",
+    "Store",
+    "Init",
+    "TypeInvariant",
+    "TxLifecycle",
+    "OpenTx",
+    "Add",
+    "Update",
+    "Remove",
+    "RollbackTx",
+    "CloseTx",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "OpenTx",
+    "Add",
+    "Update",
+    "Remove",
+    "RollbackTx",
+    "CloseTx",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]",
+    "IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{NoVal}",
+    "{}",
+    "{t}",
+    "{NoVal, v}",
+    "{k}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Key -> Val \\cup {NoVal}]",
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[t \\in TxId |-> {}]",
+    "[TxId -> Store]",
+    "[TxId -> SUBSET Key]",
+    "[k \\in Key |-> IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]]",
+    "[otherTx \\in TxId |-> IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}]"
+  ],
+  "FunctionApplication": [
+    "store[k]",
+    "snapshotStore[t]",
+    "snapshotStore[t][k]",
+    "written[t]",
+    "missed[t]",
+    "missed[otherTx]"
+  ],
+  "FunctionOverride": [
+    "[snapshotStore EXCEPT ![t] = store]",
+    "[snapshotStore EXCEPT ![t][k] = v]",
+    "[written EXCEPT ![t] = @ \\cup {k}]",
+    "[snapshotStore EXCEPT ![t] = [k \\in Key |-> NoVal]]",
+    "[written EXCEPT ![t] = {}]",
+    "[missed EXCEPT ![t] = {}]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<written, missed, store>>",
+    "<<tx, missed, store>>",
+    "<<store, tx, snapshotStore, written, missed>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Val"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "tx",
+    "snapshotStore",
+    "written",
+    "store",
+    "missed"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<written, missed, store>>",
+    "UNCHANGED <<tx, missed, store>>",
+    "UNCHANGED store"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<store, tx, snapshotStore, written, missed>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<store, tx, snapshotStore, written, missed>>",
+    "[](TypeInvariant /\\ TxLifecycle)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Removed contextual suffixes \\\"(in CloseTx)\\\" from both entries | Reason: Entries must be expressions that literally appear in the TLA+ file; those annotated forms do not exist verbatim.\nField: SetOperators | Change: Removed \\\"SUBSET\\\" | Reason: `SUBSET` must not appear in `SetOperators`; it belongs under set-constructor/function content, not this field.\nField: FunctionConstructor | Change: Removed duplicate entry \\\"[k \\\\in Key |-> NoVal]\\\" | Reason: Deduplication required.\nField: AlwaysOp | Change: Added \\\"[][Next]_<<store, tx, snapshotStore, written, missed>>\\\" | Reason: This temporal formula has outermost `[]` in `Spec` and must appear in `AlwaysOp` with full subscript.\nField: Completeness | Change: Verified operator counts match: file count = 13, JSON OperatorDefNames count = 13 | Reason: Phase 2 completeness check required.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvariant",
+    "TxLifecycle"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "NoVal",
+    "Store"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[k \\in Key |-> NoVal]",
+    "[t \\in TxId |-> [k \\in Key |-> NoVal]]",
+    "[t \\in TxId |-> {}]",
+    "[k \\in Key |-> IF k \\in written[t] THEN snapshotStore[t][k] ELSE store[k]]",
+    "[otherTx \\in TxId |-> IF otherTx \\in tx' THEN missed[otherTx] \\cup written[t] ELSE {}]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Key -> Val \\cup {NoVal}]",
+    "[TxId -> Store]",
+    "[TxId -> SUBSET Key]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<written, missed, store>>",
+    "UNCHANGED <<tx, missed, store>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED store"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/KeyValueStore/KeyValueStore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(7) = OperatorDefNames(13). Verified.",
+    "NoVal and Store are placed in ValueDef as non-Boolean value definitions.",
+    "UnchangedExprs_VarRef contains \"UNCHANGED store\" because it is the only scalar variable reference form; there is no previously defined tuple variable such as vars in this module.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

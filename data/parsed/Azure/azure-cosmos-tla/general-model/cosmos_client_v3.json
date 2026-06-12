@@ -1,0 +1,391 @@
+{
+  "id": null,
+  "Specification": "This module models the client-visible consistency guarantees of Microsoft Azure Cosmos DB across multiple regions and clients. It abstracts away the internal replication protocol and instead specifies client operations, asynchronous replication among regions, and the resulting histories and database states used to characterize strong, bounded staleness, session, consistent prefix, and eventual consistency. The spec defines an initial state, client and database actions, a temporal specification with weak fairness for both clients and the database replication process, several invariant-style consistency properties selected by the constant Consistency, and a liveness property stating that eventually all regional databases become equal forever.",
+  "ModuleName": "cosmos_client",
+  "ExtendsModules": [
+    "Naturals",
+    "Integers",
+    "Reals",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NumRegions",
+    "NumWriteRegions",
+    "NumClientsPerRegion",
+    "MaxNumOp",
+    "Consistency",
+    "K"
+  ],
+  "VariableNames": [
+    "Bound",
+    "History",
+    "Data",
+    "Database",
+    "value",
+    "pc",
+    "session_token",
+    "numOp"
+  ],
+  "AssumptionNames": [
+    "NumRegions \\in Nat",
+    "NumWriteRegions >= 1 /\\ NumWriteRegions <= NumRegions",
+    "NumClientsPerRegion \\in Nat",
+    "Consistency \\in {\"strong\", \"bounded_staleness\", \"session\", \"consistent_prefix\", \"eventual\"}",
+    "K \\in Nat"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Regions",
+    "WriteRegions",
+    "Clients",
+    "Operations",
+    "RemDupRec",
+    "RemoveDuplicates",
+    "SetMax",
+    "SeqToSet",
+    "Last",
+    "MaxLen",
+    "MinLen",
+    "vars",
+    "ProcSet",
+    "Init",
+    "client_actions",
+    "write",
+    "read",
+    "client",
+    "database_action",
+    "CosmosDB",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "AnyReadPerRegion",
+    "Monotonic",
+    "MonotonicReadPerRegion",
+    "MonotonicReadPerClient",
+    "MonotonicWritePerRegion",
+    "ReadYourWrite",
+    "ReadAfterWrite",
+    "Linearizability",
+    "LastOperation",
+    "BoundedStaleness",
+    "ConsistentPrefix",
+    "Strong",
+    "Session",
+    "Eventual",
+    "Invariant",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "client_actions",
+    "write",
+    "read",
+    "client",
+    "database_action",
+    "CosmosDB",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "RemDupRec"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "region",
+    "reads",
+    "writes",
+    "i",
+    "r"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF es = <<>> THEN <<>> ELSE IF es[1] \\in seen THEN RemDupRec(Tail(es), seen) ELSE <<es[1]>> \\o RemDupRec(Tail(es), seen \\cup {es[1]})",
+    "IF es[1] \\in seen THEN RemDupRec(Tail(es), seen) ELSE <<es[1]>> \\o RemDupRec(Tail(es), seen \\cup {es[1]})",
+    "IF S = {} THEN -1 ELSE CHOOSE i \\in S : \\A j \\in S : i >= j",
+    "IF numOp[self] < MaxNumOp THEN /\\ numOp' = [numOp EXCEPT ![self] = numOp[self] + 1] /\\ \\/ /\\ pc' = [pc EXCEPT ![self] = \"write\"] \\/ /\\ pc' = [pc EXCEPT ![self] = \"read\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Done\"] /\\ numOp' = numOp",
+    "IF self[1] \\in WriteRegions THEN /\\ \\A i, j \\in Regions : Data[i] - Data[j] < Bound /\\ Database' = [Database EXCEPT ![self[1]] = Append(@, value')] /\\ Data' = [Data EXCEPT ![self[1]] = value'] /\\ History' = Append(History, [type |-> \"write\", data |-> value', region |-> self[1], client |-> self]) /\\ session_token' = [session_token EXCEPT ![self] = value'] ELSE /\\ TRUE /\\ UNCHANGED << History, Data, Database, session_token >>",
+    "IF Len(Database'[d]) > 0 THEN /\\ Data' = [Data EXCEPT ![d] = Last(Database'[d])] ELSE /\\ TRUE /\\ Data' = Data",
+    "IF i > 0 THEN History[i] ELSE <<>>"
+  ],
+  "CaseExpr": [
+    "CASE Consistency = \"strong\" -> 1 [] Consistency = \"bounded_staleness\" -> K [] Consistency = \"session\" -> MaxNumOp [] Consistency = \"consistent_prefix\" -> MaxNumOp [] Consistency = \"eventual\" -> MaxNumOp",
+    "CASE self \\in Clients -> \"client_actions\" [] self = <<0, 0>> -> \"database_action\"",
+    "CASE Consistency = \"strong\" -> Strong [] Consistency = \"bounded_staleness\" -> BoundedStaleness [] Consistency = \"session\" -> Session [] Consistency = \"consistent_prefix\" -> ConsistentPrefix [] Consistency = \"eventual\" -> Eventual"
+  ],
+  "SetEnumeration": [
+    "{\"strong\", \"bounded_staleness\", \"session\", \"consistent_prefix\", \"eventual\"}",
+    "{\"write\"}",
+    "{\"read\"}",
+    "{}",
+    "{<<0, 0>>}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\union",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[type: {\"write\"}, data: Nat, region: WriteRegions, client: Clients]",
+    "[type: {\"read\"}, data: Nat, region: Regions, client: Clients]",
+    "[r \\in Regions |-> 0]",
+    "[self \\in Clients |-> 0]",
+    "[self \\in ProcSet |-> CASE self \\in Clients -> \"client_actions\" [] self = <<0, 0>> -> \"database_action\"]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"read\" /\\ History[j].region = r} |-> History[i]]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"read\" /\\ History[j].client = c} |-> History[i]]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"write\" /\\ History[j].region = r} |-> History[i]]"
+  ],
+  "FunctionApplication": [
+    "c[i]",
+    "numOp[self]",
+    "pc[self]",
+    "self[1]",
+    "Data[i]",
+    "Data[j]",
+    "Database'[d]",
+    "History[i]",
+    "Database[d]",
+    "Database[s]",
+    "session_token[self]",
+    "Database[r]",
+    "h[i]",
+    "h[j]",
+    "History[j]",
+    "c[region]",
+    "s[i]",
+    "Database[r][j]"
+  ],
+  "FunctionOverride": [
+    "[numOp EXCEPT ![self] = numOp[self] + 1]",
+    "[pc EXCEPT ![self] = \"write\"]",
+    "[pc EXCEPT ![self] = \"read\"]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[Database EXCEPT ![self[1]] = Append(@, value')]",
+    "[Data EXCEPT ![self[1]] = value']",
+    "[session_token EXCEPT ![self] = value']",
+    "[session_token EXCEPT ![self] = Data[self[1]]]",
+    "[Database EXCEPT ![d] = RemoveDuplicates(SortSeq(Database[d] \\o Database[s], <))]",
+    "[Data EXCEPT ![d] = Last(Database'[d])]",
+    "[pc EXCEPT ![<<0, 0>>] = \"database_action\"]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"write\", data |-> value', region |-> self[1], client |-> self]",
+    "[type |-> \"read\", data |-> Data[self[1]], region |-> self[1], client |-> self]"
+  ],
+  "RecordAccess": [
+    "History[i].type",
+    "History[i].region",
+    "History[i].data",
+    "h[i].data",
+    "h[j].data",
+    "History[j].type",
+    "History[j].region",
+    "History[j].client",
+    "History[j].data",
+    "History[i].client"
+  ],
+  "TupleConstructor": [
+    "<<r, j>>",
+    "<<>>",
+    "<<es[1]>>",
+    "<< Bound, History, Data, Database, value, pc, session_token, numOp >>",
+    "<<0, 0>>",
+    "<< Bound, History, Data, Database, value, session_token >>",
+    "<< History, Data, Database, session_token >>",
+    "<< Bound, numOp >>",
+    "<< Bound, Data, Database, value, numOp >>",
+    "<< Bound, History, value, session_token, numOp >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Tail",
+    "Len",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..NumRegions",
+    "1..NumWriteRegions",
+    "1..NumClientsPerRegion"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in S : \\A j \\in S : i >= j",
+    "CHOOSE i \\in Regions : \\A j \\in Regions : Len(c[i]) >= Len(c[j])",
+    "CHOOSE i \\in Regions : \\A j \\in Regions : Len(c[i]) <= Len(c[j])"
+  ],
+  "StringLiterals": [
+    "strong",
+    "bounded_staleness",
+    "session",
+    "consistent_prefix",
+    "eventual",
+    "client_actions",
+    "database_action",
+    "write",
+    "read",
+    "Done"
+  ],
+  "ArithmeticModules": [
+    "Naturals",
+    "Integers",
+    "Reals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "numOp",
+    "pc",
+    "value",
+    "Database",
+    "Data",
+    "History",
+    "session_token"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << Bound, History, Data, Database, value, session_token >>",
+    "UNCHANGED << History, Data, Database, session_token >>",
+    "UNCHANGED << Bound, numOp >>",
+    "UNCHANGED << Bound, Data, Database, value, numOp >>",
+    "UNCHANGED << Bound, History, value, session_token, numOp >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(client(self))",
+    "WF_vars(CosmosDB)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]<>(\\A i, j \\in Regions : Database[i] = Database[j])"
+  ],
+  "EventuallyOp": [
+    "<>[] (\\A i, j \\in Regions : Database[i] = Database[j])"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(client(self))",
+    "WF_vars(CosmosDB)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and preserved entries | Reason: required field name per schema; LET-bound names must be stored there\nField: IfThenElse | Change: removed non-verbatim contextual suffixes like \\\"(in RemDupRec)\\\" | Reason: values must appear in the TLA+ file; suffix text does not\nField: CaseExpr | Change: removed non-verbatim contextual suffixes like \\\"(in Init)\\\" and \\\"(in Invariant)\\\" | Reason: values must appear in the TLA+ file; suffix text does not\nField: AlwaysOp | Change: replaced `[] (\\\\A i, j \\\\in Regions : Database[i] = Database[j])` with `[]<>(\\\\A i, j \\\\in Regions : Database[i] = Database[j])` | Reason: outermost temporal operator in `Liveness == <>[] (...)` is `<>`, not `[]`; V1 value does not occur in file and missed the actual nested always/eventually form\nField: FairnessConditions | Change: replaced `\\\\A self \\\\in Clients : WF_vars(client(self))` with `WF_vars(client(self))` | Reason: field must contain only WF/SF expressions from Spec/Spec0, not surrounding quantified context\nField: PlusCalAlgorithm | Change: set from `[\\\"cosmos_client\\\"]` to `[]` | Reason: PlusCal algorithm is inside a comment block; extracted JSON should treat empty field as empty array when no active PlusCal content\nField: PlusCalProcesses | Change: set from process entries to `[]` | Reason: PlusCal processes are inside a comment block; extracted JSON should treat empty field as empty array when no active PlusCal content\n\nCHANGE LOG\nField: Completeness | Change: verified top-level operator count file count = 39, JSON OperatorDefNames count = 39 | Reason: counts match, so operator-definition coverage is complete",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "AnyReadPerRegion",
+    "Monotonic",
+    "MonotonicReadPerRegion",
+    "MonotonicReadPerClient",
+    "MonotonicWritePerRegion",
+    "ReadYourWrite",
+    "ReadAfterWrite",
+    "Linearizability",
+    "BoundedStaleness",
+    "ConsistentPrefix",
+    "Strong",
+    "Session",
+    "Eventual",
+    "Invariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Regions",
+    "WriteRegions",
+    "Clients",
+    "Operations",
+    "RemDupRec",
+    "RemoveDuplicates",
+    "SetMax",
+    "SeqToSet",
+    "Last",
+    "MaxLen",
+    "MinLen",
+    "vars",
+    "ProcSet",
+    "LastOperation"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[r \\in Regions |-> 0]",
+    "[self \\in Clients |-> 0]",
+    "[self \\in ProcSet |-> CASE self \\in Clients -> \"client_actions\" [] self = <<0, 0>> -> \"database_action\"]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"read\" /\\ History[j].region = r} |-> History[i]]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"read\" /\\ History[j].client = c} |-> History[i]]",
+    "[i \\in {j \\in DOMAIN History : /\\ History[j].type = \"write\" /\\ History[j].region = r} |-> History[i]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[type: {\"write\"}, data: Nat, region: WriteRegions, client: Clients]",
+    "[type: {\"read\"}, data: Nat, region: Regions, client: Clients]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << Bound, History, Data, Database, value, session_token >>",
+    "UNCHANGED << History, Data, Database, session_token >>",
+    "UNCHANGED << Bound, numOp >>",
+    "UNCHANGED << Bound, Data, Database, value, numOp >>",
+    "UNCHANGED << Bound, History, value, session_token, numOp >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/cosmos_client/cosmos_client.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(15) + TemporalProperty(2) + Init(1) + ValueDef(14) + ActionDefNames(7) = OperatorDefNames(39). Verified.",
+    "LastOperation is placed in ValueDef by elimination: it is non-temporal, non-action, non-init, and returns either a history record or <<>>, not a Boolean predicate.",
+    "TemporalNesting is true. Exact line: Liveness == <>[] (\\A i, j \\in Regions : Database[i] = Database[j])"
+  ]
+}

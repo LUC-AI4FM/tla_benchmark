@@ -1,0 +1,458 @@
+{
+  "id": null,
+  "Specification": "This specification models MultiPaxos in the style of state machine replication (SMR) for a single key, supporting both write and read commands. The network is modeled as a monotonic set of sent messages, capturing asynchronous, non-Byzantine behavior: messages may be delayed, duplicated, or lost (with the assumption that lost messages are retried until received). The spec checks linearizability from the client's perspective by observing the sequence of request and acknowledgement events, and verifies liveness by ensuring no deadlocks occur until all requests are observed. The design is modular, with clear separation of client events, server states, and message types, and is implemented in PlusCal with a translation to TLA+ for model checking. Notable design decisions include the use of unique ballots for leader election, explicit modeling of majority quorums, and a focus on practical system behaviors such as idempotency and efficient state space reduction.",
+  "ModuleName": "MultiPaxos",
+  "ExtendsModules": [
+    "FiniteSets",
+    "Sequences",
+    "Integers",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Replicas",
+    "Writes",
+    "Reads",
+    "MaxBallot"
+  ],
+  "VariableNames": [
+    "msgs",
+    "node",
+    "pending",
+    "observed",
+    "pc"
+  ],
+  "AssumptionNames": [
+    "/\\ ReplicasAssumption\n       /\\ WritesAssumption\n       /\\ ReadsAssumption\n       /\\ MaxBallotAssumption"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "ReplicasAssumption",
+    "WritesAssumption",
+    "ReadsAssumption",
+    "MaxBallotAssumption",
+    "Commands",
+    "NumCommands",
+    "Range",
+    "ClientEvents",
+    "ReqEvent",
+    "AckEvent",
+    "InitPending",
+    "MajorityNum",
+    "Ballots",
+    "Slots",
+    "Statuses",
+    "InstStates",
+    "NullInst",
+    "NodeStates",
+    "NullNode",
+    "FirstEmptySlot",
+    "PrepareMsgs",
+    "PrepareMsg",
+    "InstsVotes",
+    "VotesByNode",
+    "PrepareReplyMsgs",
+    "PrepareReplyMsg",
+    "PeakVotedCmd",
+    "AcceptMsgs",
+    "AcceptMsg",
+    "AcceptReplyMsgs",
+    "AcceptReplyMsg",
+    "CommitNoticeMsgs",
+    "CommitNoticeMsg",
+    "Messages",
+    "UnseenPending",
+    "RemovePending",
+    "reqsMade",
+    "acksRecv",
+    "terminated",
+    "vars",
+    "ProcSet",
+    "Init",
+    "rloop",
+    "Replica",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "rloop",
+    "Replica",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "filter",
+    "prs",
+    "s",
+    "c",
+    "v",
+    "ars",
+    "bc"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF @ = \"Accepting\" THEN \"Preparing\" ELSE @",
+    "IF \\/ @ = \"Preparing\" \\/ /\\ @ = \"Empty\" /\\ PeakVotedCmd(prs, s) # \"nil\" THEN \"Accepting\" ELSE @",
+    "IF c \\in Writes THEN c ELSE @",
+    "IF (ReqEvent(c)) \\notin Range(observed) THEN observed' = Append(observed, (ReqEvent(c))) ELSE /\\ TRUE /\\ UNCHANGED observed",
+    "IF (AckEvent(c, v)) \\notin Range(observed) THEN observed' = Append(observed, (AckEvent(c, v))) ELSE /\\ TRUE /\\ UNCHANGED observed"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"Req\"}",
+    "{\"Ack\"}",
+    "{\"nil\"}",
+    "{\"Prepare\"}",
+    "{\"PrepareReply\"}",
+    "{\"Accept\"}",
+    "{\"AcceptReply\"}",
+    "{\"CommitNotice\"}",
+    "{\"Empty\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet",
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[1..Cardinality(Writes) -> Writes]",
+    "[1..Cardinality(Reads) -> Reads]",
+    "[r \\in Replicas |-> NullNode]",
+    "[s \\in Slots |-> NullInst]",
+    "[type: {\"Req\"}, cmd: Commands]",
+    "[type: {\"Ack\"}, cmd: Commands, val: {\"nil\"} \\cup Writes]",
+    "[type: {\"Prepare\"}, src: Replicas, bal: Ballots]",
+    "[type: {\"PrepareReply\"}, src: Replicas, bal: Ballots, votes: InstsVotes]",
+    "[type: {\"Accept\"}, src: Replicas, bal: Ballots, slot: Slots, cmd: Commands]",
+    "[type: {\"AcceptReply\"}, src: Replicas, bal: Ballots, slot: Slots]",
+    "[type: {\"CommitNotice\"}, upto: Slots]",
+    "[bal: {0} \\cup Ballots, cmd: {\"nil\"} \\cup Commands]",
+    "[Slots -> InstStates]",
+    "[status: {\"Empty\"} \\cup Statuses, cmd: {\"nil\"} \\cup Commands, voted: [bal: {0} \\cup Ballots, cmd: {\"nil\"} \\cup Commands]]",
+    "[leader: {\"none\"} \\cup Replicas, kvalue: {\"nil\"} \\cup Writes, commitUpTo: {0} \\cup Slots, balPrepared: {0} \\cup Ballots, balMaxKnown: {0} \\cup Ballots, insts: [Slots -> InstStates]]"
+  ],
+  "FunctionApplication": [
+    "seq[i]",
+    "Range(seq)",
+    "Range(observed)",
+    "SelectSeq(pending, filter)",
+    "Head(UnseenPending(node[r].insts))",
+    "FirstEmptySlot(node[r].insts)",
+    "VotesByNode(node[r])",
+    "PeakVotedCmd(prs, s)",
+    "node[self].insts[s]",
+    "node[self].insts[m.slot]",
+    "node[self].insts[node[self].commitUpTo+1]",
+    "node[self].insts[s].cmd",
+    "node[self].insts[s].status",
+    "node[self].insts[s].voted.bal",
+    "node[self].insts[s].voted.cmd",
+    "node[self].kvalue",
+    "node[self].leader",
+    "node[self].balMaxKnown",
+    "node[self].balPrepared",
+    "node[self].commitUpTo",
+    "node'[self]",
+    "node'[self].insts[s]",
+    "node'[self].balPrepared",
+    "node'[self].insts[s].cmd",
+    "node'[self].insts[s].status",
+    "node'[self].insts",
+    "node'[self].balMaxKnown",
+    "node'[self].leader",
+    "node'[self].commitUpTo",
+    "node'[self].kvalue",
+    "node'[self].balPrepared",
+    "pc[self]",
+    "pc'[self]"
+  ],
+  "FunctionOverride": [
+    "[node EXCEPT ![self].leader = self, ![self].balPrepared = 0, ![self].balMaxKnown = b, ![self].insts = [s \\in Slots |-> [node[self].insts[s] EXCEPT !.status = IF @ = \"Accepting\" THEN \"Preparing\" ELSE @]]]",
+    "[node EXCEPT ![self].leader = m.src, ![self].balMaxKnown = m.bal, ![self].insts = [s \\in Slots |-> [node[self].insts[s] EXCEPT !.status = IF @ = \"Accepting\" THEN \"Preparing\" ELSE @]]]",
+    "[node EXCEPT ![self].balPrepared = node[self].balMaxKnown, ![self].insts = [s \\in Slots |-> [node[self].insts[s] EXCEPT !.status = IF \\/ @ = \"Preparing\" \\/ /\\ @ = \"Empty\" /\\ PeakVotedCmd(prs, s) # \"nil\" THEN \"Accepting\" ELSE @, !.cmd = PeakVotedCmd(prs, s)]]]",
+    "[node EXCEPT ![self].insts[s].status = \"Accepting\", ![self].insts[s].cmd = c, ![self].insts[s].voted.bal = node[self].balPrepared, ![self].insts[s].voted.cmd = c]",
+    "[node EXCEPT ![self].leader = m.src, ![self].balMaxKnown = m.bal, ![self].insts[m.slot].status = \"Accepting\", ![self].insts[m.slot].cmd = m.cmd, ![self].insts[m.slot].voted.bal = m.bal, ![self].insts[m.slot].voted.cmd = m.cmd]",
+    "[node EXCEPT ![self].insts[s].status = \"Committed\", ![self].commitUpTo = s, ![self].kvalue = IF c \\in Writes THEN c ELSE @]",
+    "[node EXCEPT ![self].insts[s].status = \"Committed\", ![self].commitUpTo = s, ![self].kvalue = IF c \\in Writes THEN c ELSE @]",
+    "[pc EXCEPT ![self] = \"rloop\"]",
+    "[pc EXCEPT ![self] = \"Done\"]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"Req\", cmd |-> c]",
+    "[type |-> \"Ack\", cmd |-> c, val |-> v]",
+    "[status |-> \"Empty\", cmd |-> \"nil\", voted |-> [bal |-> 0, cmd |-> \"nil\"]]",
+    "[leader |-> \"none\", kvalue |-> \"nil\", commitUpTo |-> 0, balPrepared |-> 0, balMaxKnown |-> 0, insts |-> [s \\in Slots |-> NullInst]]",
+    "[type |-> \"Prepare\", src |-> r, bal |-> b]",
+    "[type |-> \"PrepareReply\", src |-> r, bal |-> b, votes |-> iv]",
+    "[type |-> \"Accept\", src |-> r, bal |-> b, slot |-> s, cmd |-> c]",
+    "[type |-> \"AcceptReply\", src |-> r, bal |-> b, slot |-> s]",
+    "[type |-> \"CommitNotice\", upto |-> u]",
+    "[bal |-> 0, cmd |-> \"nil\"]"
+  ],
+  "RecordAccess": [
+    "insts[s].status",
+    "insts[s].cmd",
+    "insts[t].status",
+    "votes[s].bal",
+    "votes[s].cmd",
+    "m.type",
+    "m.bal",
+    "m.src",
+    "m.slot",
+    "m.cmd",
+    "m.upto",
+    "node[r].leader",
+    "node[r].balMaxKnown",
+    "node[r].balPrepared",
+    "node[r].commitUpTo",
+    "node[r].kvalue",
+    "node[r].insts",
+    "node[r].insts[s]",
+    "node[r].insts[s].status",
+    "node[r].insts[s].cmd",
+    "node[r].insts[s].voted.bal",
+    "node[r].insts[s].voted.cmd",
+    "node[self].leader",
+    "node[self].balMaxKnown",
+    "node[self].balPrepared",
+    "node[self].commitUpTo",
+    "node[self].kvalue",
+    "node[self].insts",
+    "node[self].insts[s]",
+    "node[self].insts[s].status",
+    "node[self].insts[s].cmd",
+    "node[self].insts[s].voted.bal",
+    "node[self].insts[s].voted.cmd",
+    "node[self].insts[m.slot].status",
+    "node[self].insts[m.slot].cmd",
+    "node[self].insts[m.slot].voted.bal",
+    "node[self].insts[m.slot].voted.cmd"
+  ],
+  "TupleConstructor": [
+    "<<>>",
+    "<< msgs, node, pending, observed, pc >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len",
+    "Head",
+    "Tail",
+    "SelectSeq",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "\\div"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Cardinality(Writes)",
+    "1..Cardinality(Reads)",
+    "1..Len(seq)",
+    "1..MaxBallot",
+    "1..NumCommands",
+    "1..(s-1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE ws \\in [1..Cardinality(Writes) -> Writes] : Range(ws) = Writes",
+    "CHOOSE rs \\in [1..Cardinality(Reads) -> Reads] : Range(rs) = Reads",
+    "CHOOSE s \\in Slots: /\\ insts[s].status = \"Empty\" /\\ \\A t \\in 1..(s-1): insts[t].status # \"Empty\"",
+    "CHOOSE bc \\in (Ballots \\X Commands): /\\ \\E pr \\in prs: /\\ pr.votes[s].bal = bc[1] /\\ pr.votes[s].cmd = bc[2] /\\ \\A pr \\in prs: pr.votes[s].bal =< bc[1]"
+  ],
+  "StringLiterals": [
+    "nil",
+    "Req",
+    "Ack",
+    "Prepare",
+    "PrepareReply",
+    "Accept",
+    "AcceptReply",
+    "CommitNotice",
+    "Empty",
+    "Preparing",
+    "Accepting",
+    "Committed",
+    "none",
+    "Done",
+    "rloop"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "msgs",
+    "node",
+    "pending",
+    "observed",
+    "pc"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<pending, observed>>",
+    "UNCHANGED <<msgs, pending, observed>>",
+    "UNCHANGED << msgs, node, pending, observed >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "MultiPaxos"
+  ],
+  "PlusCalProcesses": [
+    "Replica"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "OperatorDefNames_StatePredicate": [
+    "ReplicasAssumption",
+    "WritesAssumption",
+    "ReadsAssumption",
+    "MaxBallotAssumption",
+    "terminated"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Commands",
+    "NumCommands",
+    "Range",
+    "ClientEvents",
+    "ReqEvent",
+    "AckEvent",
+    "InitPending",
+    "MajorityNum",
+    "Ballots",
+    "Slots",
+    "Statuses",
+    "InstStates",
+    "NullInst",
+    "NodeStates",
+    "NullNode",
+    "FirstEmptySlot",
+    "PrepareMsgs",
+    "PrepareMsg",
+    "InstsVotes",
+    "VotesByNode",
+    "PrepareReplyMsgs",
+    "PrepareReplyMsg",
+    "PeakVotedCmd",
+    "AcceptMsgs",
+    "AcceptMsg",
+    "AcceptReplyMsgs",
+    "AcceptReplyMsg",
+    "CommitNoticeMsgs",
+    "CommitNoticeMsg",
+    "Messages",
+    "UnseenPending",
+    "RemovePending",
+    "reqsMade",
+    "acksRecv",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[r \\in Replicas |-> NullNode]",
+    "[s \\in Slots |-> NullInst]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[1..Cardinality(Writes) -> Writes]",
+    "[1..Cardinality(Reads) -> Reads]",
+    "[type: {\"Req\"}, cmd: Commands]",
+    "[type: {\"Ack\"}, cmd: Commands, val: {\"nil\"} \\cup Writes]",
+    "[type: {\"Prepare\"}, src: Replicas, bal: Ballots]",
+    "[type: {\"PrepareReply\"}, src: Replicas, bal: Ballots, votes: InstsVotes]",
+    "[type: {\"Accept\"}, src: Replicas, bal: Ballots, slot: Slots, cmd: Commands]",
+    "[type: {\"AcceptReply\"}, src: Replicas, bal: Ballots, slot: Slots]",
+    "[type: {\"CommitNotice\"}, upto: Slots]",
+    "[bal: {0} \\cup Ballots, cmd: {\"nil\"} \\cup Commands]",
+    "[Slots -> InstStates]",
+    "[status: {\"Empty\"} \\cup Statuses, cmd: {\"nil\"} \\cup Commands, voted: [bal: {0} \\cup Ballots, cmd: {\"nil\"} \\cup Commands]]",
+    "[leader: {\"none\"} \\cup Replicas, kvalue: {\"nil\"} \\cup Writes, commitUpTo: {0} \\cup Slots, balPrepared: {0} \\cup Ballots, balMaxKnown: {0} \\cup Ballots, insts: [Slots -> InstStates]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<pending, observed>>",
+    "UNCHANGED <<msgs, pending, observed>>",
+    "UNCHANGED << msgs, node, pending, observed >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MultiPaxos/MultiPaxos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(2) + Init(1) + ValueDef(31) + ActionDefNames(4) = 43 = OperatorDefNames total. Verified.",
+    "Spec and Termination are placed in TemporalProperty because their bodies contain temporal operators ([] and <> respectively).",
+    "All FunctionConstructor_ByDomain entries are [x \\in S |-> e] forms; all other FunctionConstructor entries are [S -> T] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

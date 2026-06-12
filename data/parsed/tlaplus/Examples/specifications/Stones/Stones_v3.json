@@ -1,0 +1,177 @@
+{
+  "id": null,
+  "Specification": "This module models the classic balance-scale stone-cutting problem: given a total weight W and N pieces, find an ordered partition of W into N natural-number weights such that every target weight from 1 to W can be balanced using those pieces on either side of the scale. The specification encodes weighing by allowing coefficients in {-1, 0, 1}, where a negative coefficient represents placing a piece on the same side as the object being weighed. It uses recursive operators to enumerate ordered partitions and to sum sequences, and then uses TLC-oriented ASSUME formulas with PrintT to search for and display a solution or report that no solution exists.",
+  "ModuleName": "Stones",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "W",
+    "N"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "W \\in Nat /\\ N \\in 1..W",
+    "\\/ \\E p \\in Partitions(<< >>, W) :\n              IF \\A wt \\in 1..W : Weighs(p, wt) \n                THEN PrintT(p) \n                ELSE FALSE\n       \\/ PrintT(\"No solution\")"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "SeqSum",
+    "Partitions",
+    "Weighs"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [
+    "SeqSum",
+    "Partitions"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "r",
+    "max",
+    "S"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF Len(s) = 0 THEN 0 ELSE Head(s) + SeqSum(Tail(s))",
+    "IF Len(seq) = N\n    THEN {seq}\n    ELSE LET r == N - Len(seq)\n             max == IF Len(seq) = 0 THEN wt ELSE Head(seq)\n             S == {x \\in 1..max : /\\ (r-1) =< (wt - x)\n                                  /\\ wt =< x*r          }\n         IN UNION { Partitions(<<x>> \\o seq, wt - x ) : x \\in S }",
+    "IF Len(seq) = 0 THEN wt ELSE Head(seq)",
+    "IF \\A wt \\in 1..W : Weighs(p, wt) \n                THEN PrintT(p) \n                ELSE FALSE"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{seq}",
+    "{x \\in 1..max : /\\ (r-1) =< (wt - x)\n                                  /\\ wt =< x*r          }",
+    "{ Partitions(<<x>> \\o seq, wt - x ) : x \\in S }",
+    "{-1,0,1}"
+  ],
+  "SetOperators": [
+    "UNION"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[1..N -> -1..1]",
+    "[i \\in 1..N |-> coef[i] * seq[i]]"
+  ],
+  "FunctionApplication": [
+    "coef[i]",
+    "seq[i]",
+    "PrintT(p)",
+    "PrintT(\"No solution\")"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< >>",
+    "<<x>>",
+    "<<x>> \\o seq"
+  ],
+  "SequenceOps": [
+    "Len",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "=<"
+  ],
+  "RangeExpr": [
+    "1..W",
+    "1..max",
+    "-1..1",
+    "1..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "No solution"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries [\"r\", \"max\", \"S\"] | Reason: high-risk field naming correction; LET-bound names must be in LetInNames, not OperatorDefNames or a nonstandard field\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with verbatim expressions from the file | Reason: values must appear in the TLA+ file; prior entries included added labels like \"(in SeqSum)\"\nField: SetEnumeration | Change: removed \"<< >>\" | Reason: it is a tuple constructor, not a set enumeration\nField: FunctionApplication | Change: added \"PrintT(p)\" and \"PrintT(\\\"No solution\\\")\" | Reason: these applications literally appear in the file\nField: TupleConstructor | Change: added \"<<x>> \\\\o seq\" | Reason: tuple/sequence expression appears literally in the file\nField: ComparisonOps | Change: added \"=<\" | Reason: this operator appears in Partitions and was missing\nField: OperatorDefNames | Change: no content change; verified count | Reason: Phase 2 completeness check passed: file count = 3, JSON OperatorDefNames count = 3",
+  "OperatorDefNames_StatePredicate": [
+    "Weighs"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "SeqSum",
+    "Partitions"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..N |-> coef[i] * seq[i]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[1..N -> -1..1]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Stones/Stones.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "SeqSum and Partitions are placed in ValueDef by elimination: both are non-temporal, non-action helper operators returning computed values (a numeric sum and a set of partitions, respectively), not Boolean state predicates.",
+    "Partition count: StatePredicate(1) + TemporalProperty(0) + Init(0) + ValueDef(2) + ActionDefNames(0) = OperatorDefNames(3). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

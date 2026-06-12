@@ -1,0 +1,458 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Raft-based region merge algorithm used by TiKV for merging two regions, RegionA and RegionB, that are replicated on the same set of stores. It models Raft log replication, client requests, internal merge and rollback requests, message passing via AppendEntries RPCs, and application of committed logs to the state machine, including special admin logs LogPreMerge, LogMerge, and LogRollback. The specification assumes no leader switch, allows a configurable quorum size as a modeling simplification, and checks structural type correctness plus safety invariants about unique leaders, log-prefix consistency, apply/commit ordering, and consistency of merge outcomes across stores.",
+  "ModuleName": "RaftMerge",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Store",
+    "Region",
+    "RegionA",
+    "RegionB",
+    "LeaderA",
+    "LeaderB",
+    "WillPerformRollback",
+    "QuorumSize",
+    "MaxClientRequests",
+    "AppendEntriesRequest",
+    "AppendEntriesReply",
+    "LogNormal",
+    "LogPreMerge",
+    "LogMerge",
+    "LogRollback",
+    "RegionNormal",
+    "RegionTombStone",
+    "RegionMerging"
+  ],
+  "VariableNames": [
+    "client_requests_index",
+    "messages",
+    "raft",
+    "region"
+  ],
+  "AssumptionNames": [
+    "/\\ Region = {RegionA, RegionB}\n       /\\ LeaderA \\in Store\n       /\\ LeaderB \\in Store",
+    "WillPerformRollback \\in BOOLEAN"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "client_vars",
+    "vars",
+    "IsQuorum",
+    "Min",
+    "Max",
+    "Send",
+    "Discard",
+    "Reply",
+    "AppendEntries",
+    "AdvanceCommitIndex",
+    "HandleAppendEntriesRequest",
+    "HandleAppendEntriesReply",
+    "Receive",
+    "ClientRequest",
+    "InternalRequest",
+    "ProposeMergeRequest",
+    "PerformRollbackRequest",
+    "LogAppliable",
+    "ApplyPreMergeLog",
+    "ApplyMergeLogStep1",
+    "ApplyMergeLogStep2",
+    "ApplyMergeLog",
+    "ApplyRollbackLog",
+    "ApplyNormalLog",
+    "ApplyLog",
+    "Next",
+    "Init",
+    "Spec",
+    "LogType",
+    "RaftType",
+    "RegionType",
+    "TypeInvariant",
+    "OneLeaderInvariant",
+    "AppendEntriesMessageInvariant",
+    "LogInvariant",
+    "ApplyIndexInvariant",
+    "SimpliedRaftInvariant",
+    "RegionApplyInvariant",
+    "MergeLogInvariant",
+    "RaftMergeInvariant"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "Discard",
+    "Reply",
+    "AppendEntries",
+    "AdvanceCommitIndex",
+    "HandleAppendEntriesRequest",
+    "HandleAppendEntriesReply",
+    "Receive",
+    "ClientRequest",
+    "ProposeMergeRequest",
+    "PerformRollbackRequest",
+    "ApplyPreMergeLog",
+    "ApplyMergeLogStep1",
+    "ApplyMergeLogStep2",
+    "ApplyMergeLog",
+    "ApplyRollbackLog",
+    "ApplyNormalLog",
+    "ApplyLog",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Agree",
+    "MarkLeader"
+  ],
+  "LetInNames": [
+    "next_index",
+    "agree_indexes",
+    "new_commit_index",
+    "new_logs",
+    "new_match_index",
+    "i",
+    "j",
+    "r",
+    "min_index",
+    "commit_index",
+    "fetch_logs",
+    "old_logs",
+    "entries",
+    "num_applied_delta",
+    "no_leader_raft",
+    "FlatLogType",
+    "leader"
+  ],
+  "LambdaParams": [
+    "log"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF QuorumSize = 0 THEN Cardinality(svrs) * 2 > Cardinality(Store) ELSE Cardinality(svrs) >= QuorumSize",
+    "IF raft[i][RegionA].is_leader THEN raft' = [InternalRequest( i, RegionA, [type         |-> LogMerge, min_index    |-> min_index, commit_index |-> commit_index, entries      |-> fetch_logs] ) EXCEPT ![i][RegionB].apply_index = next_index] ELSE raft' = [raft EXCEPT ![i][RegionB].apply_index = next_index]",
+    "IF commit_index <= Len(raft[i][RegionB].logs) THEN old_logs ELSE old_logs \\o SubSeq(entries, Len(old_logs) - min_index + 2, Len(entries))",
+    "IF WillPerformRollback = FALSE THEN region' = [region EXCEPT ![i][RegionB] = RegionTombStone] ELSE UNCHANGED <<region>>",
+    "IF region[i][r] = RegionNormal THEN 1 ELSE 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{RegionA, RegionB}",
+    "{m}",
+    "{i}",
+    "{raft[i][r].commit_index}",
+    "{raft[i][r].commit_index, m.commit_index}",
+    "{@, m.match_index}",
+    "{@, commit_index}",
+    "{}",
+    "{LogNormal}",
+    "{LogPreMerge}",
+    "{LogRollback}",
+    "{LogMerge}",
+    "{RegionNormal, RegionTombStone, RegionMerging}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[raft EXCEPT ![i][r].commit_index = new_commit_index]",
+    "[raft EXCEPT ![i][r].logs = new_logs, ![i][r].commit_index = new_commit_index]",
+    "[type |-> AppendEntriesReply, region |-> r, source |-> i, dest |-> j, match_index |-> Len(new_logs)]",
+    "[raft EXCEPT ![i][r].match_index = [@ EXCEPT ![j] = Max({@, m.match_index})]]",
+    "[raft[i][r].match_index EXCEPT ![i] = @ + 1]",
+    "[type      |-> LogPreMerge, min_index |-> 1 + Min({raft[i][RegionB].match_index[j] : j \\in Store})]",
+    "[type |-> LogRollback]",
+    "[InternalRequest( i, RegionA, [type         |-> LogMerge, min_index    |-> min_index, commit_index |-> commit_index, entries      |-> fetch_logs] ) EXCEPT ![i][RegionB].apply_index = next_index]",
+    "[type         |-> LogMerge, min_index    |-> min_index, commit_index |-> commit_index, entries      |-> fetch_logs]",
+    "[raft EXCEPT ![i][RegionB].apply_index = next_index]",
+    "[raft EXCEPT ![i][RegionB].logs = new_logs, ![i][RegionB].commit_index = Max({@, commit_index})]",
+    "[region EXCEPT ![i][RegionB] = RegionTombStone]",
+    "[raft EXCEPT ![i][RegionA].apply_index = next_index]",
+    "[region EXCEPT ![i][RegionB] = RegionNormal]",
+    "[raft EXCEPT ![i][r].apply_index = next_index, ![i][r].num_applied = @ + num_applied_delta]",
+    "[type |-> LogNormal]",
+    "[rafts EXCEPT ![i] = [@ EXCEPT ![r].is_leader = TRUE]]",
+    "[i \\in Store |-> [r \\in Region |-> [is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]]]",
+    "[r \\in Region |-> [is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]]",
+    "[is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]",
+    "[j \\in Store |-> 0]",
+    "[i \\in Store |-> [r \\in Region |-> RegionNormal]]",
+    "[r \\in Region |-> RegionNormal]",
+    "[type : {LogNormal}]",
+    "[type : {LogPreMerge}, min_index : Nat]",
+    "[type : {LogRollback}]",
+    "[type : {LogMerge}, min_index : Nat, commit_index : Nat, entries : Seq(FlatLogType)]",
+    "[ is_leader    : BOOLEAN, logs         : Seq(LogType), commit_index : Nat, apply_index  : Nat, num_applied  : Nat, match_index  : [Store -> Nat]  ]",
+    "[Store -> Nat]",
+    "[Store -> [Region -> RaftType]]",
+    "[Region -> RaftType]",
+    "[Store -> [Region -> RegionType]]",
+    "[Region -> RegionType]",
+    "[type |-> AppendEntriesRequest, region       |-> r, source       |-> i, dest         |-> j, entry        |-> raft[i][r].logs[next_index], entry_index  |-> next_index, commit_index |-> Min({next_index, raft[i][r].commit_index})]"
+  ],
+  "FunctionApplication": [
+    "raft[i]",
+    "raft[i][r]",
+    "raft[i][r].match_index[j]",
+    "raft[i][r].logs[next_index]",
+    "raft[i][RegionB].match_index[j]",
+    "raft[s][r]",
+    "raft[leader][r]",
+    "region[i]",
+    "region[i][r]",
+    "region[i][RegionB]",
+    "region[j][r]",
+    "region[j][RegionB]",
+    "raft[m.dest][r]",
+    "raft[i][RegionB].logs[next_index]",
+    "raft[i][RegionA].logs[next_index]",
+    "raft[i][RegionB].logs",
+    "raft[i][RegionB].num_applied",
+    "raft[j][RegionB].num_applied"
+  ],
+  "FunctionOverride": [
+    "[raft EXCEPT ![i][r].commit_index = new_commit_index]",
+    "[raft EXCEPT ![i][r].logs = new_logs, ![i][r].commit_index = new_commit_index]",
+    "[raft EXCEPT ![i][r].match_index = [@ EXCEPT ![j] = Max({@, m.match_index})]]",
+    "[@ EXCEPT ![j] = Max({@, m.match_index})]",
+    "[raft EXCEPT ![i][r].logs = new_logs, ![i][r].match_index = new_match_index]",
+    "[raft[i][r].match_index EXCEPT ![i] = @ + 1]",
+    "[InternalRequest( i, RegionA, [type         |-> LogMerge, min_index    |-> min_index, commit_index |-> commit_index, entries      |-> fetch_logs] ) EXCEPT ![i][RegionB].apply_index = next_index]",
+    "[raft EXCEPT ![i][RegionB].apply_index = next_index]",
+    "[region EXCEPT ![i][RegionB] = RegionMerging]",
+    "[raft EXCEPT ![i][RegionB].logs = new_logs, ![i][RegionB].commit_index = Max({@, commit_index})]",
+    "[raft EXCEPT ![i][RegionA].apply_index = next_index]",
+    "[region EXCEPT ![i][RegionB] = RegionTombStone]",
+    "[region EXCEPT ![i][RegionB] = RegionNormal]",
+    "[raft EXCEPT ![i][r].apply_index = next_index, ![i][r].num_applied = @ + num_applied_delta]",
+    "[rafts EXCEPT ![i] = [@ EXCEPT ![r].is_leader = TRUE]]",
+    "[@ EXCEPT ![r].is_leader = TRUE]"
+  ],
+  "RecordConstructor": [
+    "[type |-> AppendEntriesRequest, region       |-> r, source       |-> i, dest         |-> j, entry        |-> raft[i][r].logs[next_index], entry_index  |-> next_index, commit_index |-> Min({next_index, raft[i][r].commit_index})]",
+    "[type |-> AppendEntriesReply, region |-> r, source |-> i, dest |-> j, match_index |-> Len(new_logs)]",
+    "[type      |-> LogPreMerge, min_index |-> 1 + Min({raft[i][RegionB].match_index[j] : j \\in Store})]",
+    "[type |-> LogRollback]",
+    "[type         |-> LogMerge, min_index    |-> min_index, commit_index |-> commit_index, entries      |-> fetch_logs]",
+    "[type |-> LogNormal]",
+    "[is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]",
+    "[type : {LogNormal}]",
+    "[type : {LogPreMerge}, min_index : Nat]",
+    "[type : {LogRollback}]",
+    "[type : {LogMerge}, min_index : Nat, commit_index : Nat, entries : Seq(FlatLogType)]",
+    "[ is_leader    : BOOLEAN, logs         : Seq(LogType), commit_index : Nat, apply_index  : Nat, num_applied  : Nat, match_index  : [Store -> Nat]  ]"
+  ],
+  "RecordAccess": [
+    "raft[i][r].is_leader",
+    "raft[i][r].match_index",
+    "raft[i][r].logs",
+    "raft[i][r].commit_index",
+    "m.entry_index",
+    "m.entry",
+    "m.commit_index",
+    "m.dest",
+    "m.source",
+    "m.region",
+    "m.type",
+    "m.match_index",
+    "region[i][r]",
+    "raft[i][RegionB].match_index",
+    "log.type",
+    "raft[i][RegionB].apply_index",
+    "raft[i][RegionA].is_leader",
+    "raft[i][RegionB].logs[next_index].type",
+    "raft[i][RegionB].logs[next_index].min_index",
+    "raft[i][RegionA].logs[next_index].min_index",
+    "raft[i][RegionA].logs[next_index].commit_index",
+    "raft[i][RegionA].logs[next_index].entries",
+    "raft[i][RegionA].apply_index",
+    "raft[i][RegionA].logs[next_index].type",
+    "raft[i][r].apply_index",
+    "raft[i][r].num_applied"
+  ],
+  "TupleConstructor": [
+    "<<client_requests_index>>",
+    "<<messages, raft, region, client_vars>>",
+    "<<raft, region, client_vars>>",
+    "<<region, client_vars>>",
+    "<<messages, region>>",
+    "<<messages, client_vars>>",
+    "<<region>>",
+    "<< >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "SelectSeq",
+    "SubSeq",
+    "Len",
+    "Seq",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(raft[i][r].logs)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in s : \\A y \\in s : x <= y",
+    "CHOOSE x \\in s : \\A y \\in s : x >= y",
+    "CHOOSE s \\in Store : raft[s][r].is_leader"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages",
+    "raft",
+    "region",
+    "client_requests_index"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<raft, region, client_vars>>",
+    "UNCHANGED <<messages, region, client_vars>>",
+    "UNCHANGED <<region, client_vars>>",
+    "UNCHANGED <<messages, region>>",
+    "UNCHANGED <<messages, client_vars>>",
+    "UNCHANGED <<region>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 40, JSON count = 40 | Reason: completeness check required before continuing\nField: NamesInLet | Change: renamed field to LetInNames and removed LET-local operator names Agree, MarkLeader | Reason: schema consistency and correctness; LET-bound operators belong in LocalOperatorNames, not LetInNames\nField: IfThenElse | Change: removed contextual suffixes like \"(in IsQuorum)\" and kept only verbatim IF/THEN/ELSE expressions | Reason: field values must appear in the TLA+ file\nField: FunctionConstructor | Change: removed duplicate \"[raft EXCEPT ![i][RegionB].apply_index = next_index]\" | Reason: deduplication required\nField: FunctionConstructor | Change: corrected AppendEntries request record constructor spacing to match file verbatim | Reason: value must literally appear in the TLA+ file\nField: RecordConstructor | Change: corrected AppendEntriesRequest and AppendEntriesReply record constructors to match file spacing verbatim | Reason: value must literally appear in the file\nField: FunctionOverride | Change: removed duplicate \"[raft EXCEPT ![i][RegionB].apply_index = next_index]\" | Reason: deduplication required\nField: RecordAccess | Change: removed duplicates \"raft[i][RegionB].apply_index\", \"raft[i][RegionB].logs[next_index].type\", \"m.source\", and \"m.dest\" | Reason: deduplication required\nField: TupleConstructor | Change: removed duplicate \"<<messages, region, client_vars>>\" | Reason: deduplication required\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME blocks are assumptions, not proof commands; no proof commands appear in the file",
+  "OperatorDefNames_StatePredicate": [
+    "IsQuorum",
+    "LogAppliable",
+    "TypeInvariant",
+    "OneLeaderInvariant",
+    "AppendEntriesMessageInvariant",
+    "LogInvariant",
+    "ApplyIndexInvariant",
+    "SimpliedRaftInvariant",
+    "RegionApplyInvariant",
+    "MergeLogInvariant",
+    "RaftMergeInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "client_vars",
+    "vars",
+    "Min",
+    "Max",
+    "InternalRequest",
+    "LogType",
+    "RaftType",
+    "RegionType"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Store |-> [r \\in Region |-> [is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]]]",
+    "[r \\in Region |-> [is_leader    |-> FALSE, logs         |-> << >>, commit_index |-> 0, apply_index  |-> 0, num_applied  |-> 0, match_index  |-> [j \\in Store |-> 0]]]",
+    "[j \\in Store |-> 0]",
+    "[i \\in Store |-> [r \\in Region |-> RegionNormal]]",
+    "[r \\in Region |-> RegionNormal]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[type : {LogNormal}]",
+    "[type : {LogPreMerge}, min_index : Nat]",
+    "[type : {LogRollback}]",
+    "[type : {LogMerge}, min_index : Nat, commit_index : Nat, entries : Seq(FlatLogType)]",
+    "[ is_leader    : BOOLEAN, logs         : Seq(LogType), commit_index : Nat, apply_index  : Nat, num_applied  : Nat, match_index  : [Store -> Nat]  ]",
+    "[Store -> Nat]",
+    "[Store -> [Region -> RaftType]]",
+    "[Region -> RaftType]",
+    "[Store -> [Region -> RegionType]]",
+    "[Region -> RegionType]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<raft, region, client_vars>>",
+    "UNCHANGED <<messages, region, client_vars>>",
+    "UNCHANGED <<region, client_vars>>",
+    "UNCHANGED <<messages, region>>",
+    "UNCHANGED <<messages, client_vars>>",
+    "UNCHANGED <<region>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/RaftMerge/RaftMerge.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InternalRequest is placed in ValueDef because it is an unprimed helper that computes a next-state raft value rather than a Boolean state predicate, action, or temporal property.",
+    "Min, Max, client_vars, vars, LogType, RaftType, and RegionType are placed in ValueDef as non-action helper/value definitions.",
+    "Partition count: StatePredicate(11) + TemporalProperty(1) + Init(1) + ValueDef(8) + ActionDefNames(19) = OperatorDefNames(40). Verified.",
+    "TemporalNesting is false. The only explicit temporal operator occurrence is in Spec as Init /\\ [][Next]_vars, and no temporal operator appears explicitly nested inside another temporal operator in the file."
+  ]
+}

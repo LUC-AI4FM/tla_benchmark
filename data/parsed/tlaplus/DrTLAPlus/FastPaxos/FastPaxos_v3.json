@@ -1,0 +1,427 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Fast Paxos consensus algorithm, modeling coordinators, acceptors, proposals, learning, retransmission, message loss, leader changes, and failure/repair of agents. The fault model includes arbitrary message loss except for the most recent message of a good agent, and arbitrary changes to the set of good agents and to coordinator leadership; progress is then stated under fairness assumptions and an eventual stable-goodness condition LA(c, Q). The specification defines both safety and progress aspects: safety through invariants such as type correctness, nontriviality, and consistency, and liveness through fairness constraints on good coordinators, good acceptors, and learning actions, together with a theorem that eventual stability implies eventual learning.",
+  "ModuleName": "FastPaxos",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Val",
+    "Acceptor",
+    "FastNum",
+    "Quorum",
+    "Coord",
+    "CoordOf"
+  ],
+  "VariableNames": [
+    "rnd",
+    "vrnd",
+    "vval",
+    "crnd",
+    "cval",
+    "amLeader",
+    "sentMsg",
+    "proposed",
+    "learned",
+    "goodSet"
+  ],
+  "AssumptionNames": [
+    "FastNum \\subseteq RNum",
+    "IsFiniteSet(Acceptor)",
+    "\\A i \\in RNum : \n         /\\ Quorum(i) \\subseteq SUBSET Acceptor\n         /\\ \\A j \\in RNum : \n              /\\ \\A Q \\in Quorum(i), R \\in Quorum(j) : Q \\cap R # {}\n              /\\ (j \\in FastNum) => \n                   \\A Q \\in Quorum(i) : \\A R1, R2 \\in Quorum(j) : \n                     Q \\cap R1 \\cap R2 # {}",
+    "/\\ \\A i \\in RNum : CoordOf(i) \\in Coord"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => [](TypeOK /\\ Nontriviality /\\ Consistency)",
+    "THEOREM /\\ Spec \n        /\\ \\E Q \\in SUBSET Acceptor :\n               /\\ \\A i \\in ClassicNum : Q \\in Quorum(i)\n               /\\ \\E c \\in Coord : <>[]LA(c, Q)\n        => <>(learned # {})"
+  ],
+  "OperatorDefNames": [
+    "Max",
+    "RNum",
+    "ClassicNum",
+    "any",
+    "none",
+    "Message",
+    "aVars",
+    "cVars",
+    "oVars",
+    "vars",
+    "TypeOK",
+    "Init",
+    "Send",
+    "Phase1a",
+    "MsgsFrom",
+    "IsPickableVal",
+    "Phase2a",
+    "P2bToP1b",
+    "CoordinatedRecovery",
+    "coordLastMsg",
+    "CoordRetransmit",
+    "CoordNext",
+    "Phase1b",
+    "Phase2b",
+    "UncoordinatedRecovery",
+    "accLastMsg",
+    "AcceptorRetransmit",
+    "AcceptorNext",
+    "Propose",
+    "Learn",
+    "LeaderSelection",
+    "FailOrRepair",
+    "LoseMsg",
+    "OtherAction",
+    "Next",
+    "Fairness",
+    "Spec",
+    "Nontriviality",
+    "Consistency",
+    "LA"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "Phase1a",
+    "Phase2a",
+    "CoordinatedRecovery",
+    "CoordRetransmit",
+    "CoordNext",
+    "Phase1b",
+    "Phase2b",
+    "UncoordinatedRecovery",
+    "AcceptorRetransmit",
+    "AcceptorNext",
+    "Propose",
+    "Learn",
+    "LeaderSelection",
+    "FailOrRepair",
+    "LoseMsg",
+    "OtherAction",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "vr",
+    "vv",
+    "O4"
+  ],
+  "LetInNames": [
+    "vr",
+    "vv",
+    "k",
+    "V",
+    "O4",
+    "i"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF k = 0 THEN \\/ v \\in proposed\n                    \\/ /\\ i \\in FastNum\n                       /\\ v = any \n               ELSE IF Cardinality(V) = 1\n                      THEN v \\in V\n                      ELSE IF \\E w \\in V : O4(w)\n                              THEN v = CHOOSE w \\in V : O4(w)\n                              ELSE v \\in proposed",
+    "IF cval[c] = none\n     THEN [type |-> \"phase1a\", rnd |-> crnd[c]]\n     ELSE [type |-> \"phase2a\", rnd |-> crnd[c], val |-> cval[c]]",
+    "IF vrnd[a] < rnd[a]\n    THEN [type |-> \"phase1b\", rnd |-> rnd[a], vrnd |-> vrnd[a], \n            vval |-> vval[a], acc |-> a]\n    ELSE [type |-> \"phase2b\", rnd |-> rnd[a], val |-> vval[a], \n            acc |-> a]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{any}",
+    "{\"phase1a\"}",
+    "{\"phase1b\"}",
+    "{\"phase2a\"}",
+    "{\"phase2b\"}",
+    "{}",
+    "{\"phase1a\", \"phase2a\"}",
+    "{\"phase1b\", \"phase2b\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\cap",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet",
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[type : {\"phase1a\"}, rnd : RNum]",
+    "[type : {\"phase1b\"}, rnd : RNum, vrnd : RNum \\cup {0}, \n         vval : Val \\cup {any}, acc : Acceptor]",
+    "[type : {\"phase2a\"}, rnd : RNum, val : Val \\cup {any}]",
+    "[type : {\"phase2b\"}, rnd : RNum, val : Val, acc : Acceptor]",
+    "[Acceptor -> Nat]",
+    "[Acceptor -> Val \\cup {any}]",
+    "[Coord -> Nat]",
+    "[Coord -> Val \\cup {any, none}]",
+    "[Coord -> BOOLEAN]",
+    "[a \\in Acceptor |-> 0]",
+    "[a \\in Acceptor |-> any]",
+    "[c \\in Coord |-> 0]",
+    "[c \\in Coord |-> none]"
+  ],
+  "FunctionApplication": [
+    "Quorum(i)",
+    "CoordOf(i)",
+    "amLeader[c]",
+    "crnd[c]",
+    "MsgsFrom(Q, i, \"phase1b\")",
+    "P2bToP1b(Q, i)",
+    "CoordOf(i+1)",
+    "rnd[a]",
+    "vrnd[a]",
+    "vval[a]",
+    "coordLastMsg(c)",
+    "accLastMsg(a)",
+    "CoordNext(c)",
+    "AcceptorNext(a)",
+    "Propose(v)",
+    "Learn(v)",
+    "LoseMsg(m)",
+    "Phase1a(c, i)",
+    "Phase2a(c, v)",
+    "CoordinatedRecovery(c, v)",
+    "Phase1b(i, a)",
+    "Phase2b(i, a, v)",
+    "UncoordinatedRecovery(i, a, v)",
+    "WF_vars((c \\in goodSet) /\\ CoordNext(c))",
+    "WF_vars((c \\in goodSet) /\\ (\\E i \\in ClassicNum : Phase1a(c, i)))",
+    "WF_vars((a \\in goodSet) /\\ AcceptorNext(a))",
+    "WF_vars(Learn(v))",
+    "LA(c, Q)",
+    "Quorum(k)",
+    "vr(a)",
+    "vv(a)",
+    "O4(w)",
+    "CoordOf(m.rnd)",
+    "accLastMsg(m.acc)",
+    "Max({vr(a) : a \\in Q})"
+  ],
+  "FunctionOverride": [
+    "[crnd EXCEPT ![c] = i]",
+    "[cval EXCEPT ![c] = none]",
+    "[cval EXCEPT ![c] = v]",
+    "[crnd EXCEPT ![c] = i+1]",
+    "[rnd EXCEPT ![a] = i]",
+    "[rnd  EXCEPT ![a] = i]",
+    "[vrnd EXCEPT ![a] = i]",
+    "[vval EXCEPT ![a] = v]",
+    "[rnd  EXCEPT ![a] = i+1]",
+    "[vrnd EXCEPT ![a] = i+1]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"phase1a\", rnd |-> i]",
+    "[type |-> \"phase2a\", rnd |-> i, val |-> v]",
+    "[type |-> \"phase1b\", rnd |-> i+1, vrnd |-> i, \n      vval |-> m.val, acc |-> m.acc]",
+    "[type |-> \"phase1a\", rnd |-> crnd[c]]",
+    "[type |-> \"phase2a\", rnd |-> crnd[c], val |-> cval[c]]",
+    "[type |-> \"phase1b\", rnd |-> i, vrnd |-> vrnd[a], vval |-> vval[a], \n           acc |-> a]",
+    "[type |-> \"phase2b\", rnd |-> i, val |-> v, acc |-> a]",
+    "[type |-> \"phase1b\", rnd |-> rnd[a], vrnd |-> vrnd[a], \n            vval |-> vval[a], acc |-> a]",
+    "[type |-> \"phase2b\", rnd |-> rnd[a], val |-> vval[a], \n            acc |-> a]"
+  ],
+  "RecordAccess": [
+    "m.rnd",
+    "m.type",
+    "m.acc",
+    "m.vrnd",
+    "m.vval",
+    "m.val"
+  ],
+  "TupleConstructor": [
+    "<<rnd, vrnd, vval>>",
+    "<<crnd, cval>>",
+    "<<amLeader, proposed, learned, goodSet>>",
+    "<<aVars, cVars, oVars, sentMsg>>",
+    "<<aVars, oVars>>",
+    "<<crnd, aVars, oVars>>",
+    "<<aVars, cVars, oVars>>",
+    "<<cVars, oVars, vrnd, vval>>",
+    "<<cVars, oVars>>",
+    "<<aVars, cVars, amLeader, sentMsg, learned, goodSet>>",
+    "<<aVars, cVars, amLeader, sentMsg, proposed, goodSet>>",
+    "<<aVars, cVars, sentMsg, proposed, learned, goodSet>>",
+    "<<aVars, cVars, amLeader, sentMsg, proposed, learned>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE i \\in S : \\A j \\in S : j \\leq i",
+    "CHOOSE v : v \\notin Val",
+    "CHOOSE n : n \\notin Val \\cup {any}",
+    "CHOOSE m \\in M : m.acc = a",
+    "CHOOSE w \\in V : O4(w)"
+  ],
+  "StringLiterals": [
+    "phase1a",
+    "phase1b",
+    "phase2a",
+    "phase2b"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "sentMsg",
+    "crnd",
+    "cval",
+    "rnd",
+    "vrnd",
+    "vval",
+    "proposed",
+    "learned",
+    "amLeader",
+    "goodSet"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<aVars, oVars>>",
+    "UNCHANGED <<crnd, aVars, oVars>>",
+    "UNCHANGED <<aVars, cVars, oVars>>",
+    "UNCHANGED <<cVars, oVars, vrnd, vval>>",
+    "UNCHANGED <<cVars, oVars>>",
+    "UNCHANGED <<aVars, cVars, amLeader, sentMsg, learned, goodSet>>",
+    "UNCHANGED \n       <<aVars, cVars, amLeader, sentMsg, proposed, goodSet>>",
+    "UNCHANGED <<aVars, cVars, sentMsg, proposed, learned, goodSet>>",
+    "UNCHANGED <<aVars, cVars, amLeader, sentMsg, proposed, learned>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](TypeOK /\\ Nontriviality /\\ Consistency)"
+  ],
+  "EventuallyOp": [
+    "<>[]LA(c, Q)",
+    "<>(learned # {})"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars((c \\in goodSet) /\\ CoordNext(c))",
+    "WF_vars((c \\in goodSet) /\\ (\\E i \\in ClassicNum : Phase1a(c, i)))",
+    "WF_vars((a \\in goodSet) /\\ AcceptorNext(a))",
+    "WF_vars(Learn(v))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"vr\",\"vv\",\"k\",\"V\",\"O4\",\"i\"] | Reason: field name mismatch; LET-bound names belong in LetInNames\nField: IfThenElse | Change: replaced non-verbatim summaries with actual TLA+ IF/THEN/ELSE expressions | Reason: values must appear in the file verbatim\nField: SetOperators | Change: removed \"DOMAIN\" | Reason: DOMAIN does not appear in the file\nField: FunctionConstructor | Change: reordered entries and retained only constructors that literally appear | Reason: normalization and verification against file\nField: TemporalSubscript | Change: removed WF/SF expressions, kept only \"[][Next]_vars\" | Reason: TemporalSubscript should contain temporal subscript forms, not fairness expressions\nField: AlwaysOp | Change: added \"[][Next]_vars\" | Reason: outermost [] formula in Spec must appear in AlwaysOp with full subscript\nField: FairnessConditions | Change: replaced quantified formulas with only the WF expressions from Spec/Fairness | Reason: field must contain only WF/SF expressions from inside Spec or Spec0\nField: OperatorDefNames | Change: verified count 41 matches file count 41; no content change | Reason: completeness check required\nField: ActionDefNames | Change: verified entries are action definitions only; no content change | Reason: correctness check required\nField: AssumptionNames | Change: verified 4 ASSUME blocks captured; no content change | Reason: completeness check required\nField: FunctionOverride | Change: verified non-empty set of 10 distinct literal EXCEPT forms; no content change | Reason: empty/missing overrides are a common error; checked against file\nField: UnchangedExprs | Change: verified 9 distinct UNCHANGED expressions captured; no content change | Reason: completeness and deduplication check required\nField: PrimedVariables | Change: verified all primed variables in file are included | Reason: completeness check required",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Nontriviality",
+    "Consistency",
+    "LA"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Fairness",
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Max",
+    "RNum",
+    "ClassicNum",
+    "any",
+    "none",
+    "Message",
+    "aVars",
+    "cVars",
+    "oVars",
+    "vars",
+    "MsgsFrom",
+    "IsPickableVal",
+    "P2bToP1b",
+    "coordLastMsg",
+    "accLastMsg"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> 0]",
+    "[a \\in Acceptor |-> any]",
+    "[c \\in Coord |-> 0]",
+    "[c \\in Coord |-> none]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[type : {\"phase1a\"}, rnd : RNum]",
+    "[type : {\"phase1b\"}, rnd : RNum, vrnd : RNum \\cup {0}, \n         vval : Val \\cup {any}, acc : Acceptor]",
+    "[type : {\"phase2a\"}, rnd : RNum, val : Val \\cup {any}]",
+    "[type : {\"phase2b\"}, rnd : RNum, val : Val, acc : Acceptor]",
+    "[Acceptor -> Nat]",
+    "[Acceptor -> Val \\cup {any}]",
+    "[Coord -> Nat]",
+    "[Coord -> Val \\cup {any, none}]",
+    "[Coord -> BOOLEAN]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<aVars, oVars>>",
+    "UNCHANGED <<crnd, aVars, oVars>>",
+    "UNCHANGED <<aVars, cVars, oVars>>",
+    "UNCHANGED <<cVars, oVars, vrnd, vval>>",
+    "UNCHANGED <<cVars, oVars>>",
+    "UNCHANGED <<aVars, cVars, amLeader, sentMsg, learned, goodSet>>",
+    "UNCHANGED \n       <<aVars, cVars, amLeader, sentMsg, proposed, goodSet>>",
+    "UNCHANGED <<aVars, cVars, sentMsg, proposed, learned, goodSet>>",
+    "UNCHANGED <<aVars, cVars, amLeader, sentMsg, proposed, learned>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/FastPaxos/FastPaxos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(15) + ActionDefNames(18) = OperatorDefNames(40). Verified.",
+    "Fairness is placed in TemporalProperty because its body is a conjunction of WF_vars temporal formulas.",
+    "The theorem 'Spec => [](TypeOK /\\ Nontriviality /\\ Consistency)' uses an implication wrapper around [] ; this confirms temporal meaning even though the outermost operator is =>.",
+    "Operators Max, RNum, ClassicNum, any, none, Message, aVars, cVars, oVars, vars, MsgsFrom, IsPickableVal, P2bToP1b, coordLastMsg, and accLastMsg are placed in ValueDef because they define non-action helper values or parameterized computed values.",
+    "TemporalNesting is true. Exact line: '               /\\ \\E c \\in Coord : <>[]LA(c, Q)'",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED expressions in this file are explicit tuple forms."
+  ]
+}

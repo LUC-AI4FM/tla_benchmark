@@ -1,0 +1,389 @@
+{
+  "id": null,
+  "Specification": "This module provides TLAPS proofs for the theorems stated in EWD687a.tla, which models a distributed termination detection algorithm based on Dijkstra's EWD687. The system involves processes communicating over edges, with counters tracking sent, received, acknowledged, and in-flight messages. The proofs establish inductive invariants for counter consistency, tree structure, and acyclicity, and relate these to properties such as global termination and the existence of a spanning tree rooted at the leader. The module also interfaces with the community Graphs module to formalize tree properties, and includes detailed hierarchical proofs for safety properties, while some liveness and path-construction arguments are left as future work or omitted.",
+  "ModuleName": "EWD687a_proof",
+  "ExtendsModules": [
+    "EWD687a",
+    "NaturalsInduction",
+    "FiniteSetTheorems",
+    "TLAPS"
+  ],
+  "InstanceModules": [
+    "Graphs"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "ProcsFinite == IsFiniteSet(Procs)"
+  ],
+  "TheoremNames": [
+    "TypeCorrect == Spec => []TypeOK",
+    "Thm_CountersConsistent == Spec => CountersConsistent",
+    "Thm_DT1Inv == Spec => []DT1Inv",
+    "Thm_TreeWithRoot == Spec => TreeWithRoot",
+    "Thm_DT2 == Spec => DT2"
+  ],
+  "OperatorDefNames": [
+    "Counters",
+    "Inv1",
+    "Inv1Init",
+    "Inv1Step",
+    "Inv1Inductive",
+    "InTree",
+    "Inv2",
+    "Inv2Inductive",
+    "NoCycle",
+    "NoCycleInit",
+    "NoCycleStep",
+    "NoCycleInductive",
+    "DT1FromInv2",
+    "G",
+    "EE",
+    "NN",
+    "OO",
+    "TreeNodesNonNeutral",
+    "TreeStructure",
+    "AreConnectedToLeader",
+    "TreeIsTree",
+    "TreeBody",
+    "Inv2GivesTreeBody",
+    "SpecGivesAlwaysTreeBody"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "S"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF neutral(p) THEN [upEdge EXCEPT ![p] = e] ELSE upEdge",
+    "IF neutral(p)' THEN [upEdge EXCEPT ![p] = NotAnEdge] ELSE upEdge"
+  ],
+  "CaseExpr": [
+    "CASE UNCHANGED vars",
+    "CASE q = p",
+    "CASE q # p",
+    "CASE upEdge[p] # e",
+    "CASE upEdge[p] = e",
+    "CASE rcvdUnacked[e] > 1",
+    "CASE ~ rcvdUnacked[e] > 1",
+    "CASE neutral(p)",
+    "CASE ~neutral(p)",
+    "CASE p = Leader",
+    "CASE p \\notin S",
+    "CASE p \\in S"
+  ],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\X"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[msgs EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ + 1]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[upEdge EXCEPT ![p] = e]",
+    "[acks EXCEPT ![e] = @ - 1]",
+    "[sentUnacked EXCEPT ![e] = @ - 1]",
+    "[acks EXCEPT ![e] = @ + 1]",
+    "[upEdge EXCEPT ![p] = NotAnEdge]",
+    "[edge |-> EE, node |-> NN]",
+    "[edge |-> OO.edge, node |-> OO.node]"
+  ],
+  "FunctionApplication": [
+    "upEdge[p]",
+    "rcvdUnacked[e]",
+    "acks[e]",
+    "sentUnacked[e]",
+    "msgs[e]",
+    "neutral(p)",
+    "InEdges(p)",
+    "OutEdges(p)",
+    "G!Transpose([edge |-> EE, node |-> NN])",
+    "G!AreConnectedIn(n, Leader, OO)",
+    "G!IsTreeWithRoot(OO, Leader)"
+  ],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ + 1]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[upEdge EXCEPT ![p] = e]",
+    "[acks EXCEPT ![e] = @ - 1]",
+    "[sentUnacked EXCEPT ![e] = @ - 1]",
+    "[acks EXCEPT ![e] = @ + 1]",
+    "[upEdge EXCEPT ![p] = NotAnEdge]"
+  ],
+  "RecordConstructor": [
+    "[edge |-> EE, node |-> NN]",
+    "[edge |-> OO.edge, node |-> OO.node]"
+  ],
+  "RecordAccess": [
+    "OO.edge",
+    "OO.node",
+    "upEdge[p][1]",
+    "upEdge[p][2]",
+    "e[1]",
+    "e[2]",
+    "oe[1]",
+    "oe[2]",
+    "of[1]",
+    "of[2]"
+  ],
+  "TupleConstructor": [
+    "<<e[2], e[1]>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    ">=",
+    "*"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "PICK e \\in InEdges(p) : /\\ msgs[e] > 0 /\\ msgs' = [msgs EXCEPT ![e] = @ - 1] /\\ rcvdUnacked' = [rcvdUnacked EXCEPT ![e] = @ + 1] /\\ active' = [active EXCEPT ![p] = TRUE] /\\ upEdge' = IF neutral(p) THEN [upEdge EXCEPT ![p] = e] ELSE upEdge /\\ UNCHANGED <<acks, sentUnacked>>",
+    "PICK e \\in OutEdges(p) : /\\ acks[e] > 0 /\\ acks' = [acks EXCEPT ![e] = @ - 1] /\\ sentUnacked' = [sentUnacked EXCEPT ![e] = @ - 1] /\\ UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>",
+    "PICK e \\in InEdges(p) : /\\ rcvdUnacked[e] > 0 /\\ (e = upEdge[p]) => \\/ rcvdUnacked[e] > 1 \\/ /\\ ~ active[p] /\\ \\A d \\in InEdges(p) \\ {e} : rcvdUnacked[d] = 0 /\\ \\A d \\in OutEdges(p) : sentUnacked[d] = 0 /\\ rcvdUnacked' = [rcvdUnacked EXCEPT ![e] = @ - 1] /\\ acks' = [acks EXCEPT ![e] = @ + 1]",
+    "PICK q \\in S : TRUE",
+    "PICK p \\in DOMAIN upEdge : upEdge[p] = e /\\ e # NotAnEdge",
+    "PICK e1 \\in EE : oe = <<e1[2], e1[1]>>",
+    "PICK e2 \\in EE : of = <<e2[2], e2[1]>>",
+    "PICK p1 \\in DOMAIN upEdge : upEdge[p1] = e1 /\\ e1 # NotAnEdge",
+    "PICK p2 \\in DOMAIN upEdge : upEdge[p2] = e2 /\\ e2 # NotAnEdge"
+  ],
+  "StringLiterals": [
+    "edge",
+    "node"
+  ],
+  "ArithmeticModules": [
+    "NaturalsInduction"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "msgs",
+    "rcvdUnacked",
+    "active",
+    "upEdge",
+    "acks",
+    "sentUnacked"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<acks, sentUnacked>>",
+    "UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[]Inv1",
+    "[]Inv2",
+    "[]NoCycle",
+    "[]TreeBody"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Terminated ~> neutral(Leader)"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [
+    "PTL"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "DEFINE"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<2>",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<3>5",
+    "<3>6",
+    "<3>3a",
+    "<3>3b",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>4",
+    "<5>5",
+    "<6>1",
+    "<6>2",
+    "<6>3",
+    "<6>4",
+    "<7>1",
+    "<7>2",
+    "<8>0",
+    "<8>1",
+    "<8>2",
+    "<8>3",
+    "<8>4",
+    "<8>5",
+    "<8>6",
+    "<9>1",
+    "<9>2",
+    "<9>3",
+    "<10>1",
+    "<10>2",
+    "<1>contra",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>8",
+    "<2>9",
+    "<2>10",
+    "<2>11",
+    "<2>12",
+    "<2>13",
+    "<2>16"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME Inv1, [Next]_vars PROVE Inv1'",
+    "SUFFICES ASSUME Init PROVE Inv2",
+    "SUFFICES ASSUME Inv1, Inv1', Inv2, [Next]_vars PROVE Inv2'",
+    "SUFFICES ASSUME NEW q \\in Procs \\ {Leader}, ~ neutral(q)' PROVE InTree(q)'",
+    "SUFFICES ASSUME NEW q \\in Procs \\ {Leader}, InTree(q)' PROVE /\\ upEdge'[q] \\in Edges /\\ upEdge'[q][2] = q /\\ upEdge'[q][1] \\in Procs \\ {q} /\\ rcvdUnacked'[upEdge'[q]] >= 1",
+    "SUFFICES ASSUME NEW S \\in SUBSET (Procs \\ {Leader}), S # {}, \\A q \\in S : InTree(q) /\\ upEdge[q][1] \\in S PROVE FALSE",
+    "SUFFICES ASSUME NEW S \\in SUBSET (Procs \\ {Leader}), S # {}, \\A q \\in S : InTree(q)' /\\ upEdge'[q][1] \\in S PROVE FALSE",
+    "SUFFICES ASSUME NEW q \\in S \\ {p} PROVE InTree(q) /\\ upEdge[q][1] \\in (S \\ {p})",
+    "SUFFICES ASSUME Inv1, Inv2, NoCycle PROVE TreeBody",
+    "SUFFICES ASSUME neutral(Leader), NEW p0 \\in Procs \\ {Leader} PROVE neutral(p0)"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: Replaced \"ProcsFinite\" with \"ProcsFinite == IsFiniteSet(Procs)\" | Reason: The TLA+ file's ASSUME block is named \"ProcsFinite == IsFiniteSet(Procs)\", not just \"ProcsFinite\".\nField: OperatorDefNames | Change: Added \"Inv2Inductive\" and reordered to match TLA+ file; removed duplicate \"NoCycle\" (was not duplicated in JSON, so no change needed); total count now matches TLA+ file (24) | Reason: The TLA+ file defines \"Inv2Inductive\" at the top level, which was missing from the JSON. The count is now correct (file count = 24, JSON OperatorDefNames count = 24).\nField: IfThenElse | Change: Removed parenthetical comments from entries; now only the literal expressions | Reason: Only the literal TLA+ expressions should be present, not contextual comments.\nField: CaseExpr | Change: Removed parenthetical comments from entries; now only the literal expressions | Reason: Only the literal TLA+ expressions should be present, not contextual comments.\nField: SetOperators | Change: Added \"\\\\X\" | Reason: The TLA+ file uses the cartesian product operator \"\\\\X\" in several places (e.g., \"NN \\\\X NN\").\nField: AlwaysOp | Change: Changed \"[] TreeBody\" to \"[]TreeBody\" | Reason: The TLA+ file uses \"[]TreeBody\" (no space), and the JSON must match the literal TLA+ syntax.\nNo changes required for other fields. Operator count verified: file count = 24, JSON OperatorDefNames count = 24.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "Counters",
+    "InTree",
+    "NoCycle"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Inv1Inductive",
+    "Inv2Inductive",
+    "NoCycleInductive",
+    "SpecGivesAlwaysTreeBody"
+  ],
+  "OperatorDefNames_Init": [
+    "Inv1Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Inv1",
+    "Inv1Step",
+    "Inv2",
+    "NoCycleInit",
+    "NoCycleStep",
+    "DT1FromInv2",
+    "G",
+    "EE",
+    "NN",
+    "OO",
+    "TreeNodesNonNeutral",
+    "TreeStructure",
+    "AreConnectedToLeader",
+    "TreeIsTree",
+    "TreeBody",
+    "Inv2GivesTreeBody"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[msgs EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ + 1]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[upEdge EXCEPT ![p] = e]",
+    "[acks EXCEPT ![e] = @ - 1]",
+    "[sentUnacked EXCEPT ![e] = @ - 1]",
+    "[acks EXCEPT ![e] = @ + 1]",
+    "[upEdge EXCEPT ![p] = NotAnEdge]",
+    "[edge |-> EE, node |-> NN]",
+    "[edge |-> OO.edge, node |-> OO.node]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<acks, sentUnacked>>",
+    "UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD687a/EWD687a_proof.tla",
+  "VerificationTools": [
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(4) + Init(1) + ValueDef(16) + ActionDefNames(0) = 24 = OperatorDefNames total. Verified.",
+    "All FunctionConstructor entries are [S -> T] forms (function update or record construction), so FunctionConstructor_ByDomain is empty.",
+    "No temporal operator appears explicitly nested inside another temporal operator in this file; TemporalNesting is false.",
+    "Operators placed in ValueDef by elimination: Inv1, Inv1Step, Inv2, NoCycleInit, NoCycleStep, DT1FromInv2, G, EE, NN, OO, TreeNodesNonNeutral, TreeStructure, AreConnectedToLeader, TreeIsTree, TreeBody, Inv2GivesTreeBody."
+  ]
+}

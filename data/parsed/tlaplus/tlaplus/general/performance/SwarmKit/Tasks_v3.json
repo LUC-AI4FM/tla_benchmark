@@ -1,0 +1,191 @@
+{
+  "id": null,
+  "Specification": "This module specifies a task lifecycle system in which a variable `tasks` stores the currently allocated tasks, and tasks progress through a fixed transition table managed by different components such as the orchestrator, allocator, scheduler, agent, and reaper. The specification defines typing constraints for `tasks`, a state update action-like operator `UpdateTasks` that replaces existing tasks according to a function while preserving task identity, and a constructor `NewTask` for creating new task records from service, slot, id, and desired state information. It also defines a transition table and asserts a consistency property `TransitionTableOK` requiring monotonic state progression and non-overlapping ownership of source states across components, with limited exceptions for reaper cleanup; the file contains an ASSUME that asks TLC to check this property.",
+  "ModuleName": "Tasks",
+  "ExtendsModules": [
+    "TLC",
+    "Types"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "tasks"
+  ],
+  "AssumptionNames": [
+    "TransitionTableOK"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "TasksTypeOK",
+    "UpdateTasks",
+    "NewTask",
+    "null",
+    "Transitions",
+    "TransitionTableOK"
+  ],
+  "ActionDefNames": [
+    "UpdateTasks"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Source(a)"
+  ],
+  "LetInNames": [
+    "t2",
+    "exceptions",
+    "Source"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF vslot \\in Node THEN vslot ELSE unassigned",
+    "IF vslot \\in Slot THEN vslot ELSE global"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ << new, null >>, << pending, null >> }",
+    "{}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "DOMAIN",
+    "\\intersect",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ state |-> new ]",
+    "[\n    id            |-> id,\n    service       |-> sid,\n    status        |-> [ state |-> new ],\n    desired_state |-> desired_state,\n    node          |-> IF vslot \\in Node THEN vslot ELSE unassigned,\n    slot          |-> IF vslot \\in Slot THEN vslot ELSE global\n  ]",
+    "[\n  orchestrator |-> {\n    << null, new >>\n  },\n\n  allocator |-> {\n    << new, pending >>\n  },\n\n  scheduler |-> {\n    << pending, assigned >>\n  },\n\n  agent |-> {\n    << assigned, accepted >>,\n    << accepted, preparing >>,\n    << preparing, ready >>,\n    << ready, starting >>,\n    << starting, running >>,\n\n    << assigned, rejected >>,\n    << accepted, rejected >>,\n    << preparing, rejected >>,\n    << ready, rejected >>,\n    << starting, rejected >>,\n\n    << running, complete >>,\n    << running, failed >>,\n\n    << running, shutdown >>,\n\n    << assigned, orphaned >>,\n    << accepted, orphaned >>,\n    << preparing, orphaned >>,\n    << ready, orphaned >>,\n    << starting, orphaned >>,\n    << running, orphaned >>\n  },\n\n  reaper |-> {\n    << new, null >>,\n    << pending, null >>,\n    << rejected, null >>,\n    << complete, null >>,\n    << failed, null >>,\n    << shutdown, null >>,\n    << orphaned, null >>\n  }\n]"
+  ],
+  "FunctionApplication": [
+    "f[t]",
+    "Transitions[actor]",
+    "s[1]",
+    "Transitions[a]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "t.id",
+    "t2.id",
+    "t.service",
+    "t2.service"
+  ],
+  "TupleConstructor": [
+    "<< null, new >>",
+    "<< new, pending >>",
+    "<< pending, assigned >>",
+    "<< assigned, accepted >>",
+    "<< accepted, preparing >>",
+    "<< preparing, ready >>",
+    "<< ready, starting >>",
+    "<< starting, running >>",
+    "<< assigned, rejected >>",
+    "<< accepted, rejected >>",
+    "<< preparing, rejected >>",
+    "<< ready, rejected >>",
+    "<< starting, rejected >>",
+    "<< running, complete >>",
+    "<< running, failed >>",
+    "<< running, shutdown >>",
+    "<< assigned, orphaned >>",
+    "<< accepted, orphaned >>",
+    "<< preparing, orphaned >>",
+    "<< ready, orphaned >>",
+    "<< starting, orphaned >>",
+    "<< running, orphaned >>",
+    "<< pending, null >>",
+    "<< rejected, null >>",
+    "<< complete, null >>",
+    "<< failed, null >>",
+    "<< shutdown, null >>",
+    "<< orphaned, null >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "An old task does not exist!",
+    "An update changes a task's identity!",
+    "null"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "tasks"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: CompletenessCheck | Change: file count = 6, JSON OperatorDefNames count = 6 | Reason: Verified all top-level `==` definitions are present and counts match.\nField: LocalOperatorNames | Change: replaced `Source` with `Source(a)` | Reason: Local operator is parametric inside LET block and should be recorded in parametric form.\nField: NamesInLet | Change: renamed field to `LetInNames` and kept values `t2`, `exceptions`, `Source` | Reason: Correct field name per schema/check instructions; these are LET-bound names.\nField: IfThenElse | Change: removed contextual suffixes `(in NewTask)` from both entries | Reason: Field must contain only expressions that literally appear in the TLA+ file.\nField: SetEnumeration | Change: removed bare `{` and removed extra `{}` duplicate source artifact; retained only literal set expressions that appear | Reason: Bare `{` is not a valid set enumeration expression; entries must exist verbatim in file.\nField: FunctionConstructor | Change: added full function constructors for `NewTask` and `Transitions`; retained `[ state |-> new ]` | Reason: These are function constructors, while they were previously misclassified under `RecordConstructor`.\nField: RecordConstructor | Change: removed all entries | Reason: No record constructor syntax appears literally; TLA+ uses function constructor syntax here.\nField: TupleConstructor | Change: added `<< pending, null >>` | Reason: This tuple literal appears in the file in both `Transitions` and `exceptions` set and was missing.\nField: TupleConstructor | Change: no separate duplicate added for repeated tuples | Reason: Deduplication required; each distinct tuple appears once only.",
+  "OperatorDefNames_StatePredicate": [
+    "TasksTypeOK",
+    "TransitionTableOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "NewTask",
+    "null",
+    "Transitions"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Tasks/Tasks.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(3) + ActionDefNames(1) = OperatorDefNames(6). Verified.",
+    "All FunctionConstructor entries are record/function constructors using |-> fields, not [x \\in S |-> e] and not [S -> T] forms; therefore both FunctionConstructor_ByDomain and FunctionConstructor_SetType are empty.",
+    "NewTask, null, and Transitions are placed in ValueDef by elimination: they define computed non-Boolean values rather than actions, temporal formulas, or init predicates.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because folder could not be determined from file content."
+  ]
+}

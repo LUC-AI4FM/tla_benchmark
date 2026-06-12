@@ -1,0 +1,321 @@
+{
+  "id": null,
+  "Specification": "This TLA+ specification models Safra's distributed termination detection algorithm on a ring topology, as described in EWD 998. The system consists of N nodes arranged in a ring, each of which can be active or passive, and a token that circulates to detect global termination. The algorithm tracks the number of messages sent and received, node colors (white/black), and uses a token with position, color, and a counter to aggregate information as it traverses the ring. The specification defines the system's state transitions, including message sending, receiving, token passing, and node deactivation, and verifies both safety (termination detection correctness) and liveness (termination is eventually detected) properties. The model includes state and action constraints to bound the state space for model checking, and an inductive invariant capturing Safra's correctness argument.",
+  "ModuleName": "EWD998",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Utils",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Nodes",
+    "Color",
+    "Token",
+    "vars",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "terminationDetected",
+    "B",
+    "Termination",
+    "TerminationDetection",
+    "Inv",
+    "Liveness",
+    "ActionConstraint",
+    "Lvl",
+    "MyAlias"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Pairwise"
+  ],
+  "NamesInLet": [
+    "Pairwise"
+  ],
+  "LambdaParams": [
+    "o",
+    "v"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE @ (in PassToken)",
+    "IF token.pos = N-1 THEN token.q = 0 ELSE token.q = Reduce(sum, counter, (token.pos+1), N-1, 0) (in Inv)",
+    "IF InitiateProbe THEN 1 ELSE 0 (in MyAlias)",
+    "IF \\E i \\in Nodes: PassToken(i) THEN 1 ELSE 0 (in MyAlias)",
+    "IF ~active[n] /\\ active'[n] THEN 1 ELSE 0 (in MyAlias)",
+    "IF ~v[n] /\\ v'[n] THEN 1 ELSE 0 (in MyAlias)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "SUBSET"
+  ],
+  "FunctionConstructor": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Int]",
+    "[Nodes -> Nat]",
+    "[i \\in Nodes |-> 0]",
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "[color EXCEPT ![0] = \"white\"]",
+    "[token EXCEPT !.pos = @ - 1, !.q = @ + counter[i], !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[color EXCEPT ![i] = \"white\"]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[color EXCEPT ![i] = \"black\"]",
+    "[active EXCEPT ![i] = TRUE]",
+    "[active EXCEPT ![i] = FALSE]",
+    "[e \\in DOMAIN f |-> Op(f[e], g[e])]",
+    "[n \\in Nodes |-> IF ~active[n] /\\ active'[n] THEN 1 ELSE 0]",
+    "[n \\in Nodes |-> 0]",
+    "[n \\in Nodes |-> o[n] + IF ~v[n] /\\ v'[n] THEN 1 ELSE 0]",
+    "[active, pending, color, counter, token]"
+  ],
+  "FunctionApplication": [
+    "color[0]",
+    "counter[0]",
+    "active[i]",
+    "active'[n]",
+    "active[n]",
+    "pending[i]",
+    "pending'[j]",
+    "counter[i]",
+    "color[i]",
+    "token.pos",
+    "token.color",
+    "token.q",
+    "token.q'",
+    "token.pos+1",
+    "DOMAIN f",
+    "f[e]",
+    "g[e]",
+    "Op(f[e], g[e])",
+    "o[n]",
+    "v[n]",
+    "v'[n]"
+  ],
+  "FunctionOverride": [
+    "[color EXCEPT ![0] = \"white\"]",
+    "[token EXCEPT !.pos = @ - 1, !.q = @ + counter[i], !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[color EXCEPT ![i] = \"white\"]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[color EXCEPT ![i] = \"black\"]",
+    "[active EXCEPT ![i] = TRUE]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "[pos |-> N-1, q |-> 0, color |-> \"white\"]",
+    "[active, pending, color, counter, token]"
+  ],
+  "RecordAccess": [
+    "token.pos",
+    "token.q",
+    "token.color"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, pending, token>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "(token.pos+1)..N-1",
+    "0..token.pos"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "white",
+    "black"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Termination ~> terminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "/\\ \\A i \\in Nodes : counter[i] <= 3 /\\ pending[i] <= 3\n  /\\ token.q <= 3"
+  ],
+  "ActionConstraint": [
+    "token \\in Token"
+  ],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "StateConstraint",
+    "terminationDetected",
+    "Termination",
+    "TerminationDetection",
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nodes",
+    "Color",
+    "Token",
+    "vars",
+    "B",
+    "Lvl",
+    "MyAlias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Nodes |-> 0]",
+    "[e \\in DOMAIN f |-> Op(f[e], g[e])]",
+    "[n \\in Nodes |-> IF ~active[n] /\\ active'[n] THEN 1 ELSE 0]",
+    "[n \\in Nodes |-> 0]",
+    "[n \\in Nodes |-> o[n] + IF ~v[n] /\\ v'[n] THEN 1 ELSE 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Int]",
+    "[Nodes -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998/EWD998.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(6) + TemporalProperty(2) + Init(1) + ValueDef(7) + ActionDefNames(6) = 22 = OperatorDefNames total. Verified.",
+    "TerminationDetection is placed in StatePredicate because its body is 'terminationDetected => Termination', both of which are state predicates; the implication is not temporal.",
+    "Liveness is placed in TemporalProperty because its body is 'Termination ~> terminationDetected', which is a temporal property.",
+    "Spec is placed in TemporalProperty because its body is 'Init /\\ [][Next]_vars /\\ WF_vars(System)', which is a standard temporal formula.",
+    "Inv is placed in StatePredicate because it is a Boolean-valued inductive invariant with no primed variables or temporal operators.",
+    "FunctionConstructor_ByDomain contains 5 entries; FunctionConstructor_SetType contains 4 entries; together they cover all 9 function constructor forms in the file.",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED forms list variables explicitly.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

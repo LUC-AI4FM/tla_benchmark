@@ -1,0 +1,306 @@
+{
+  "id": null,
+  "Specification": "This module is a regression-style test specification for operators provided by an extended functions library, especially predicates and transformers over functions such as RestrictDomain, RestrictValues, IsInjective, FoldFunction, FoldFunctionOnSet, AntiFunction, Pointwise, and IsRestriction. It uses a large collection of ASSUME statements to check expected values, error behavior, and equivalence to pure logical definitions written directly in TLA+, including tests over records, sequences, ordinary functions, and finite function encodings built with :> and @@. The spec does not model a transition system or fault-tolerant protocol; instead it validates functional behavior and side-effect freedom of library operators, including CHOOSE-based inverse constructions and recursively defined function values.",
+  "ModuleName": "FunctionsTests",
+  "ExtendsModules": [
+    "Functions",
+    "Integers",
+    "TLC",
+    "TLCExt",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "TLC"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "LET T == INSTANCE TLC IN T!PrintT(\"FunctionsTests\")",
+    "RestrictDomain([x \\in 0 .. 9 |-> x*x], LAMBDA x : x % 2 = 0)\n       = (0 :> 0 @@ 2 :> 4 @@ 4 :> 16 @@ 6 :> 36 @@ 8 :> 64)",
+    "RestrictValues([x \\in 0 .. 9 |-> x*x], LAMBDA y : y % 4 = 0)\n       = (0 :> 0 @@ 2 :> 4 @@ 4 :> 16 @@ 6 :> 36 @@ 8 :> 64)",
+    "IsInjective(<<>>)",
+    "IsInjective(<<1>>)",
+    "IsInjective(<<1,2,3>>)",
+    "~IsInjective(<<1,1>>)",
+    "~IsInjective(<<1,1,2,3>>)",
+    "IsInjective([i \\in 1..10 |-> i])",
+    "IsInjective([i \\in 1..10 |-> {i}])",
+    "IsInjective([i \\in 1..10 |-> {i}])",
+    "~IsInjective([i \\in 1..10 |-> {1,2,3}])",
+    "IsInjective([a: 1, b: 2])",
+    "~IsInjective([a: 1, b: 1])",
+    "IsInjective([a: {1}, b: {2}])",
+    "~IsInjective([a: {1}, b: {1}])",
+    "~IsInjective(\"a\" :> 1 @@ \"b\" :> 1)",
+    "IsInjective(\"a\" :> 1 @@ \"a\" :> 1)",
+    "IsInjective(\"a\" :> [i \\in 0..2 |-> i] @@ \"b\" :> [i \\in 1..3 |-> i])",
+    "~IsInjective(\"a\" :> [i \\in 0..2 |-> i] @@ \"b\" :> [i \\in 0..2 |-> i])",
+    "~IsInjective({\"a\"} :> [i \\in 0..2 |-> i] @@ {\"b\"} :> [i \\in 0..2 |-> i])",
+    "IsInjective([i \\in 0..2 |-> i])",
+    "IsInjective( \"a\":> [{1,2} -> {3,4}] @@ \"b\":> [{1,2} -> {3,5}] )",
+    "AssertError(\"The argument of IsInjective should be a function, but instead it is:\\n{}\", IsInjective({}))",
+    "Cardinality(SomeSeq) = 7",
+    "LET IsInjectivePure(f) == \\A a,b \\in DOMAIN f : f[a] = f[b] => a = b \\* Pure as in no Java module override.\n    IN /\\ \\A f \\in [{0,1,2} -> {0,1,2,3}] : IsInjectivePure(f) = IsInjective(f)\n       /\\ \\A f \\in [{\"a\",\"b\",\"c\"} -> {0,1,2,3}] : IsInjectivePure(f) = IsInjective(f)\n       /\\ \\A f \\in [{0,1,2,3} -> {\"a\",\"b\",\"c\"}] : IsInjectivePure(f) = IsInjective(f)",
+    "FoldFunction(LAMBDA x,y: {x} \\cup y, {}, <<1,2,1>>) = {1,2}",
+    "FoldFunctionOnSet(LAMBDA x,y: {x} \\cup y, {}, <<1,2>>, {}) = {}",
+    "FoldFunction(LAMBDA x,y: {x} \\cup y, {}, [n \\in 1..9999 |-> n]) = 1..9999",
+    "FoldFunctionOnSet(LAMBDA x,y: {x} \\cup y, {}, [n \\in 1..9999 |-> n], {}) = {}",
+    "FoldFunctionOnSet(LAMBDA x,y: {x} \\cup y, {}, [n \\in 1..9999 |-> n], 2..9998) = 2..9998",
+    "AssertError(\n           \"The third argument of FoldFunction should be a function, but instead it is:\\nTRUE\",\n           FoldFunction(+, 23, TRUE))",
+    "AssertError(\n           \"The fourth argument of FoldFunctionOnSet should be a set, but instead it is:\\nTRUE\",\n           FoldFunctionOnSet(+, 23, <<>>, TRUE))",
+    "AssertError(\n           \"The third argument of FoldFunctionOnSet should be a function, but instead it is:\\nTRUE\",\n           FoldFunctionOnSet(+, 23, TRUE, {}))",
+    "AntiFunction(<<\"a\", \"b\", \"c\">>) = [a |-> 1, b |-> 2, c |-> 3]",
+    "LET InversePure(f, S, T) == [t \\in T |-> CHOOSE s \\in S : t \\in Range(f) => f[s] = t] \\* \"Pure\" as in no Java module override.\n    IN /\\ \\A f \\in [{0,1,2} -> {0,1,2,3}] : IsInjective(f) => InversePure(f, DOMAIN f, Range(f)) = AntiFunction(f)\n       /\\ \\A f \\in [{\"a\",\"b\",\"c\"} -> {0,1,2,3}] : IsInjective(f) => InversePure(f, DOMAIN f, Range(f)) = AntiFunction(f)\n       /\\ \\A f \\in [{0,1,2,3} -> {\"a\",\"b\",\"c\"}] : IsInjective(f) => InversePure(f, DOMAIN f, Range(f)) = AntiFunction(f)",
+    "/\\ AntiFunction(SomeDerivedVal) = [n1 |-> 0, n2 |-> 2, n3 |-> 1]\n\t/\\ SomeDerivedVal = (0 :> \"n1\" @@ 2 :> \"n2\" @@ 1 :> \"n3\")",
+    "LET F == [n1 |-> 0, n2 |-> 2, n3 |-> 1]\n\tIN AntiFunction(F) = (0 :> \"n1\" @@ 2 :> \"n2\" @@ 1 :> \"n3\")",
+    "LET F == [n1 |-> 0, n2 |-> 2, n3 |-> 1]\n\tIN AntiFunction(AntiFunction(F)) = F",
+    "LET F == (0 :> \"n1\" @@ 2 :> \"n2\" @@ 1 :> \"n3\")\n\tIN AntiFunction(AntiFunction(F)) = F",
+    "LET f == (\"a\" :> 0 @@ \"b\" :> 1 @@ \"c\" :> 2)\n        g == (\"a\" :> 1 @@ \"b\" :> 1 @@ \"c\" :> 3)\n    IN Pointwise(f,g,+) = (\"a\" :> 1 @@ \"b\" :> 2 @@ \"c\" :> 5 )",
+    "LET f == (\"a\" :> 1 @@ \"b\" :> 1 @@ \"c\" :> 2)\n        g == (\"a\" :> 1 @@ \"b\" :> 1 @@ \"c\" :> 3)\n    IN Pointwise(f,g,-) = (\"a\" :> 0 @@ \"b\" :> 0 @@ \"c\" :> (-1) )",
+    "IsRestriction(<<>>, <<>>)",
+    "IsRestriction(<<>>, [one |-> 1])",
+    "IsRestriction([one |-> 1], [one |-> 1, two |-> 2])",
+    "IsRestriction([one |-> 1], [one |-> 1])",
+    "~IsRestriction([one |-> 1], <<>>)",
+    "~IsRestriction([one |-> 1], [two |-> 2])",
+    "~IsRestriction([one |-> 1, two |-> 2], [two |-> 2])",
+    "~IsRestriction([one |-> 1, two |-> 2], [one |-> 1, two |-> 3])"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "SomeSeq",
+    "SomeExp",
+    "SomeVal",
+    "SomeDerivedVal"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "T",
+    "IsInjectivePure",
+    "InversePure",
+    "F",
+    "f",
+    "g"
+  ],
+  "LambdaParams": [
+    "x",
+    "y"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 0 THEN \"n1\" ELSE SomeVal[SomeDerivedVal[i-1]]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{1,2}",
+    "{i}",
+    "{1,2,3}",
+    "{\"a\"}",
+    "{\"b\"}",
+    "{0,1,2}",
+    "{0,1,2,3}",
+    "{\"a\",\"b\",\"c\"}",
+    "{}",
+    "{1}",
+    "{2}",
+    "{3,4}",
+    "{3,5}"
+  ],
+  "SetOperators": [
+    "UNION",
+    "\\cup",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[x \\in 0 .. 9 |-> x*x]",
+    "[i \\in 1..10 |-> i]",
+    "[i \\in 1..10 |-> {i}]",
+    "[i \\in 1..10 |-> {1,2,3}]",
+    "[i \\in 0..2 |-> i]",
+    "[{1,2} -> {3,4}]",
+    "[{1,2} -> {3,5}]",
+    "[1..m -> {1,2}]",
+    "[{0,1,2} -> {0,1,2,3}]",
+    "[{\"a\",\"b\",\"c\"} -> {0,1,2,3}]",
+    "[{0,1,2,3} -> {\"a\",\"b\",\"c\"}]",
+    "[n \\in 1..9999 |-> n]",
+    "[t \\in T |-> CHOOSE s \\in S : t \\in Range(f) => f[s] = t]"
+  ],
+  "FunctionApplication": [
+    "f[a]",
+    "f[b]",
+    "T!PrintT(\"FunctionsTests\")",
+    "IsInjective(x)",
+    "Len(x)",
+    "IsInjectivePure(f)",
+    "IsInjective(f)",
+    "Range(f)",
+    "AntiFunction(f)",
+    "SomeVal[SomeDerivedVal[i-1]]",
+    "SomeDerivedVal[i-1]",
+    "AntiFunction(SomeDerivedVal)",
+    "AntiFunction(F)",
+    "Pointwise(f,g,+)",
+    "Pointwise(f,g,-)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[a: 1, b: 2]",
+    "[a: 1, b: 1]",
+    "[a: {1}, b: {2}]",
+    "[a: {1}, b: {1}]",
+    "[a |-> 1, b |-> 2, c |-> 3]",
+    "[n1 |-> \"n3\", n2 |-> \"n1\", n3 |-> \"n2\"]",
+    "[n1 |-> 0, n2 |-> 2, n3 |-> 1]",
+    "[one |-> 1]",
+    "[one |-> 1, two |-> 2]",
+    "[two |-> 2]",
+    "[one |-> 1, two |-> 3]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<<1>>",
+    "<<1,2,3>>",
+    "<<1,1>>",
+    "<<1,1,2,3>>",
+    "<<1,2,1>>",
+    "<<1,2>>"
+  ],
+  "SequenceOps": [
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*",
+    "%"
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. 9",
+    "1..10",
+    "0..2",
+    "0..Cardinality({1,2})",
+    "1..9999",
+    "2..9998"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in SomeSeq: IsInjective(x) /\\ Len(x) > 3",
+    "CHOOSE s \\in S : t \\in Range(f) => f[s] = t"
+  ],
+  "StringLiterals": [
+    "FunctionsTests",
+    "a",
+    "b",
+    "The argument of IsInjective should be a function, but instead it is:\n{}",
+    "The third argument of FoldFunction should be a function, but instead it is:\nTRUE",
+    "The fourth argument of FoldFunctionOnSet should be a set, but instead it is:\nTRUE",
+    "The third argument of FoldFunctionOnSet should be a function, but instead it is:\nTRUE",
+    "c",
+    "n3",
+    "n1",
+    "n2",
+    "Pure"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"T\", \"IsInjectivePure\", \"InversePure\", \"F\", \"f\", \"g\"] | Reason: schema consistency; prompt explicitly refers to LetInNames and LET-bound names must not remain under a differently named field.\nField: LocalOperatorNames | Change: removed [\"IsInjectivePure\", \"InversePure\"] | Reason: these are LET-bound simple operator bindings, not parametric local definitions in name(args) == expr form.\nField: IfThenElse | Change: replaced \"IF i = 0 THEN \\\"n1\\\" ELSE SomeVal[SomeDerivedVal[i-1]] (in SomeDerivedVal)\" with \"IF i = 0 THEN \\\"n1\\\" ELSE SomeVal[SomeDerivedVal[i-1]]\" | Reason: value must appear verbatim in the TLA+ file; annotation text does not exist in source.\nField: StringLiterals | Change: added \"Pure\" | Reason: appears as a string literal in comments inside the two LET/ASSUME blocks: \\* \"Pure\" as in no Java module override.\nField: OperatorDefNames | Change: verified unchanged; count confirmed as 4 | Reason: top-level == definitions in file are SomeSeq, SomeExp, SomeVal, SomeDerivedVal. File count = 4, JSON count = 4.",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "SomeSeq",
+    "SomeExp",
+    "SomeVal",
+    "SomeDerivedVal"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[x \\in 0 .. 9 |-> x*x]",
+    "[i \\in 1..10 |-> i]",
+    "[i \\in 1..10 |-> {i}]",
+    "[i \\in 1..10 |-> {1,2,3}]",
+    "[i \\in 0..2 |-> i]",
+    "[n \\in 1..9999 |-> n]",
+    "[t \\in T |-> CHOOSE s \\in S : t \\in Range(f) => f[s] = t]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[{1,2} -> {3,4}]",
+    "[{1,2} -> {3,5}]",
+    "[1..m -> {1,2}]",
+    "[{0,1,2} -> {0,1,2,3}]",
+    "[{\"a\",\"b\",\"c\"} -> {0,1,2,3}]",
+    "[{0,1,2,3} -> {\"a\",\"b\",\"c\"}]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/FunctionsTests/FunctionsTests.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "SomeSeq, SomeExp, SomeVal, and SomeDerivedVal are placed in ValueDef because they are non-action, non-temporal top-level value definitions; SomeExp uses CHOOSE and SomeDerivedVal uses recursive self-reference syntax, but neither is a state predicate, temporal property, or init predicate.",
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(4) + ActionDefNames(0) = OperatorDefNames(4). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

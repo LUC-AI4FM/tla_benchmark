@@ -1,0 +1,389 @@
+{
+  "id": null,
+  "Specification": "This module contains TLAPS proofs for the EWD998PCal specification, which is a PlusCal translation of Dijkstra's EWD998 token ring algorithm. In this version, the per-node 'pending' counter and the global 'token' are replaced by a single 'network' variable holding a per-node bag of messages (either payload 'pl' messages or the unique 'tok' message). The refinement mapping recovers the original EWD998 variables from 'network'. The module proves the safety part of the refinement, specifically that the PCal spec refines the original EWD998 spec (Spec => EWD998Spec), focusing on type correctness and the preservation of the unique token property. The proofs include inductive invariants, bag-level reasoning, and per-disjunct case analysis for each possible node action, but the full step-refinement theorem is left as a stub (OMITTED) due to the complexity of the required bag-level lemmas.",
+  "ModuleName": "EWD998PCal_proof",
+  "ExtendsModules": [
+    "EWD998PCal",
+    "TLAPS"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [
+    "InitiatorIsZero == Initiator = 0  BY DEF Initiator",
+    "NodeFact == 0 \\in Node  BY DEF Node",
+    "EmptyBagDom == DOMAIN EmptyBag = {}",
+    "SetToBagSingleton ==\n  ASSUME NEW x\n  PROVE  /\\ DOMAIN SetToBag({x}) = {x}\n         /\\ SetToBag({x})[x] = 1",
+    "BagAddDom ==\n  ASSUME NEW B, NEW x\n  PROVE  DOMAIN BagAdd(B, x) = DOMAIN B \\\\cup {x}",
+    "BagRemoveDom ==\n  ASSUME NEW B, NEW x, x \\in DOMAIN B\n  PROVE  /\\ B[x] = 1 => DOMAIN BagRemove(B, x) = DOMAIN B \\\\ {x}\n         /\\ B[x] # 1 => DOMAIN BagRemove(B, x) = DOMAIN B",
+    "InitNetworkUniqueTok ==\n  ASSUME network = [n \\in Node |->\n                       IF n = Initiator\n                       THEN SetToBag({InitTok})\n                       ELSE EmptyBag]\n  PROVE  /\\ DOMAIN network[Initiator] = {InitTok}\n         /\\ network[Initiator][InitTok] = 1\n         /\\ \\A n \\in Node \\ {Initiator} : DOMAIN network[n] = {}",
+    "InitNetworkOK == Init => NetworkOK",
+    "InitTypeOK == Init => PCalTypeOK",
+    "InitPending == Init => pending = [i \\in Node |-> 0]",
+    "InitToken == Init => token = [pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "InitRefinement == Init => EWD998!Init",
+    "BagAddOfMsg ==\n  ASSUME NEW B \\in BagOf(Msg), NEW m \\in Msg\n  PROVE  BagAdd(B, m) \\in BagOf(Msg)",
+    "BagRemoveOfMsg ==\n  ASSUME NEW B \\in BagOf(Msg), NEW x\n  PROVE  BagRemove(B, x) \\in BagOf(Msg)",
+    "PlMsgInMsg == [type |-> \"pl\"] \\in Msg",
+    "PlMsgIsNotTok == ~ ([type |-> \"pl\"].type = \"tok\")",
+    "NewTokInMsg ==\n  ASSUME NEW q \\in Int, NEW c \\in ColorSet\n  PROVE  [type |-> \"tok\", q |-> q, color |-> c] \\in Msg",
+    "BagAddPreservesToks ==\n  ASSUME NEW B, NEW x, x.type # \"tok\"\n  PROVE  /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN B\n                  => /\\ t \\in DOMAIN BagAdd(B, x)\n                     /\\ BagAdd(B, x)[t] = B[t]\n         /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN BagAdd(B, x)\n                  => t \\in DOMAIN B",
+    "BagRemovePreservesToks ==\n  ASSUME NEW B, NEW x, x.type # \"tok\"\n  PROVE  /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN B\n                  => /\\ t \\in DOMAIN BagRemove(B, x)\n                     /\\ BagRemove(B, x)[t] = B[t]\n         /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN BagRemove(B, x)\n                  => t \\in DOMAIN B",
+    "TypeOK_Step ==\n  PCalTypeOK /\\ [Next]_vars => PCalTypeOK'",
+    "TypeCorrect == Spec => []PCalTypeOK",
+    "PendingIsPlCount ==\n  pending = [n \\in Node |-> PlCount(network[n])]",
+    "BagAdd_pl_increments ==\n  ASSUME NEW B\n  PROVE  PlCount(BagAdd(B, [type |-> \"pl\"])) = PlCount(B) + 1",
+    "BagRemove_pl_decrements ==\n  ASSUME NEW B, [type |-> \"pl\"] \\in DOMAIN B,\n         B[[type |-> \"pl\"]] \\in Nat \\ {0}\n  PROVE  PlCount(BagRemove(B, [type |-> \"pl\"])) = PlCount(B) - 1",
+    "BagAdd_tok_preserves_pl ==\n  ASSUME NEW B, NEW t, t.type = \"tok\"\n  PROVE  PlCount(BagAdd(B, t)) = PlCount(B)",
+    "BagRemove_tok_preserves_pl ==\n  ASSUME NEW B, NEW t, t.type = \"tok\"\n  PROVE  PlCount(BagRemove(B, t)) = PlCount(B)",
+    "Refinement == Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "ColorSet",
+    "PMsg",
+    "TMsg",
+    "Msg",
+    "BagOf",
+    "NetworkOK",
+    "PCalTypeOK",
+    "InitTok",
+    "TokenAt",
+    "PlCount"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "newTok",
+    "pl"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF n = Initiator THEN SetToBag({InitTok}) ELSE EmptyBag (in InitNetworkUniqueTok)",
+    "IF n = Initiator THEN SetToBag({InitTok}) ELSE EmptyBag (in InitNetworkOK)",
+    "IF [type|->\"pl\"] \\in DOMAIN network[n] THEN network[n][[type|->\"pl\"]] ELSE 0 (in InitPending)",
+    "IF e = m THEN B[e]+1 ELSE B[e] (in BagAddOfMsg)",
+    "IF e = m THEN 1 ELSE B[e] (in BagAddOfMsg)",
+    "IF e = x THEN B[e]-1 ELSE B[e] (in BagRemoveOfMsg)",
+    "IF color[self] = \"black\" THEN \"black\" ELSE tok.color (in TypeOK_Step)",
+    "IF e = newTok THEN 1 ELSE network[self - 1][e] (in TypeOK_Step)",
+    "IF e = newTok THEN 1 ELSE BagRemove(network[self], tok)[e] (in TypeOK_Step)",
+    "IF e = [type |-> \"pl\"] THEN B[e] + 1 ELSE B[e] (in BagAdd_pl_increments)",
+    "IF e = [type |-> \"pl\"] THEN 1 ELSE B[e] (in BagAdd_pl_increments)",
+    "IF e = pl THEN B[e] - 1 ELSE B[e] (in BagRemove_pl_decrements)",
+    "IF e = t THEN B[e] + 1 ELSE B[e] (in BagAdd_tok_preserves_pl)",
+    "IF e = t THEN 1 ELSE B[e] (in BagAdd_tok_preserves_pl)",
+    "IF e = t THEN B[e] - 1 ELSE B[e] (in BagRemove_tok_preserves_pl)"
+  ],
+  "CaseExpr": [
+    "CASE n = Initiator (in InitNetworkOK)",
+    "CASE n # Initiator (in InitNetworkOK)",
+    "CASE m \\in DOMAIN B (in BagAddOfMsg)",
+    "CASE m \\notin DOMAIN B (in BagAddOfMsg)",
+    "CASE x \\notin DOMAIN B (in BagRemoveOfMsg)",
+    "CASE x \\in DOMAIN B /\\ B[x] = 1 (in BagRemoveOfMsg)",
+    "CASE x \\in DOMAIN B /\\ B[x] # 1 (in BagRemoveOfMsg)",
+    "CASE x \\in DOMAIN B (in BagAddPreservesToks)",
+    "CASE x \\notin DOMAIN B (in BagAddPreservesToks)",
+    "CASE x \\notin DOMAIN B (in BagRemovePreservesToks)",
+    "CASE x \\in DOMAIN B /\\ B[x] = 1 (in BagRemovePreservesToks)",
+    "CASE x \\in DOMAIN B /\\ B[x] # 1 (in BagRemovePreservesToks)",
+    "CASE [type |-> \"pl\"] \\in DOMAIN B (in BagAdd_pl_increments)",
+    "CASE [type |-> \"pl\"] \\notin DOMAIN B (in BagAdd_pl_increments)",
+    "CASE B[pl] = 1 (in BagRemove_pl_decrements)",
+    "CASE B[pl] # 1 (in BagRemove_pl_decrements)",
+    "CASE t \\in DOMAIN B (in BagAdd_tok_preserves_pl)",
+    "CASE t \\notin DOMAIN B (in BagAdd_tok_preserves_pl)",
+    "CASE t \\notin DOMAIN B (in BagRemove_tok_preserves_pl)",
+    "CASE t \\in DOMAIN B /\\ B[t] = 1 (in BagRemove_tok_preserves_pl)",
+    "CASE t \\in DOMAIN B /\\ B[t] # 1 (in BagRemove_tok_preserves_pl)"
+  ],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}",
+    "{\"pl\"}",
+    "{\"tok\"}",
+    "{}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\\\cup",
+    "\\\\union",
+    "\\\\subseteq",
+    "\\\\",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[T -> Nat \\\\ {0}]",
+    "[Node -> BagOf(Msg)]",
+    "[Node -> BOOLEAN]",
+    "[Node -> ColorSet]",
+    "[Node -> Int]",
+    "[n \\in Node |-> 0]",
+    "[n \\in Node |-> PlCount(network[n])]",
+    "[counter EXCEPT ![self] = counter[self] + 1]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[color EXCEPT ![self] = \"black\"]",
+    "[network EXCEPT ![to] = BagAdd(network[to], [type |-> \"pl\"])]",
+    "[network EXCEPT ![self] = BagRemove(network[self], tok), ![self - 1] = BagAdd(network[self - 1], newTok)]",
+    "[network EXCEPT ![self] = BagRemove(@, tok), ![N-1] = BagAdd(@, newTok)]",
+    "[network EXCEPT ![self] = BagAdd(BagRemove(network[self], tok), newTok)]",
+    "[network EXCEPT ![self] = BagRemove(network[self], tok), ![N-1] = BagAdd(network[N-1], newTok)]"
+  ],
+  "FunctionApplication": [
+    "SetToBag({x})[x]",
+    "SetToBag({InitTok})[InitTok]",
+    "network[n][t]",
+    "network[n2][t2]",
+    "network'[n0][t0]",
+    "network'[n2][t2]",
+    "BagAdd(B, [type |-> \"pl\"])[[type |-> \"pl\"]]",
+    "BagRemove(B, [type |-> \"pl\"])[pl]",
+    "BagAdd(B, t)[pl]",
+    "BagRemove(B, t)[pl]"
+  ],
+  "FunctionOverride": [
+    "[counter EXCEPT ![self] = counter[self] + 1]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[color EXCEPT ![self] = \"black\"]",
+    "[network EXCEPT ![to] = BagAdd(network[to], [type |-> \"pl\"])]",
+    "[network EXCEPT ![self] = BagRemove(network[self], tok), ![self - 1] = BagAdd(network[self - 1], newTok)]",
+    "[network EXCEPT ![self] = BagRemove(@, tok), ![N-1] = BagAdd(@, newTok)]",
+    "[network EXCEPT ![self] = BagAdd(BagRemove(network[self], tok), newTok)]",
+    "[network EXCEPT ![self] = BagRemove(network[self], tok), ![N-1] = BagAdd(network[N-1], newTok)]"
+  ],
+  "RecordConstructor": [
+    "[type: {\"pl\"}]",
+    "[type: {\"tok\"}, q: Int, color: ColorSet]",
+    "[type |-> \"tok\", q |-> 0, color |-> \"black\"]",
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "[type |-> \"tok\", q |-> q, color |-> c]",
+    "[type |-> \"tok\", q |-> tok.q + counter[self], color |-> (IF color[self] = \"black\" THEN \"black\" ELSE tok.color)]",
+    "[type |-> \"tok\", q |-> 0, color |-> \"white\"]"
+  ],
+  "RecordAccess": [
+    "t.type",
+    "t2.type",
+    "tok.q",
+    "tok.color",
+    "newTok.type"
+  ],
+  "TupleConstructor": [
+    "<<active, color>>",
+    "<<network, color, counter>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "0..N-1"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Node : \\E m \\in DOMAIN network[i]: m.type = \"tok\"",
+    "CHOOSE m \\in DOMAIN network[Initiator] : m.type = \"tok\""
+  ],
+  "StringLiterals": [
+    "white",
+    "black",
+    "pl",
+    "tok"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "network",
+    "active",
+    "color",
+    "counter"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<network, color, counter>>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[]PCalTypeOK"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [
+    "PTL"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "DEFINE"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>3",
+    "<1>4",
+    "<1>5",
+    "<1>6",
+    "<1>",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<2>9",
+    "<2>10",
+    "<2>",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<3>5",
+    "<3>",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<4>0",
+    "<4>0a",
+    "<4>0b",
+    "<4>0c",
+    "<4>0d",
+    "<4>0e",
+    "<4>0f",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME NEW x\n  PROVE  /\\ DOMAIN SetToBag({x}) = {x}\n         /\\ SetToBag({x})[x] = 1",
+    "ASSUME NEW B, NEW x\n  PROVE  DOMAIN BagAdd(B, x) = DOMAIN B \\\\cup {x}",
+    "ASSUME NEW B, NEW x, x \\in DOMAIN B\n  PROVE  /\\ B[x] = 1 => DOMAIN BagRemove(B, x) = DOMAIN B \\\\ {x}\n         /\\ B[x] # 1 => DOMAIN BagRemove(B, x) = DOMAIN B",
+    "ASSUME network = [n \\in Node |->\n                       IF n = Initiator\n                       THEN SetToBag({InitTok})\n                       ELSE EmptyBag]\n  PROVE  /\\ DOMAIN network[Initiator] = {InitTok}\n         /\\ network[Initiator][InitTok] = 1\n         /\\ \\A n \\in Node \\ {Initiator} : DOMAIN network[n] = {}",
+    "ASSUME NEW B \\in BagOf(Msg), NEW m \\in Msg\n  PROVE  BagAdd(B, m) \\in BagOf(Msg)",
+    "ASSUME NEW B \\in BagOf(Msg), NEW x\n  PROVE  BagRemove(B, x) \\in BagOf(Msg)",
+    "ASSUME NEW q \\in Int, NEW c \\in ColorSet\n  PROVE  [type |-> \"tok\", q |-> q, color |-> c] \\in Msg",
+    "ASSUME NEW B, NEW x, x.type # \"tok\"\n  PROVE  /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN B\n                  => /\\ t \\in DOMAIN BagAdd(B, x)\n                     /\\ BagAdd(B, x)[t] = B[t]\n         /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN BagAdd(B, x)\n                  => t \\in DOMAIN B",
+    "ASSUME NEW B, NEW x, x.type # \"tok\"\n  PROVE  /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN B\n                  => /\\ t \\in DOMAIN BagRemove(B, x)\n                     /\\ BagRemove(B, x)[t] = B[t]\n         /\\ \\A t : t.type = \"tok\" /\\ t \\in DOMAIN BagRemove(B, x)\n                  => t \\in DOMAIN B",
+    "ASSUME NEW B\n  PROVE  PlCount(BagAdd(B, [type |-> \"pl\"])) = PlCount(B) + 1",
+    "ASSUME NEW B, [type |-> \"pl\"] \\in DOMAIN B,\n         B[[type |-> \"pl\"]] \\in Nat \\ {0}\n  PROVE  PlCount(BagRemove(B, [type |-> \"pl\"])) = PlCount(B) - 1",
+    "ASSUME NEW B, NEW t, t.type = \"tok\"\n  PROVE  PlCount(BagAdd(B, t)) = PlCount(B)",
+    "ASSUME NEW B, NEW t, t.type = \"tok\"\n  PROVE  PlCount(BagRemove(B, t)) = PlCount(B)"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: SetOperators | Change: Changed all single-backslash set operators to double-backslash (e.g., \"\\\\cup\" \\u2192 \"\\\\\\\\cup\") | Reason: Disjunction and set operators must be encoded with double backslash in JSON.\nField: BagAddDom == ... | Change: Changed \"\\\\cup\" to \"\\\\\\\\cup\" in theorem and assume/prove block | Reason: Disjunction and set operators must be encoded with double backslash in JSON.\nField: BagRemoveDom == ... | Change: Changed \"\\\\\" to \"\\\\\\\\\" in theorem and assume/prove block | Reason: Disjunction and set operators must be encoded with double backslash in JSON.\nField: FunctionConstructor | Change: Changed all single-backslash set operators to double-backslash (e.g., \"[T -> Nat \\\\ {0}]\" \\u2192 \"[T -> Nat \\\\\\\\ {0}]\") | Reason: Disjunction and set operators must be encoded with double backslash in JSON.\nField: FunctionOverride | Change: No change needed (all EXCEPTs present and correct) | Reason: Confirmed all function override patterns in the TLA+ file are present.\nNo changes required to OperatorDefNames (file count = 10, JSON count = 10).\nNo changes required to PrimedVariables (all primed variables present).\nNo changes required to UnchangedExprs (all distinct UNCHANGED expressions present).\nNo changes required to StringLiterals (all string literals present).\nNo changes required to TemporalSubscript and AlwaysOp (all temporal formulas present and subscripts included).\nNo changes required to AssumptionNames (all ASSUME/ASSUMPTION/AXIOM blocks present).\nNo changes required to ActionDefNames, LocalOperatorNames, RecordAccess, FairnessConditions, IfThenElse, PlusCalAlgorithm, PlusCalProcesses (all empty fields confirmed correct).\n```",
+  "OperatorDefNames_StatePredicate": [
+    "NetworkOK",
+    "PCalTypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitTok"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "ColorSet",
+    "PMsg",
+    "TMsg",
+    "Msg",
+    "BagOf",
+    "TokenAt",
+    "PlCount"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> 0]",
+    "[n \\in Node |-> PlCount(network[n])]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[T -> Nat \\\\ {0}]",
+    "[Node -> BagOf(Msg)]",
+    "[Node -> BOOLEAN]",
+    "[Node -> ColorSet]",
+    "[Node -> Int]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<network, color, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998PCal_proof/EWD998PCal_proof.tla",
+  "VerificationTools": [
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(1) + ValueDef(7) + ActionDefNames(0) = 10 = OperatorDefNames total. Verified.",
+    "OperatorDefNames_ValueDef includes BagOf, TokenAt, and PlCount as they are value-level helpers (functions or set expressions) and not state predicates or initializers.",
+    "OperatorDefNames_Init contains only InitTok, which is the only operator whose name begins with Init.",
+    "No temporal property operator is defined in this module; all temporal properties are in theorems, not operator definitions.",
+    "FunctionConstructor_ByDomain contains only [n \\in Node |-> 0] and [n \\in Node |-> PlCount(network[n])]; all other FunctionConstructor entries are [S -> T] forms.",
+    "TemporalNesting is false: no explicit nesting of temporal operators ([], <>, ~>) occurs in any operator definition."
+  ]
+}

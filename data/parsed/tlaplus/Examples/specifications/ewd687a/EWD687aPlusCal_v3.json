@@ -1,0 +1,281 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Dijkstra-Scholten distributed termination detection algorithm for a diffusing computation initiated by a distinguished root node. The system maintains a dynamic spanning tree of active nodes, with nodes sending base messages, receiving acknowledgments, detaching from the tree when inactive and childless, and the initiator declaring termination when it becomes inactive and has no remaining children. The specification includes a PlusCal algorithm and its TLA+ translation, models bounded message counts for state-space exploration, assumes a finite node set with an initiator in that set, and verifies both a safety property that termination implies quiescence and a liveness property that quiescence leads to eventual termination under weak fairness of each process action.",
+  "ModuleName": "EWD687aPlusCal",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Node",
+    "initiator",
+    "maxMsg"
+  ],
+  "VariableNames": [
+    "terminationDetected",
+    "network",
+    "active",
+    "parent",
+    "activeSons"
+  ],
+  "AssumptionNames": [
+    "/\\ IsFiniteSet(Node)\n       /\\ initiator \\in Node"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "none",
+    "sendMsg",
+    "pendingMsg",
+    "receiveMsg",
+    "sendAck",
+    "pendingAck",
+    "receiveAck",
+    "vars",
+    "ProcSet",
+    "Init",
+    "node",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "TypeOK",
+    "Quiescence",
+    "TerminationDetection",
+    "Liveness"
+  ],
+  "ActionDefNames": [
+    "node",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "net"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF self = initiator THEN self ELSE none",
+    "IF parent[self] = none\n                              THEN /\\ parent' = [parent EXCEPT ![self] = snd]\n                                   /\\ network' = net\n                              ELSE /\\ network' = sendAck(net, snd)\n                                   /\\ UNCHANGED parent",
+    "IF parent[self] = self\n                       THEN /\\ terminationDetected' = TRUE\n                            /\\ UNCHANGED network\n                       ELSE /\\ network' = sendAck(network, parent[self])\n                            /\\ UNCHANGED terminationDetected"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{self}",
+    "{none}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[n \\in Node |-> [msg |-> [snd \\in Node |-> 0], ack |-> 0]]",
+    "[snd \\in Node |-> 0]",
+    "[self \\in Node |-> (self = initiator)]",
+    "[self \\in Node |-> IF self = initiator THEN self ELSE none]",
+    "[self \\in Node |-> 0]",
+    "[Node -> [msg : [Node -> Nat], ack : Nat]]",
+    "[Node -> Nat]",
+    "[Node -> BOOLEAN]",
+    "[Node -> Node \\union {none}]"
+  ],
+  "FunctionApplication": [
+    "net[to]",
+    "network[n]",
+    "active[self]",
+    "activeSons[self]",
+    "parent[self]",
+    "network[m]",
+    "active[n]"
+  ],
+  "FunctionOverride": [
+    "[net EXCEPT ![to].msg[from] = @+1]",
+    "[net EXCEPT ![to].msg[from] = @-1]",
+    "[net EXCEPT ![to].ack = @+1]",
+    "[net EXCEPT ![to].ack = @-1]",
+    "[activeSons EXCEPT ![self] = activeSons[self] + 1]",
+    "[active EXCEPT ![self] = FALSE]",
+    "[active EXCEPT ![self] = TRUE]",
+    "[parent EXCEPT ![self] = snd]",
+    "[activeSons EXCEPT ![self] = activeSons[self] - 1]",
+    "[parent EXCEPT ![self] = none]"
+  ],
+  "RecordConstructor": [
+    "[msg |-> [snd \\in Node |-> 0], ack |-> 0]",
+    "[msg : [Node -> Nat], ack : Nat]"
+  ],
+  "RecordAccess": [
+    "net[to].msg",
+    "net[to].ack",
+    "network[n].ack",
+    "network[m].msg",
+    "network[n].msg"
+  ],
+  "TupleConstructor": [
+    "<< terminationDetected, network, active, parent, activeSons >>",
+    "<<terminationDetected, active, parent>>",
+    "<<terminationDetected, network, parent, activeSons>>",
+    "<<terminationDetected, activeSons>>",
+    "<<active, activeSons>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE x : x \\notin Node"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "network",
+    "activeSons",
+    "active",
+    "parent",
+    "terminationDetected"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<terminationDetected, active, parent>>",
+    "UNCHANGED <<terminationDetected, network, parent, activeSons>>",
+    "UNCHANGED parent",
+    "UNCHANGED network",
+    "UNCHANGED terminationDetected",
+    "UNCHANGED <<active, activeSons>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Quiescence ~> terminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in Node : WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "DS"
+  ],
+  "PlusCalProcesses": [
+    "node \\in Node"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "StateConstraint ==\n  /\\ \\A n \\in Node : network[n].ack <= 2 \n  /\\ \\A m,n \\in Node : network[m].msg[n] <= maxMsg"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: added field with value [\"net\"] | Reason: LET-bound name appears in `LET net == receiveMsg(network, self, snd) IN`; V1 used incorrect field name `NamesInLet`.\nField: NamesInLet | Change: removed | Reason: field name does not match required schema; LET-bound names belong in `LetInNames`.\nField: IfThenElse | Change: replaced descriptive/non-verbatim entries with verbatim TLA+ expressions | Reason: values must appear in the file exactly; V1 included commentary not present in the spec.\nField: SetOperators | Change: removed `DOMAIN` | Reason: `DOMAIN` does not appear anywhere in the TLA+ file.\nField: FunctionApplication | Change: removed duplicate/non-distinct extra `network[n]` entry | Reason: deduplication required.\nField: ProofCommands | Change: removed `ASSUME` | Reason: this is not a proof command in the file; it appears as a top-level assumption block, already captured in `AssumptionNames`.\nField: OperatorDefNames | Change: verified unchanged, count = 18 | Reason: top-level `==` definition count in file is 18, matching JSON completeness requirement.",
+  "OperatorDefNames_StatePredicate": [
+    "pendingMsg",
+    "pendingAck",
+    "StateConstraint",
+    "TypeOK",
+    "Quiescence",
+    "TerminationDetection"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "none",
+    "sendMsg",
+    "receiveMsg",
+    "sendAck",
+    "receiveAck",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> [msg |-> [snd \\in Node |-> 0], ack |-> 0]]",
+    "[snd \\in Node |-> 0]",
+    "[self \\in Node |-> (self = initiator)]",
+    "[self \\in Node |-> IF self = initiator THEN self ELSE none]",
+    "[self \\in Node |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> [msg : [Node -> Nat], ack : Nat]]",
+    "[Node -> Nat]",
+    "[Node -> BOOLEAN]",
+    "[Node -> Node \\union {none}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<terminationDetected, active, parent>>",
+    "UNCHANGED <<terminationDetected, network, parent, activeSons>>",
+    "UNCHANGED <<active, activeSons>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED parent",
+    "UNCHANGED network",
+    "UNCHANGED terminationDetected"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD687aPlusCal/EWD687aPlusCal.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TerminationDetection is classified as StatePredicate because its body is Boolean-valued, contains no primed variables, and contains no temporal operators; it is an implication over current-state predicates, not a temporal formula.",
+    "Liveness is classified as TemporalProperty because it uses the leads-to operator ~>.",
+    "ValueDef by elimination: none, sendMsg, receiveMsg, sendAck, receiveAck, vars, ProcSet.",
+    "Partition count: StatePredicate(6) + TemporalProperty(2) + Init(1) + ValueDef(7) + ActionDefNames(2) = OperatorDefNames(18). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

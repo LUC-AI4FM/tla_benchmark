@@ -1,0 +1,200 @@
+{
+  "id": null,
+  "Specification": "This module specifies the worker-side behavior of a task orchestration system, modeling how nodes are seen by SwarmKit as either up or down and how tasks assigned to nodes progress through lifecycle states. It defines actions for normal task progress, shutdown completion, task rejection, container exit reporting, node disconnection and reconnection, and orphaning runnable tasks on nodes that remain down. The module is focused on state-transition behavior and action decomposition, and it does not itself define a temporal specification or verification theorem in this file.",
+  "ModuleName": "WorkerSpec",
+  "ExtendsModules": [
+    "Types",
+    "Tasks",
+    "EventCounter"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "nodes"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "nodeUp",
+    "nodeDown",
+    "NodeState",
+    "WorkerTypeOK",
+    "IsUp",
+    "ProgressTask",
+    "ShutdownComplete",
+    "RejectTask",
+    "ContainerExit",
+    "TasksOwnedByNode",
+    "WorkerDown",
+    "WorkerUp",
+    "OrphanTasks",
+    "AgentProgress",
+    "Agent"
+  ],
+  "ActionDefNames": [
+    "ProgressTask",
+    "ShutdownComplete",
+    "RejectTask",
+    "ContainerExit",
+    "WorkerDown",
+    "WorkerUp",
+    "OrphanTasks",
+    "AgentProgress",
+    "Agent"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "t2",
+    "affected"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF s2[t] = failed /\\ t.desired_state = shutdown THEN shutdown ELSE s2[t]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ nodeUp, nodeDown }",
+    "{  \n             << assigned, accepted >>,\n             << accepted, preparing >>,\n             << preparing, ready >>,\n             << ready, starting >>,\n             << starting, running >>\n           }",
+    "{shutdown, remove}",
+    "{ assigned, accepted, preparing, ready, starting }",
+    "{ failed, complete }"
+  ],
+  "SetOperators": [
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Node -> NodeState ]",
+    "[ ts -> { failed, complete } ]",
+    "[ t \\in ts |->\n                             [t EXCEPT !.status.state =\n                               \\* Report `failed' as `shutdown' if we wanted to shut down\n                               IF s2[t] = failed /\\ t.desired_state = shutdown THEN shutdown\n                               ELSE s2[t]]\n                        ]",
+    "[ t \\in affected |->\n                         [t EXCEPT !.status.state = orphaned] ]"
+  ],
+  "FunctionApplication": [
+    "nodes[n]",
+    "s2[t]"
+  ],
+  "FunctionOverride": [
+    "[t EXCEPT !.status.state = s2]",
+    "[t EXCEPT !.status.state = shutdown]",
+    "[t EXCEPT !.status.state = rejected]",
+    "[nodes EXCEPT ![n] = nodeDown]",
+    "[nodes EXCEPT ![n] = nodeUp]",
+    "[t EXCEPT !.status.state = orphaned]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "t.desired_state",
+    "t.node",
+    "t.status.state"
+  ],
+  "TupleConstructor": [
+    "<< nodes, nEvents >>",
+    "<< State(t), State(t2) >>",
+    "<< assigned, accepted >>",
+    "<< accepted, preparing >>",
+    "<< preparing, ready >>",
+    "<< ready, starting >>",
+    "<< starting, running >>",
+    "<< nodes >>",
+    "<< tasks >>",
+    "<< tasks, nEvents >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "up",
+    "down"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "nodes"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << nodes, nEvents >>",
+    "UNCHANGED << nodes >>",
+    "UNCHANGED << tasks >>",
+    "UNCHANGED << tasks, nEvents >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: completeness-check | Change: verified top-level operator count | Reason: file count = 15, JSON OperatorDefNames count = 15\nField: NamesInLet -> LetInNames | Change: renamed field and preserved entries [\"t2\", \"affected\"] | Reason: Phase 3 requires LET-bound simple names in LetInNames; NamesInLet is not the expected schema field\nField: IfThenElse | Change: replaced `IF s2[t] = failed /\\\\ t.desired_state = shutdown THEN shutdown ELSE s2[t] (in ContainerExit)` with `IF s2[t] = failed /\\\\ t.desired_state = shutdown THEN shutdown ELSE s2[t]` | Reason: field values must appear in the TLA+ file verbatim; contextual suffix does not exist in source\nField: RecordAccess | Change: replaced `status.state` with `t.status.state` | Reason: RecordAccess must contain only literal `e.field` expressions that appear verbatim in the file\n",
+  "OperatorDefNames_StatePredicate": [
+    "WorkerTypeOK",
+    "IsUp"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "nodeUp",
+    "nodeDown",
+    "NodeState",
+    "TasksOwnedByNode"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ t \\in ts |->\n                             [t EXCEPT !.status.state =\n                               \\* Report `failed' as `shutdown' if we wanted to shut down\n                               IF s2[t] = failed /\\ t.desired_state = shutdown THEN shutdown\n                               ELSE s2[t]]\n                        ]",
+    "[ t \\in affected |->\n                         [t EXCEPT !.status.state = orphaned] ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Node -> NodeState ]",
+    "[ ts -> { failed, complete } ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << nodes, nEvents >>",
+    "UNCHANGED << nodes >>",
+    "UNCHANGED << tasks >>",
+    "UNCHANGED << tasks, nEvents >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/WorkerSpec/WorkerSpec.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TasksOwnedByNode is placed in ValueDef by elimination: it is a parameterized set-valued helper operator, not an action, init predicate, or temporal property.",
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(4) + ActionDefNames(9) = OperatorDefNames(15). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource uses the module name as the folder name because the repository folder cannot be determined from file content."
+  ]
+}

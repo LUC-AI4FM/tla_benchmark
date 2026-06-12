@@ -1,0 +1,299 @@
+{
+  "id": null,
+  "Specification": "This module specifies and checks an algorithm for removing redundant matched parentheses from a well-formed token sequence representing an expression. It defines a recursive mathematical reference function Result(seq) that repeatedly removes an inner matching parenthesis pair when that pair is immediately enclosed by another matching pair, and then gives a PlusCal algorithm together with its translated TLA+ actions to compute the same result operationally. The specification uses no fault model; instead, it verifies functional correctness by asserting at termination that the algorithm's output out equals Result(in), and it also states the temporal property that the algorithm eventually reaches the control state \"Done\".",
+  "ModuleName": "RemoveRedundantParens",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "TokId"
+  ],
+  "VariableNames": [
+    "in",
+    "out",
+    "unmatchedLeft",
+    "lastMatchedLeft",
+    "lastAddedRight",
+    "i",
+    "pc"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Token",
+    "ParenDepth",
+    "IsWellFormed",
+    "AreMatching",
+    "RemoveElement",
+    "Last",
+    "RemoveLast",
+    "Result",
+    "ExprOfMaxLen",
+    "PrT",
+    "Pr",
+    "L",
+    "R",
+    "O",
+    "vars",
+    "Init",
+    "Lbl_1",
+    "Lbl_2",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "Lbl_1",
+    "Lbl_2",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ParenDepth",
+    "Result"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "sseq",
+    "r"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 0 THEN 0 ELSE CASE seq[i].type = \"left\" -> ParenDepth(seq, i-1) + 1 [] seq[i].type = \"right\" -> ParenDepth(seq, i-1) - 1 [] seq[i].type = \"other\" -> ParenDepth(seq, i-1)",
+    "IF j < i THEN seq[j] ELSE seq[j+1]",
+    "IF \\E r \\in (2..(Len(seq)-2)) \\X (3..(Len(seq)-1)) : /\\ r[1] < r[2] /\\ AreMatching(seq, r[1], r[2]) /\\ AreMatching(seq, r[1]-1, r[2]+1) THEN LET r == CHOOSE r \\in (2..(Len(seq)-2)) \\X (3..(Len(seq)-1)) : /\\ r[1] < r[2] /\\ AreMatching(seq, r[1], r[2]) /\\ AreMatching(seq, r[1]-1, r[2]+1) IN Result(RemoveElement(RemoveElement(seq, r[2]), r[1])) ELSE seq",
+    "IF i =< Len(in) THEN /\\ IF in[i].type = \"left\" THEN /\\ unmatchedLeft' = Append(unmatchedLeft, Len(out)+1) /\\ UNCHANGED << out, lastMatchedLeft, lastAddedRight >> ELSE /\\ IF in[i].type = \"right\" THEN /\\ IF /\\ i = lastAddedRight + 1 /\\ lastMatchedLeft = unmatchedLeft[Len(unmatchedLeft)]+1 THEN /\\ out' = RemoveLast(RemoveElement(out, lastMatchedLeft)) ELSE /\\ TRUE /\\ out' = out /\\ lastMatchedLeft' = Last(unmatchedLeft) /\\ unmatchedLeft' = RemoveLast(unmatchedLeft) /\\ lastAddedRight' = i ELSE /\\ TRUE /\\ UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >> /\\ pc' = \"Lbl_2\" ELSE /\\ IF out # Result(in) THEN /\\ PrintT(<<\"in:\", Pr(in)>>) /\\ PrintT(<<\"out;\", Pr(out)>>) /\\ PrintT(<<\"res:\",Pr(Result(in))>>) /\\ Assert(FALSE, \"Failure of assertion at line 147, column 8.\") ELSE /\\ TRUE /\\ pc' = \"Done\" /\\ UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "IF in[i].type = \"left\" THEN /\\ unmatchedLeft' = Append(unmatchedLeft, Len(out)+1) /\\ UNCHANGED << out, lastMatchedLeft, lastAddedRight >> ELSE /\\ IF in[i].type = \"right\" THEN /\\ IF /\\ i = lastAddedRight + 1 /\\ lastMatchedLeft = unmatchedLeft[Len(unmatchedLeft)]+1 THEN /\\ out' = RemoveLast(RemoveElement(out, lastMatchedLeft)) ELSE /\\ TRUE /\\ out' = out /\\ lastMatchedLeft' = Last(unmatchedLeft) /\\ unmatchedLeft' = RemoveLast(unmatchedLeft) /\\ lastAddedRight' = i ELSE /\\ TRUE /\\ UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "IF in[i].type = \"right\" THEN /\\ IF /\\ i = lastAddedRight + 1 /\\ lastMatchedLeft = unmatchedLeft[Len(unmatchedLeft)]+1 THEN /\\ out' = RemoveLast(RemoveElement(out, lastMatchedLeft)) ELSE /\\ TRUE /\\ out' = out /\\ lastMatchedLeft' = Last(unmatchedLeft) /\\ unmatchedLeft' = RemoveLast(unmatchedLeft) /\\ lastAddedRight' = i ELSE /\\ TRUE /\\ UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "IF /\\ i = lastAddedRight + 1 /\\ lastMatchedLeft = unmatchedLeft[Len(unmatchedLeft)]+1 THEN /\\ out' = RemoveLast(RemoveElement(out, lastMatchedLeft)) ELSE /\\ TRUE /\\ out' = out",
+    "IF out # Result(in) THEN /\\ PrintT(<<\"in:\", Pr(in)>>) /\\ PrintT(<<\"out;\", Pr(out)>>) /\\ PrintT(<<\"res:\",Pr(Result(in))>>) /\\ Assert(FALSE, \"Failure of assertion at line 147, column 8.\") ELSE /\\ TRUE"
+  ],
+  "CaseExpr": [
+    "CASE seq[i].type = \"left\"  -> ParenDepth(seq, i-1) + 1 [] seq[i].type = \"right\" -> ParenDepth(seq, i-1) - 1 [] seq[i].type = \"other\" -> ParenDepth(seq, i-1)",
+    "CASE tok.type = \"left\" -> <<\"(\", tok.id>> [] tok.type = \"right\" -> <<tok.id, \")\">> [] tok.type = \"other\" -> tok.id"
+  ],
+  "SetEnumeration": [
+    "{\"left\", \"right\", \"other\"}"
+  ],
+  "SetOperators": [
+    "\\X",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[1..i -> Token]",
+    "[j \\in 1..(Len(seq)-1) |-> IF j < i THEN seq[j] ELSE seq[j+1]]",
+    "[i \\in 1..Len(seq) |-> PrT(seq[i])]"
+  ],
+  "FunctionApplication": [
+    "seq[i]",
+    "seq[m]",
+    "seq[n]",
+    "r[1]",
+    "r[2]",
+    "PrT(seq[i])",
+    "in[i]",
+    "unmatchedLeft[Len(unmatchedLeft)]",
+    "seq[i].type",
+    "seq[m].type",
+    "seq[n].type",
+    "tok.type",
+    "tok.id",
+    "in[i].type"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[type : {\"left\", \"right\", \"other\"}, id : TokId]",
+    "[type |-> \"left\", id |-> i]",
+    "[type |-> \"right\", id |-> i]",
+    "[type |-> \"other\", id |-> i]"
+  ],
+  "RecordAccess": [
+    "seq[i].type",
+    "seq[m].type",
+    "seq[n].type",
+    "tok.type",
+    "tok.id",
+    "in[i].type"
+  ],
+  "TupleConstructor": [
+    "<<\"(\", tok.id>>",
+    "<<tok.id, \")\">>",
+    "<< >>",
+    "<< in, out, unmatchedLeft, lastMatchedLeft, lastAddedRight, i, pc >>",
+    "<< out, lastMatchedLeft, lastAddedRight >>",
+    "<< out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "<< in, i >>",
+    "<< in, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "<<\"in:\", Pr(in)>>",
+    "<<\"out;\", Pr(out)>>",
+    "<<\"res:\",Pr(Result(in))>>"
+  ],
+  "SequenceOps": [
+    "SubSeq",
+    "Len",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">=",
+    "=<"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..(n-m)",
+    "1..(Len(seq)-1)",
+    "2..(Len(seq)-2)",
+    "3..(Len(seq)-1)",
+    "0..n",
+    "1..i"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE r \\in (2..(Len(seq)-2)) \\X (3..(Len(seq)-1)) : /\\ r[1] < r[2] /\\ AreMatching(seq, r[1], r[2]) /\\ AreMatching(seq, r[1]-1, r[2]+1)"
+  ],
+  "StringLiterals": [
+    "left",
+    "right",
+    "other",
+    "(",
+    ")",
+    "Lbl_1",
+    "Lbl_2",
+    "Done",
+    "in:",
+    "out;",
+    "res:",
+    "Failure of assertion at line 147, column 8."
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "unmatchedLeft",
+    "out",
+    "lastMatchedLeft",
+    "lastAddedRight",
+    "pc",
+    "i"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << out, lastMatchedLeft, lastAddedRight >>",
+    "UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "UNCHANGED << in, i >>",
+    "UNCHANGED << in, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Remove"
+  ],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"sseq\", \"r\"] | Reason: field name must match schema and these are LET-bound names from the file\nField: IfThenElse | Change: replaced paraphrased/non-verbatim entries with expressions that actually occur in the file | Reason: Phase 3 requires every value to appear in the TLA+ file\nField: SetEnumeration | Change: removed \"{}\" | Reason: empty set literal does not appear in the file; << >> is an empty tuple, not a set\nField: FunctionApplication | Change: added record-access applications seq[i].type, seq[m].type, seq[n].type, tok.type, tok.id, in[i].type | Reason: these literal applications appear in the file\nField: ChoiceExpr | Change: normalized to a single-line verbatim expression from the file | Reason: ensure exact occurrence in the source\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: no ASSUME/ASSUMPTION/AXIOM/proof command occurs in the file\nField: AssumptionNames | Change: confirmed empty | Reason: the file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: FunctionOverride | Change: confirmed empty | Reason: the file contains no [f EXCEPT ![e] = v] expressions\nField: LocalOperatorNames | Change: confirmed empty | Reason: there are LET bindings but no parametric local operator definitions of the form name(args) ==\nField: RecordAccess | Change: confirmed entries only literal e.field expressions from the file | Reason: correctness check passed\nField: FairnessConditions | Change: confirmed empty | Reason: Spec contains no WF/SF fairness expressions\nField: OperatorDefNames | Change: confirmed count matches top-level definitions; file count = 21, JSON count = 21 | Reason: completeness verification passed",
+  "OperatorDefNames_StatePredicate": [
+    "IsWellFormed",
+    "AreMatching"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Token",
+    "ParenDepth",
+    "RemoveElement",
+    "Last",
+    "RemoveLast",
+    "Result",
+    "ExprOfMaxLen",
+    "PrT",
+    "Pr",
+    "L",
+    "R",
+    "O",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[j \\in 1..(Len(seq)-1) |-> IF j < i THEN seq[j] ELSE seq[j+1]]",
+    "[i \\in 1..Len(seq) |-> PrT(seq[i])]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[1..i -> Token]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << out, lastMatchedLeft, lastAddedRight >>",
+    "UNCHANGED << out, unmatchedLeft, lastMatchedLeft, lastAddedRight >>",
+    "UNCHANGED << in, i >>",
+    "UNCHANGED << in, unmatchedLeft, lastMatchedLeft, lastAddedRight >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/RemoveRedundantParens/RemoveRedundantParens.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ValueDef by elimination: Token, ParenDepth, RemoveElement, Last, RemoveLast, Result, ExprOfMaxLen, PrT, Pr, L, R, O, vars are non-action operators that define sets, records, sequences, recursive computed values, or helper functions rather than state predicates, temporal properties, or init predicates.",
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(13) + ActionDefNames(3) = OperatorDefNames(21). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

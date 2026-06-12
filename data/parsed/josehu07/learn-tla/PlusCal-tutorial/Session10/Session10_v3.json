@@ -1,0 +1,252 @@
+{
+  "id": null,
+  "Specification": "This module specifies a graph problem on a set of Nodes with undirected Edges, together with a distributed PlusCal algorithm that computes paths to a distinguished root. It defines graph-neighborhood and reachability operators, proves that an executable recursive reachability procedure RF is equivalent to the simpler declarative ReachableFrom definition, and then models message-passing processes that propagate depth information toward a spanning tree rooted at root. The assumptions require that every edge connects exactly two nodes, root is a node, MaxNodes bounds the number of nodes, and every node is reachable from root; the temporal specification uses weak fairness for each node process.",
+  "ModuleName": "Session10",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nodes",
+    "Edges",
+    "root",
+    "MaxNodes"
+  ],
+  "VariableNames": [
+    "msgs",
+    "depth",
+    "parent"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A e \\in Edges : (e \\subseteq Nodes) /\\ HasTwoElts(e)\n       /\\ root \\in Nodes\n       /\\ MaxNodes >= Cardinality(Nodes)",
+    "ReachableFrom({root}) = Nodes"
+  ],
+  "TheoremNames": [
+    "THEOREM RFCorrect == \\A S \\in SUBSET Nodes : RF(S, {}) = ReachableFrom(S)"
+  ],
+  "OperatorDefNames": [
+    "HasTwoElts",
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "RF",
+    "RemoveElt",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "vars",
+    "ProcSet",
+    "Init",
+    "node",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "node",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "ReachableFrom",
+    "RF"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "R"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF R \\subseteq S THEN S ELSE ReachableFrom(R \\cup S)",
+    "IF B = {} THEN T ELSE RF(SetNbrs(B) \\ T, B \\cup T)",
+    "IF j < i THEN sq[j] ELSE sq[j+1]",
+    "IF q[1] = root THEN <<0>> ELSE << >>",
+    "IF self = root THEN 0 ELSE MaxNodes",
+    "IF msgs[q][i] < depth[self] - 1 THEN /\\ depth' = [depth EXCEPT ![self] = msgs[q][i] + 1] /\\ parent' = [parent EXCEPT ![self] = q[1]] /\\ msgs' = [r \\in Queues |-> IF r = q THEN RemoveElt(msgs[q], i) ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN Append(msgs[r], depth'[self]) ELSE msgs[r]] ELSE /\\ msgs' = [msgs EXCEPT ![q] = RemoveElt(msgs[q], i)] /\\ UNCHANGED << depth, parent >>",
+    "IF r = q THEN RemoveElt(msgs[q], i) ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN Append(msgs[r], depth'[self]) ELSE msgs[r]",
+    "IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN Append(msgs[r], depth'[self]) ELSE msgs[r]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{a,b}",
+    "{root}",
+    "{}",
+    "{<<self, q[1]>>}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[j \\in 1..(Len(sq)-1) |-> IF j < i THEN sq[j] ELSE sq[j+1]]",
+    "[q \\in Queues |-> IF q[1] = root THEN <<0>> ELSE << >>]",
+    "[self \\in Nodes |-> IF self = root THEN 0 ELSE MaxNodes]",
+    "[self \\in Nodes |-> self]",
+    "[r \\in Queues |-> IF r = q THEN RemoveElt(msgs[q], i) ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN Append(msgs[r], depth'[self]) ELSE msgs[r]]"
+  ],
+  "FunctionApplication": [
+    "sq[j]",
+    "sq[j+1]",
+    "q[1]",
+    "msgs[r]",
+    "msgs[q]",
+    "msgs[q][i]",
+    "depth[self]",
+    "depth'[self]"
+  ],
+  "FunctionOverride": [
+    "[depth EXCEPT ![self] = msgs[q][i] + 1]",
+    "[parent EXCEPT ![self] = q[1]]",
+    "[msgs EXCEPT ![q] = RemoveElt(msgs[q], i)]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<n, m>>",
+    "<<m, n>>",
+    "<<0>>",
+    "<< >>",
+    "<< msgs, depth, parent >>",
+    "<< depth, parent >>",
+    "<<self, q[1]>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..(Len(sq)-1)",
+    "1..Len(msgs[q])"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "depth",
+    "parent",
+    "msgs"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(node(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(node(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "PathsToRoot"
+  ],
+  "PlusCalProcesses": [
+    "node"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Removed all appended context markers like \u201c(in ReachableFrom)\u201d and kept only verbatim IF...THEN...ELSE expressions | Reason: IfThenElse values must appear in the TLA+ file verbatim; prior entries contained extra text not in the file\nField: FunctionApplication | Change: Added `depth'[self]` | Reason: This function application appears literally in `Append(msgs[r], depth'[self])` and was missing\nField: CompletenessCheck | Change: Verified top-level `==` definition count: file count = 15, JSON OperatorDefNames count = 15 | Reason: Phase 2 completeness requirement; counts match so no operator additions/removals were needed",
+  "OperatorDefNames_StatePredicate": [
+    "HasTwoElts"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nbrs",
+    "SetNbrs",
+    "ReachableFrom",
+    "RF",
+    "RemoveElt",
+    "QueuesFrom",
+    "QueuesTo",
+    "Queues",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[j \\in 1..(Len(sq)-1) |-> IF j < i THEN sq[j] ELSE sq[j+1]]",
+    "[q \\in Queues |-> IF q[1] = root THEN <<0>> ELSE << >>]",
+    "[self \\in Nodes |-> IF self = root THEN 0 ELSE MaxNodes]",
+    "[self \\in Nodes |-> self]",
+    "[r \\in Queues |-> IF r = q THEN RemoveElt(msgs[q], i) ELSE IF r \\in QueuesFrom(self) \\ {<<self, q[1]>>} THEN Append(msgs[r], depth'[self]) ELSE msgs[r]]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << depth, parent >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Session10/Session10.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ReachableFrom, RF, RemoveElt, Nbrs, SetNbrs, QueuesFrom, QueuesTo, Queues, vars, and ProcSet are placed in ValueDef because they define computed values/functions rather than state predicates, temporal properties, or initial predicates.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e] forms.",
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(1) + ValueDef(10) + ActionDefNames(2) = OperatorDefNames(15). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because folder cannot be determined from file content."
+  ]
+}

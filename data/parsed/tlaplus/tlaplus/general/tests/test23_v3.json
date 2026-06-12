@@ -1,0 +1,391 @@
+{
+  "id": null,
+  "Specification": "This module tests definitions and operations for bags (multisets) as constructed using TLA+ set and function primitives. It defines a variety of bag operations such as bag union, difference, subset, cardinality, and conversion between sets and bags. The module includes both general definitions and TLC-friendly variants, and provides a comprehensive suite of test expressions in the Inv operator to validate the correctness of these bag operations. The specification is not a distributed algorithm but rather a mathematical and implementation-level test of bag-related operators, with extensive use of LET and CASE constructs, and includes both functional and set-theoretic reasoning.",
+  "ModuleName": "test23",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "x"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "IsABag",
+    "BagToSet",
+    "SetToBag",
+    "BagIn",
+    "EmptyBag",
+    "BagCup",
+    "B1 ++ B2",
+    "BagDiff",
+    "B1 -- B2",
+    "Sum",
+    "BagUnion",
+    "B1 \\sqsubseteq B2",
+    "SubBag",
+    "BagOfAll",
+    "BagCardinality",
+    "CopiesIn",
+    "Max",
+    "MaxCopies",
+    "MCSubBag",
+    "S",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B9",
+    "F1",
+    "Init",
+    "Next",
+    "Inv"
+  ],
+  "ActionDefNames": [
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "DSum",
+    "e1",
+    "MC"
+  ],
+  "NamesInLet": [
+    "B",
+    "DSum",
+    "D",
+    "elt",
+    "AllBagsOfSubset",
+    "e1",
+    "B7",
+    "MC"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF e \\in DOMAIN B1 THEN B1[e] ELSE 0 (in BagCup)",
+    "IF e \\in DOMAIN B2 THEN B2[e] ELSE 0 (in BagCup)",
+    "IF e \\in DOMAIN B2 THEN B1[e] - B2[e] ELSE B1[e] (in BagDiff)",
+    "IF S = {} THEN 0 ELSE f[elt] + DSum[S \\ {elt}] (in DSum)",
+    "IF BagIn(e, B) THEN B[e] ELSE 0 (in CopiesIn)",
+    "IF a < b THEN b ELSE a (in Max)",
+    "IF S = {} THEN 0 ELSE Max(B[elt], MC[S \\ {elt}]) (in MC)",
+    "IF B7 = {} THEN Assert(FALSE, \"Failed Test 0a\") ELSE Print(\"Test 0a OK\", TRUE) (in Inv)",
+    "IF [e \\in B7 |-> 2][\"a\"] # 2 THEN Assert(FALSE, \"Failed Test 0b\") ELSE Print(\"Test 0b OK\", TRUE) (in Inv)",
+    "IF [e \\in B7 |-> e1(e, B1)][\"a\"] # 1 THEN Assert(FALSE, \"Failed Test 0c\") ELSE Print(\"Test 0c OK\", TRUE) (in Inv)",
+    "IF [e \\in B7 |-> e1(e, SetToBag({\"a\"}))][\"a\"] # 1 THEN Assert(FALSE, \"Failed Test 0d\") ELSE Print(\"Test 0d OK\", TRUE) (in Inv)",
+    "IF [e \\in B7 |-> e1(e, B1) + e1(e,SetToBag({\"a\"}))][\"a\"] # 2 THEN Assert(FALSE, \"Failed Test 0e\") ELSE Print(\"Test 0e OK\", TRUE) (in Inv)",
+    "IF B9[\"a\"] # 2 THEN Assert(FALSE, \"Failed Test 1aa\") ELSE Print(\"Test 1aa OK\", TRUE) (in Inv)",
+    "IF B2[\"a\"] # 2 THEN Assert(FALSE, \"Failed Test 1a\") ELSE Print(\"Test 1a OK\", TRUE) (in Inv)",
+    "IF BagToSet(B9) # S THEN Assert(FALSE, \"Failed Test 1b\") ELSE Print(\"Test 1b OK\", TRUE) (in Inv)",
+    "IF BagToSet(B2) # S THEN Assert(FALSE, \"Failed Test 1c\") ELSE Print(\"Test 1c OK\", TRUE) (in Inv)",
+    "IF BagToSet(B1 -- SetToBag({\"a\"})) # {\"c\", \"b\"} THEN Assert(FALSE, \"Failed Test 2\") ELSE Print(\"Test 2 OK\", TRUE) (in Inv)",
+    "IF BagToSet(B3) # BagToSet(B1) THEN Assert(FALSE, \"Failed Test 3\") ELSE Print(\"Test 3 OK\", TRUE) (in Inv)",
+    "IF BagIn(\"a\", B1 -- SetToBag({\"a\"})) THEN Assert(FALSE, \"Failed Test 4\") ELSE Print(\"Test 4 OK\", TRUE) (in Inv)",
+    "IF ~BagIn(\"a\", B2) THEN Assert(FALSE, \"Failed Test 5\") ELSE Print(\"Test 5 OK\", TRUE) (in Inv)",
+    "IF EmptyBag # B1 -- B1 THEN Assert(FALSE, \"Failed Test 6\") ELSE Print(\"Test 6 OK\", TRUE) (in Inv)",
+    "IF ~(B1 \\sqsubseteq B2) THEN Assert(FALSE, \"Failed Test 7\") ELSE Print(\"Test 7 OK\", TRUE) (in Inv)",
+    "IF ~(B2 \\sqsubseteq B3) THEN Assert(FALSE, \"Failed Test 8\") ELSE Print(\"Test 8 OK\", TRUE) (in Inv)",
+    "IF B2 \\sqsubseteq B1 THEN Assert(FALSE, \"Failed Test 9\") ELSE Print(\"Test 9 OK\", TRUE) (in Inv)",
+    "IF BagCup(B1, SetToBag({\"d\"})) \\sqsubseteq B1 THEN Assert(FALSE, \"Failed Test 10\") ELSE Print(\"Test 10 OK\", TRUE) (in Inv)",
+    "IF ~(B1 \\sqsubseteq (B1 ++ SetToBag({\"d\"}))) THEN Assert(FALSE, \"Failed Test 11\") ELSE Print(\"Test 11 OK\", TRUE) (in Inv)",
+    "IF BagToSet(B2 ++ SetToBag({\"d\"})) # S \\cup {\"d\"} THEN Assert(FALSE, \"Failed Test 12\") ELSE Print(\"Test 12 OK\", TRUE) (in Inv)",
+    "IF Cardinality(SubBag(B1)) # Cardinality(SUBSET S) THEN Assert(FALSE, \"Failed Test 13\") ELSE Print(\"Test 13 OK\", TRUE) (in Inv)",
+    "IF Cardinality(SubBag(B3)) # 64 THEN Assert(FALSE, \"Failed Test 14\") ELSE Print(\"Test 14 OK\", TRUE) (in Inv)",
+    "IF CopiesIn(\"fa\", BagOfAll(F1, B1)) # 2 THEN Assert(FALSE, \"Failed Test 15\") ELSE Print(\"Test 15 OK\", TRUE) (in Inv)",
+    "IF CopiesIn(\"a\", BagOfAll(F1, B1)) # 0 THEN Assert(FALSE, \"Failed Test 16\") ELSE Print(\"Test 16 OK\", TRUE) (in Inv)",
+    "IF CopiesIn(\"fa\", BagOfAll(F1, B3)) # 6 THEN Assert(FALSE, \"Failed Test 17\") ELSE Print(\"Test 17 OK\", TRUE) (in Inv)",
+    "IF BagCardinality(B1) # 3 THEN Assert(FALSE, \"Failed Test 18\") ELSE Print(\"Test 18 OK\", TRUE) (in Inv)",
+    "IF BagCardinality(B3) # 9 THEN Assert(FALSE, \"Failed Test 19\") ELSE Print(\"Test 19 OK\", TRUE) (in Inv)"
+  ],
+  "CaseExpr": [
+    "CASE e = \"a\" -> \"fa\" [] e = \"b\" -> \"fa\" [] e = \"c\" -> \"fc\" [] e = \"d\" -> \"fc\" (in F1)"
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{\"a\", \"b\", \"c\"}",
+    "{\"a\"}",
+    "{\"c\", \"b\"}",
+    "{\"fa\", \"fc\"}",
+    "{\"d\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "UNION",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[DOMAIN B -> {n \\in Nat : n > 0}]",
+    "[e \\in S |-> 1]",
+    "[e \\in (DOMAIN B1) \\cup (DOMAIN B2) |-> (IF e \\in DOMAIN B1 THEN B1[e] ELSE 0) + (IF e \\in DOMAIN B2 THEN B2[e] ELSE 0)]",
+    "[e \\in DOMAIN B1 |-> IF e \\in DOMAIN B2 THEN B1[e] - B2[e] ELSE B1[e]]",
+    "[e \\in {d \\in DOMAIN B : B[d] > 0} |-> B[e]]",
+    "[B \\in S |-> IF BagIn(e, B) THEN B[e] ELSE 0]",
+    "[e \\in {F(d) : d \\in BagToSet(B)} |-> Sum([d \\in BagToSet(B) |-> IF F(d) = e THEN B[d] ELSE 0])]",
+    "[d \\in BagToSet(B) |-> IF F(d) = e THEN B[d] ELSE 0]",
+    "[e \\in B7 |-> 2]",
+    "[e \\in B7 |-> e1(e, B1)]",
+    "[e \\in B7 |-> e1(e, SetToBag({\"a\"}))]",
+    "[e \\in B7 |-> e1(e, B1) + e1(e,SetToBag({\"a\"}))]",
+    "[i \\in S |-> 3]",
+    "[SB -> {n \\in Nat : n > 0}]",
+    "[SB -> {n \\in 1..MaxCopies(B) : n > 0}]"
+  ],
+  "FunctionApplication": [
+    "B1[e]",
+    "B2[e]",
+    "B[e]",
+    "f[elt]",
+    "B[elt]",
+    "MC[S \\ {elt}]",
+    "e1(e, B1)",
+    "e1(e, SetToBag({\"a\"}))",
+    "e1(e, B1) + e1(e,SetToBag({\"a\"}))",
+    "B9[\"a\"]",
+    "B2[\"a\"]",
+    "[e \\in B7 |-> 2][\"a\"]",
+    "[e \\in B7 |-> e1(e, B1)][\"a\"]",
+    "[e \\in B7 |-> e1(e, SetToBag({\"a\"}))][\"a\"]",
+    "[e \\in B7 |-> e1(e, B1) + e1(e,SetToBag({\"a\"}))][\"a\"]",
+    "BagToSet(B9)",
+    "BagToSet(B2)",
+    "BagToSet(B1 -- SetToBag({\"a\"}))",
+    "BagToSet(B3)",
+    "BagIn(\"a\", B1 -- SetToBag({\"a\"}))",
+    "BagIn(\"a\", B2)",
+    "BagCup(B1, SetToBag({\"d\"}))",
+    "BagToSet(B2 ++ SetToBag({\"d\"}))",
+    "Cardinality(SubBag(B1))",
+    "Cardinality(SUBSET S)",
+    "Cardinality(SubBag(B3))",
+    "CopiesIn(\"fa\", BagOfAll(F1, B1))",
+    "CopiesIn(\"a\", BagOfAll(F1, B1))",
+    "CopiesIn(\"fa\", BagOfAll(F1, B3))",
+    "BagCardinality(B1)",
+    "BagCardinality(B3)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<\"B1\", B1>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "1..MaxCopies(B)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE e \\in S : TRUE",
+    "CHOOSE elt \\in S : TRUE"
+  ],
+  "StringLiterals": [
+    "a",
+    "b",
+    "c",
+    "fa",
+    "fc",
+    "d",
+    "B1",
+    "Failed Test 0a",
+    "Test 0a OK",
+    "Failed Test 0b",
+    "Test 0b OK",
+    "Failed Test 0c",
+    "Test 0c OK",
+    "Failed Test 0d",
+    "Test 0d OK",
+    "Failed Test 0e",
+    "Test 0e OK",
+    "Failed Test 1aa",
+    "Test 1aa OK",
+    "Finished test 1aa",
+    "Failed Test 1a",
+    "Test 1a OK",
+    "Finished test 1a",
+    "Failed Test 1b",
+    "Test 1b OK",
+    "Failed Test 1c",
+    "Test 1c OK",
+    "Failed Test 2",
+    "Test 2 OK",
+    "Failed Test 3",
+    "Test 3 OK",
+    "Failed Test 4",
+    "Test 4 OK",
+    "Failed Test 5",
+    "Test 5 OK",
+    "Failed Test 6",
+    "Test 6 OK",
+    "Failed Test 7",
+    "Test 7 OK",
+    "Failed Test 8",
+    "Test 8 OK",
+    "Failed Test 9",
+    "Test 9 OK",
+    "Failed Test 10",
+    "Test 10 OK",
+    "Failed Test 11",
+    "Test 11 OK",
+    "Failed Test 12",
+    "Test 12 OK",
+    "Failed Test 13",
+    "Test 13 OK",
+    "Failed Test 14",
+    "Test 14 OK",
+    "Failed Test 15",
+    "Test 15 OK",
+    "Failed Test 16",
+    "Test 16 OK",
+    "Failed Test 17",
+    "Test 17 OK",
+    "Failed Test 18",
+    "Test 18 OK",
+    "Failed Test 19",
+    "Test 19 OK",
+    "Computing Init",
+    "Computing Inv"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "x"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED x"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "IsABag",
+    "BagToSet",
+    "SetToBag",
+    "BagIn",
+    "EmptyBag",
+    "BagCup",
+    "B1 ++ B2",
+    "BagDiff",
+    "B1 -- B2",
+    "Sum",
+    "BagUnion",
+    "B1 \\sqsubseteq B2",
+    "SubBag",
+    "BagOfAll",
+    "BagCardinality",
+    "CopiesIn",
+    "Max",
+    "MaxCopies",
+    "MCSubBag",
+    "S",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B9",
+    "F1",
+    "Inv"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[e \\in S |-> 1]",
+    "[e \\in (DOMAIN B1) \\cup (DOMAIN B2) |-> (IF e \\in DOMAIN B1 THEN B1[e] ELSE 0) + (IF e \\in DOMAIN B2 THEN B2[e] ELSE 0)]",
+    "[e \\in DOMAIN B1 |-> IF e \\in DOMAIN B2 THEN B1[e] - B2[e] ELSE B1[e]]",
+    "[e \\in {d \\in DOMAIN B : B[d] > 0} |-> B[e]]",
+    "[B \\in S |-> IF BagIn(e, B) THEN B[e] ELSE 0]",
+    "[e \\in {F(d) : d \\in BagToSet(B)} |-> Sum([d \\in BagToSet(B) |-> IF F(d) = e THEN B[d] ELSE 0])]",
+    "[d \\in BagToSet(B) |-> IF F(d) = e THEN B[d] ELSE 0]",
+    "[e \\in B7 |-> 2]",
+    "[e \\in B7 |-> e1(e, B1)]",
+    "[e \\in B7 |-> e1(e, SetToBag({\"a\"}))]",
+    "[e \\in B7 |-> e1(e, B1) + e1(e,SetToBag({\"a\"}))]",
+    "[i \\in S |-> 3]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[DOMAIN B -> {n \\in Nat : n > 0}]",
+    "[SB -> {n \\in Nat : n > 0}]",
+    "[SB -> {n \\in 1..MaxCopies(B) : n > 0}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED x"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/test23/test23.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(1) + ValueDef(27) + ActionDefNames(1) = 29 = OperatorDefNames total. Verified.",
+    "All FunctionConstructor entries not of the form [S -> T] are [x \\in S |-> e] and are correctly placed in FunctionConstructor_ByDomain.",
+    "No temporal operators ([]/<>/~>) appear in any operator body, so TemporalNesting is false.",
+    "No UNCHANGED varname forms; all UnchangedExprs are explicit.",
+    "No ENABLED expressions appear in any operator.",
+    "No state predicates (Boolean-valued, no primes, no temporal ops) are defined in this module."
+  ]
+}

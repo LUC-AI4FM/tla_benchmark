@@ -1,0 +1,274 @@
+{
+  "id": null,
+  "Specification": "This module specifies voucher cancellation between a Voucher Transaction Provider (VTP), voucher holders, and voucher issuers using a simplified Two-Phase Commit protocol. The model represents messages as elements of a growing set, lets holders and issuers spontaneously prepare or abort, and lets the VTP either cancel once all parties are prepared or spontaneously abort the transaction. The specification checks a type-correctness invariant and a consistency invariant stating that a holder and an issuer never end in conflicting cancelled/aborted decisions, and it also states that this protocol specification implements an imported voucher life cycle specification.",
+  "ModuleName": "VoucherCancel",
+  "ExtendsModules": [],
+  "InstanceModules": [
+    "VoucherLifeCycle"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "V",
+    "H",
+    "I"
+  ],
+  "VariableNames": [
+    "vState",
+    "vlcState",
+    "hState",
+    "iState",
+    "vtpState",
+    "vtpCPrepared",
+    "msgs"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM VTPSpec => [](VTPTypeOK /\\ VTPConsistent)",
+    "THEOREM VTPSpec => VSpec"
+  ],
+  "OperatorDefNames": [
+    "Messages",
+    "VTPTypeOK",
+    "VTPInit",
+    "VTPRcvPrepared",
+    "VTPCancel",
+    "VTPAbort",
+    "HPrepare",
+    "HChooseToAbort",
+    "HRcvCancelMsg",
+    "HRcvAbortMsg",
+    "IPrepare",
+    "IChooseToAbort",
+    "IRcvCancelMsg",
+    "IRcvAbortMsg",
+    "VTPNext",
+    "VTPConsistent",
+    "VTPVars",
+    "VTPSpec"
+  ],
+  "ActionDefNames": [
+    "VTPRcvPrepared",
+    "VTPCancel",
+    "VTPAbort",
+    "HPrepare",
+    "HChooseToAbort",
+    "HRcvCancelMsg",
+    "HRcvAbortMsg",
+    "IPrepare",
+    "IChooseToAbort",
+    "IRcvCancelMsg",
+    "IRcvAbortMsg",
+    "VTPNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"Prepared\"}",
+    "{\"Cancel\", \"Abort\"}",
+    "{\"valid\", \"cancelled\"}",
+    "{\"working\", \"done\"}",
+    "{\"holding\", \"prepared\", \"cancelled\", \"aborted\"}",
+    "{\"waiting\", \"prepared\", \"cancelled\", \"aborted\"}",
+    "{\"init\", \"done\"}",
+    "{}",
+    "{h,i}",
+    "{[type |-> \"Cancel\"]}",
+    "{[type |-> \"Abort\"]}",
+    "{[type |-> \"Prepared\", vh |-> h]}",
+    "{[type |-> \"Prepared\", vi |-> i]}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[V -> {\"valid\", \"cancelled\"}]",
+    "[V -> {\"working\", \"done\"}]",
+    "[H -> {\"holding\", \"prepared\", \"cancelled\", \"aborted\"}]",
+    "[I -> {\"waiting\", \"prepared\", \"cancelled\", \"aborted\"}]",
+    "[v \\in V |-> \"valid\"]",
+    "[v \\in V |-> \"working\"]",
+    "[h \\in H |-> \"holding\"]",
+    "[i \\in I |-> \"waiting\"]"
+  ],
+  "FunctionApplication": [
+    "vState[v]",
+    "vlcState[v]",
+    "hState[h]",
+    "iState[i]"
+  ],
+  "FunctionOverride": [
+    "[vState EXCEPT ![v] = \"cancelled\"]",
+    "[vlcState EXCEPT ![v] = \"done\"]",
+    "[hState EXCEPT ![h] = \"prepared\"]",
+    "[hState EXCEPT ![h] = \"aborted\"]",
+    "[hState EXCEPT ![h] = \"cancelled\"]",
+    "[iState EXCEPT ![i] = \"prepared\"]",
+    "[iState EXCEPT ![i] = \"aborted\"]",
+    "[iState EXCEPT ![i] = \"cancelled\"]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"Prepared\"}, vh : H]",
+    "[type : {\"Prepared\"}, vi : I]",
+    "[type : {\"Cancel\", \"Abort\"}]",
+    "[type |-> \"Prepared\", vh |-> h]",
+    "[type |-> \"Prepared\", vi |-> i]",
+    "[type |-> \"Cancel\"]",
+    "[type |-> \"Abort\"]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<vState, vlcState, hState, iState, vtpState, msgs>>",
+    "<<hState, iState, vtpCPrepared>>",
+    "<<vState, vlcState, hState, iState, vtpCPrepared>>",
+    "<<vState, vlcState, vtpState, iState, vtpCPrepared>>",
+    "<<vState, vlcState, vtpState, iState, vtpCPrepared, msgs>>",
+    "<<vtpState, vState, vlcState, iState, vtpCPrepared, msgs>>",
+    "<<vState, vlcState, vtpState, hState, vtpCPrepared>>",
+    "<<vState, vlcState, vtpState, hState, vtpCPrepared, msgs>>",
+    "<<vtpState, vState, vlcState, hState, vtpCPrepared, msgs>>",
+    "<<hState, iState, vState, vlcState, vtpState, vtpCPrepared, msgs>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "Prepared",
+    "Cancel",
+    "Abort",
+    "valid",
+    "cancelled",
+    "working",
+    "done",
+    "holding",
+    "prepared",
+    "aborted",
+    "waiting",
+    "init"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "vtpCPrepared",
+    "vtpState",
+    "vState",
+    "vlcState",
+    "msgs",
+    "hState",
+    "iState"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<vState, vlcState, hState, iState, vtpState, msgs>>",
+    "UNCHANGED <<hState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, hState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vtpState, vState, vlcState, iState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vtpState, vState, vlcState, hState, vtpCPrepared, msgs>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][VTPNext]_VTPVars"
+  ],
+  "AlwaysOp": [
+    "[][VTPNext]_VTPVars",
+    "[](VTPTypeOK /\\ VTPConsistent)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: TupleConstructor | Change: Replaced incorrect/incomplete tuple list with all distinct tuple expressions appearing in the file | Reason: Original JSON missed multiple tuples used inside UNCHANGED and duplicated one tuple while omitting others\nField: AlwaysOp | Change: Added `[][VTPNext]_VTPVars` | Reason: Outer temporal operator `[]` appears in `VTPSpec`, and AlwaysOp must include the full subscripted formula\nField: Completeness | Change: Verified operator counts match: file count = 18, JSON OperatorDefNames count = 18 | Reason: Phase 2 completeness check required explicit count confirmation",
+  "OperatorDefNames_StatePredicate": [
+    "VTPTypeOK",
+    "VTPConsistent"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "VTPSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "VTPInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Messages",
+    "VTPVars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[v \\in V |-> \"valid\"]",
+    "[v \\in V |-> \"working\"]",
+    "[h \\in H |-> \"holding\"]",
+    "[i \\in I |-> \"waiting\"]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[V -> {\"valid\", \"cancelled\"}]",
+    "[V -> {\"working\", \"done\"}]",
+    "[H -> {\"holding\", \"prepared\", \"cancelled\", \"aborted\"}]",
+    "[I -> {\"waiting\", \"prepared\", \"cancelled\", \"aborted\"}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<vState, vlcState, hState, iState, vtpState, msgs>>",
+    "UNCHANGED <<hState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, hState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, iState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vtpState, vState, vlcState, iState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared>>",
+    "UNCHANGED <<vState, vlcState, vtpState, hState, vtpCPrepared, msgs>>",
+    "UNCHANGED <<vtpState, vState, vlcState, hState, vtpCPrepared, msgs>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/VoucherCancel/VoucherCancel.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "VTPTypeOK and VTPConsistent are Boolean-valued operators over the current state with no primed variables and no temporal operators, so they are classified as StatePredicate.",
+    "VTPSpec is a temporal property because its body is `VTPInit /\\ [][VTPNext]_VTPVars`; Spec-like operators always belong in TemporalProperty.",
+    "Messages and VTPVars are placed in ValueDef because they define, respectively, a message-set value and the tuple variable vector, and are neither actions, state predicates, nor temporal properties.",
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(12) = OperatorDefNames(18). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource used the module name as folder name because the repository folder could not be determined from file content."
+  ]
+}

@@ -1,0 +1,212 @@
+{
+  "id": null,
+  "Specification": "This module models a sequential bounded model checking procedure similar to the one implemented in Apalache 0.5.x. It represents symbolic exploration of executions up to a maximum depth, where Next is conceptually partitioned into symbolic transitions and the checker incrementally tests which transition subsets are enabled and whether they can lead to an invariant violation. The spec abstracts SMT solving by checking whether the current set of transition prefixes can generate one of a designated set of bad executions, and it tracks whether the search is still working, has found an error, has finished without error at the bound, or has deadlocked.",
+  "ModuleName": "SeqBMC",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NTRANS",
+    "MAX_DEPTH"
+  ],
+  "VariableNames": [
+    "prefixes",
+    "depth",
+    "state"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Transitions",
+    "BadExes",
+    "vars",
+    "PrefixesToExes",
+    "SMT",
+    "IsInvariantViolated",
+    "Init",
+    "NextStep",
+    "Finished",
+    "Next",
+    "NeverError",
+    "NeverDeadlock"
+  ],
+  "ActionDefNames": [
+    "NextStep",
+    "Finished",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "PrefixesToExes"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pref = <<>> THEN {<<>>} ELSE { <<tr>> \\o suffix: tr \\in Head(pref), suffix \\in PrefixesToExes(Tail(pref)) }",
+    "IF BadExes \\intersect PrefixesToExes(pPrefixes) /= {} THEN \"sat\" ELSE \"unsat\"",
+    "IF IsInvariantViolated(<<>>, {0}) THEN \"error\" ELSE \"working\"",
+    "IF enabled /= {} THEN IF IsInvariantViolated(prefixes, enabled) THEN /\\ prefixes' = Append(prefixes, enabled) /\\ state' = \"error\" /\\ UNCHANGED depth ELSE /\\ prefixes' = Append(prefixes, enabled) /\\ depth' = depth + 1 /\\ state' = IF (depth' >= MAX_DEPTH) THEN \"noerror\" ELSE state ELSE /\\ UNCHANGED <<prefixes, depth>> /\\ state' = \"deadlock\"",
+    "IF IsInvariantViolated(prefixes, enabled) THEN /\\ prefixes' = Append(prefixes, enabled) /\\ state' = \"error\" /\\ UNCHANGED depth ELSE /\\ prefixes' = Append(prefixes, enabled) /\\ depth' = depth + 1 /\\ state' = IF (depth' >= MAX_DEPTH) THEN \"noerror\" ELSE state",
+    "IF (depth' >= MAX_DEPTH) THEN \"noerror\" ELSE state"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ <<0, 1, 3, 2, 3, 3>> }",
+    "{<<>>}",
+    "{}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "\\intersect",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "PrefixesToExes(pref)",
+    "PrefixesToExes(pPrefixes)",
+    "SMT(Append(pPrefixes, {tr}))",
+    "IsInvariantViolated(<<>>, {0})",
+    "IsInvariantViolated(prefixes, enabled)",
+    "Append(pPrefixes, {tr})",
+    "Append(prefixes, enabled)",
+    "Head(pref)",
+    "Tail(pref)",
+    "PrefixesToExes(Tail(pref))"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<0, 1, 3, 2, 3, 3>>",
+    "<<prefixes, depth, state>>",
+    "<<>>",
+    "<<tr>>",
+    "<<{0}>>",
+    "<<prefixes, depth>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    ">=",
+    "<="
+  ],
+  "RangeExpr": [
+    "1..NTRANS"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "sat",
+    "unsat",
+    "error",
+    "working",
+    "noerror",
+    "deadlock"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "prefixes",
+    "state",
+    "depth"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED depth",
+    "UNCHANGED <<prefixes, depth>>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed from `NamesInLet` to `LetInNames` and kept as `[]` | Reason: Required field name per schema/checklist; module has no LET-IN definitions\nField: Quantifiers | Change: Removed `\\\\A` | Reason: `\\\\A` does not appear anywhere in the TLA+ file; only `\\\\E` appears\nField: IfThenElse | Change: Removed trailing context markers like `(in PrefixesToExes)`, `(in SMT)`, `(in Init)`, `(in NextStep)` from all entries | Reason: Phase 3 requires values to appear in the file; those annotated strings do not appear verbatim\nField: SetOperators | Change: Retained operator set as actual file contents | Reason: `\\\\intersect` and `SUBSET` both appear in the file\nField: FunctionApplication | Change: Added function application expressions appearing in the file | Reason: Field was incorrectly empty despite multiple literal applications being present\nField: OperatorDefNames | Change: Verified unchanged; count confirmed | Reason: Top-level `==` definition count in file = 12, JSON `OperatorDefNames` count = 12; complete and no extras detected\nField: ActionDefNames | Change: Verified unchanged | Reason: `NextStep` primes variables directly; `Finished` is an action with `UNCHANGED vars`; `Next` is composition `NextStep \\\\/ Finished`\nField: AssumptionNames | Change: Verified unchanged as `[]` | Reason: No `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks in the file\nField: FunctionOverride | Change: Verified unchanged as `[]` | Reason: No `[f EXCEPT ![e] = v]` forms in the file\nField: RecordAccess | Change: Verified unchanged as `[]` | Reason: No `e.field` expressions appear in the file\nField: EnabledExprs | Change: Verified unchanged as `[]` | Reason: No `ENABLED` expressions appear in the file\nField: TemporalSubscript | Change: Verified unchanged as `[]` | Reason: No temporal subscript formulas appear in the file\nField: AlwaysOp | Change: Verified unchanged as `[]` | Reason: No outermost `[]` formulas appear in the file\nField: EventuallyOp | Change: Verified unchanged as `[]` | Reason: No outermost `<>` formulas appear in the file\nField: LeadsToOp | Change: Verified unchanged as `[]` | Reason: No outermost `~>` formulas appear in the file\nField: GuaranteesOp | Change: Verified unchanged as `[]` | Reason: No outermost `-+->` formulas appear in the file\nField: FairnessConditions | Change: Verified unchanged as `[]` | Reason: No `WF_` or `SF_` expressions in `Spec`/`Spec0`; in fact no `Spec` or `Spec0` operator exists\nField: UnchangedExprs | Change: Verified unchanged | Reason: All distinct `UNCHANGED` expressions in file are present exactly once\nField: PrimedVariables | Change: Verified unchanged | Reason: All variables appearing primed anywhere in the file are `prefixes`, `state`, and `depth`",
+  "OperatorDefNames_StatePredicate": [
+    "IsInvariantViolated",
+    "NeverError",
+    "NeverDeadlock"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Transitions",
+    "BadExes",
+    "vars",
+    "PrefixesToExes",
+    "SMT"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<prefixes, depth>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SeqBMC/SeqBMC.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "IsInvariantViolated is classified as a StatePredicate: it is Boolean-valued, uses no primed variables, and contains no temporal operators, even though it quantifies over enabled transitions and calls SMT.",
+    "PrefixesToExes and SMT are placed in ValueDef by elimination: both are non-action, non-temporal operators that compute values rather than state-transition relations; PrefixesToExes returns a set of sequences and SMT returns a string.",
+    "FunctionConstructor_ByDomain is empty because this module contains no [x \\in S |-> e] forms; all FunctionConstructor entries are therefore absent, and FunctionConstructor_SetType is also empty.",
+    "UnchangedExprs partition note: \"UNCHANGED depth\" is neither an explicit tuple form nor a var-ref to a previously defined tuple variable such as vars, so it does not fit either V3 subcategory even though it remains in UnchangedExprs.",
+    "TemporalNesting is false. No temporal operator ([] , <> , ~>) appears explicitly anywhere in the file.",
+    "CorpusSource inferred from module name because repository folder cannot be determined from file content.",
+    "VerificationTools includes Apalache because the header comment explicitly says the module models sequential bounded model checking implemented in Apalache 0.5.x. TLC is also applicable because the module is an ordinary finite-state TLA+ state-machine spec with Init and Next-style actions and no Apalache-only syntax.",
+    "Partition count: StatePredicate(3) + TemporalProperty(0) + Init(1) + ValueDef(5) + ActionDefNames(3) = OperatorDefNames(12). Verified."
+  ]
+}

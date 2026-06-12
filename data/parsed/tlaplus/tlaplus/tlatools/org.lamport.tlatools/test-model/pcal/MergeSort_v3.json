@@ -1,0 +1,329 @@
+{
+  "id": null,
+  "Specification": "This module specifies and model checks a recursive mergesort algorithm translated from a PlusCal procedure into TLA+. It models sorting arrays of values in 1..N for all lengths up to ArrayLen, using an auxiliary buffer b and an explicit call stack to represent recursive procedure calls. The specification checks termination under weak fairness of Next and asserts a safety property that when the program counter reaches \"Done\", the array is sorted in nondecreasing order.",
+  "ModuleName": "MergeSort",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "ArrayLen",
+    "defaultInitValue"
+  ],
+  "VariableNames": [
+    "pc",
+    "a",
+    "b",
+    "stack",
+    "l",
+    "r",
+    "i",
+    "j",
+    "k",
+    "m"
+  ],
+  "AssumptionNames": [
+    "ArrayLen \\in Nat",
+    "Print(<<\"Testing Mergesort on all arrays of length <= \", ArrayLen>>, TRUE)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "PermsOf",
+    "vars",
+    "Init",
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "mergesort",
+    "main",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "Invariant",
+    "Sorted",
+    "MergeStep",
+    "PossibleCounts"
+  ],
+  "ActionDefNames": [
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "l8",
+    "mergesort",
+    "main",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Automorphism",
+    "f"
+  ],
+  "LetInNames": [
+    "Automorphism",
+    "f",
+    "p"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF r - l > 0 THEN /\\ m' = ((r + l) \\div 2)\n                 /\\ pc' = \"l2\"\n            ELSE /\\ pc' = \"l8\"\n                 /\\ m' = m",
+    "IF i \\geq l\n            THEN /\\ b' = [b EXCEPT ![i] = a[i]]\n                 /\\ i' = i - 1\n                 /\\ pc' = \"l5\"\n                 /\\ j' = j\n            ELSE /\\ IF m \\geq l\n                       THEN /\\ i' = l\n                       ELSE /\\ PrintT(\"not sure of semantics of Pascal\")\n                            /\\ i' = (CHOOSE x \\in {} : FALSE)\n                 /\\ j' = m + 1\n                 /\\ pc' = \"l6\"\n                 /\\ b' = b",
+    "IF m \\geq l\n                       THEN /\\ i' = l\n                       ELSE /\\ PrintT(\"not sure of semantics of Pascal\")\n                            /\\ i' = (CHOOSE x \\in {} : FALSE)",
+    "IF j \\leq r\n            THEN /\\ b' = [b EXCEPT ![r + m + 1 - j] = a[j]]\n                 /\\ j' = j + 1\n                 /\\ pc' = \"l6\"\n                 /\\ UNCHANGED << i, k >>\n            ELSE /\\ IF m+1 \\leq r\n                       THEN /\\ j' = r\n                            /\\ i' = i\n                       ELSE /\\ PrintT(\"not sure of semantics of Pascal\")\n                            /\\ i' = (CHOOSE x \\in {} : FALSE)\n                            /\\ j' = j\n                 /\\ k' = l\n                 /\\ pc' = \"l7\"\n                 /\\ b' = b",
+    "IF m+1 \\leq r\n                       THEN /\\ j' = r\n                            /\\ i' = i\n                       ELSE /\\ PrintT(\"not sure of semantics of Pascal\")\n                            /\\ i' = (CHOOSE x \\in {} : FALSE)\n                            /\\ j' = j",
+    "IF k \\leq r\n            THEN /\\ IF b[i] < b[j]\n                       THEN /\\ a' = [a EXCEPT ![k] = b[i]]\n                            /\\ i' = i + 1\n                            /\\ j' = j\n                       ELSE /\\ a' = [a EXCEPT ![k] = b[j]]\n                            /\\ j' = j - 1\n                            /\\ i' = i\n                 /\\ k' = k + 1\n                 /\\ pc' = \"l7\"\n            ELSE /\\ pc' = \"l8\"\n                 /\\ UNCHANGED << a, i, j, k >>",
+    "IF b[i] < b[j]\n                       THEN /\\ a' = [a EXCEPT ![k] = b[i]]\n                            /\\ i' = i + 1\n                            /\\ j' = j\n                       ELSE /\\ a' = [a EXCEPT ![k] = b[j]]\n                            /\\ j' = j - 1\n                            /\\ i' = i"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{[1..N -> 1..N] : N \\in 0..ArrayLen}"
+  ],
+  "SetOperators": [
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[S -> S]",
+    "[x \\in DOMAIN g |-> f[g[x]]]",
+    "[1..N -> 1..N]",
+    "[x \\in DOMAIN a |-> 99]"
+  ],
+  "FunctionApplication": [
+    "f[x]",
+    "g[x]",
+    "a[i]",
+    "a[j]",
+    "b[i]",
+    "b[j]",
+    "a[x]",
+    "a[y]",
+    "TLCGet(\"all:named\")[\"s:_possible\"]",
+    "p[\"Sorted\"]",
+    "p[\"MergeStep\"]"
+  ],
+  "FunctionOverride": [
+    "[b EXCEPT ![i] = a[i]]",
+    "[b EXCEPT ![r + m + 1 - j] = a[j]]",
+    "[a EXCEPT ![k] = b[i]]",
+    "[a EXCEPT ![k] = b[j]]"
+  ],
+  "RecordConstructor": [
+    "[ procedure |->  \"mergesort\",\n                          pc        |->  \"l3\",\n                          i         |->  i,\n                          j         |->  j,\n                          k         |->  k,\n                          m         |->  m,\n                          l         |->  l,\n                          r         |->  r ]",
+    "[ procedure |->  \"mergesort\",\n                          pc        |->  \"l4\",\n                          i         |->  i,\n                          j         |->  j,\n                          k         |->  k,\n                          m         |->  m,\n                          l         |->  l,\n                          r         |->  r ]",
+    "[ procedure |->  \"mergesort\",\n                            pc        |->  \"Done\",\n                            i         |->  i,\n                            j         |->  j,\n                            k         |->  k,\n                            m         |->  m,\n                            l         |->  l,\n                            r         |->  r ]"
+  ],
+  "RecordAccess": [
+    "Head(stack).pc",
+    "Head(stack).i",
+    "Head(stack).j",
+    "Head(stack).k",
+    "Head(stack).m",
+    "Head(stack).l",
+    "Head(stack).r"
+  ],
+  "TupleConstructor": [
+    "<<\"Testing Mergesort on all arrays of length <= \", ArrayLen>>",
+    "<< >>",
+    "<< pc, a, b, stack, l, r, i, j, k, m >>",
+    "<< a, b, stack, l, r, i, j, k >>",
+    "<< [ procedure |->  \"mergesort\",\n                          pc        |->  \"l3\",\n                          i         |->  i,\n                          j         |->  j,\n                          k         |->  k,\n                          m         |->  m,\n                          l         |->  l,\n                          r         |->  r ] >>",
+    "<< a, b >>",
+    "<< [ procedure |->  \"mergesort\",\n                          pc        |->  \"l4\",\n                          i         |->  i,\n                          j         |->  j,\n                          k         |->  k,\n                          m         |->  m,\n                          l         |->  l,\n                          r         |->  r ] >>",
+    "<< a, b, stack, l, r, j, k, m >>",
+    "<< a, stack, l, r, k, m >>",
+    "<< i, k >>",
+    "<< a, stack, l, r, m >>",
+    "<< a, i, j, k >>",
+    "<< b, stack, l, r, m >>",
+    "<< [ procedure |->  \"mergesort\",\n                            pc        |->  \"Done\",\n                            i         |->  i,\n                            j         |->  j,\n                            k         |->  k,\n                            m         |->  m,\n                            l         |->  l,\n                            r         |->  r ] >>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "\\div"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..N",
+    "0..ArrayLen"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in {} : FALSE"
+  ],
+  "StringLiterals": [
+    "Testing Mergesort on all arrays of length <= ",
+    "not sure of semantics of Pascal",
+    "main",
+    "l1",
+    "l2",
+    "l8",
+    "mergesort",
+    "l3",
+    "l4",
+    "l5",
+    "l6",
+    "l7",
+    "Done",
+    "all:named",
+    "s:_possible",
+    "Sorted",
+    "MergeStep"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "m",
+    "pc",
+    "l",
+    "r",
+    "stack",
+    "i",
+    "j",
+    "k",
+    "b",
+    "a"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << a, b, stack, l, r, i, j, k >>",
+    "UNCHANGED << a, b >>",
+    "UNCHANGED << a, b, stack, l, r, j, k, m >>",
+    "UNCHANGED << a, stack, l, r, k, m >>",
+    "UNCHANGED << i, k >>",
+    "UNCHANGED << a, stack, l, r, m >>",
+    "UNCHANGED << a, i, j, k >>",
+    "UNCHANGED << b, stack, l, r, m >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(Next)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(pc = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: ActionDefNames | Change: removed \"MergeStep\" | Reason: MergeStep is a state/action predicate fragment, not a top-level action definition that updates module variables by definition or composition.\nField: LocalOperatorNames | Change: added \"f\" | Reason: LET-bound local operator `f ** g == [x \\in DOMAIN g |-> f[g[x]]]` is a parametric local definition.\nField: NamesInLet | Change: renamed field to \"LetInNames\" and preserved entries | Reason: required field name per schema/check instructions is `LetInNames`.\nField: IfThenElse | Change: replaced paraphrases with verbatim TLA+ IF/THEN/ELSE expressions | Reason: entries must appear in the file; prior values did not occur verbatim.\nField: RecordConstructor | Change: reformatted entries to match multiline verbatim record constructors from the file | Reason: values must appear in the TLA+ file verbatim.\nField: TupleConstructor | Change: reformatted tuple entries containing multiline records to match file text | Reason: values must appear in the TLA+ file verbatim.\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME blocks are not proof commands, and this value does not belong in ProofCommands.\nField: PlusCalAlgorithm | Change: changed from [\"Mergesort\"] to [] | Reason: the PlusCal algorithm is inside a comment; field must be [] when no active PlusCal extraction content is present, never inferred from commented text.\nField: OperatorDefNames | Change: verified count remains 21 | Reason: top-level `==` definition count in file is 21, matching JSON completeness requirement.",
+  "OperatorDefNames_StatePredicate": [
+    "Invariant",
+    "Sorted",
+    "PossibleCounts"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "PermsOf",
+    "vars",
+    "MergeStep"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[x \\in DOMAIN g |-> f[g[x]]]",
+    "[x \\in DOMAIN a |-> 99]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[S -> S]",
+    "[1..N -> 1..N]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << a, b, stack, l, r, i, j, k >>",
+    "UNCHANGED << a, b >>",
+    "UNCHANGED << a, b, stack, l, r, j, k, m >>",
+    "UNCHANGED << a, stack, l, r, k, m >>",
+    "UNCHANGED << i, k >>",
+    "UNCHANGED << a, stack, l, r, m >>",
+    "UNCHANGED << a, i, j, k >>",
+    "UNCHANGED << b, stack, l, r, m >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MergeSort/MergeSort.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "MergeStep contains a primed variable and is not in ActionDefNames, so it is placed in ValueDef by elimination as a non-temporal helper predicate fragment rather than in StatePredicate.",
+    "PossibleCounts is Boolean-valued with no primed variables and no temporal operators, so it is placed in StatePredicate even though it is a TLC-specific counting check rather than a classical invariant.",
+    "Partition count: StatePredicate(3) + TemporalProperty(2) + Init(1) + ValueDef(3) + ActionDefNames(12) = OperatorDefNames(21). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred using the module name as folder name because the repository folder could not be determined from file content."
+  ]
+}

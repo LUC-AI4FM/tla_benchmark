@@ -1,0 +1,344 @@
+{
+  "id": null,
+  "Specification": "This module contains TLAPS proofs for a CRDT specification imported from the module CRDT. It proves safety-style results such as type correctness, an invariant called Safety, and a monotonicity property, and then develops a natural-number-valued termination measure based on the disagreement between nodes' replicated counters. Using that measure together with fairness assumptions for the Gossip action, it proves convergence/liveness results showing that under fair gossip all nodes eventually agree on the counter values.",
+  "ModuleName": "CRDT_proof",
+  "ExtendsModules": [
+    "CRDT",
+    "Functions",
+    "NaturalsInduction",
+    "TLAPS"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM TypeCorrect == Spec => []TypeOK",
+    "THEOREM Safe == Spec => []Safety",
+    "THEOREM Spec => Monotonicity",
+    "LEMMA SumType ==\n  ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) \\in Nat",
+    "LEMMA SumIsZero ==\n  ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) = 0 <=> \\A x \\in Node : f[x] = 0",
+    "LEMMA SumWeaklyMonotonic ==\n  ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x]\n  PROVE  Sum(f) <= Sum(g)",
+    "LEMMA SumStronglyMonotonic ==\n  ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x],\n         \\E x \\in Node : f[x] < g[x]\n  PROVE  Sum(f) < Sum(g)",
+    "LEMMA MeasureType ==\n  ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : DistFun(o) \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o) \\in Nat\n         /\\ Measure \\in Nat",
+    "LEMMA MeasureTypePrime ==\n  ASSUME TypeOK', Safety'\n  PROVE  /\\ \\A o \\in Node : DistFun(o)' \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o)' \\in Nat\n         /\\ Measure' \\in Nat",
+    "LEMMA MeasureIsZero ==\n  ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : Distance(o) = 0 \n                 <=> \\A n \\in Node : counter[o][n] = counter[n][n]\n         /\\ Measure = 0\n            <=> \\A v,w,n \\in Node : counter[v][n] = counter[w][n]",
+    "LEMMA GossipDoesntIncreaseMeasure ==\n  ASSUME TypeOK, TypeOK', Safety, Safety',\n         [\\E n,o \\in Node : Gossip(n,o)]_vars\n  PROVE  /\\ \\A v,w \\in Node : DistFun(v)'[w] <= DistFun(v)[w]\n         /\\ \\A v \\in Node : Distance(v)' <= Distance(v)\n         /\\ Measure' <= Measure",
+    "LEMMA GossipDecreasesMeasure ==\n  ASSUME TypeOK, TypeOK', Safety, Safety',\n         <<\\E n,o \\in Node : Gossip(n,o)>>_vars\n  PROVE  Measure' < Measure",
+    "LEMMA EnabledGossip ==\n  ASSUME NEW n \\in Node, NEW o \\in Node, TypeOK\n  PROVE  (ENABLED <<Gossip(n,o)>>_vars) <=>\n         \\E v \\in Node : counter[o][v] < counter[n][v]",
+    "THEOREM OGLiveness == OGSpec => <>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "THEOREM FairSpec => Convergence",
+    "LEMMA EnabledGossip ==\n  ASSUME NEW n \\in Node, NEW o \\in Node, TypeOK\n  PROVE  (ENABLED <<Gossip(n,o)>>_vars) <=>\n         \\E v \\in Node : counter[o][v] < counter[n][v]",
+    "LEMMA MeasureType ==\n  ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : DistFun(o) \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o) \\in Nat\n         /\\ Measure \\in Nat",
+    "LEMMA MeasureTypePrime ==\n  ASSUME TypeOK', Safety'\n  PROVE  /\\ \\A o \\in Node : DistFun(o)' \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o)' \\in Nat\n         /\\ Measure' \\in Nat",
+    "LEMMA MeasureIsZero ==\n  ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : Distance(o) = 0 \n                 <=> \\A n \\in Node : counter[o][n] = counter[n][n]\n         /\\ Measure = 0\n            <=> \\A v,w,n \\in Node : counter[v][n] = counter[w][n]",
+    "LEMMA GossipDoesntIncreaseMeasure ==\n  ASSUME TypeOK, TypeOK', Safety, Safety',\n         [\\E n,o \\in Node : Gossip(n,o)]_vars\n  PROVE  /\\ \\A v,w \\in Node : DistFun(v)'[w] <= DistFun(v)[w]\n         /\\ \\A v \\in Node : Distance(v)' <= Distance(v)\n         /\\ Measure' <= Measure",
+    "LEMMA GossipDecreasesMeasure ==\n  ASSUME TypeOK, TypeOK', Safety, Safety',\n         <<\\E n,o \\in Node : Gossip(n,o)>>_vars\n  PROVE  Measure' < Measure",
+    "THEOREM OGLiveness == OGSpec => <>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "THEOREM Liveness == FairSpec => Convergence"
+  ],
+  "OperatorDefNames": [
+    "Sum",
+    "DistFun",
+    "Distance",
+    "Measure",
+    "OGSpec"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "P",
+    "L",
+    "Max",
+    "C"
+  ],
+  "LetInNames": [
+    "Q",
+    "P",
+    "L",
+    "OGNext",
+    "ctr",
+    "C",
+    "S"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF a > b THEN a ELSE b"
+  ],
+  "CaseExpr": [
+    "CASE \\E n,o \\in Node : Gossip(n,o)",
+    "CASE w = o",
+    "CASE w # o",
+    "CASE <<Gossip(n,o)>>_counter",
+    "CASE m = 0",
+    "CASE m > 0",
+    "CASE counter[a][c] < counter[b][c]",
+    "CASE counter[b][c] < counter[a][c]"
+  ],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Node |-> counter[n][n] - counter[o][n]]",
+    "[o \\in Node |-> Distance(o)]",
+    "[Node -> Nat]",
+    "[nv \\in Node |-> Max(counter[n][nv], counter[o][nv])]"
+  ],
+  "FunctionApplication": [
+    "FoldFunction(+, 0, f)",
+    "Sum(f)",
+    "f[x]",
+    "g[x]",
+    "DistFun(o)",
+    "Distance(o)",
+    "counter[n]",
+    "counter[o]",
+    "counter[n][n]",
+    "counter[o][n]",
+    "counter[v][n]",
+    "counter[w][n]",
+    "DistFun(v)[w]",
+    "DistFun(v)'[w]",
+    "DistFun(o)'[v]",
+    "DistFun(o)[v]",
+    "counter[o][v]",
+    "counter[n][v]",
+    "ctr[o][v]",
+    "counter[a][c]",
+    "counter[b][c]",
+    "C(u,v)",
+    "Gossip(n,o)",
+    "Gossip(u,v)",
+    "P(m)",
+    "P(k)",
+    "L(k)",
+    "L(m)",
+    "S(k)",
+    "S(m)"
+  ],
+  "FunctionOverride": [
+    "[counter EXCEPT ![o] = [nv \\in Node |-> Max(counter[n][nv], counter[o][nv])]]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<Gossip(n,o)>>_vars",
+    "<<Gossip(n,o)>>_counter",
+    "<<\\E n,o \\in Node : Gossip(n,o)>>_vars",
+    "<<OGNext>>_vars",
+    "<<Gossip(u,v)>>_vars"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. (m-1)",
+    "0 .. m"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "counter"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [
+    "ENABLED <<Gossip(n,o)>>_vars",
+    "ENABLED <<Gossip(u,v)>>_vars"
+  ],
+  "TemporalSubscript": [
+    "[Next]_vars",
+    "[Monotonic]_vars",
+    "[\\E n,o \\in Node : Gossip(n,o)]_vars",
+    "<<\\E n,o \\in Node : Gossip(n,o)>>_vars",
+    "<<Gossip(n,o)>>_vars",
+    "[OGNext]_vars",
+    "<<OGNext>>_vars",
+    "[~OGNext]_vars",
+    "[][\\E n, o \\in Node : Gossip(n,o)]_vars",
+    "[][~OGNext]_vars",
+    "[][OGNext]_vars",
+    "WF_vars(Gossip(n,o))",
+    "WF_vars(Gossip(u,v))"
+  ],
+  "AlwaysOp": [
+    "[]TypeOK",
+    "[]Safety",
+    "[](TypeOK /\\ Safety)",
+    "[][\\E n, o \\in Node : Gossip(n,o)]_vars",
+    "[](\\A n, o \\in Node : WF_vars(Gossip(n,o)))",
+    "[](P(m) => <>Q)",
+    "[](OGSpec => L(m))",
+    "[](P(m) => [](\\E k \\in 0 .. m : P(k)))",
+    "[](P(m) /\\ <><<OGNext>>_vars => <> \\E k \\in 0 .. (m-1) : P(k))",
+    "[](P(m) /\\ [][~OGNext]_vars => <> \\E k \\in 0 .. (m-1) : P(k))",
+    "[]C(u,v)",
+    "[]((\\E k \\in 0 .. (m-1) : P(k)) => <>Q)",
+    "[]((\\E m \\in Nat : P(m)) => <>Q)",
+    "[]WF_vars(Gossip(n,o))"
+  ],
+  "EventuallyOp": [
+    "<>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "<>Q",
+    "<><<OGNext>>_vars",
+    "<> \\E k \\in 0 .. (m-1) : P(k)",
+    "<>(\\E k \\in 0 .. (m-1) : P(k))"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A n, o \\in Node : WF_vars(Gossip(n,o))"
+  ],
+  "ProofHints": [
+    "PTL",
+    "Zenon",
+    "Isa"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "OMITTED",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "HIDE",
+    "HAVE",
+    "NEW"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>2",
+    "<1>",
+    "<2>1",
+    "<2>2",
+    "<2>",
+    "<3>1",
+    "<3>2",
+    "<3>",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>",
+    "<5>1",
+    "<5>2",
+    "<5>3",
+    "<5>",
+    "<6>",
+    "<6>1",
+    "<6>2",
+    "<6>3"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) \\in Nat",
+    "ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) = 0 <=> \\A x \\in Node : f[x] = 0",
+    "ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x]\n  PROVE  Sum(f) <= Sum(g)",
+    "ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x],\n         \\E x \\in Node : f[x] < g[x]\n  PROVE  Sum(f) < Sum(g)",
+    "ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : DistFun(o) \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o) \\in Nat\n         /\\ Measure \\in Nat",
+    "ASSUME TypeOK', Safety'\n  PROVE  /\\ \\A o \\in Node : DistFun(o)' \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o)' \\in Nat\n         /\\ Measure' \\in Nat",
+    "ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : Distance(o) = 0 \n                 <=> \\A n \\in Node : counter[o][n] = counter[n][n]\n         /\\ Measure = 0\n            <=> \\A v,w,n \\in Node : counter[v][n] = counter[w][n]",
+    "ASSUME TypeOK, TypeOK', Safety, Safety',\n         [\\E n,o \\in Node : Gossip(n,o)]_vars\n  PROVE  /\\ \\A v,w \\in Node : DistFun(v)'[w] <= DistFun(v)[w]\n         /\\ \\A v \\in Node : Distance(v)' <= Distance(v)\n         /\\ Measure' <= Measure",
+    "ASSUME TypeOK, TypeOK', Safety, Safety',\n         <<\\E n,o \\in Node : Gossip(n,o)>>_vars\n  PROVE  Measure' < Measure",
+    "ASSUME NEW n \\in Node, NEW o \\in Node, TypeOK\n  PROVE  (ENABLED <<Gossip(n,o)>>_vars) <=>\n         \\E v \\in Node : counter[o][v] < counter[n][v]",
+    "ASSUME TypeOK, Safety, P(m)\n                        PROVE  \\E n,o \\in Node : C(n,o)",
+    "ASSUME NEW u \\in Node, NEW v \\in Node\n                        PROVE  C(u,v) /\\ [][OGNext]_vars /\\ [][~OGNext]_vars => []C(u,v)",
+    "ASSUME NEW u \\in Node, NEW v \\in Node\n               PROVE  OGSpec /\\ [](\\E k \\in 0 .. m : P(k)) /\\ []C(u,v)\n                      => <> \\E k \\in 0 .. (m-1) : P(k)",
+    "ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) \\in Nat",
+    "ASSUME NEW f \\in [Node -> Nat]\n  PROVE  Sum(f) = 0 <=> \\A x \\in Node : f[x] = 0",
+    "ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x]\n  PROVE  Sum(f) <= Sum(g)",
+    "ASSUME NEW f \\in [Node -> Nat], NEW g \\in [Node -> Nat],\n         \\A x \\in Node : f[x] <= g[x],\n         \\E x \\in Node : f[x] < g[x]\n  PROVE  Sum(f) < Sum(g)",
+    "ASSUME NEW n \\in Node, NEW o \\in Node, TypeOK\n  PROVE  (ENABLED <<Gossip(n,o)>>_vars) <=>\n         \\E v \\in Node : counter[o][v] < counter[n][v]",
+    "ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : DistFun(o) \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o) \\in Nat\n         /\\ Measure \\in Nat",
+    "ASSUME TypeOK', Safety'\n  PROVE  /\\ \\A o \\in Node : DistFun(o)' \\in [Node -> Nat]\n         /\\ \\A o \\in Node : Distance(o)' \\in Nat\n         /\\ Measure' \\in Nat",
+    "ASSUME TypeOK, Safety\n  PROVE  /\\ \\A o \\in Node : Distance(o) = 0 \n                 <=> \\A n \\in Node : counter[o][n] = counter[n][n]\n         /\\ Measure = 0\n            <=> \\A v,w,n \\in Node : counter[v][n] = counter[w][n]",
+    "ASSUME TypeOK, TypeOK', Safety, Safety',\n         [\\E n,o \\in Node : Gossip(n,o)]_vars\n  PROVE  /\\ \\A v,w \\in Node : DistFun(v)'[w] <= DistFun(v)[w]\n         /\\ \\A v \\in Node : Distance(v)' <= Distance(v)\n         /\\ Measure' <= Measure",
+    "ASSUME TypeOK, TypeOK', Safety, Safety',\n         <<\\E n,o \\in Node : Gossip(n,o)>>_vars\n  PROVE  Measure' < Measure",
+    "ASSUME TypeOK, Safety, P(m)\n                        PROVE  \\E n,o \\in Node : C(n,o)",
+    "ASSUME NEW u \\in Node, NEW v \\in Node\n                        PROVE  C(u,v) /\\ [][OGNext]_vars /\\ [][~OGNext]_vars => []C(u,v)",
+    "ASSUME NEW u \\in Node, NEW v \\in Node\n               PROVE  OGSpec /\\ [](\\E k \\in 0 .. m : P(k)) /\\ []C(u,v)\n                      => <> \\E k \\in 0 .. (m-1) : P(k)"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level `==` definitions: file count = 5, JSON count = 5 | Reason: completeness check passed\nField: LocalOperatorNames | Change: removed `S` | Reason: `S` is a simple LET/DEFINE binding (`S(m) == ...` without parametric LET-block form requirement used for LocalOperatorNames in this schema pass)\nField: NamesInLet | Change: renamed field to `LetInNames` and retained entries | Reason: high-risk field name per prompt is `LetInNames`; schema alignment\nField: IfThenElse | Change: replaced `IF a > b THEN a ELSE b (in EnabledGossip)` with `IF a > b THEN a ELSE b` | Reason: field must contain the expression itself, not commentary\nField: CaseExpr | Change: removed all duplicate entries and stripped parenthetical commentary | Reason: deduplication and correctness; entries must appear verbatim\nField: PrimedVariables | Change: removed `vars` | Reason: `vars'` does not appear anywhere; only `counter` is actually primed\nField: TemporalSubscript | Change: removed `[]TypeOK`, `[]Safety`, `[](TypeOK /\\\\ Safety)`, `[](\\\\A n, o \\\\in Node : WF_vars(Gossip(n,o)))`, `[]C(u,v)`, `[]WF_vars(Gossip(n,o))`; added `[~OGNext]_vars` | Reason: `TemporalSubscript` should contain subscripted temporal/action forms, not plain always formulas; `[~OGNext]_vars` appears literally in file\nField: AlwaysOp | Change: removed malformed `[](A k \\\\in 0 .. (m-1) : OGSpec => L(k))` and malformed `[](A n,o \\\\in Node : WF_vars(Gossip(n,o)))` | Reason: these strings do not appear in file verbatim; outermost `[]` formulas retained only when exact\nField: FairnessConditions | Change: reduced entries to `\\\\A n, o \\\\in Node : WF_vars(Gossip(n,o))` | Reason: only WF/SF expressions from inside `Spec`/`Spec0`-style operator here are allowed; only quantified fairness appears inside `OGSpec`\nField: BooleanConstants | Change: confirmed `[]` | Reason: file contains no `TRUE` or `FALSE`\nField: AssumptionNames | Change: confirmed `[]` | Reason: file contains no top-level `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks\nField: RecordAccess | Change: confirmed `[]` | Reason: no literal `e.field` record access expressions appear\nField: StringLiterals | Change: confirmed `[]` | Reason: no double-quoted string literals appear in this proof module\nField: ActionDefNames | Change: confirmed `[]` | Reason: no top-level action operators are defined in this module\nField: FunctionOverride | Change: confirmed non-empty existing entry | Reason: `[counter EXCEPT ![o] = ...]` appears in file and was correctly captured",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [
+    "OGSpec"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "Sum",
+    "DistFun",
+    "Distance",
+    "Measure"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> counter[n][n] - counter[o][n]]",
+    "[o \\in Node |-> Distance(o)]",
+    "[nv \\in Node |-> Max(counter[n][nv], counter[o][nv])]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/CRDT_proof/CRDT_proof.tla",
+  "VerificationTools": [
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(1) + Init(0) + ValueDef(4) + ActionDefNames(0) = OperatorDefNames(5). Verified.",
+    "OGSpec is placed in TemporalProperty because its body is a conjunction of temporal formulas headed by [] and fairness conditions.",
+    "Sum, DistFun, Distance, and Measure are placed in ValueDef by elimination: they define computed values/functions, are not actions, not init predicates, and not temporal properties.",
+    "TemporalNesting is true. Exact line from the file: \"    <3>1. OGSpec => [](P(m) => [](\\E k \\in 0 .. m : P(k)))\""
+  ]
+}

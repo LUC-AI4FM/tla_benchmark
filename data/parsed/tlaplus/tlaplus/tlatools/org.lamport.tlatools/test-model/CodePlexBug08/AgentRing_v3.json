@@ -1,0 +1,262 @@
+{
+  "id": null,
+  "Specification": "This specification models a load-balancing agent moving around a ring of N nodes. Each node stores a natural-number load, the agent remembers the last load it observed, can carry at most one task, and alternates between moving and inspecting the current node to pick up or drop a task based on the difference between the current and previous loads. The environment can nondeterministically create additional tasks at a node while creation is enabled, and the spec defines an initial condition, a next-state relation, a fairness-constrained behavior specification, and several temporal properties including a liveness-style claim about task creation stopping and safety-style formulas about balanced loads and the agent carrying no task.",
+  "ModuleName": "AgentRing",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "Nodes",
+    "Agent",
+    "CanCreate"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat /\\ N > 1"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "NodeRange",
+    "RightNode",
+    "LeftNode",
+    "AgentState",
+    "NodeState",
+    "TypeInv",
+    "SumLoad",
+    "Init",
+    "Move",
+    "LookAndAct",
+    "Stop",
+    "CreateTasks",
+    "Next",
+    "Prog",
+    "Limits",
+    "Test",
+    "Test2",
+    "TestBogus"
+  ],
+  "ActionDefNames": [
+    "Move",
+    "LookAndAct",
+    "Stop",
+    "CreateTasks",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "Sum"
+  ],
+  "LocalOperatorNames": [
+    "Sum(_)"
+  ],
+  "LetInNames": [
+    "Sum",
+    "Here",
+    "There"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF n = N THEN 0 ELSE Nodes[n].Load + Sum(n+1)",
+    "IF Here > There /\\ Agent.Task = 0 THEN /\\ Agent' = [ Agent EXCEPT !.Task = 1, !.LastLoad = Here - 1, !.ReadyToMove = TRUE ] /\\ Nodes' = [ Nodes EXCEPT ![Agent.Loc].Load = @ - 1 ] ELSE IF Here < There /\\ Agent.Task = 1 THEN /\\ Agent' = [ Agent EXCEPT !.Task = 0, !.LastLoad = Here + 1, !.ReadyToMove = TRUE ] /\\ Nodes' = [ Nodes EXCEPT ![Agent.Loc].Load = @ + 1 ] ELSE /\\ Agent' = [ Agent EXCEPT !.LastLoad = Here, !.ReadyToMove = TRUE ] /\\ UNCHANGED Nodes",
+    "IF Here < There /\\ Agent.Task = 1 THEN /\\ Agent' = [ Agent EXCEPT !.Task = 0, !.LastLoad = Here + 1, !.ReadyToMove = TRUE ] /\\ Nodes' = [ Nodes EXCEPT ![Agent.Loc].Load = @ + 1 ] ELSE /\\ Agent' = [ Agent EXCEPT !.LastLoad = Here, !.ReadyToMove = TRUE ] /\\ UNCHANGED Nodes"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ NodeRange -> NodeState ]",
+    "[ i \\in NodeRange |-> [ Load |-> 0 ] ]"
+  ],
+  "FunctionApplication": [
+    "Nodes[n]",
+    "Nodes[Agent.Loc]",
+    "Nodes[i]",
+    "Nodes[j]",
+    "Sum(0)",
+    "Sum(n+1)",
+    "RightNode(@)"
+  ],
+  "FunctionOverride": [
+    "[ Agent EXCEPT !.Loc = RightNode(@), !.ReadyToMove = FALSE ]",
+    "[ Agent EXCEPT !.Task = 1, !.LastLoad = Here - 1, !.ReadyToMove = TRUE ]",
+    "[ Nodes EXCEPT ![Agent.Loc].Load = @ - 1 ]",
+    "[ Agent EXCEPT !.Task = 0, !.LastLoad = Here + 1, !.ReadyToMove = TRUE ]",
+    "[ Nodes EXCEPT ![Agent.Loc].Load = @ + 1 ]",
+    "[ Agent EXCEPT !.LastLoad = Here, !.ReadyToMove = TRUE ]",
+    "[ Nodes EXCEPT ![i].Load = @ + N ]"
+  ],
+  "RecordConstructor": [
+    "[ Loc : NodeRange, LastLoad : Nat, ReadyToMove : BOOLEAN, Task : 0 .. 1 ]",
+    "[ Load : Nat ]",
+    "[ Load |-> 0 ]",
+    "[ Loc |-> 0, LastLoad |-> 0, Task |-> 0, ReadyToMove |-> TRUE ]"
+  ],
+  "RecordAccess": [
+    "Nodes[n].Load",
+    "Agent.Task",
+    "Agent.ReadyToMove",
+    "Nodes[Agent.Loc].Load",
+    "Agent.Loc",
+    "Agent.LastLoad",
+    "Nodes[i].Load",
+    "Nodes[j].Load",
+    "Agent'.Task"
+  ],
+  "TupleConstructor": [
+    "<<Nodes, Agent, CanCreate>>",
+    "<<Nodes, CanCreate>>",
+    "<<Nodes, Agent>>",
+    "<<Agent, CanCreate>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*",
+    "%",
+    ".."
+  ],
+  "ComparisonOps": [
+    ">",
+    "<",
+    "\\leq"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "0 .. 1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "Agent",
+    "Nodes",
+    "CanCreate"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<Nodes, CanCreate>>",
+    "UNCHANGED Nodes",
+    "UNCHANGED <<Nodes, Agent>>",
+    "UNCHANGED <<Agent, CanCreate>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][~CanCreate /\\ (\\A i,j \\in NodeRange : Nodes[i].Load = Nodes[j].Load) => Agent'.Task = 0]_vars",
+    "WF_vars(Move)",
+    "WF_vars(LookAndAct)",
+    "WF_vars(Stop)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](~CanCreate /\\ (\\A i,j \\in NodeRange : Nodes[i].Load = Nodes[j].Load) => [](Agent.Task = 0))",
+    "[][~CanCreate /\\ (\\A i,j \\in NodeRange : Nodes[i].Load = Nodes[j].Load) => Agent'.Task = 0]_vars",
+    "[](~CanCreate)"
+  ],
+  "EventuallyOp": [
+    "<>[](~CanCreate)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Move)",
+    "WF_vars(LookAndAct)",
+    "WF_vars(Stop)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count remains 19 | Reason: top-level `==` definition count in file is 19 and JSON count is 19\nField: LocalOperatorNames | Change: changed `Sum` to `Sum(_)` | Reason: local operator here is a parametric LET-bound recursive definition, so it must be recorded as the parametric local operator form\nField: NamesInLet | Change: renamed field to `LetInNames` and kept entries `Sum`, `Here`, `There` | Reason: requested validation refers to `LetInNames`; `Here` and `There` are LET-bound names and `Sum` is also bound in LET\nField: IfThenElse | Change: replaced commentary-style entries with verbatim TLA+ IF expressions | Reason: values must appear in the file; prior entries contained annotations like `(in SumLoad)` and prose comments not present verbatim\nField: SetOperators | Change: removed `DOMAIN` | Reason: `DOMAIN` does not appear anywhere in the TLA+ file\nField: FunctionApplication | Change: added `Sum(0)`, `Sum(n+1)`, `RightNode(@)` | Reason: these function/operator applications appear in the file and were missing\nField: RecordAccess | Change: added `Agent.Loc`, `Agent.LastLoad`, `Agent'.Task` | Reason: these record field accesses literally appear in the file and must be included\nField: ArithmeticOps | Change: added `..` and removed `>=` from related comparison coverage | Reason: range operator `..` appears in the file; `>=` does not appear\nField: ComparisonOps | Change: removed `>=` | Reason: `>=` does not exist in the file\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` here is a specification assumption, not a proof command; this module has no proof commands\nField: TemporalSubscript | Change: reordered to include the full subscripted temporal formulas and fairness expressions only | Reason: confirmed entries must literally appear; existing content was valid but normalized after full scan\nField: AssumptionNames | Change: verified unchanged | Reason: the single unnamed ASSUME block is `N \\in Nat /\\ N > 1`\nField: FunctionOverride | Change: verified unchanged | Reason: all seven EXCEPT expressions in the file are present exactly once\nField: UnchangedExprs | Change: verified unchanged | Reason: all four distinct UNCHANGED expressions in the file are present exactly once\nField: FairnessConditions | Change: verified unchanged | Reason: only WF/SF expressions inside `Prog` are `WF_vars(Move)`, `WF_vars(LookAndAct)`, `WF_vars(Stop)`",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInv",
+    "Limits"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Prog",
+    "Test",
+    "Test2",
+    "TestBogus"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "NodeRange",
+    "RightNode",
+    "LeftNode",
+    "AgentState",
+    "NodeState",
+    "SumLoad"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in NodeRange |-> [ Load |-> 0 ] ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ NodeRange -> NodeState ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<Nodes, CanCreate>>",
+    "UNCHANGED <<Nodes, Agent>>",
+    "UNCHANGED <<Agent, CanCreate>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED Nodes"
+  ],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/AgentRing/AgentRing.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(4) + Init(1) + ValueDef(7) + ActionDefNames(5) = OperatorDefNames(19). Verified.",
+    "Test is placed in TemporalProperty because its body is headed by the temporal operator [].",
+    "TestBogus is placed in TemporalProperty because its body is of the form CanCreate => <>[](~CanCreate). The outermost operator is => but the meaning is temporal.",
+    "TemporalNesting is true. Exact line: TestBogus == CanCreate => <>[](~CanCreate)",
+    "Limits is classified as StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "The operator `UNCHANGED Nodes` is placed in UnchangedExprs_VarRef by the requested syntactic split, even though `Nodes` is a state variable rather than a tuple variable like `vars`."
+  ]
+}

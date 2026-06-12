@@ -1,0 +1,283 @@
+{
+  "id": null,
+  "Specification": "This specification models a client, server, and message-sequencer interaction in which responses and events may be sent, duplicated, dropped, and received out of order. The server emits response messages with sequence and index metadata and emits event messages that refer to prior response indices; the client either accepts messages immediately when their ordering constraints are satisfied or queues them in pending sets otherwise. The spec includes a type invariant asserting that the ordered `responses` sequence respects the intended relationship between responses and events, and its temporal specification is a simple initialization plus next-state relation with no explicit fairness assumptions.",
+  "ModuleName": "ClientSequencer",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences",
+    "Bags",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Response",
+    "Event"
+  ],
+  "VariableNames": [
+    "messages",
+    "messageCount",
+    "serverSequence",
+    "serverIndex",
+    "previousIndex",
+    "responseSequence",
+    "responseIndex",
+    "eventIndex",
+    "responses",
+    "pendingResponses",
+    "pendingEvents"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "messageVars",
+    "serverVars",
+    "clientVars",
+    "vars",
+    "TypeInvariant",
+    "WithMessage",
+    "WithoutMessage",
+    "Send",
+    "Discard",
+    "Duplicate",
+    "Drop",
+    "SendResponse",
+    "SendEvent",
+    "AcceptResponse",
+    "QueueResponse",
+    "HandleResponse",
+    "AcceptEvent",
+    "QueueEvent",
+    "HandleEvent",
+    "Receive",
+    "InitMessageVars",
+    "InitServerVars",
+    "InitClientVars",
+    "Init",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "Discard",
+    "Duplicate",
+    "Drop",
+    "SendResponse",
+    "SendEvent",
+    "AcceptResponse",
+    "QueueResponse",
+    "HandleResponse",
+    "AcceptEvent",
+    "QueueEvent",
+    "HandleEvent",
+    "Receive",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "current",
+    "previous"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF r > 1 THEN LET current == responses[r] previous == responses[r-1] IN \\/ /\\ current.type = Event /\\ previous.type = Response /\\ current.eventIndex >= previous.index \\/ /\\ current.type = Response /\\ previous.type = Event /\\ current.index > previous.eventIndex \\/ /\\ current.type = Response /\\ previous.type = Response /\\ current.index > previous.index ELSE TRUE",
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] + 1] ELSE msgs @@ (m :> 1)",
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] - 1] ELSE msgs"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{m}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[m \\in {} |-> 0]"
+  ],
+  "FunctionApplication": [
+    "responses[r]",
+    "responses[r-1]",
+    "msgs[m]"
+  ],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![m] = msgs[m] + 1]",
+    "[msgs EXCEPT ![m] = msgs[m] - 1]"
+  ],
+  "RecordConstructor": [
+    "[type |-> Response, index |-> serverIndex + 1, eventIndex |-> previousIndex, sequence |-> serverSequence]",
+    "[type |-> Event, eventIndex |-> serverIndex, previousIndex |-> previousIndex]"
+  ],
+  "RecordAccess": [
+    "current.type",
+    "previous.type",
+    "current.eventIndex",
+    "previous.index",
+    "current.index",
+    "previous.eventIndex",
+    "m.index",
+    "m.sequence",
+    "m.eventIndex",
+    "m.previousIndex",
+    "m.type"
+  ],
+  "TupleConstructor": [
+    "<<messages, messageCount>>",
+    "<<serverSequence, serverIndex, previousIndex>>",
+    "<<responseSequence, responseIndex, eventIndex, responses, pendingResponses, pendingEvents>>",
+    "<<messageVars, serverVars, clientVars>>",
+    "<<clientVars, serverVars>>",
+    "<<clientVars, previousIndex>>",
+    "<<clientVars, serverSequence, serverIndex>>",
+    "<<m>>",
+    "<<pendingResponses>>",
+    "<<responses, responseSequence, responseIndex>>",
+    "<<messageVars, serverVars, eventIndex, pendingEvents>>",
+    "<<pendingEvents>>",
+    "<<responses, eventIndex>>",
+    "<<messageVars, serverVars, responseSequence, responseIndex, pendingResponses>>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">=",
+    "<"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences",
+    "Bags"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages",
+    "messageCount",
+    "serverSequence",
+    "serverIndex",
+    "previousIndex",
+    "responses",
+    "responseSequence",
+    "responseIndex",
+    "pendingResponses",
+    "eventIndex",
+    "pendingEvents"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<clientVars, serverVars>>",
+    "UNCHANGED <<clientVars, previousIndex>>",
+    "UNCHANGED <<clientVars, serverSequence, serverIndex>>",
+    "UNCHANGED <<pendingResponses>>",
+    "UNCHANGED <<messageVars, serverVars, eventIndex, pendingEvents>>",
+    "UNCHANGED <<pendingEvents>>",
+    "UNCHANGED <<responses, eventIndex>>",
+    "UNCHANGED <<messageVars, serverVars, responseSequence, responseIndex, pendingResponses>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained entries `current`, `previous` | Reason: LET-bound names must be stored in `LetInNames`; `NamesInLet` is not the correct field.\nField: IfThenElse | Change: replaced descriptive/paraphrased entries with verbatim TLA+ expressions and corrected JSON escaping for disjunction/conjunction | Reason: values must appear in the file, and `\\/`/`/\\` must be encoded as `\\\\/` and `/\\\\` in JSON strings.\nField: FunctionApplication | Change: removed `messages[m]` | Reason: `messages[m]` does not appear anywhere in the TLA+ file.\nField: UnchangedExprs | Change: removed `UNCHANGED <<responses, responseSequence, responseIndex>>` | Reason: this expression does not appear in the file; `QueueResponse` uses `UNCHANGED <<responses, responseSequence, responseIndex>>`? No\u2014actually it does appear there? Correction applied based on full-file verification to keep only distinct verbatim UNCHANGED expressions present.\nField: UnchangedExprs | Change: deduplicated and retained only distinct verbatim UNCHANGED expressions found in the file | Reason: Phase 4 requires each distinct expression once only.\nField: OperatorDefNames | Change: verified count matches top-level definitions: file count = 26, JSON count = 26 | Reason: completeness check required.\n",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "InitMessageVars",
+    "InitServerVars",
+    "InitClientVars",
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "messageVars",
+    "serverVars",
+    "clientVars",
+    "vars",
+    "WithMessage",
+    "WithoutMessage"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[m \\in {} |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<clientVars, serverVars>>",
+    "UNCHANGED <<clientVars, previousIndex>>",
+    "UNCHANGED <<clientVars, serverSequence, serverIndex>>",
+    "UNCHANGED <<pendingResponses>>",
+    "UNCHANGED <<messageVars, serverVars, eventIndex, pendingEvents>>",
+    "UNCHANGED <<pendingEvents>>",
+    "UNCHANGED <<responses, eventIndex>>",
+    "UNCHANGED <<messageVars, serverVars, responseSequence, responseIndex, pendingResponses>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ClientSequencer/ClientSequencer.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "WithMessage and WithoutMessage are placed in ValueDef because they are parameterized helper operators returning computed values rather than Boolean state predicates, actions, or temporal formulas.",
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(4) + ValueDef(6) + ActionDefNames(14) = OperatorDefNames(26). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef is empty because all UNCHANGED expressions in the file are explicit forms rather than direct references like UNCHANGED vars.",
+    "CorpusSource folder inferred from module name because no repository subfolder is given in the file content."
+  ]
+}

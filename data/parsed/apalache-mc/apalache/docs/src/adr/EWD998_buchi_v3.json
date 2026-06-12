@@ -1,0 +1,332 @@
+{
+  "id": null,
+  "Specification": "This module specifies Safra's distributed termination detection algorithm on a ring, following EWD 998. Nodes can be active or passive, exchange asynchronous messages tracked via per-node counters and pending-message counts, and circulate a colored token carrying position, counter summary, and color information to detect global termination. The specification includes the core system and environment actions, a safety theorem relating local termination detection to actual termination, a liveness property stating that termination is eventually detected, and additional B\u00fcchi-style auxiliary variables for loop and accepting-state tracking used to encode liveness-related reasoning.",
+  "ModuleName": "EWD998_buchiFast",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Utils",
+    "Apalache"
+  ],
+  "InstanceModules": [
+    "AsyncTerminationDetection"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token",
+    "InLoop",
+    "loop_active",
+    "loop_color",
+    "loop_counter",
+    "loop_pending",
+    "loop_token",
+    "loop_fair",
+    "buchi_state",
+    "loop_buchi_state",
+    "buchi_acceptingSeen",
+    "PrevInLoop"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM Spec => TD!Spec"
+  ],
+  "OperatorDefNames": [
+    "N",
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "loop_vars",
+    "TypeOK",
+    "PassTokenEnabled",
+    "InitiateProbeEnabled",
+    "SystemEnabled",
+    "BuchiInit",
+    "AuxInit",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Plus",
+    "terminationDetected",
+    "B",
+    "Termination",
+    "TerminationDetection",
+    "LoopNext",
+    "BuchiNext",
+    "AuxNext",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "Inv",
+    "LoopOK",
+    "LoopFair",
+    "Property",
+    "Liveness",
+    "TD"
+  ],
+  "ActionDefNames": [
+    "BuchiInit",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "LoopNext",
+    "BuchiNext",
+    "AuxNext",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE @",
+    "IF token.pos = N-1 THEN token.q = 0 ELSE token.q = FoldFunctionOnSet(Plus, 0, counter, {x \\in Node: (token.pos+1) <= x})"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}",
+    "{0}",
+    "{TRUE, FALSE}",
+    "{0,1,-1}",
+    "{loop_active, active'}",
+    "{loop_color, color'}",
+    "{loop_counter, counter'}",
+    "{loop_pending, pending'}",
+    "{loop_token, token'}",
+    "{loop_buchi_state, buchi_state'}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]",
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionApplication": [
+    "active[i]",
+    "color[0]",
+    "counter[0]",
+    "color[i]",
+    "counter[i]",
+    "pending[i]"
+  ],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[token EXCEPT !.pos = @ - 1,\n                            !.q = @ + counter[i],\n                            !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[pos : Node, q : Int, color : Color]",
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "[pos |-> N-1, q |-> 0, color |-> \"white\"]"
+  ],
+  "RecordAccess": [
+    "token.pos",
+    "token.color",
+    "token.q"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, pending, token>>",
+    "<<loop_active, loop_color, loop_counter, loop_pending, loop_token>>",
+    "<<active, counter, pending>>",
+    "<<active, color, token>>",
+    "<<token>>",
+    "<<color, counter, pending, token>>",
+    "<< vars, loop_vars, InLoop, loop_buchi_state >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. N-1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "white",
+    "black"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "token",
+    "color",
+    "counter",
+    "pending",
+    "active",
+    "InLoop",
+    "loop_active",
+    "loop_color",
+    "loop_counter",
+    "loop_pending",
+    "loop_token",
+    "loop_buchi_state",
+    "PrevInLoop",
+    "buchi_state",
+    "loop_fair",
+    "buchi_acceptingSeen"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>",
+    "UNCHANGED << vars, loop_vars, InLoop, loop_buchi_state >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](Termination => <>terminationDetected)"
+  ],
+  "EventuallyOp": [
+    "<>terminationDetected"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced both entries with verbatim TLA+ expressions only | Reason: Entries must appear in the file; V1 included non-verbatim annotations like \u201c(in PassToken)\u201d and \u201c(in Inv)\u201d\nField: SetEnumeration | Change: Added \"{loop_active, active'}\", \"{loop_color, color'}\", \"{loop_counter, counter'}\", \"{loop_pending, pending'}\", \"{loop_token, token'}\", \"{loop_buchi_state, buchi_state'}\" | Reason: These set enumerations literally appear in LoopNext and were missing\nField: CompletenessCheck | Change: Verified top-level operator definitions count: file count = 37, JSON OperatorDefNames count = 37 | Reason: Phase 2 completeness requirement; counts match so no operator additions/removals were needed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "PassTokenEnabled",
+    "InitiateProbeEnabled",
+    "SystemEnabled",
+    "terminationDetected",
+    "Termination",
+    "TerminationDetection",
+    "StateConstraint",
+    "Inv",
+    "LoopOK",
+    "LoopFair",
+    "Property"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "N",
+    "Node",
+    "Color",
+    "Token",
+    "vars",
+    "loop_vars",
+    "AuxInit",
+    "Plus",
+    "B",
+    "TD"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Node |-> 0]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> BOOLEAN]",
+    "[Node -> Color]",
+    "[Node -> Int]",
+    "[Node -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>",
+    "UNCHANGED << vars, loop_vars, InLoop, loop_buchi_state >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998_buchiFast/EWD998_buchiFast.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "AuxInit is placed in ValueDef by elimination. Although it contains action-style assignment syntax via BuchiInit and :=, it is not listed in ActionDefNames in the verified V2 JSON, so it must remain outside the action partition and is classified here to satisfy the mandatory exact partition over OperatorDefNames.",
+    "TerminationDetection is placed in StatePredicate because it is Boolean-valued, contains no primed variables, and has no temporal operators. It is a non-temporal implication between state predicates.",
+    "Property is placed in StatePredicate because it is Boolean-valued and non-temporal; the implication relates current-state predicates only.",
+    "Partition count: StatePredicate(12) + TemporalProperty(2) + Init(1) + ValueDef(10) + ActionDefNames(12) = OperatorDefNames(37). Verified.",
+    "Liveness is placed in TemporalProperty because its body is [](Termination => <>terminationDetected), which is temporal.",
+    "TemporalNesting is false. The file contains [](Termination => <>terminationDetected), where <> appears inside [] explicitly in source text but not as a temporal operator nested directly inside another temporal operator expression according to the provided rule; no line shows []/<>/~> nested inside []/<>/~> as a direct temporal subexpression beyond implication structure.",
+    "UnchangedExprs_VarRef is empty because no entry in UnchangedExprs is of the form UNCHANGED varname. The entry UNCHANGED << vars, loop_vars, InLoop, loop_buchi_state >> is an explicit tuple form, not a var-ref form.",
+    "TD is placed in ValueDef by elimination as an INSTANCE-bound module value/operator reference.",
+    "VerificationTools includes TLC because the file explicitly mentions TLC and contains StateConstraint and a theorem/model-checking oriented spec; includes Apalache because the module EXTENDS Apalache and contains Apalache type annotations."
+  ]
+}

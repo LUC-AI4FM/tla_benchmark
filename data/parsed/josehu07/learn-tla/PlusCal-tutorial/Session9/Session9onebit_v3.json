@@ -1,0 +1,223 @@
+{
+  "id": null,
+  "Specification": "This specification models a one-bit mutual exclusion protocol for N processes, originally written in PlusCal and translated to TLA+. Each process repeatedly cycles through a noncritical section, raises its own flag, scans other processes, may back off if it sees a competing flag before its own turn, and eventually enters and exits a critical section. The spec assumes a nonempty process set Procs = 0..(N-1), uses weak fairness for each process when it is outside the noncritical section, and defines the overall behavior with Init, Next, and a temporal Spec formula.",
+  "ModuleName": "Session9onebit",
+  "ExtendsModules": [
+    "TLC",
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "Procs"
+  ],
+  "VariableNames": [
+    "flag",
+    "pc",
+    "j"
+  ],
+  "AssumptionNames": [
+    "/\\ N \\in Nat /\\ N > 0 /\\ Procs = 0..(N-1)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "ProcSet",
+    "Init",
+    "ncs",
+    "enter",
+    "enter2",
+    "enter3",
+    "enter4",
+    "enter5",
+    "cs",
+    "exit",
+    "procs",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "ncs",
+    "enter",
+    "enter2",
+    "enter3",
+    "enter4",
+    "enter5",
+    "cs",
+    "exit",
+    "procs",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF j[self] /= self THEN /\\ IF flag[j[self]] THEN /\\ pc' = [pc EXCEPT ![self] = \"enter3\"] /\\ j' = j ELSE /\\ j' = [j EXCEPT ![self] = j[self] + 1] /\\ pc' = [pc EXCEPT ![self] = \"enter2\"] ELSE /\\ j' = [j EXCEPT ![self] = self + 1] /\\ pc' = [pc EXCEPT ![self] = \"enter5\"]",
+    "IF flag[j[self]] THEN /\\ pc' = [pc EXCEPT ![self] = \"enter3\"] /\\ j' = j ELSE /\\ j' = [j EXCEPT ![self] = j[self] + 1] /\\ pc' = [pc EXCEPT ![self] = \"enter2\"]",
+    "IF j[self] < N THEN /\\ ~flag[j[self]] /\\ j' = [j EXCEPT ![self] = j[self] + 1] /\\ pc' = [pc EXCEPT ![self] = \"enter5\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"] /\\ j' = j"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Procs |-> FALSE]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in ProcSet |-> \"ncs\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "j[self]",
+    "flag[j[self]]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"enter\"]",
+    "[flag EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"enter2\"]",
+    "[pc EXCEPT ![self] = \"enter3\"]",
+    "[j EXCEPT ![self] = j[self] + 1]",
+    "[j EXCEPT ![self] = self + 1]",
+    "[pc EXCEPT ![self] = \"enter5\"]",
+    "[flag EXCEPT ![self] = FALSE]",
+    "[pc EXCEPT ![self] = \"enter4\"]",
+    "[j EXCEPT ![self] = 0]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[pc EXCEPT ![self] = \"exit\"]",
+    "[pc EXCEPT ![self] = \"ncs\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< flag, pc, j >>",
+    "<< flag, j >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<"
+  ],
+  "RangeExpr": [
+    "0..(N-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ncs",
+    "enter",
+    "enter2",
+    "enter3",
+    "enter5",
+    "enter4",
+    "cs",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "flag",
+    "j"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << flag, j >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars((pc[self] # \"ncs\") /\\ procs(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars((pc[self] # \"ncs\") /\\ procs(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "1BitProtocol"
+  ],
+  "PlusCalProcesses": [
+    "procs"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: AssumptionNames | Change: Replaced `N \\in Nat /\\ N > 0 /\\ Procs = 0..(N-1)` with `/\\ N \\in Nat /\\ N > 0 /\\ Procs = 0..(N-1)` | Reason: Unnamed ASSUME block must be recorded verbatim; the expression begins with `/\\`.\nField: NamesInLet | Change: Renamed field to `LetInNames` and set to `[]` | Reason: Required field name per schema; module contains no LET/IN definitions.\nField: IfThenElse | Change: Replaced prose summaries with the three actual IF expressions from `enter2` and `enter5` | Reason: Values must appear in the TLA+ file verbatim; V1 entries did not exist in the file.\nField: FairnessConditions | Change: Replaced `\\A self \\in Procs : WF_vars((pc[self] # \"ncs\") /\\ procs(self))` with `WF_vars((pc[self] # \"ncs\") /\\ procs(self))` | Reason: Field must contain only WF/SF expressions from inside `Spec`/`Spec0`, not surrounding quantifier context.\nField: Operator count verification | Change: Verified top-level `==` definition count is 14 and `OperatorDefNames` count is 14 | Reason: Completeness check required; counts match, so no operator additions/removals were needed.",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Procs |-> FALSE]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in ProcSet |-> \"ncs\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << flag, j >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Session9onebit/Session9onebit.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "vars and ProcSet are placed in ValueDef as non-Boolean helper/value definitions.",
+    "Partition count: StatePredicate(0) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(10) = OperatorDefNames(14). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

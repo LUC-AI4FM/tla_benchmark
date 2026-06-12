@@ -1,0 +1,316 @@
+{
+  "id": null,
+  "Specification": "This module models a parallel bounded model checking algorithm that extends a sequential bounded search by using a pool of workers that alternate between exploring transitions and proving invariants on discovered prefixes. Explorers borrow transitions, check whether they are enabled, and deposit newly extended prefixes for invariant checking, while provers use an abstract SMT oracle to determine whether a bad execution exists within the overapproximated execution space induced by a prefix. The specification tracks exploration depth, enabled-transition prefixes, postponed slow prefixes, worker roles, and pending unsafe prefixes, and it defines safety-style properties stating that workers should never reach the terminal states \"noerror\", \"error\", or \"deadlock\", as well as a property expressing that some worker remains idle.",
+  "ModuleName": "ParBMC",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NTRANS",
+    "MAX_DEPTH",
+    "NWORKERS"
+  ],
+  "VariableNames": [
+    "depth",
+    "runningPrefix",
+    "slowPrefixes",
+    "workerState",
+    "runningTrans",
+    "unsafePrefixes"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Transitions",
+    "Workers",
+    "BadExes",
+    "WorkerStates",
+    "vars",
+    "PrefixesToExes",
+    "SMT",
+    "Init",
+    "BorrowTransition",
+    "CheckOneTransition",
+    "StartProving",
+    "ProveInvariant",
+    "FindSlowPrefixes",
+    "IncreaseDepth",
+    "SwitchSlowPrefix",
+    "WhenAllDisabledButNotFinished",
+    "FinishNoError",
+    "Finished",
+    "Next",
+    "NeverNoError",
+    "NeverError",
+    "NeverDeadlock",
+    "NeverParallel"
+  ],
+  "ActionDefNames": [
+    "BorrowTransition",
+    "CheckOneTransition",
+    "StartProving",
+    "ProveInvariant",
+    "IncreaseDepth",
+    "SwitchSlowPrefix",
+    "WhenAllDisabledButNotFinished",
+    "FinishNoError",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "PrefixesToExes"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "newState",
+    "timedOut",
+    "enabled",
+    "ToCheck",
+    "slow"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pref = <<>> THEN {<<>>} ELSE { <<tr>> \\o suffix: tr \\in Head(pref), suffix \\in PrefixesToExes(Tail(pref)) }",
+    "IF BadExes \\intersect PrefixesToExes(pPrefixes) /= {} THEN \"sat\" ELSE \"unsat\"",
+    "IF outcome = \"enabled\" THEN unsafePrefixes' = unsafePrefixes \\union { Append(runningPrefix, {workerState[w].tr}) } ELSE UNCHANGED unsafePrefixes",
+    "IF SMT(workerState[w].prefix) = \"sat\" THEN [type |-> \"error\"] ELSE [type |-> \"idle\"]",
+    "IF timedOut = {} THEN slowPrefixes ELSE slowPrefixes \\union { Append(runningPrefix, {tr}): tr \\in timedOut }",
+    "IF depth < MAX_DEPTH THEN { \"disabled\", \"timeout\" } ELSE { \"enabled\", \"disabled\", \"timeout\" }"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ <<0, 1, 2, 1, 2>> }",
+    "{\"idle\", \"error\", \"noerror\", \"deadlock\"}",
+    "{\"exploring\"}",
+    "{\"proving\"}",
+    "{<<>>}",
+    "{}",
+    "{ \"enabled\", \"disabled\", \"timeout\" }",
+    "{0}",
+    "{<<{0}>>}",
+    "{prefix}",
+    "{tr}",
+    "{\"disabled\", \"timeout\"}",
+    "{\"noerror\", \"error\", \"deadlock\"}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\intersect",
+    "\\",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[w \\in Workers |-> [type |-> \"idle\"]]",
+    "[type |-> \"idle\"]",
+    "[t \\in Transitions |-> \"new\"]",
+    "[type |-> \"exploring\", tr |-> tr]",
+    "[type |-> \"proving\", prefix |-> prefix]",
+    "[type |-> \"error\"]",
+    "[w \\in Workers |-> [type |-> \"noerror\"]]",
+    "[type |-> \"noerror\"]"
+  ],
+  "FunctionApplication": [
+    "workerState[w]",
+    "runningTrans[tr]",
+    "SMT(workerState[w].prefix)",
+    "Append(runningPrefix, {workerState[w].tr})",
+    "Append(runningPrefix, {tr})",
+    "Len(oneSlowPrefix)",
+    "BorrowTransition(w)",
+    "CheckOneTransition(w)",
+    "StartProving(w)",
+    "ProveInvariant(w)"
+  ],
+  "FunctionOverride": [
+    "[runningTrans EXCEPT ![tr] = \"borrowed\"]",
+    "[workerState EXCEPT ![w] = [type |-> \"exploring\", tr |-> tr]]",
+    "[runningTrans EXCEPT ![workerState[w].tr] = outcome]",
+    "[workerState EXCEPT ![w] = [type |-> \"idle\"]]",
+    "[workerState EXCEPT ![w] = [type |-> \"proving\", prefix |-> prefix]]",
+    "[workerState EXCEPT ![w] = newState]"
+  ],
+  "RecordConstructor": [
+    "[type: {\"idle\", \"error\", \"noerror\", \"deadlock\"}]",
+    "[type: {\"exploring\"}, tr: Transitions]",
+    "[type: {\"proving\"}, prefix: Seq(SUBSET Transitions)]",
+    "[type |-> \"idle\"]",
+    "[type |-> \"exploring\", tr |-> tr]",
+    "[type |-> \"proving\", prefix |-> prefix]",
+    "[type |-> \"error\"]",
+    "[type |-> \"noerror\"]"
+  ],
+  "RecordAccess": [
+    "workerState[w].type",
+    "workerState[w].tr",
+    "workerState[w].prefix"
+  ],
+  "TupleConstructor": [
+    "<<0, 1, 2, 1, 2>>",
+    "<<depth, runningPrefix, slowPrefixes, workerState, runningTrans, unsafePrefixes>>",
+    "<<>>",
+    "<<tr>>",
+    "<<{0}>>",
+    "<<depth, runningPrefix, slowPrefixes, unsafePrefixes>>",
+    "<<depth, runningPrefix, slowPrefixes>>",
+    "<<depth, runningPrefix, runningTrans, slowPrefixes>>",
+    "<<depth, runningPrefix, runningTrans, slowPrefixes, unsafePrefixes>>",
+    "<<unsafePrefixes, workerState>>",
+    "<<slowPrefixes, unsafePrefixes, workerState>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "Head",
+    "Tail",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "1..NTRANS",
+    "1..NWORKERS"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "idle",
+    "error",
+    "noerror",
+    "deadlock",
+    "exploring",
+    "proving",
+    "sat",
+    "unsat",
+    "new",
+    "borrowed",
+    "enabled",
+    "disabled",
+    "timeout"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "runningTrans",
+    "workerState",
+    "depth",
+    "runningPrefix",
+    "slowPrefixes",
+    "unsafePrefixes"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<depth, runningPrefix, slowPrefixes, unsafePrefixes>>",
+    "UNCHANGED unsafePrefixes",
+    "UNCHANGED <<depth, runningPrefix, slowPrefixes>>",
+    "UNCHANGED <<depth, runningPrefix, runningTrans, slowPrefixes>>",
+    "UNCHANGED <<depth, runningPrefix, runningTrans, slowPrefixes, unsafePrefixes>>",
+    "UNCHANGED <<unsafePrefixes, workerState>>",
+    "UNCHANGED <<slowPrefixes, unsafePrefixes, workerState>>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: ActionDefNames | Change: Removed `Finished` | Reason: `Finished` is a state predicate with `UNCHANGED vars`, not an action that primes variables.\nField: NamesInLet -> LetInNames | Change: Renamed field and preserved entries | Reason: LET-bound names belong in `LetInNames`; `NamesInLet` is not the correct field name per the extraction schema.\nField: IfThenElse | Change: Removed non-verbatim suffixes like `(in PrefixesToExes)` from all entries | Reason: Entries must be the actual expressions appearing in the TLA+ file.\nField: SetEnumeration | Change: Removed duplicate `{ \"enabled\", \"disabled\", \"timeout\" }` | Reason: Deduplication required.\nField: SetOperators | Change: Retained `SUBSET` here and confirmed absence from `FiniteSetOps` | Reason: `SUBSET` belongs in `SetOperators`, not `FiniteSetOps`.\nField: FunctionConstructor | Change: Removed non-constructor EXCEPT expressions `[workerState EXCEPT ![w] = ...]` and `[runningTrans EXCEPT ![...] = ...]`; removed duplicate `[t \\\\in Transitions |-> \"new\"]` | Reason: `FunctionConstructor` must contain only actual constructor patterns, while EXCEPT forms belong in `FunctionOverride`; duplicates are not allowed.\nField: FunctionApplication | Change: Removed `runningTrans[workerState[w].tr]` and `workerState[w].type` | Reason: These do not appear verbatim in the file; only literal applications present in the source should remain. `workerState[w].type` is tracked under `RecordAccess`.\nField: UnchangedExprs | Change: Removed duplicate `UNCHANGED <<depth, runningPrefix, runningTrans, slowPrefixes, unsafePrefixes>>` | Reason: Deduplication required.\nField: Completeness | Change: Verified top-level operator count file count = 23, JSON OperatorDefNames count = 23 | Reason: Counts match; no missing or extra top-level `==` definitions.",
+  "OperatorDefNames_StatePredicate": [
+    "Finished",
+    "NeverNoError",
+    "NeverError",
+    "NeverDeadlock",
+    "NeverParallel"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Transitions",
+    "Workers",
+    "BadExes",
+    "WorkerStates",
+    "vars",
+    "PrefixesToExes",
+    "SMT",
+    "FindSlowPrefixes"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[w \\in Workers |-> [type |-> \"idle\"]]",
+    "[t \\in Transitions |-> \"new\"]",
+    "[w \\in Workers |-> [type |-> \"noerror\"]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[type |-> \"idle\"]",
+    "[type |-> \"exploring\", tr |-> tr]",
+    "[type |-> \"proving\", prefix |-> prefix]",
+    "[type |-> \"error\"]",
+    "[type |-> \"noerror\"]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<depth, runningPrefix, slowPrefixes, unsafePrefixes>>",
+    "UNCHANGED unsafePrefixes",
+    "UNCHANGED <<depth, runningPrefix, slowPrefixes>>",
+    "UNCHANGED <<depth, runningPrefix, runningTrans, slowPrefixes>>",
+    "UNCHANGED <<depth, runningPrefix, runningTrans, slowPrefixes, unsafePrefixes>>",
+    "UNCHANGED <<unsafePrefixes, workerState>>",
+    "UNCHANGED <<slowPrefixes, unsafePrefixes, workerState>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ParBMC/ParBMC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(0) + Init(1) + ValueDef(8) + ActionDefNames(9) = OperatorDefNames(23). Verified.",
+    "FunctionConstructor_ByDomain contains all true [x \\in S |-> e] function constructors. The remaining FunctionConstructor entries are record/map constructors using |-> fields, not [S -> T] set-type forms; FunctionConstructor_SetType is therefore empty under the requested [S -> T] criterion only if record constructors are excluded, but to preserve exact partition against the V2 FunctionConstructor list these record constructors are placed there by elimination.",
+    "FindSlowPrefixes is Boolean-free and unprimed but returns a value (a set of prefixes), so it is classified as ValueDef.",
+    "PrefixesToExes and SMT are helper computation operators returning non-Boolean values, so they are classified as ValueDef.",
+    "TemporalNesting is false. No temporal operator [], <>, or ~> appears in the file."
+  ]
+}

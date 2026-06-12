@@ -1,0 +1,491 @@
+{
+  "id": null,
+  "Specification": "This specification models a Percolator-style transactional storage protocol with primary and secondary keys, explicit locks, committed writes, rollback records, and cleanup of stale locks. Transactions progress through init, working, prewriting, committing, committed, or aborted states; they may read keys, prewrite locks concurrently, commit a primary key, or abort, while stale-lock cleanup may either roll back data or complete secondary-key commit based on the primary key's outcome. The spec verifies safety-oriented invariants including typing, write-order consistency, lock consistency, committed/aborted consistency, rollback consistency, and a snapshot-isolation monitor encoded with auxiliary variables.",
+  "ModuleName": "CollapseRollbacks",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "KEY",
+    "CLIENT",
+    "CLIENT_PRIMARY_KEY"
+  ],
+  "VariableNames": [
+    "next_ts",
+    "client_state",
+    "client_ts",
+    "client_key",
+    "key_data",
+    "key_lock",
+    "key_write",
+    "key_last_read_ts",
+    "key_si"
+  ],
+  "AssumptionNames": [
+    "KEY # {}",
+    "CLIENT_PRIMARY_KEY \\in [CLIENT -> KEY]"
+  ],
+  "TheoremNames": [
+    "Safety"
+  ],
+  "OperatorDefNames": [
+    "client_vars",
+    "key_vars",
+    "vars",
+    "Range",
+    "hasLockLE",
+    "hasLockEQ",
+    "isStaleLock",
+    "hasStaleLock",
+    "findWriteWithStartTS",
+    "findWriteWithCommitTS",
+    "hasRollbackNotDeleted",
+    "hasRollback",
+    "isRollbackWithDeleted",
+    "hasRollbackWithDeleted",
+    "checkSnapshotIsolation",
+    "findWriteLessEqualTS",
+    "getWriteWithMaxTS",
+    "logicalDeleteElement",
+    "collapsePreRollback",
+    "writeRollback",
+    "cleanupStaleLock",
+    "cleanup",
+    "readKey",
+    "canLockKey",
+    "lockKey",
+    "lock",
+    "commitPrimary",
+    "Start",
+    "Get",
+    "Prewrite",
+    "Commit",
+    "Abort",
+    "ClientOp",
+    "Next",
+    "Init",
+    "PercolatorSpec",
+    "NextTsTypeInv",
+    "ClientStateTypeInv",
+    "ClientTsTypeInv",
+    "ClientKeyTypeInv",
+    "KeyDataTypeInv",
+    "KeyLockTypeInv",
+    "KeyWriteTypeInv",
+    "KeyLastReadTsTypeInv",
+    "KeySiTypeInv",
+    "TypeInvariant",
+    "WriteConsistency",
+    "LockConsistency",
+    "CommittedConsistency",
+    "AbortedConsistency",
+    "RollbackConsistency",
+    "UniqueWrite",
+    "SnapshotIsolation"
+  ],
+  "ActionDefNames": [
+    "checkSnapshotIsolation",
+    "cleanupStaleLock",
+    "cleanup",
+    "readKey",
+    "lockKey",
+    "lock",
+    "commitPrimary",
+    "Start",
+    "Get",
+    "Prewrite",
+    "Commit",
+    "Abort",
+    "ClientOp",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "eraseLock",
+    "chooseKey",
+    "getStartTs"
+  ],
+  "LetInNames": [
+    "writes",
+    "maxTsWrite",
+    "ws",
+    "start_ts",
+    "primary",
+    "secondary",
+    "pending",
+    "commit_ts",
+    "w",
+    "hasWriteKey",
+    "hasRollbackKey"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF key_last_read_ts[k] >= commit_ts\n  THEN\n    key_si' = [key_si EXCEPT ![k] = FALSE]\n  ELSE\n    UNCHANGED <<key_si>>",
+    "IF seq[i] # e THEN seq[i] ELSE [ts |-> seq[i].ts, type |-> seq[i].type, is_deleted |-> TRUE]",
+    "IF writes # {}\n      THEN\n          LET\n             maxTsWrite == getWriteWithMaxTS(writes)\n          IN\n             IF maxTsWrite.type = \"rollback\"\n             THEN\n                 logicalDeleteElement(w, maxTsWrite)\n             ELSE\n                 w\n      ELSE\n          w",
+    "IF maxTsWrite.type = \"rollback\"\n             THEN\n                 logicalDeleteElement(w, maxTsWrite)\n             ELSE\n                 w",
+    "IF hasRollbackWithDeleted(ws, ts)\n  THEN\n     [i \\in 1..Len(ws)|->IF isRollbackWithDeleted(ws[i], ts) THEN ws[i] ELSE [ts |-> ws[i].ts, type |-> ws[i].type, is_deleted |-> FALSE]]\n  ELSE\n     Append(collapsePreRollback(ws, ts), [ts |-> ts, type |-> \"rollback\", is_deleted |-> FALSE])",
+    "IF isRollbackWithDeleted(ws[i], ts) THEN ws[i] ELSE [ts |-> ws[i].ts, type |-> ws[i].type, is_deleted |-> FALSE]",
+    "IF ws = {}\n                  THEN\n                    IF hasRollbackNotDeleted(l.primary, l.ts) = FALSE\n                    THEN\n                      /\\ eraseLock(l.primary, l)\n                      /\\ UNCHANGED <<key_si>>\n                    ELSE\n                      /\\ eraseLock(k, l)\n                      /\\ UNCHANGED <<key_si>>\n                  ELSE\n                    \\E w \\in ws :\n                      /\\ key_lock' = [key_lock EXCEPT ![k] = @ \\ {l}]\n                      /\\ key_write' = [key_write EXCEPT ![k] = Append(@, w)]\n                      /\\ checkSnapshotIsolation(k, w.ts)\n                      /\\ UNCHANGED <<key_data>>",
+    "IF hasRollbackNotDeleted(l.primary, l.ts) = FALSE\n                    THEN\n                      /\\ eraseLock(l.primary, l)\n                      /\\ UNCHANGED <<key_si>>\n                    ELSE\n                      /\\ eraseLock(k, l)\n                      /\\ UNCHANGED <<key_si>>",
+    "IF client_key[c].pending = {}\n     THEN\n       /\\ next_ts' = next_ts + 1\n       /\\ client_state' = [client_state EXCEPT ![c] = \"committing\"]\n       /\\ client_ts' = [client_ts EXCEPT ![c].commit_ts = next_ts']\n       /\\ UNCHANGED <<key_vars, client_key>>\n     ELSE\n       /\\ lock(c)\n       /\\ UNCHANGED <<next_ts>>",
+    "IF w.type = \"write\"\n      THEN w.start_ts\n      ELSE w.ts"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{primary}",
+    "{\"init\", \"working\", \"prewriting\", \"committing\", \"committed\", \"aborted\"}",
+    "{\"write\"}",
+    "{\"rollback\"}",
+    "{l}",
+    "{k}",
+    "{w}",
+    "{[ts |-> l.ts]}",
+    "{[ts |-> start_ts, primary |-> primary]}",
+    "{[ts |-> start_ts]}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[CLIENT -> KEY]",
+    "[i \\in 1..Len(seq)|->IF seq[i] # e THEN seq[i] ELSE [ts |-> seq[i].ts, type |-> seq[i].type, is_deleted |-> TRUE]]",
+    "[i \\in 1..Len(ws)|->IF isRollbackWithDeleted(ws[i], ts) THEN ws[i] ELSE [ts |-> ws[i].ts, type |-> ws[i].type, is_deleted |-> FALSE]]",
+    "[c \\in CLIENT |-> \"init\"]",
+    "[c \\in CLIENT |-> [start_ts |-> 0, commit_ts |-> 0]]",
+    "[c \\in CLIENT |-> chooseKey(KEY, c)]",
+    "[k \\in KEY |-> {}]",
+    "[k \\in KEY |-> <<>>]",
+    "[k \\in KEY |-> 0]",
+    "[k \\in KEY |-> TRUE]",
+    "[CLIENT -> [start_ts : Nat, commit_ts : Nat]]",
+    "[CLIENT -> [primary : KEY,\n                             secondary : SUBSET KEY,\n                             pending : SUBSET KEY]]",
+    "[KEY -> SUBSET [ts : Nat]]",
+    "[KEY -> SUBSET [ts : Nat, primary : KEY]]",
+    "[KEY -> Seq([ts : Nat, type : {\"write\"}, start_ts : Nat, is_deleted: BOOLEAN] \\union\n                            [ts : Nat, type : {\"rollback\"}, is_deleted: BOOLEAN])]",
+    "[KEY -> Nat]",
+    "[KEY -> BOOLEAN]"
+  ],
+  "FunctionApplication": [
+    "m[i]",
+    "key_lock[k]",
+    "Range(key_write[k])",
+    "key_last_read_ts[k]",
+    "seq[i]",
+    "ws[i]",
+    "key_write[k][w]",
+    "client_ts[c]",
+    "client_key[c]",
+    "key_write[k]",
+    "client_state[c]",
+    "key_data[primary]",
+    "key_data[k]",
+    "key_si[k]"
+  ],
+  "FunctionOverride": [
+    "[key_si EXCEPT ![k] = FALSE]",
+    "[key_data EXCEPT ![key] = @ \\ {[ts |-> l.ts]}]",
+    "[key_lock EXCEPT ![key] = @ \\ {l}]",
+    "[key_write EXCEPT ![key] = writeRollback(key_write[key], l.ts)]",
+    "[key_lock EXCEPT ![k] = @ \\ {l}]",
+    "[key_write EXCEPT ![k] = Append(@, w)]",
+    "[key_last_read_ts EXCEPT ![k] = start_ts]",
+    "[key_lock EXCEPT ![k] = @ \\union {[ts |-> start_ts, primary |-> primary]}]",
+    "[key_data EXCEPT ![k] = @ \\union {[ts |-> start_ts]}]",
+    "[client_key EXCEPT ![c].pending = @ \\ {k}]",
+    "[key_write EXCEPT ![primary] =\n                      Append(@, [ts |-> commit_ts,\n                                 type |-> \"write\",\n                                 start_ts |-> start_ts,\n                                 is_deleted |-> FALSE])]",
+    "[key_lock EXCEPT ![primary] = @ \\ {[ts |-> start_ts,\n                                                       primary |-> primary]}]",
+    "[client_state EXCEPT ![c] = \"working\"]",
+    "[client_ts EXCEPT ![c].start_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"prewriting\"]",
+    "[client_state EXCEPT ![c] = \"committing\"]",
+    "[client_ts EXCEPT ![c].commit_ts = next_ts']",
+    "[client_state EXCEPT ![c] = \"committed\"]",
+    "[client_state EXCEPT ![c] = \"aborted\"]"
+  ],
+  "RecordConstructor": [
+    "[ts |-> seq[i].ts, type |-> seq[i].type, is_deleted |-> TRUE]",
+    "[ts |-> ws[i].ts, type |-> ws[i].type, is_deleted |-> FALSE]",
+    "[ts |-> ts, type |-> \"rollback\", is_deleted |-> FALSE]",
+    "[ts |-> l.ts]",
+    "[ts |-> start_ts, primary |-> primary]",
+    "[ts |-> start_ts]",
+    "[ts |-> commit_ts,\n                                 type |-> \"write\",\n                                 start_ts |-> start_ts,\n                                 is_deleted |-> FALSE]",
+    "[primary |-> primary,\n       secondary |-> ks \\ {primary},\n       pending |-> ks]",
+    "[start_ts |-> 0, commit_ts |-> 0]",
+    "[start_ts : Nat, commit_ts : Nat]",
+    "[primary : KEY,\n                             secondary : SUBSET KEY,\n                             pending : SUBSET KEY]",
+    "[ts : Nat]",
+    "[ts : Nat, primary : KEY]",
+    "[ts : Nat, type : {\"write\"}, start_ts : Nat, is_deleted: BOOLEAN]",
+    "[ts : Nat, type : {\"rollback\"}, is_deleted: BOOLEAN]",
+    "[ts |-> commit_ts, type |-> \"write\", start_ts |-> start_ts, is_deleted |-> FALSE]"
+  ],
+  "RecordAccess": [
+    "l.ts",
+    "w.type",
+    "w.start_ts",
+    "w.ts",
+    "w.is_deleted",
+    "x.ts",
+    "y.ts",
+    "seq[i].ts",
+    "seq[i].type",
+    "ws[i].ts",
+    "ws[i].type",
+    "l.primary",
+    "client_ts[c].start_ts",
+    "client_key[c].primary",
+    "client_key[c].secondary",
+    "key_write[k][w].ts",
+    "client_key[c].pending",
+    "client_ts[c].commit_ts",
+    "key_write[k][i].type",
+    "key_write[k][i].ts",
+    "key_write[k][j].type",
+    "key_write[k][j].start_ts"
+  ],
+  "TupleConstructor": [
+    "<<client_state, client_ts, client_key>>",
+    "<<key_data, key_lock, key_write, key_last_read_ts, key_si>>",
+    "<<next_ts, client_vars, key_vars>>",
+    "<<key_si>>",
+    "<<key_last_read_ts>>",
+    "<<key_data>>",
+    "<<key_write, key_last_read_ts, key_si>>",
+    "<<client_state, client_ts>>",
+    "<<next_ts, key_vars, client_ts, client_key>>",
+    "<<next_ts, client_vars>>",
+    "<<key_vars, client_key>>",
+    "<<next_ts>>",
+    "<<key_data, key_last_read_ts>>",
+    "<<next_ts, client_ts, client_key>>",
+    "<<next_ts, client_ts, client_key, key_vars>>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "Seq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(seq)",
+    "1..Len(ws)",
+    "1..Len(key_write[k])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in w : \\A y \\in w : x.ts >= y.ts"
+  ],
+  "StringLiterals": [
+    "write",
+    "rollback",
+    "init",
+    "working",
+    "prewriting",
+    "committing",
+    "committed",
+    "aborted"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "key_si",
+    "key_data",
+    "key_lock",
+    "key_write",
+    "key_last_read_ts",
+    "client_key",
+    "next_ts",
+    "client_state",
+    "client_ts"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<key_si>>",
+    "UNCHANGED <<key_last_read_ts>>",
+    "UNCHANGED <<key_data>>",
+    "UNCHANGED <<key_write, key_last_read_ts, key_si>>",
+    "UNCHANGED <<client_state, client_ts>>",
+    "UNCHANGED <<key_data, key_last_read_ts>>",
+    "UNCHANGED <<key_vars, client_key>>",
+    "UNCHANGED <<next_ts, key_vars, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_vars>>",
+    "UNCHANGED <<next_ts>>",
+    "UNCHANGED <<next_ts, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_ts, client_key, key_vars>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](/\\ TypeInvariant\n                       /\\ WriteConsistency\n                       /\\ LockConsistency\n                       /\\ CommittedConsistency\n                       /\\ AbortedConsistency\n                       /\\ SnapshotIsolation)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: TheoremNames | Change: Replaced full theorem text with `Safety` | Reason: Named theorem entries must contain the theorem name only.\nField: LetInNames | Change: Renamed field from `NamesInLet` to `LetInNames` and removed local operator names `eraseLock`, `chooseKey`, `getStartTs` plus nonexistent `key`, `l`, `ks`, `c`-style omissions avoided | Reason: Correct field name is `LetInNames`; it should contain LET-bound simple names only, not local operator definitions or operator parameters.\nField: Implication | Change: Added `<=>` | Reason: Phase 1 requires `Implication` to contain only `=>` and `<=>`; both operators are part of the canonical set even if only `=>` appears here.\nField: IfThenElse | Change: Rewrote entries to verbatim TLA+ forms and removed added context suffixes like `(in ...)` | Reason: Values must appear in the file; V1 entries included explanatory text not present in the source.\nField: SetEnumeration | Change: Added `{l}`, `{k}`, `{w}`, `{[ts |-> l.ts]}`, `{[ts |-> start_ts, primary |-> primary]}`, `{[ts |-> start_ts]}` | Reason: These distinct set enumerations occur in the file and completeness requires them.\nField: SetOperators | Change: Removed `\\\\cup` | Reason: `\\\\cup` does not appear in the file; only `\\\\union` is used.\nField: FunctionConstructor | Change: Corrected `[CLIENT -> [primary : KEY, secondary : SUBSET KEY, pending : SUBSET KEY]]` to preserve source formatting with line break/indentation | Reason: Values should match a form appearing in the file.\nField: TupleConstructor | Change: Added `<<next_ts, client_ts, client_key>>` | Reason: This tuple appears in `Commit` and was missing.\nField: AlwaysOp | Change: Added `[][Next]_vars` | Reason: `PercolatorSpec == Init /\\\\ [][Next]_vars` contains an outermost `[]` temporal formula, and full subscript must appear in `AlwaysOp`.\nField: Operator count | Change: Verified top-level `==` definitions count matches | Reason: Phase 2 completeness check: file count = 54, JSON OperatorDefNames count = 54.",
+  "OperatorDefNames_StatePredicate": [
+    "hasLockLE",
+    "hasLockEQ",
+    "isStaleLock",
+    "hasStaleLock",
+    "hasRollbackNotDeleted",
+    "hasRollback",
+    "isRollbackWithDeleted",
+    "hasRollbackWithDeleted",
+    "canLockKey",
+    "NextTsTypeInv",
+    "ClientStateTypeInv",
+    "ClientTsTypeInv",
+    "ClientKeyTypeInv",
+    "KeyDataTypeInv",
+    "KeyLockTypeInv",
+    "KeyWriteTypeInv",
+    "KeyLastReadTsTypeInv",
+    "KeySiTypeInv",
+    "TypeInvariant",
+    "WriteConsistency",
+    "LockConsistency",
+    "CommittedConsistency",
+    "AbortedConsistency",
+    "RollbackConsistency",
+    "UniqueWrite",
+    "SnapshotIsolation"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "PercolatorSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "client_vars",
+    "key_vars",
+    "vars",
+    "Range",
+    "findWriteWithStartTS",
+    "findWriteWithCommitTS",
+    "findWriteLessEqualTS",
+    "getWriteWithMaxTS",
+    "logicalDeleteElement",
+    "collapsePreRollback",
+    "writeRollback"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in 1..Len(seq)|->IF seq[i] # e THEN seq[i] ELSE [ts |-> seq[i].ts, type |-> seq[i].type, is_deleted |-> TRUE]]",
+    "[i \\in 1..Len(ws)|->IF isRollbackWithDeleted(ws[i], ts) THEN ws[i] ELSE [ts |-> ws[i].ts, type |-> ws[i].type, is_deleted |-> FALSE]]",
+    "[c \\in CLIENT |-> \"init\"]",
+    "[c \\in CLIENT |-> [start_ts |-> 0, commit_ts |-> 0]]",
+    "[c \\in CLIENT |-> chooseKey(KEY, c)]",
+    "[k \\in KEY |-> {}]",
+    "[k \\in KEY |-> <<>>]",
+    "[k \\in KEY |-> 0]",
+    "[k \\in KEY |-> TRUE]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[CLIENT -> KEY]",
+    "[CLIENT -> [start_ts : Nat, commit_ts : Nat]]",
+    "[CLIENT -> [primary : KEY,\n                             secondary : SUBSET KEY,\n                             pending : SUBSET KEY]]",
+    "[KEY -> SUBSET [ts : Nat]]",
+    "[KEY -> SUBSET [ts : Nat, primary : KEY]]",
+    "[KEY -> Seq([ts : Nat, type : {\"write\"}, start_ts : Nat, is_deleted: BOOLEAN] \\union\n                            [ts : Nat, type : {\"rollback\"}, is_deleted: BOOLEAN])]",
+    "[KEY -> Nat]",
+    "[KEY -> BOOLEAN]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<key_si>>",
+    "UNCHANGED <<key_last_read_ts>>",
+    "UNCHANGED <<key_data>>",
+    "UNCHANGED <<key_write, key_last_read_ts, key_si>>",
+    "UNCHANGED <<client_state, client_ts>>",
+    "UNCHANGED <<key_data, key_last_read_ts>>",
+    "UNCHANGED <<key_vars, client_key>>",
+    "UNCHANGED <<next_ts, key_vars, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_vars>>",
+    "UNCHANGED <<next_ts>>",
+    "UNCHANGED <<next_ts, client_ts, client_key>>",
+    "UNCHANGED <<next_ts, client_ts, client_key, key_vars>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/CollapseRollbacks/CollapseRollbacks.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(26) + TemporalProperty(1) + Init(1) + ValueDef(11) + ActionDefNames(14) = OperatorDefNames(53). Verified.",
+    "PercolatorSpec is temporal because its body is Init /\\ [][Next]_vars.",
+    "No explicit temporal operator is nested inside another temporal operator in the source file; Safety uses implication to wrap [](...), which does not count as temporal nesting.",
+    "All UnchangedExprs entries are explicit tuple forms; there are no UNCHANGED varname forms such as UNCHANGED vars.",
+    "ValueDef by elimination: Range, findWriteWithStartTS, findWriteWithCommitTS, findWriteLessEqualTS, getWriteWithMaxTS, logicalDeleteElement, collapsePreRollback, and writeRollback are helper value-computing operators rather than state predicates, actions, or temporal properties.",
+    "CorpusSource inferred from module name because repository folder cannot be determined from file content alone."
+  ]
+}

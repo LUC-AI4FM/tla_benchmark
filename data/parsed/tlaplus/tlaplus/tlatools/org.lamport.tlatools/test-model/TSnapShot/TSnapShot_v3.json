@@ -1,0 +1,307 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Afek et al. shared snapshot algorithm for the unbounded-memory case, as described in the comments and the cited shared snapshot object reference. It models separate reader and writer process sets, shared memory indexed by writers, and the internal two-pass read logic that can either return a consistent double-read result or use a writer-provided snapshot when movement is detected. The specification defines an initial state and a next-state relation over reader and writer actions, and asserts a standard temporal safety-style system specification `Init /\\ [][Next]_vars` with internal variables included in `vars` and no explicit fairness or liveness assumptions.",
+  "ModuleName": "TSnapShot",
+  "ExtendsModules": [
+    "Integers",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Reader",
+    "Writer"
+  ],
+  "VariableNames": [
+    "rstate",
+    "wstate",
+    "rwstate",
+    "mem",
+    "iwriter",
+    "snap",
+    "rd1",
+    "rd2",
+    "view2",
+    "notRd1",
+    "notRd2",
+    "moved"
+  ],
+  "AssumptionNames": [
+    "Reader \\cap Writer = { }"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Process",
+    "Value",
+    "Memory",
+    "InitMemory",
+    "NotAMemory",
+    "vars",
+    "TypeOK",
+    "TypeOK2",
+    "Init",
+    "TypeOK3",
+    "Assign",
+    "AAssign",
+    "BeginRead",
+    "DoRd1",
+    "DoRd2",
+    "TryEnding",
+    "BeginWrite",
+    "DoWrite",
+    "EndWrite",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Assign",
+    "AAssign",
+    "BeginRead",
+    "DoRd1",
+    "DoRd2",
+    "TryEnding",
+    "BeginWrite",
+    "DoWrite",
+    "EndWrite",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "F"
+  ],
+  "LetInNames": [
+    "F"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF rd1[r] = rd2[r] THEN Assign(rwstate, r, rd1[r]) ELSE LET F(w) == /\\ rd1[r][w] # rd2[r][w] /\\ moved[r][w] IN IF \\E w \\in Writer : F(w) THEN Assign(rwstate,r, view2[CHOOSE w \\in Writer : F(w)]) ELSE /\\ UNCHANGED rwstate /\\ moved[r] = [w \\in Writer |-> moved[r] \\/ (rd1[r][w] # rd2[r][w])]",
+    "IF \\E w \\in Writer : F(w) THEN Assign(rwstate,r, view2[CHOOSE w \\in Writer : F(w)]) ELSE /\\ UNCHANGED rwstate /\\ moved[r] = [w \\in Writer |-> moved[r] \\/ (rd1[r][w] # rd2[r][w])]",
+    "IF r \\in Reader THEN Assign(rstate, r, rwstate'[r]) ELSE UNCHANGED rstate"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ }",
+    "{\"idle\", \"busy\"}",
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\cap",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Writer -> Value]",
+    "[w \\in Writer |-> 0]",
+    "[w \\in Writer |-> -1]",
+    "[Reader -> Memory \\cup {NotAMemory}]",
+    "[Writer -> {\"idle\", \"busy\"}]",
+    "[Process -> Memory \\cup {NotAMemory}]",
+    "[Writer -> Nat]",
+    "[Writer -> Memory]",
+    "[Process -> Memory]",
+    "[Process -> [Writer -> Memory]]",
+    "[r \\in Reader |-> InitMemory]",
+    "[r \\in Process |-> InitMemory]",
+    "[r \\in Writer |-> \"idle\"]",
+    "[r \\in Writer |-> 0]",
+    "[r \\in Process |-> [w \\in Writer |-> InitMemory]]",
+    "[r \\in Process |-> Writer]",
+    "[r \\in Process |-> [w \\in Writer |-> FALSE]]",
+    "[w \\in Writer |-> InitMemory]",
+    "[w \\in Writer |-> FALSE]",
+    "[w \\in Writer |-> moved[r] \\/ (rd1[r][w] # rd2[r][w])]"
+  ],
+  "FunctionApplication": [
+    "rstate[r]",
+    "rwstate[r]",
+    "notRd1[r]",
+    "mem[w]",
+    "notRd2[r]",
+    "rd1[r]",
+    "rd2[r]",
+    "rd1[r][w]",
+    "rd2[r][w]",
+    "moved[r][w]",
+    "view2[CHOOSE w \\in Writer : F(w)]",
+    "iwriter[w]",
+    "wstate[w]",
+    "snap[w]"
+  ],
+  "FunctionOverride": [
+    "[array EXCEPT ![idx] = val]",
+    "[array EXCEPT ![idx1][idx2] = val]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<rstate, wstate, rwstate, mem, iwriter, rd1, rd2, \n           view2, notRd1, notRd2, moved, snap>>",
+    "<<wstate, mem, iwriter, rd1, rd2, \n                               view2, notRd1, notRd2, moved, snap>>",
+    "<<rstate, rwstate, wstate, mem, iwriter, rd2, view2, notRd2,\n                           moved, snap>>",
+    "<<rstate, rwstate, wstate, mem, iwriter, rd1, notRd1,\n                           moved, snap>>",
+    "<<wstate, mem, snap, iwriter>>",
+    "<<rstate, mem, rd1, rd2, view2, notRd1, notRd2, moved, snap>>",
+    "<<rstate, wstate, iwriter, rd1, rd2, view2, notRd1, \n                             notRd2, moved>>",
+    "<<rstate, rwstate, mem, snap, iwriter, rd1, rd2, \n                              view2, notRd1, notRd2, moved>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE w \\in Writer : F(w)"
+  ],
+  "StringLiterals": [
+    "idle",
+    "busy"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "array",
+    "rstate",
+    "rwstate",
+    "notRd1",
+    "rd1",
+    "notRd2",
+    "rd2",
+    "view2",
+    "moved",
+    "wstate",
+    "iwriter",
+    "mem",
+    "snap"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<wstate, mem, iwriter, rd1, rd2, \n                               view2, notRd1, notRd2, moved, snap>>",
+    "UNCHANGED <<rstate, rwstate, wstate, mem, iwriter, rd2, view2, notRd2,\n                           moved, snap>>",
+    "UNCHANGED <<rstate, rwstate, wstate, mem, iwriter, rd1, notRd1,\n                           moved, snap>>",
+    "UNCHANGED rwstate",
+    "UNCHANGED rstate",
+    "UNCHANGED <<wstate, mem, snap, iwriter>>",
+    "UNCHANGED <<rstate, mem, rd1, rd2, view2, notRd1, notRd2, moved, snap>>",
+    "UNCHANGED <<rstate, wstate, iwriter, rd1, rd2, view2, notRd1, \n                             notRd2, moved>>",
+    "UNCHANGED <<rstate, rwstate, mem, snap, iwriter, rd1, rd2, \n                              view2, notRd1, notRd2, moved>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: added field with value [\"F\"] | Reason: LET-bound name `F` appears in `TryEnding`; V1 used nonstandard field `NamesInLet`\nField: NamesInLet | Change: removed | Reason: nonstandard field name; LET-bound names belong in `LetInNames`\nField: IfThenElse | Change: removed trailing `(in TryEnding)` annotations from all three entries | Reason: field values must be expressions that literally appear in the TLA+ file\nField: SetOperators | Change: removed `SUBSET` | Reason: `SUBSET` is not a set operator entry here and does not appear outside comments; it must not be in `SetOperators`\nField: FunctionConstructor | Change: removed duplicate `[Writer -> Memory]` | Reason: deduplication required\nField: FunctionApplication | Change: removed duplicate `mem[w]` | Reason: deduplication/correctness; duplicate entry unnecessary\nField: Operator count check | Change: verified file count = 21, JSON OperatorDefNames count = 21 | Reason: completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "TypeOK2",
+    "TypeOK3"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Process",
+    "Value",
+    "Memory",
+    "InitMemory",
+    "NotAMemory",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[w \\in Writer |-> 0]",
+    "[w \\in Writer |-> -1]",
+    "[r \\in Reader |-> InitMemory]",
+    "[r \\in Process |-> InitMemory]",
+    "[r \\in Writer |-> \"idle\"]",
+    "[r \\in Writer |-> 0]",
+    "[r \\in Process |-> [w \\in Writer |-> InitMemory]]",
+    "[r \\in Process |-> Writer]",
+    "[r \\in Process |-> [w \\in Writer |-> FALSE]]",
+    "[w \\in Writer |-> InitMemory]",
+    "[w \\in Writer |-> FALSE]",
+    "[w \\in Writer |-> moved[r] \\/ (rd1[r][w] # rd2[r][w])]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Writer -> Value]",
+    "[Reader -> Memory \\cup {NotAMemory}]",
+    "[Writer -> {\"idle\", \"busy\"}]",
+    "[Process -> Memory \\cup {NotAMemory}]",
+    "[Writer -> Nat]",
+    "[Writer -> Memory]",
+    "[Process -> Memory]",
+    "[Process -> [Writer -> Memory]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<wstate, mem, iwriter, rd1, rd2, \n                               view2, notRd1, notRd2, moved, snap>>",
+    "UNCHANGED <<rstate, rwstate, wstate, mem, iwriter, rd2, view2, notRd2,\n                           moved, snap>>",
+    "UNCHANGED <<rstate, rwstate, wstate, mem, iwriter, rd1, notRd1,\n                           moved, snap>>",
+    "UNCHANGED <<wstate, mem, snap, iwriter>>",
+    "UNCHANGED <<rstate, mem, rd1, rd2, view2, notRd1, notRd2, moved, snap>>",
+    "UNCHANGED <<rstate, wstate, iwriter, rd1, rd2, view2, notRd1, \n                             notRd2, moved>>",
+    "UNCHANGED <<rstate, rwstate, mem, snap, iwriter, rd1, rd2, \n                              view2, notRd1, notRd2, moved>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED rwstate",
+    "UNCHANGED rstate"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/TSnapShot/TSnapShot.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TypeOK3 is classified as a StatePredicate because its body is PrintT(TypeOK2), which is Boolean-valued, contains no primed variables, and no temporal operators; TLC tooling is used in its definition.",
+    "UnchangedExprs_VarRef contains scalar variable references `rwstate` and `rstate`. The prompt example mentions tuple variables such as `vars`, but this file contains no `UNCHANGED vars`; the field is therefore used for bare variable-name references appearing in the source.",
+    "Partition count: StatePredicate(3) + TemporalProperty(1) + Init(1) + ValueDef(6) + ActionDefNames(10) = OperatorDefNames(21). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Assign and AAssign are action operators because their bodies contain primed variables (`array'`) even though they are helper operators; therefore they remain only in ActionDefNames and in none of the four OperatorDefNames sub-fields.",
+    "ValueDef by elimination: vars is a structural tuple of variables rather than a Boolean state predicate, action, init operator, or temporal property."
+  ]
+}

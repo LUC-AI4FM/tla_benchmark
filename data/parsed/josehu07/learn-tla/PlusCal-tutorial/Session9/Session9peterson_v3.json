@@ -1,0 +1,246 @@
+{
+  "id": null,
+  "Specification": "This module specifies Peterson's N-process mutual exclusion algorithm, written as a PlusCal algorithm and accompanied by its TLA+ translation. The algorithm models a set of processes in Procs that repeatedly cycle through noncritical section, entry protocol, critical section, and exit, using shared arrays level and last_to_enter to coordinate access to the critical section. The specification assumes a positive number of processes with Procs = 0..(N-1), and it verifies behavior under weak fairness of each process action once the process has left the \"ncs\" control location.",
+  "ModuleName": "Session9peterson",
+  "ExtendsModules": [
+    "TLC",
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "Procs"
+  ],
+  "VariableNames": [
+    "level",
+    "last_to_enter",
+    "pc",
+    "l",
+    "k"
+  ],
+  "AssumptionNames": [
+    "/\\ N \\in Nat\n       /\\ N > 0\n       /\\ Procs = 0..(N-1)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "ProcSet",
+    "Init",
+    "ncs",
+    "enter",
+    "enter2",
+    "enter3",
+    "enter6",
+    "enter4",
+    "enter5",
+    "cs",
+    "exit",
+    "procs",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "ncs",
+    "enter",
+    "enter2",
+    "enter3",
+    "enter6",
+    "enter4",
+    "enter5",
+    "cs",
+    "exit",
+    "procs",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF l[self] < (N-1) THEN /\\ level' = [level EXCEPT ![self] = l[self]] /\\ pc' = [pc EXCEPT ![self] = \"enter2\"] /\\ l' = l ELSE /\\ l' = [l EXCEPT ![self] = 0] /\\ pc' = [pc EXCEPT ![self] = \"cs\"] /\\ level' = level",
+    "IF k[self] < N THEN /\\ IF (k[self] /= self) /\\ (level[k[self]] >= l[self]) THEN /\\ pc' = [pc EXCEPT ![self] = \"enter4\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"enter6\"] /\\ UNCHANGED << l, k >> ELSE /\\ l' = [l EXCEPT ![self] = l[self] + 1] /\\ k' = [k EXCEPT ![self] = 0] /\\ pc' = [pc EXCEPT ![self] = \"enter\"]",
+    "IF (k[self] /= self) /\\ (level[k[self]] >= l[self]) THEN /\\ pc' = [pc EXCEPT ![self] = \"enter4\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"enter6\"]",
+    "IF last_to_enter[l[self]] = self THEN /\\ pc' = [pc EXCEPT ![self] = \"enter5\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"enter6\"]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Procs |-> -1]",
+    "[i \\in 0..N-2 |-> -1]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in ProcSet |-> \"ncs\"]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "l[self]",
+    "k[self]",
+    "level[k[self]]",
+    "last_to_enter[l[self]]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"enter\"]",
+    "[level EXCEPT ![self] = l[self]]",
+    "[pc EXCEPT ![self] = \"enter2\"]",
+    "[l EXCEPT ![self] = 0]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[last_to_enter EXCEPT ![l[self]] = self]",
+    "[pc EXCEPT ![self] = \"enter3\"]",
+    "[pc EXCEPT ![self] = \"enter4\"]",
+    "[pc EXCEPT ![self] = \"enter6\"]",
+    "[l EXCEPT ![self] = l[self] + 1]",
+    "[k EXCEPT ![self] = 0]",
+    "[pc EXCEPT ![self] = \"enter5\"]",
+    "[k EXCEPT ![self] = k[self] + 1]",
+    "[pc EXCEPT ![self] = \"exit\"]",
+    "[level EXCEPT ![self] = -1]",
+    "[pc EXCEPT ![self] = \"ncs\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< level, last_to_enter, pc, l, k >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<",
+    ">="
+  ],
+  "RangeExpr": [
+    "0..(N-1)",
+    "0..N-2"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ncs",
+    "enter",
+    "enter2",
+    "cs",
+    "enter3",
+    "enter4",
+    "enter6",
+    "enter5",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "level",
+    "l",
+    "last_to_enter",
+    "k"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << level, last_to_enter, l, k >>",
+    "UNCHANGED << last_to_enter, k >>",
+    "UNCHANGED << level, l, k >>",
+    "UNCHANGED << l, k >>",
+    "UNCHANGED << level, last_to_enter >>",
+    "UNCHANGED << level, last_to_enter, l >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars((pc[self] # \"ncs\") /\\ procs(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars((pc[self] # \"ncs\") /\\ procs(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Peterson"
+  ],
+  "PlusCalProcesses": [
+    "procs"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and kept empty array | Reason: required field name per verification instructions; module has no LET/IN bindings\nField: IfThenElse | Change: replaced non-verbatim summary entries with the actual IF...THEN...ELSE expressions from enter, enter3, nested enter3, and enter4 | Reason: JSON values must appear in the TLA+ file verbatim; V1 entries were paraphrases not present in the file\nField: FairnessConditions | Change: replaced \"\\\\A self \\\\in Procs : WF_vars((pc[self] # \\\"ncs\\\") /\\\\ procs(self))\" with \"WF_vars((pc[self] # \\\"ncs\\\") /\\\\ procs(self))\" | Reason: field must contain only WF/SF expressions from Spec or Spec0, not surrounding quantifier context\n\nOperator count verified: file count = 15, JSON OperatorDefNames count = 15",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Procs |-> -1]",
+    "[i \\in 0..N-2 |-> -1]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in ProcSet |-> \"ncs\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << level, last_to_enter, l, k >>",
+    "UNCHANGED << last_to_enter, k >>",
+    "UNCHANGED << level, l, k >>",
+    "UNCHANGED << l, k >>",
+    "UNCHANGED << level, last_to_enter >>",
+    "UNCHANGED << level, last_to_enter, l >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Session9peterson/Session9peterson.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ProcSet and vars are placed in ValueDef as non-Boolean helper/value definitions.",
+    "Partition count: StatePredicate(0) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(11) = OperatorDefNames(15). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

@@ -1,0 +1,417 @@
+{
+  "id": null,
+  "Specification": "This specification models the Raft consensus algorithm, a distributed protocol for managing a replicated log across a cluster of servers. The model captures the core Raft roles (Follower, Candidate, Leader), the election process, log replication, and client request handling. It includes detailed state variables for each server, message passing via a bag abstraction, and history variables to support proof obligations. The fault model allows for message duplication, loss, and server restarts, but not Byzantine faults. The temporal property Spec asserts that the system starts in Init and all transitions follow Next, which covers all possible state changes, including network nondeterminism. The design is modular, with helper operators for message handling and log management, and is structured to facilitate both model checking and deductive proofs.",
+  "ModuleName": "Raft",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Server",
+    "Value",
+    "Follower",
+    "Candidate",
+    "Leader",
+    "Nil",
+    "RequestVoteRequest",
+    "RequestVoteResponse",
+    "AppendEntriesRequest",
+    "AppendEntriesResponse"
+  ],
+  "VariableNames": [
+    "messages",
+    "elections",
+    "allLogs",
+    "currentTerm",
+    "state",
+    "votedFor",
+    "log",
+    "commitIndex",
+    "votesResponded",
+    "votesGranted",
+    "voterLog",
+    "nextIndex",
+    "matchIndex"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "serverVars",
+    "logVars",
+    "candidateVars",
+    "leaderVars",
+    "vars",
+    "Quorum",
+    "LastTerm",
+    "WithMessage",
+    "WithoutMessage",
+    "Send",
+    "Discard",
+    "Reply",
+    "Min",
+    "Max",
+    "InitHistoryVars",
+    "InitServerVars",
+    "InitCandidateVars",
+    "InitLeaderVars",
+    "InitLogVars",
+    "Init",
+    "Restart",
+    "Timeout",
+    "RequestVote",
+    "AppendEntries",
+    "BecomeLeader",
+    "ClientRequest",
+    "AdvanceCommitIndex",
+    "HandleRequestVoteRequest",
+    "HandleRequestVoteResponse",
+    "HandleAppendEntriesRequest",
+    "HandleAppendEntriesResponse",
+    "UpdateTerm",
+    "DropStaleResponse",
+    "Receive",
+    "DuplicateMessage",
+    "DropMessage",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Restart",
+    "Timeout",
+    "RequestVote",
+    "AppendEntries",
+    "BecomeLeader",
+    "ClientRequest",
+    "AdvanceCommitIndex",
+    "HandleRequestVoteRequest",
+    "HandleRequestVoteResponse",
+    "HandleAppendEntriesRequest",
+    "HandleAppendEntriesResponse",
+    "UpdateTerm",
+    "DropStaleResponse",
+    "Receive",
+    "DuplicateMessage",
+    "DropMessage",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "prevLogIndex",
+    "prevLogTerm",
+    "lastEntry",
+    "entries",
+    "entry",
+    "newLog",
+    "Agree",
+    "agreeIndexes",
+    "newCommitIndex",
+    "logOk",
+    "grant",
+    "index",
+    "new"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~",
+    "\\lnot"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF Len(xlog) = 0 THEN 0 ELSE xlog[Len(xlog)].term (in LastTerm)",
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] + 1] ELSE msgs @@ (m :> 1) (in WithMessage)",
+    "IF m \\in DOMAIN msgs THEN [msgs EXCEPT ![m] = msgs[m] - 1] ELSE msgs (in WithoutMessage)",
+    "IF /\\ agreeIndexes /= {} /\\ log[i][Max(agreeIndexes)].term = currentTerm[i] THEN Max(agreeIndexes) ELSE commitIndex[i] (in AdvanceCommitIndex)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{Follower, Candidate}",
+    "{i}",
+    "{j}",
+    "{Nil, j}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[i \\in Server |-> [j \\in {} |-> <<>>]]",
+    "[i \\in Server |-> 1]",
+    "[i \\in Server |-> Follower]",
+    "[i \\in Server |-> Nil]",
+    "[i \\in Server |-> {}]",
+    "[i \\in Server |-> [j \\in Server |-> 1]]",
+    "[i \\in Server |-> [j \\in Server |-> 0]]",
+    "[i \\in Server |-> << >>]",
+    "[i \\in Server |-> 0]",
+    "[m \\in {} |-> 0]",
+    "[index2 \\in 1..(Len(log[i]) - 1) |-> log[i][index2]]"
+  ],
+  "FunctionApplication": [
+    "xlog[Len(xlog)]",
+    "msgs[m]",
+    "log[i]",
+    "currentTerm[i]",
+    "state[i]",
+    "votedFor[i]",
+    "votesResponded[i]",
+    "votesGranted[i]",
+    "voterLog[i]",
+    "nextIndex[i][j]",
+    "matchIndex[i][j]",
+    "commitIndex[i]",
+    "log[i][prevLogIndex]",
+    "log[i][index]",
+    "m.mentries[1]",
+    "Append(log[i], entry)",
+    "SubSeq(log[i], nextIndex[i][j], lastEntry)",
+    "Min({Len(log[i]), nextIndex[i][j]})",
+    "Max(agreeIndexes)",
+    "Len(log[i])",
+    "Len(m.mentries)"
+  ],
+  "FunctionOverride": [
+    "[msgs EXCEPT ![m] = msgs[m] + 1]",
+    "[msgs EXCEPT ![m] = msgs[m] - 1]",
+    "[state EXCEPT ![i] = Follower]",
+    "[votesResponded EXCEPT ![i] = {}]",
+    "[votesGranted EXCEPT ![i] = {}]",
+    "[voterLog EXCEPT ![i] = [j \\in {} |-> <<>>]]",
+    "[nextIndex EXCEPT ![i] = [j \\in Server |-> 1]]",
+    "[matchIndex EXCEPT ![i] = [j \\in Server |-> 0]]",
+    "[commitIndex EXCEPT ![i] = 0]",
+    "[currentTerm EXCEPT ![i] = currentTerm[i] + 1]",
+    "[votedFor EXCEPT ![i] = Nil]",
+    "[nextIndex EXCEPT ![i][j] = m.mmatchIndex + 1]",
+    "[matchIndex EXCEPT ![i][j] = m.mmatchIndex]",
+    "[nextIndex EXCEPT ![i][j] = Max({nextIndex[i][j] - 1, 1})]",
+    "[votesResponded EXCEPT ![i] = votesResponded[i] \\cup {j}]",
+    "[votesGranted EXCEPT ![i] = votesGranted[i] \\cup {j}]",
+    "[voterLog EXCEPT ![i] = voterLog[i] @@ (j :> m.mlog)]",
+    "[log EXCEPT ![i] = new]",
+    "[log EXCEPT ![i] = Append(log[i], m.mentries[1])]",
+    "[commitIndex EXCEPT ![i] = newCommitIndex]",
+    "[log EXCEPT ![i] = newLog]",
+    "[nextIndex EXCEPT ![i] = [j \\in Server |-> Len(log[i]) + 1]]",
+    "[matchIndex EXCEPT ![i] = [j \\in Server |-> 0]]"
+  ],
+  "RecordConstructor": [
+    "[mtype |-> RequestVoteRequest, mterm |-> currentTerm[i], mlastLogTerm |-> LastTerm(log[i]), mlastLogIndex |-> Len(log[i]), msource |-> i, mdest |-> j]",
+    "[mtype |-> AppendEntriesRequest, mterm |-> currentTerm[i], mprevLogIndex |-> prevLogIndex, mprevLogTerm |-> prevLogTerm, mentries |-> entries, mlog |-> log[i], mcommitIndex |-> Min({commitIndex[i], lastEntry}), msource |-> i, mdest |-> j]",
+    "[term |-> currentTerm[i], value |-> v]",
+    "[eterm |-> currentTerm[i], eleader |-> i, elog |-> log[i], evotes |-> votesGranted[i], evoterLog |-> voterLog[i]]",
+    "[mtype |-> RequestVoteResponse, mterm |-> currentTerm[i], mvoteGranted |-> grant, mlog |-> log[i], msource |-> i, mdest |-> j]",
+    "[mtype |-> AppendEntriesResponse, mterm |-> currentTerm[i], msuccess |-> FALSE, mmatchIndex |-> 0, msource |-> i, mdest |-> j]",
+    "[mtype |-> AppendEntriesResponse, mterm |-> currentTerm[i], msuccess |-> TRUE, mmatchIndex |-> m.mprevLogIndex + Len(m.mentries), msource |-> i, mdest |-> j]"
+  ],
+  "RecordAccess": [
+    "m.mlastLogTerm",
+    "m.mlastLogIndex",
+    "m.mterm",
+    "m.mtype",
+    "m.msource",
+    "m.mdest",
+    "m.mentries",
+    "m.mprevLogIndex",
+    "m.mprevLogTerm",
+    "m.mcommitIndex",
+    "m.mvoteGranted",
+    "m.mlog",
+    "m.msuccess",
+    "m.mmatchIndex",
+    "log[i][prevLogIndex].term",
+    "log[i][index].term",
+    "m.mentries[1].term"
+  ],
+  "TupleConstructor": [
+    "<<currentTerm, state, votedFor>>",
+    "<<log, commitIndex>>",
+    "<<votesResponded, votesGranted, voterLog>>",
+    "<<nextIndex, matchIndex, elections>>",
+    "<<messages, allLogs, serverVars, candidateVars, leaderVars, logVars>>",
+    "<< >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(log[i])",
+    "1..(Len(log[i]) - 1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in s : \\A y \\in s : x <= y",
+    "CHOOSE x \\in s : \\A y \\in s : x >= y"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages",
+    "elections",
+    "allLogs",
+    "currentTerm",
+    "state",
+    "votedFor",
+    "votesResponded",
+    "votesGranted",
+    "voterLog",
+    "nextIndex",
+    "matchIndex",
+    "commitIndex",
+    "log"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<messages, currentTerm, votedFor, log, elections>>",
+    "UNCHANGED <<messages, leaderVars, logVars>>",
+    "UNCHANGED <<serverVars, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<serverVars, candidateVars, logVars, elections>>",
+    "UNCHANGED <<serverVars, votedFor, leaderVars, logVars>>",
+    "UNCHANGED <<state, currentTerm, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, commitIndex>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, log>>",
+    "UNCHANGED <<serverVars, logVars>>",
+    "UNCHANGED <<currentTerm, votedFor, logVars, messages>>",
+    "UNCHANGED <<serverVars, commitIndex, messages>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: SetOperators | Change: Removed \"SUBSET\" from SetOperators | Reason: \"SUBSET\" must not be in SetOperators; it belongs in FiniteSetOps or its own field.\nField: LocalOperatorNames | Change: Removed \"Agree\" from LocalOperatorNames | Reason: \"Agree\" is a LET-bound name, not a local operator definition with parameters; it should only be in NamesInLet.\nField: FunctionOverride | Change: Removed \"[elections EXCEPT ![i] = ...]\" | Reason: No such override appears in the TLA+ file; this is a spurious/placeholder entry.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "serverVars",
+    "logVars",
+    "candidateVars",
+    "leaderVars",
+    "vars",
+    "Quorum"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "InitHistoryVars",
+    "InitServerVars",
+    "InitCandidateVars",
+    "InitLeaderVars",
+    "InitLogVars",
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "LastTerm",
+    "WithMessage",
+    "WithoutMessage",
+    "Reply",
+    "Min",
+    "Max"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Server |-> [j \\in {} |-> <<>>]]",
+    "[i \\in Server |-> 1]",
+    "[i \\in Server |-> Follower]",
+    "[i \\in Server |-> Nil]",
+    "[i \\in Server |-> {}]",
+    "[i \\in Server |-> [j \\in Server |-> 1]]",
+    "[i \\in Server |-> [j \\in Server |-> 0]]",
+    "[i \\in Server |-> << >>]",
+    "[i \\in Server |-> 0]",
+    "[m \\in {} |-> 0]",
+    "[index2 \\in 1..(Len(log[i]) - 1) |-> log[i][index2]]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<messages, currentTerm, votedFor, log, elections>>",
+    "UNCHANGED <<messages, leaderVars, logVars>>",
+    "UNCHANGED <<serverVars, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<serverVars, candidateVars, logVars, elections>>",
+    "UNCHANGED <<serverVars, votedFor, leaderVars, logVars>>",
+    "UNCHANGED <<state, currentTerm, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, logVars>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, commitIndex>>",
+    "UNCHANGED <<messages, serverVars, candidateVars, leaderVars, log>>",
+    "UNCHANGED <<serverVars, logVars>>",
+    "UNCHANGED <<currentTerm, votedFor, logVars, messages>>",
+    "UNCHANGED <<serverVars, commitIndex, messages>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Raft/Raft.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(6) + TemporalProperty(1) + Init(6) + ValueDef(6) + ActionDefNames(17) = 36 = OperatorDefNames total. Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "Spec is placed in TemporalProperty because its body is Init /\\ [][Next]_vars, which is a temporal formula.",
+    "No temporal operator appears explicitly nested inside another temporal operator in this file; TemporalNesting is false."
+  ]
+}

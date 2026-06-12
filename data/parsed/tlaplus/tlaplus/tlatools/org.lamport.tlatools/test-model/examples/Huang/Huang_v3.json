@@ -1,0 +1,283 @@
+{
+  "id": null,
+  "Specification": "This specification models Huang's distributed termination detection algorithm, as described on its Wikipedia page. The system consists of a set of processes (Procs), one of which is designated as the Leader. Each process maintains an 'active' status, a 'weight' (a dyadic rational), and a queue of messages in transit. The algorithm ensures that the sum of all process weights and messages in transit is always 1, and uses message passing and weight halving to detect global termination. The model includes fairness constraints to ensure progress, and verifies both safety (that once termination is detected, all processes are idle and all messages are delivered) and liveness (that termination is eventually detected). The design uses explicit state variables, action definitions for sending, receiving, and idling, and temporal properties to capture the algorithm's guarantees.",
+  "ModuleName": "Huang",
+  "ExtendsModules": [
+    "Naturals",
+    "DyadicRationals",
+    "Sequences",
+    "SequencesExt",
+    "Functions"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Procs",
+    "Leader"
+  ],
+  "VariableNames": [
+    "active",
+    "weight",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "Leader \\in Procs"
+  ],
+  "TheoremNames": [
+    "Spec => Safe",
+    "Spec => Live"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "Sum",
+    "TypeOK",
+    "Init",
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next",
+    "Spec",
+    "TerminationDetected",
+    "Terminated",
+    "Safe",
+    "Live",
+    "StateConstraint",
+    "Alias"
+  ],
+  "ActionDefNames": [
+    "SendMsg",
+    "RcvMsg",
+    "Idle",
+    "IdleLdr",
+    "RcvLdr",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "Sum"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "p",
+    "M"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF set = {} THEN Zero ELSE LET p == CHOOSE p \\in set: TRUE IN Add(FoldFunction(Add, Zero, fun[p]), Sum(fun, set \\ {p}))",
+    "IF p = Leader THEN TRUE ELSE FALSE",
+    "IF p = Leader THEN One ELSE Zero"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{p \\in Procs : active[p]}",
+    "{ q \\in Procs: weight[q] # Zero}",
+    "{ q \\in Procs: msgs[q] # <<>>}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\cap",
+    "\\subseteq",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Procs -> BOOLEAN ]",
+    "[p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE]",
+    "[p \\in Procs |-> IF p = Leader THEN One ELSE Zero]",
+    "[ Procs -> {<<>>} ]",
+    "[weight EXCEPT ![p] = Half(weight[p])]",
+    "[msgs EXCEPT ![q] = Append(@, weight[p]')]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[weight EXCEPT ![p] = Add(@, msgs[p][i])]",
+    "[msgs EXCEPT ![p] = RemoveAt(@, i)]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[msgs EXCEPT ![Leader] = Append(@, weight[p])]",
+    "[weight EXCEPT ![p] = Zero]",
+    "[active EXCEPT ![Leader] = FALSE]",
+    "[weights |-> [p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])]]",
+    "[msgs |-> [p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]]"
+  ],
+  "FunctionApplication": [
+    "msgs[p]",
+    "msgs[p][i]",
+    "weight[p]",
+    "active[p]",
+    "Len(msgs[p])",
+    "Append(@, weight[p]')",
+    "Half(weight[p])",
+    "Add(@, msgs[p][i])",
+    "RemoveAt(@, i)",
+    "PrettyPrint(weight[p])",
+    "PrettyPrint(msgs[p][i])"
+  ],
+  "FunctionOverride": [
+    "[weight EXCEPT ![p] = Half(weight[p])]",
+    "[msgs EXCEPT ![q] = Append(@, weight[p]')]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[weight EXCEPT ![p] = Add(@, msgs[p][i])]",
+    "[msgs EXCEPT ![p] = RemoveAt(@, i)]",
+    "[active EXCEPT ![p] = FALSE]",
+    "[msgs EXCEPT ![Leader] = Append(@, weight[p])]",
+    "[weight EXCEPT ![p] = Zero]",
+    "[active EXCEPT ![Leader] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[ active |-> {p \\in Procs : active[p]}, weights |-> [p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])], msgs |-> [p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]] ]"
+  ],
+  "RecordAccess": [
+    "weight[p].den"
+  ],
+  "TupleConstructor": [
+    "<<active, weight, msgs>>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(msgs[p])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE p \\in set: TRUE"
+  ],
+  "StringLiterals": [
+    "weights",
+    "msgs"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "weight",
+    "msgs",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active>>",
+    "UNCHANGED <<weight, msgs>>",
+    "UNCHANGED active"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "WF_vars(RcvMsg(p))",
+    "WF_vars(Idle(p))"
+  ],
+  "AlwaysOp": [
+    "[](TerminationDetected => []Terminated)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Terminated ~> TerminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(RcvLdr)",
+    "WF_vars(IdleLdr)",
+    "\\A p \\in Procs \\ {Leader}: WF_vars(RcvMsg(p))",
+    "\\A p \\in Procs \\ {Leader}: WF_vars(Idle(p))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "\\A p \\in Procs : weight[p].den <= 7"
+  ],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "TerminationDetected",
+    "Terminated",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Safe",
+    "Live"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Sum",
+    "Alias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Procs |-> IF p = Leader THEN TRUE ELSE FALSE]",
+    "[p \\in Procs |-> IF p = Leader THEN One ELSE Zero]",
+    "[weights |-> [p \\in { q \\in Procs: weight[q] # Zero} |-> PrettyPrint(weight[p])]]",
+    "[msgs |-> [p \\in { q \\in Procs: msgs[q] # <<>>} |-> [ i \\in 1..Len(msgs[p]) |-> PrettyPrint(msgs[p][i])]]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Procs -> BOOLEAN ]",
+    "[ Procs -> {<<>>} ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active>>",
+    "UNCHANGED <<weight, msgs>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED active"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Huang/Huang.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(3) + Init(1) + ValueDef(3) + ActionDefNames(6) = 17 = OperatorDefNames total. Verified.",
+    "Safe is placed in TemporalProperty because its body is [](TerminationDetected => []Terminated): the outermost operator is [], but the implication inside is temporal.",
+    "Live is placed in TemporalProperty because its body is Terminated ~> TerminationDetected, which is a temporal property.",
+    "Spec is placed in TemporalProperty because it is the main temporal specification operator.",
+    "FunctionConstructor_ByDomain contains 4 entries, all of the form [x \\in S |-> e] or nested such forms. FunctionConstructor_SetType contains 2 entries, both of the form [S -> T]. Their union equals FunctionConstructor.",
+    "UnchangedExprs_Explicit contains 2 entries (UNCHANGED <<active>>, UNCHANGED <<weight, msgs>>), UnchangedExprs_VarRef contains 1 entry (UNCHANGED active). Their union equals UnchangedExprs.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

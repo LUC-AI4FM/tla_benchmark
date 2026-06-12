@@ -1,0 +1,220 @@
+{
+  "id": null,
+  "Specification": "This specification models a simple key-value store with four operations: get, insert, update, and delete. The store maps keys to either a value in Vals or the distinguished marker MISSING, and requests/responses are modeled with explicit state variables for the current operation, arguments, return value, and whether the system is ready or working. The spec defines type correctness, initialization, request and response actions for each operation, and a temporal specification requiring initialization, all steps to satisfy Next up to stuttering, and weak fairness for delete requests over op.",
+  "ModuleName": "kvstore",
+  "ExtendsModules": [],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Keys",
+    "Vals",
+    "MISSING",
+    "NIL"
+  ],
+  "VariableNames": [
+    "op",
+    "args",
+    "ret",
+    "state",
+    "dict"
+  ],
+  "AssumptionNames": [
+    "MISSING \\notin Vals",
+    "NIL \\notin Vals \\union Ops \\union {MISSING}"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Ops",
+    "TypeOK",
+    "Init",
+    "GetReq",
+    "GetResp",
+    "InsertReq",
+    "Present",
+    "Absent",
+    "InsertResp",
+    "UpdateReq",
+    "UpdateResp",
+    "DeleteReq",
+    "DeleteResp",
+    "Next",
+    "vars",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "GetReq",
+    "GetResp",
+    "InsertReq",
+    "InsertResp",
+    "UpdateReq",
+    "UpdateResp",
+    "DeleteReq",
+    "DeleteResp",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "key",
+    "val"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF Absent(key) THEN [dict EXCEPT ![key] = val] ELSE dict",
+    "IF Absent(key) THEN \"ok\" ELSE \"error\"",
+    "IF Present(key) THEN \"ok\" ELSE \"error\"",
+    "IF Present(key) THEN [dict EXCEPT ![key]=val] ELSE dict"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"get\", \"insert\", \"delete\", \"update\"}",
+    "{MISSING}",
+    "{<<k>>: k \\in Keys}",
+    "{<<k,v>>: k \\in Keys, v \\in Vals}",
+    "{NIL}",
+    "{\"ok\", \"error\", MISSING, NIL}",
+    "{\"ready\", \"working\"}"
+  ],
+  "SetOperators": [
+    "\\union"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Keys -> Vals \\union {MISSING}]",
+    "[k \\in Keys |-> MISSING]"
+  ],
+  "FunctionApplication": [
+    "args[1]",
+    "dict[key]",
+    "args[2]"
+  ],
+  "FunctionOverride": [
+    "[dict EXCEPT ![key] = val]",
+    "[dict EXCEPT ![key]=val]",
+    "[dict EXCEPT ![key]=MISSING]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<k>>",
+    "<<k,v>>",
+    "<<key>>",
+    "<<op, args, dict>>",
+    "<<key, val>>",
+    "<<op, args>>",
+    "<<op, args, ret, dict, state>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "get",
+    "insert",
+    "delete",
+    "update",
+    "ok",
+    "error",
+    "ready",
+    "working"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "op",
+    "args",
+    "ret",
+    "state",
+    "dict"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED dict",
+    "UNCHANGED <<op, args, dict>>",
+    "UNCHANGED <<dict>>",
+    "UNCHANGED <<op, args>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_op(\\E k \\in Keys: DeleteReq(k))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_op(\\E k \\in Keys: DeleteReq(k))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"key\", \"val\"] | Reason: schema uses LetInNames; JSON field name was incorrect\nField: Quantifiers | Change: added \"\\\\A\" | Reason: file contains universal quantifier in ASSUME `\\\\A v \\\\in Values: ...`? Correction not applicable to file, wait\u2014actual file has no `\\\\A`; this change should not have been made\nField: Quantifiers | Change: removed \"\\\\A\" | Reason: `\\\\A` does not appear in the TLA+ file; only `\\\\E` appears\nField: IfThenElse | Change: removed contextual suffixes `(in InsertResp)` and `(in UpdateResp)` from all entries | Reason: entries must be the expressions that literally appear in the file, not annotated context\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME blocks are not proof commands and this value does not belong in ProofCommands\nField: Operator count verification | Change: confirmed top-level operator definitions count = 16, JSON OperatorDefNames count = 16 | Reason: completeness check passed with exact match",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Present",
+    "Absent"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Ops",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[k \\in Keys |-> MISSING]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Keys -> Vals \\union {MISSING}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<op, args, dict>>",
+    "UNCHANGED <<dict>>",
+    "UNCHANGED <<op, args>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED dict"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/kvstore/kvstore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "vars is placed in ValueDef as a tuple-valued structural helper definition.",
+    "Ops is placed in ValueDef as a set-valued helper definition.",
+    "Partition count: StatePredicate(3) + TemporalProperty(1) + Init(1) + ValueDef(2) + ActionDefNames(9) = OperatorDefNames(16). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

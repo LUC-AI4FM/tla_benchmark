@@ -1,0 +1,255 @@
+{
+  "id": null,
+  "Specification": "This module specifies a parameterized reliable broadcast algorithm by message diffusion under crash failures. Processes may start either with an initial value indicating they have received the broadcast or without it, may receive ECHO messages, may accept and rebroadcast ECHO, and up to F correct processes may crash. The specification includes initializations with and without an initial broadcast, a safety-oriented type invariant, temporal specifications with weak fairness for receive-and-accept behavior, and liveness/safety properties such as no forgery, correctness of propagation, relay, and reliable channel delivery.",
+  "ModuleName": "bcastFolklore",
+  "ExtendsModules": [
+    "Naturals",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "T",
+    "F"
+  ],
+  "VariableNames": [
+    "Corr",
+    "nCrashed",
+    "pc",
+    "rcvd",
+    "sent"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat /\\ T \\in Nat /\\ F \\in Nat",
+    "(N > 2 * T) /\\ (T >= F) /\\ (F >= 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "M",
+    "vars",
+    "Init",
+    "InitNoBcast",
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next",
+    "Spec",
+    "SpecNoBcast",
+    "TypeOK",
+    "UnforgLtl",
+    "Unforg",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan",
+    "StateConstraint",
+    "CrashCountInfOftenZero"
+  ],
+  "ActionDefNames": [
+    "Receive",
+    "UponV1",
+    "UponAccept",
+    "UponCrash",
+    "Step",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ \"ECHO\" }",
+    "{}",
+    "{\"V0\", \"V1\"}",
+    "{ <<self, \"ECHO\">> }",
+    "{ self }",
+    "{\"V0\", \"V1\", \"AC\", \"CR\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\subseteq",
+    "\\cup",
+    "\\",
+    "\\X"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]",
+    "[ Proc -> {\"V0\", \"V1\", \"AC\", \"CR\"} ]",
+    "[ Proc -> SUBSET (Proc \\times M) ]"
+  ],
+  "FunctionApplication": [
+    "pc[self]",
+    "rcvd[self]",
+    "rcvd'[self]",
+    "pc[i]",
+    "rcvd[p]"
+  ],
+  "FunctionOverride": [
+    "[rcvd EXCEPT ![self] = msgs ]",
+    "[pc EXCEPT ![self] = \"AC\"]",
+    "[pc EXCEPT ![self] = \"CR\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< pc, rcvd, sent, nCrashed, Corr >>",
+    "<<self, \"ECHO\">>",
+    "<<sndr, \"ECHO\">>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1 .. N",
+    "0..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ECHO",
+    "V0",
+    "V1",
+    "CR",
+    "AC",
+    "level"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "rcvd",
+    "pc",
+    "sent",
+    "nCrashed",
+    "Corr"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                          /\\ \\/ UponV1(self)                                             \n                                             \\/ UponAccept(self)\n                                             \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                                        /\\ \\/ UponV1(self)\n                                                           \\/ UponAccept(self)\n                                                           \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[](\\A i \\in Corr: pc[i] /= \"AC\")",
+    "[]((\\E i \\in Corr: pc[i] = \"AC\") => <>(\\A i \\in Corr: pc[i] = \"AC\"))",
+    "[]( \\E sndr \\in 1..N : (<<sndr, \"ECHO\">> \\in sent \n                            => <>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])))",
+    "[]<>(\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])"
+  ],
+  "EventuallyOp": [
+    "<>(\\E i \\in Corr: pc[i] = \"AC\")",
+    "<>(\\A i \\in Corr: pc[i] = \"AC\")",
+    "<>[](\\A p \\in Corr : <<sndr, \"ECHO\">> \\in rcvd[p])"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                          /\\ \\/ UponV1(self)                                             \n                                             \\/ UponAccept(self)\n                                             \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )",
+    "WF_vars(\\E self \\in Corr: /\\ Receive(self)\n                                                        /\\ \\/ UponV1(self)\n                                                           \\/ UponAccept(self)\n                                                           \\/ UNCHANGED << pc, sent, nCrashed, Corr >> )"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: FunctionApplication | Change: added `rcvd'[self]` | Reason: literal function application appears in `UponAccept` and was missing\nField: EventuallyOp | Change: removed `<>(\\\\A p \\\\in Corr : <<sndr, \"ECHO\">> \\\\in rcvd[p])` | Reason: this value does not appear in the file as an outermost `<>` formula; only `<>[](...)` appears\nField: Completeness | Change: verified operator counts match: file count = 21, JSON OperatorDefNames count = 21 | Reason: all top-level `==` definitions are present with no extras",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Unforg",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "SpecNoBcast",
+    "UnforgLtl",
+    "CorrLtl",
+    "RelayLtl",
+    "ReliableChan",
+    "CrashCountInfOftenZero"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "InitNoBcast"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "M",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in Proc |-> {} ]",
+    "[ p \\in Proc |-> \"V0\" ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Proc -> {\"V0\", \"V1\"} ]",
+    "[ Proc -> {\"V0\", \"V1\", \"AC\", \"CR\"} ]",
+    "[ Proc -> SUBSET (Proc \\times M) ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << pc, sent, nCrashed, Corr >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/bcastFolklore/bcastFolklore.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(7) + Init(2) + ValueDef(3) + ActionDefNames(6) = OperatorDefNames(21). Verified.",
+    "UnforgLtl and CorrLtl are placed in TemporalProperty because their bodies are of the form P => []Q and P => <>Q respectively. The outermost operator is => but the meaning is temporal.",
+    "StateConstraint is classified as a StatePredicate because it is Boolean-valued, contains no primed variables, and uses TLCGet without temporal operators.",
+    "Proc, M, and vars are placed in ValueDef as non-Boolean helper/structural value definitions.",
+    "TemporalNesting is true. Explicit nested temporal operators appear in the line: \"  []( \\E sndr \\in 1..N : (<<sndr, \\\"ECHO\\\">> \\in sent \" and continue as \"                            => <>[](\\A p \\in Corr : <<sndr, \\\"ECHO\\\">> \\in rcvd[p]))) \" in ReliableChan; this contains <>[] nested inside [].",
+    "UnchangedExprs_VarRef is empty because the only UNCHANGED expression in the file is an explicit tuple form, not UNCHANGED vars."
+  ]
+}

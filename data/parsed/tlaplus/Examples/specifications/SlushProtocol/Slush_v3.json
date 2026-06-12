@@ -1,0 +1,375 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Slush protocol, a simple consensus algorithm from the Avalanche family, using a PlusCal algorithm translated into TLA+. The model captures nodes that hold colors, loop processes that repeatedly query sampled peers, query processes that answer with their current color, and a client process that initially assigns colors to uncolored nodes. The comments explicitly note that the protocol is probabilistic in intent, but the TLA+ model is not probabilistic and is therefore mainly useful as executable pseudocode plus basic temporal checking. The specification defines an initial state, a next-state relation over the translated PlusCal control flow, a type invariant, and a temporal termination property asserting eventual completion of all processes. It also includes an explicit terminating stuttering action to avoid deadlock once all processes reach the Done control state.",
+  "ModuleName": "Slush",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Node",
+    "SlushLoopProcess",
+    "SlushQueryProcess",
+    "HostMapping",
+    "SlushIterationCount",
+    "SampleSetSize",
+    "PickFlipThreshold"
+  ],
+  "VariableNames": [
+    "pick",
+    "message",
+    "pc",
+    "sampleSet",
+    "loopVariant"
+  ],
+  "AssumptionNames": [
+    "/\\ Cardinality(Node) = Cardinality(SlushLoopProcess)\n  /\\ Cardinality(Node) = Cardinality(SlushQueryProcess)\n  /\\ SlushIterationCount \\in Nat\n  /\\ SampleSetSize \\in Nat\n  /\\ PickFlipThreshold \\in Nat",
+    "HostMappingType"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "HostOf",
+    "Red",
+    "Blue",
+    "Color",
+    "NoColor",
+    "QueryMessageType",
+    "QueryReplyMessageType",
+    "TerminationMessageType",
+    "QueryMessage",
+    "QueryReplyMessage",
+    "TerminationMessage",
+    "Message",
+    "NoMessage",
+    "TypeInvariant",
+    "PendingQueryMessage",
+    "PendingQueryReplyMessage",
+    "Terminate",
+    "Pick",
+    "vars",
+    "ProcSet",
+    "Init",
+    "QueryReplyLoop",
+    "WaitForQueryMessageOrTermination",
+    "RespondToQueryMessage",
+    "SlushQuery",
+    "RequireColorAssignment",
+    "ExecuteSlushLoop",
+    "QuerySampleSet",
+    "TallyQueryReplies",
+    "SlushLoopTermination",
+    "SlushLoop",
+    "ClientRequestLoop",
+    "AssignColorToNode",
+    "ClientRequest",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "QueryReplyLoop",
+    "WaitForQueryMessageOrTermination",
+    "RespondToQueryMessage",
+    "SlushQuery",
+    "RequireColorAssignment",
+    "ExecuteSlushLoop",
+    "QuerySampleSet",
+    "TallyQueryReplies",
+    "SlushLoopTermination",
+    "SlushLoop",
+    "ClientRequestLoop",
+    "AssignColorToNode",
+    "ClientRequest",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "color",
+    "otherNodes",
+    "otherQueryProcesses",
+    "redTally",
+    "blueTally"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF ~Terminate THEN /\\ pc' = [pc EXCEPT ![self] = \"WaitForQueryMessageOrTermination\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"Done\"]",
+    "IF Terminate THEN /\\ pc' = [pc EXCEPT ![self] = \"QueryReplyLoop\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"RespondToQueryMessage\"]",
+    "IF Pick(self) = NoColor THEN msg.color ELSE Pick(self)",
+    "IF loopVariant[self] < SlushIterationCount THEN /\\ pc' = [pc EXCEPT ![self] = \"QuerySampleSet\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"SlushLoopTermination\"]",
+    "IF redTally >= PickFlipThreshold THEN /\\ pick' = [pick EXCEPT ![HostOf[self]] = Red] ELSE /\\ IF blueTally >= PickFlipThreshold THEN /\\ pick' = [pick EXCEPT ![HostOf[self]] = Blue] ELSE /\\ TRUE /\\ pick' = pick",
+    "IF blueTally >= PickFlipThreshold THEN /\\ pick' = [pick EXCEPT ![HostOf[self]] = Blue] ELSE /\\ TRUE /\\ pick' = pick",
+    "IF \\E n \\in Node : pick[n] = NoColor THEN /\\ pc' = [pc EXCEPT ![\"ClientRequest\"] = \"AssignColorToNode\"] ELSE /\\ pc' = [pc EXCEPT ![\"ClientRequest\"] = \"Done\"]",
+    "IF pick[node] = NoColor THEN /\\ pick' = [pick EXCEPT ![node] = color] ELSE /\\ TRUE /\\ pick' = pick"
+  ],
+  "CaseExpr": [
+    "CASE self \\in SlushQueryProcess -> \"QueryReplyLoop\"\n                                        [] self \\in SlushLoopProcess -> \"RequireColorAssignment\"\n                                        [] self = \"ClientRequest\" -> \"ClientRequestLoop\""
+  ],
+  "SetEnumeration": [
+    "{Red, Blue}",
+    "{QueryMessageType}",
+    "{QueryReplyMessageType}",
+    "{TerminationMessageType}",
+    "{NoColor}",
+    "{}",
+    "{msg}",
+    "{\"ClientRequest\"}",
+    "{[type  |-> QueryReplyMessageType,\n                                                     src     |-> self,\n                                                     dst     |-> msg.src,\n                                                     color   |-> color]}",
+    "{HostOf[self]}",
+    "{pidSet \\in SUBSET otherQueryProcesses : Cardinality(pidSet) = SampleSetSize}",
+    "{[type  |-> QueryMessageType,\n                                            src     |-> self,\n                                            dst     |-> pid,\n                                            color   |-> Pick(self)] :\n                                              pid \\in sampleSet'[self]}",
+    "{msg \\in message :\n                                           /\\ msg.type = QueryReplyMessageType\n                                           /\\ msg.src \\in sampleSet[self]\n                                           /\\ msg.dst = self}",
+    "{[\n                                               type |-> TerminationMessageType, pid |-> self\n                                             ]}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[node \\in Node |-> NoColor]",
+    "[Node -> Color \\cup {NoColor}]",
+    "[self \\in SlushLoopProcess |-> {}]",
+    "[self \\in SlushLoopProcess |-> 0]",
+    "[self \\in ProcSet |-> CASE self \\in SlushQueryProcess -> \"QueryReplyLoop\"\n                                        [] self \\in SlushLoopProcess -> \"RequireColorAssignment\"\n                                        [] self = \"ClientRequest\" -> \"ClientRequestLoop\"]"
+  ],
+  "FunctionApplication": [
+    "HostOf[pid]",
+    "pick[HostOf[pid]]",
+    "pc[self]",
+    "HostOf[self]",
+    "sampleSet'[self]",
+    "loopVariant[self]",
+    "sampleSet[self]",
+    "pc[\"ClientRequest\"]",
+    "pick[n]",
+    "pick[node]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"WaitForQueryMessageOrTermination\"]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[pc EXCEPT ![self] = \"QueryReplyLoop\"]",
+    "[pc EXCEPT ![self] = \"RespondToQueryMessage\"]",
+    "[pick EXCEPT ![HostOf[self]] = color]",
+    "[pc EXCEPT ![self] = \"ExecuteSlushLoop\"]",
+    "[pc EXCEPT ![self] = \"QuerySampleSet\"]",
+    "[pc EXCEPT ![self] = \"SlushLoopTermination\"]",
+    "[sampleSet EXCEPT ![self] = possibleSampleSet]",
+    "[pick EXCEPT ![HostOf[self]] = Red]",
+    "[pick EXCEPT ![HostOf[self]] = Blue]",
+    "[sampleSet EXCEPT ![self] = {}]",
+    "[loopVariant EXCEPT ![self] = loopVariant[self] + 1]",
+    "[pc EXCEPT ![self] = \"TallyQueryReplies\"]",
+    "[pc EXCEPT ![\"ClientRequest\"] = \"AssignColorToNode\"]",
+    "[pc EXCEPT ![\"ClientRequest\"] = \"Done\"]",
+    "[pick EXCEPT ![node] = color]",
+    "[pc EXCEPT ![\"ClientRequest\"] = \"ClientRequestLoop\"]"
+  ],
+  "RecordConstructor": [
+    "[\n  type  : {QueryMessageType},\n  src   : SlushLoopProcess,\n  dst   : SlushQueryProcess,\n  color : Color\n]",
+    "[\n  type  : {QueryReplyMessageType},\n  src   : SlushQueryProcess,\n  dst   : SlushLoopProcess,\n  color : Color\n]",
+    "[\n  type  : {TerminationMessageType},\n  pid   : SlushLoopProcess\n]",
+    "[type  |-> QueryReplyMessageType,\n                                                     src     |-> self,\n                                                     dst     |-> msg.src,\n                                                     color   |-> color]",
+    "[type  |-> QueryMessageType,\n                                            src     |-> self,\n                                            dst     |-> pid,\n                                            color   |-> Pick(self)]",
+    "[\n                                               type |-> TerminationMessageType, pid |-> self\n                                             ]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.dst",
+    "msg.color",
+    "msg.src",
+    "msg.type"
+  ],
+  "TupleConstructor": [
+    "<< pick, message, pc, sampleSet, loopVariant >>",
+    "<< pick, message, sampleSet, loopVariant >>",
+    "<< sampleSet, loopVariant >>",
+    "<< pick, loopVariant >>",
+    "<< pick, sampleSet, loopVariant >>",
+    "<< message, sampleSet, loopVariant >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE n \\in Node :\n    /\\ \\E mapping \\in HostMapping :\n      /\\ n \\in mapping\n      /\\ pid \\in mapping",
+    "CHOOSE c : c \\notin Color",
+    "CHOOSE m : m \\notin Message"
+  ],
+  "StringLiterals": [
+    "Red",
+    "Blue",
+    "QueryMessageType",
+    "QueryReplyMessageType",
+    "TerminationMessageType",
+    "ClientRequest",
+    "QueryReplyLoop",
+    "RequireColorAssignment",
+    "WaitForQueryMessageOrTermination",
+    "Done",
+    "RespondToQueryMessage",
+    "ExecuteSlushLoop",
+    "QuerySampleSet",
+    "SlushLoopTermination",
+    "TallyQueryReplies",
+    "ClientRequestLoop",
+    "AssignColorToNode"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "pc",
+    "pick",
+    "message",
+    "sampleSet",
+    "loopVariant"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << pick, message, sampleSet, loopVariant >>",
+    "UNCHANGED << pick, message, sampleSet, \n                                                loopVariant >>",
+    "UNCHANGED << pick, message, \n                                                          sampleSet, \n                                                          loopVariant >>",
+    "UNCHANGED << sampleSet, loopVariant >>",
+    "UNCHANGED << pick, loopVariant >>",
+    "UNCHANGED << pick, sampleSet, loopVariant >>",
+    "UNCHANGED << message, sampleSet, loopVariant >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Slush"
+  ],
+  "PlusCalProcesses": [
+    "SlushQuery",
+    "SlushLoop",
+    "ClientRequest"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified complete with 39 top-level `==` definitions in file and 39 entries in JSON | Reason: Phase 2 completeness check passed\nField: NamesInLet | Change: Renamed field to `LetInNames` and preserved entries | Reason: Prompt requires `LetInNames`; LET-bound names must not be left under a noncanonical field\nField: IfThenElse | Change: Replaced descriptive paraphrases with verbatim TLA+ IF/THEN/ELSE expressions from the file | Reason: Values must appear in the TLA+ file exactly; prior entries included commentary not present in source\nField: CaseExpr | Change: Removed trailing commentary `(in Init)` and kept verbatim CASE expression | Reason: Entry must literally appear in the file\nField: SetOperators | Change: Removed `DOMAIN` | Reason: `DOMAIN` does not appear anywhere in the TLA+ file\nField: RecordConstructor | Change: Normalized first three entries to match verbatim record type constructors from the translated TLA+ section | Reason: JSON values must appear in the file\nField: UnchangedExprs | Change: Replaced one incorrect entry with `UNCHANGED << pick, message, \\n                                                          sampleSet, \\n                                                          loopVariant >>` | Reason: Distinct UNCHANGED expressions must match the file exactly, including spacing and line breaks\nField: ProofCommands | Change: Removed `ASSUME` | Reason: `ASSUME` blocks are not proof commands; this value does not belong in `ProofCommands`\nField: AssumptionNames | Change: Verified two assumption blocks captured: one unnamed ASSUME expression and one named ASSUME `HostMappingType` | Reason: Phase 2 assumption completeness check\nField: PrimedVariables | Change: Verified `pc`, `pick`, `message`, `sampleSet`, `loopVariant` are complete | Reason: These are all variables appearing with primes anywhere in the file\nField: FunctionOverride | Change: Verified all 18 distinct EXCEPT forms present; no additions needed | Reason: Phase 2 empty/high-risk validation\nField: AlwaysOp | Change: Verified `[][Next]_vars` has full subscript and is correct | Reason: Phase 1 temporal encoding rule\nField: EventuallyOp | Change: Verified `<>(\\\\A self \\\\in ProcSet: pc[self] = \"Done\")` is the only outermost eventuality | Reason: Phase 2 temporal completeness check\nField: FairnessConditions | Change: Confirmed remains empty | Reason: No WF_/SF_ fairness expressions occur in `Spec` or `Spec0`\nField: EnabledExprs | Change: Confirmed remains empty | Reason: No `ENABLED` expressions occur in the file\nField: LocalOperatorNames | Change: Confirmed remains empty | Reason: No parametric LET-local operator definitions of the form `name(args) == expr`\nField: RecordAccess | Change: Verified all entries appear verbatim and no extras retained | Reason: Phase 3 high-risk field validation\nField: PlusCalAlgorithm | Change: Verified non-empty value `[\"Slush\"]` is correct | Reason: PlusCal algorithm is present; empty-array rule not applicable\nField: PlusCalProcesses | Change: Verified non-empty process list is correct | Reason: PlusCal processes are present; empty-array rule not applicable",
+  "OperatorDefNames_StatePredicate": [
+    "TypeInvariant",
+    "Terminate"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "HostOf",
+    "Red",
+    "Blue",
+    "Color",
+    "NoColor",
+    "QueryMessageType",
+    "QueryReplyMessageType",
+    "TerminationMessageType",
+    "QueryMessage",
+    "QueryReplyMessage",
+    "TerminationMessage",
+    "Message",
+    "NoMessage",
+    "PendingQueryMessage",
+    "PendingQueryReplyMessage",
+    "Pick",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[node \\in Node |-> NoColor]",
+    "[self \\in SlushLoopProcess |-> {}]",
+    "[self \\in SlushLoopProcess |-> 0]",
+    "[self \\in ProcSet |-> CASE self \\in SlushQueryProcess -> \"QueryReplyLoop\"\n                                        [] self \\in SlushLoopProcess -> \"RequireColorAssignment\"\n                                        [] self = \"ClientRequest\" -> \"ClientRequestLoop\"]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> Color \\cup {NoColor}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << pick, message, sampleSet, loopVariant >>",
+    "UNCHANGED << pick, message, sampleSet, \n                                                loopVariant >>",
+    "UNCHANGED << pick, message, \n                                                          sampleSet, \n                                                          loopVariant >>",
+    "UNCHANGED << sampleSet, loopVariant >>",
+    "UNCHANGED << pick, loopVariant >>",
+    "UNCHANGED << pick, sampleSet, loopVariant >>",
+    "UNCHANGED << message, sampleSet, loopVariant >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Slush/Slush.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "PendingQueryMessage, PendingQueryReplyMessage, and Pick are placed in ValueDef because they are helper operators returning sets or values rather than Boolean state predicates.",
+    "HostOf, Red, Blue, Color, NoColor, QueryMessageType, QueryReplyMessageType, TerminationMessageType, QueryMessage, QueryReplyMessage, TerminationMessage, Message, NoMessage, vars, and ProcSet are placed in ValueDef by elimination as non-action, non-temporal, non-init operator definitions.",
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(18) + ActionDefNames(15) = OperatorDefNames(38). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

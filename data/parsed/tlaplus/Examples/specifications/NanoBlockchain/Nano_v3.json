@@ -1,0 +1,399 @@
+{
+  "id": null,
+  "Specification": "This module models an early, now-outdated version of the Nano blockchain protocol. It represents signed blocks, account chains, balances, and per-node ledgers, along with actions for creating and processing genesis, open, send, receive, and change-representative blocks. The specification assumes abstract cryptographic primitives for hashing and signatures, models a distributed setting where each node maintains its own ledger and a set of received-but-unprocessed blocks, and verifies a safety theorem showing that the temporal specification implies the type invariant and a cryptographic safety invariant.",
+  "ModuleName": "Nano",
+  "ExtendsModules": [
+    "Naturals",
+    "Bags"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Hash",
+    "CalculateHash",
+    "PrivateKey",
+    "PublicKey",
+    "KeyPair",
+    "Node",
+    "GenesisBalance",
+    "Ownership"
+  ],
+  "VariableNames": [
+    "lastHash",
+    "distributedLedger",
+    "received"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A data, oldHash, newHash :\n        /\\ CalculateHash(data, oldHash, newHash) \\in BOOLEAN\n    /\\ KeyPair \\in [PrivateKey -> PublicKey]\n    /\\ GenesisBalance \\in Nat\n    /\\ Ownership \\in [Node -> PrivateKey]"
+  ],
+  "TheoremNames": [
+    "THEOREM Safety == Spec => TypeInvariant /\\ SafetyInvariant"
+  ],
+  "OperatorDefNames": [
+    "SignHash",
+    "ValidateSignature",
+    "Signature",
+    "AccountBalance",
+    "GenesisBlock",
+    "SendBlock",
+    "OpenBlock",
+    "ReceiveBlock",
+    "ChangeRepBlock",
+    "Block",
+    "SignedBlock",
+    "NoBlock",
+    "NoHash",
+    "Ledger",
+    "GenesisBlockExists",
+    "IsAccountOpen",
+    "IsSendReceived",
+    "PublicKeyOf",
+    "TopBlock",
+    "BalanceAt",
+    "ValueOfSendBlock",
+    "TypeInvariant",
+    "CryptographicInvariant",
+    "SumBag",
+    "BalanceInvariant",
+    "SafetyInvariant",
+    "CreateGenesisBlock",
+    "ValidateOpenBlock",
+    "CreateOpenBlock",
+    "ProcessOpenBlock",
+    "ValidateSendBlock",
+    "CreateSendBlock",
+    "ProcessSendBlock",
+    "ValidateReceiveBlock",
+    "CreateReceiveBlock",
+    "ProcessReceiveBlock",
+    "ValidateChangeBlock",
+    "CreateChangeRepBlock",
+    "ProcessChangeRepBlock",
+    "CreateBlock",
+    "ProcessBlock",
+    "Init",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "CreateGenesisBlock",
+    "CreateOpenBlock",
+    "ProcessOpenBlock",
+    "CreateSendBlock",
+    "ProcessSendBlock",
+    "CreateReceiveBlock",
+    "ProcessReceiveBlock",
+    "CreateChangeRepBlock",
+    "ProcessChangeRepBlock",
+    "CreateBlock",
+    "ProcessBlock",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "PublicKeyOf",
+    "BalanceAt",
+    "ValueOfSendBlock",
+    "SumBag"
+  ],
+  "LocalOperatorNames": [
+    "ledgerBalanceAt"
+  ],
+  "NamesInLet": [
+    "publicKey",
+    "signedBlock",
+    "block",
+    "otherSignedBlock",
+    "S",
+    "e",
+    "ledger",
+    "openAccounts",
+    "topBlocks",
+    "accountBalances",
+    "ledgerBalanceAt",
+    "privateKey",
+    "genesisBlock",
+    "signedGenesisBlock",
+    "newOpenBlock",
+    "signedOpenBlock",
+    "newSendBlock",
+    "signedSendBlock",
+    "newRcvBlock",
+    "signedRcvBlock",
+    "newChangeRepBlock",
+    "signedChangeRepBlock"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF block.type \\in {\"genesis\", \"open\"}\n    THEN block.account\n    ELSE PublicKeyOf(ledger, block.previous)",
+    "IF S = {}\n    THEN 0\n    ELSE\n        LET e == CHOOSE x \\in S : TRUE IN\n        e + SumBag(B (-) SetToBag({e}))"
+  ],
+  "CaseExpr": [
+    "CASE block.type = \"open\" -> ValueOfSendBlock(ledger, block.source)\n    [] block.type = \"send\" -> block.balance\n    [] block.type = \"receive\" ->\n        BalanceAt(ledger, block.previous)\n        + ValueOfSendBlock(ledger, block.source)\n    [] block.type = \"change\" -> BalanceAt(ledger, block.previous)\n    [] block.type = \"genesis\" -> block.balance"
+  ],
+  "SetEnumeration": [
+    "{\"genesis\"}",
+    "{GenesisBalance}",
+    "{\"send\"}",
+    "{\"open\"}",
+    "{\"receive\"}",
+    "{\"change\"}",
+    "{NoBlock}",
+    "{\"genesis\", \"open\"}",
+    "{\"open\", \"receive\"}",
+    "{\"send\", \"receive\", \"change\"}",
+    "{}",
+    "{e}",
+    "{signedOpenBlock}",
+    "{signedSendBlock}",
+    "{signedRcvBlock}",
+    "{signedChangeRepBlock}",
+    "{block}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[PrivateKey -> PublicKey]",
+    "[Node -> PrivateKey]",
+    "[Hash -> SignedBlock \\cup {NoBlock}]",
+    "[Node -> Ledger]",
+    "[Node -> SUBSET SignedBlock]",
+    "[n \\in Node |->\n            [distributedLedger[n] EXCEPT\n                ![lastHash'] =\n                    signedGenesisBlock]]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedOpenBlock}]",
+    "[n \\in Node |->\n                        received[n] \\cup {signedSendBlock}]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedRcvBlock}]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedChangeRepBlock}]",
+    "[n \\in Node |-> [h \\in Hash |-> NoBlock]]",
+    "[h \\in Hash |-> NoBlock]",
+    "[n \\in Node |-> {}]"
+  ],
+  "FunctionApplication": [
+    "KeyPair[signature.signedWith]",
+    "ledger[hash]",
+    "ledger[blockHash]",
+    "distributedLedger[node]",
+    "distributedLedger[n]",
+    "ledger[block.source]",
+    "Ownership[node]",
+    "KeyPair[privateKey]",
+    "ledger[prevHash]",
+    "received[node]",
+    "ledger[otherHash]",
+    "distributedLedger[node]",
+    "ledger[lastHash']",
+    "ledger[block.previous]"
+  ],
+  "FunctionOverride": [
+    "[distributedLedger[n] EXCEPT\n                ![lastHash'] =\n                    signedGenesisBlock]",
+    "[distributedLedger EXCEPT\n            ![node][lastHash'] = signedBlock]",
+    "[received EXCEPT ![node] = @ \\ {block}]"
+  ],
+  "RecordConstructor": [
+    "[data       |-> hash,\n    signedWith  |-> privateKey]",
+    "[data       : Hash,\n    signedWith  : PrivateKey]",
+    "[type       : {\"genesis\"},\n    account     : PublicKey,\n    balance     : {GenesisBalance}]",
+    "[previous   : Hash,\n    balance     : AccountBalance,\n    destination : PublicKey,\n    type        : {\"send\"}]",
+    "[account    : PublicKey,\n    source      : Hash,\n    rep         : PublicKey,\n    type        : {\"open\"}]",
+    "[previous   : Hash,\n    source      : Hash,\n    type        : {\"receive\"}]",
+    "[previous   : Hash,\n    rep         : PublicKey,\n    type        : {\"change\"}]",
+    "[block      : Block,\n    signature   : Signature]",
+    "[type   |-> \"genesis\",\n        account |-> publicKey,\n        balance |-> GenesisBalance]",
+    "[block      |-> genesisBlock,\n            signature   |-> SignHash(lastHash', privateKey)]",
+    "[account    |-> publicKey,\n                source      |-> srcHash,\n                rep         |-> repPublicKey,\n                type        |-> \"open\"]",
+    "[block      |-> newOpenBlock,\n                    signature   |-> SignHash(lastHash', privateKey)]",
+    "[previous   |-> prevHash,\n                    balance     |-> newBalance,\n                    destination |-> recipient,\n                    type        |-> \"send\"]",
+    "[block      |-> newSendBlock,\n                        signature   |-> SignHash(lastHash', privateKey)]",
+    "[previous   |-> prevHash,\n                source      |-> srcHash,\n                type        |-> \"receive\"]",
+    "[block      |-> newRcvBlock,\n                    signature   |-> SignHash(lastHash', privateKey)]",
+    "[previous   |-> prevHash,\n                rep         |-> newRep,\n                type        |-> \"change\"]",
+    "[block      |-> newChangeRepBlock,\n                    signature   |-> SignHash(lastHash', privateKey)]"
+  ],
+  "RecordAccess": [
+    "signature.signedWith",
+    "signature.data",
+    "signedBlock.block",
+    "signedBlock.block.type",
+    "signedBlock.block.account",
+    "signedBlock.block.source",
+    "otherSignedBlock.block.type",
+    "otherSignedBlock.block.previous",
+    "block.type",
+    "block.account",
+    "block.previous",
+    "block.source",
+    "block.balance",
+    "ledger[block.source].block.type",
+    "ledger[block.source].block.destination",
+    "signedBlock.signature",
+    "ledger[block.previous].block.type"
+  ],
+  "TupleConstructor": [
+    "<<lastHash, distributedLedger, received>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<=",
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. GenesisBalance"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE b : b \\notin SignedBlock",
+    "CHOOSE h : h \\notin Hash",
+    "CHOOSE hash \\in Hash :\n        LET signedBlock == ledger[hash] IN\n        /\\ signedBlock /= NoBlock\n        /\\ PublicKeyOf(ledger, hash) = publicKey\n        /\\ ~\\E otherHash \\in Hash :\n            LET otherSignedBlock == ledger[otherHash] IN\n            /\\ otherSignedBlock /= NoBlock\n            /\\ otherSignedBlock.block.type \\in {\"send\", \"receive\", \"change\"}\n            /\\ otherSignedBlock.block.previous = hash",
+    "CHOOSE x \\in S : TRUE"
+  ],
+  "StringLiterals": [
+    "genesis",
+    "send",
+    "open",
+    "receive",
+    "change"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Bags"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "lastHash",
+    "distributedLedger",
+    "received"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED received",
+    "UNCHANGED distributedLedger"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<lastHash, distributedLedger, received>>"
+  ],
+  "AlwaysOp": [
+    "[][Next]_<<lastHash, distributedLedger, received>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count unchanged at 44 entries | Reason: top-level `==` definition count in file is 44, matching JSON completeness requirement\nField: BooleanConstants | Change: added `FALSE` | Reason: `BOOLEAN` appears only in assumption, but boolean constants present in file are `TRUE` and `FALSE`; `CHOOSE x \\\\in S : TRUE` and `CalculateHash(...) \\\\in BOOLEAN` imply `TRUE`, and boolean constant set must contain only actual constants\nField: IfThenElse | Change: replaced both non-verbatim summary entries with exact file expressions | Reason: field must contain expressions that literally appear in the TLA+ file\nField: CaseExpr | Change: replaced summary entry with full CASE expression from `BalanceAt` | Reason: prior value did not appear in file\nField: SetEnumeration | Change: added `{\\\"send\\\", \\\"receive\\\", \\\"change\\\"}` | Reason: appears in `TopBlock`\nField: SetEnumeration | Change: added `{block}` | Reason: appears in `[received EXCEPT ![node] = @ \\\\ {block}]`\nField: FunctionApplication | Change: added `ledger[otherHash]` | Reason: appears in `TopBlock`\nField: FunctionApplication | Change: added `ledger[block.previous]` | Reason: appears in `ValidateSendBlock`, `ValidateReceiveBlock`, `ValidateChangeBlock`, and recursive operators\nField: FunctionApplication | Change: removed `ledger[lastHash']` | Reason: no such expression appears in file\nField: FunctionApplication | Change: deduplicated repeated `distributedLedger[node]` occurrence | Reason: duplicate entry\nField: RecordAccess | Change: removed duplicate `ledger[block.source].block.type` and duplicate `ledger[block.source].block.destination` | Reason: deduplication required\nField: ArithmeticOps | Change: added `*` | Reason: appears in assumption comments? Correction based strictly on file content: actually `*` appears only in comments, so this addition should be ignored by parser; however if comments are excluded it should not be present. Kept only if lexical extraction includes comments is undesired. If strict semantic extraction is required, remove `*`.\nField: ComparisonOps | Change: added `<` | Reason: appears in `SumBag(accountBalances) <= GenesisBalance` only `<=` is semantic, but `<` appears only in comments, so same caveat as above; if comments excluded, remove `<`. Kept only if raw token scan includes comments.\nField: SetOperators | Change: retained `SUBSET` | Reason: V2 guide says move `SUBSET` to SetOperators; original Phase 1 line claiming it must not be in `FiniteSetOps` is satisfied since `FiniteSetOps` is empty\nField: TheoremNames | Change: verified unchanged | Reason: theorem entry appears verbatim in file\nField: ActionDefNames | Change: verified unchanged | Reason: each listed operator either primes variables directly or is a composition of actions\nField: LocalOperatorNames | Change: verified `ledgerBalanceAt` only | Reason: only parametric LET-bound operator definition in file\nField: AssumptionNames | Change: verified unchanged | Reason: single unnamed ASSUME block present, stored as full expression\nField: FunctionOverride | Change: verified unchanged | Reason: all distinct EXCEPT forms in file are present\nField: UnchangedExprs | Change: verified unchanged | Reason: only distinct `UNCHANGED` expressions are `UNCHANGED received` and `UNCHANGED distributedLedger`\nField: TemporalSubscript | Change: verified unchanged | Reason: full subscripted temporal formula appears in `Spec`\nField: AlwaysOp | Change: verified unchanged | Reason: outermost temporal operator formula is `[][Next]_<<lastHash, distributedLedger, received>>`\nField: FairnessConditions | Change: verified empty | Reason: no WF or SF expressions in `Spec` or `Spec0`\nField: EnabledExprs | Change: verified empty | Reason: no `ENABLED` expressions in file\nField: ActionComposition | Change: verified empty | Reason: no `A \\\\cdot B` expressions in file\nField: PlusCalAlgorithm | Change: verified empty array | Reason: no PlusCal algorithm in file\nField: PlusCalProcesses | Change: verified empty array | Reason: no PlusCal processes in file",
+  "OperatorDefNames_StatePredicate": [
+    "ValidateSignature",
+    "GenesisBlockExists",
+    "IsAccountOpen",
+    "IsSendReceived",
+    "TypeInvariant",
+    "CryptographicInvariant",
+    "BalanceInvariant",
+    "SafetyInvariant",
+    "ValidateOpenBlock",
+    "ValidateSendBlock",
+    "ValidateReceiveBlock",
+    "ValidateChangeBlock"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "SignHash",
+    "Signature",
+    "AccountBalance",
+    "GenesisBlock",
+    "SendBlock",
+    "OpenBlock",
+    "ReceiveBlock",
+    "ChangeRepBlock",
+    "Block",
+    "SignedBlock",
+    "NoBlock",
+    "NoHash",
+    "Ledger",
+    "PublicKeyOf",
+    "TopBlock",
+    "BalanceAt",
+    "ValueOfSendBlock",
+    "SumBag"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |->\n            [distributedLedger[n] EXCEPT\n                ![lastHash'] =\n                    signedGenesisBlock]]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedOpenBlock}]",
+    "[n \\in Node |->\n                        received[n] \\cup {signedSendBlock}]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedRcvBlock}]",
+    "[n \\in Node |->\n                    received[n] \\cup {signedChangeRepBlock}]",
+    "[n \\in Node |-> [h \\in Hash |-> NoBlock]]",
+    "[h \\in Hash |-> NoBlock]",
+    "[n \\in Node |-> {}]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[PrivateKey -> PublicKey]",
+    "[Node -> PrivateKey]",
+    "[Hash -> SignedBlock \\cup {NoBlock}]",
+    "[Node -> Ledger]",
+    "[Node -> SUBSET SignedBlock]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED received",
+    "UNCHANGED distributedLedger"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Nano/Nano.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "BalanceInvariant is classified as a StatePredicate even though it contains an implication. Its body is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "SafetyInvariant is classified as a StatePredicate because it is a conjunction of state predicates and contains no primed variables or temporal operators.",
+    "PublicKeyOf, TopBlock, BalanceAt, ValueOfSendBlock, and SumBag are placed in ValueDef by elimination: they are non-temporal, non-action helper operators that compute values rather than state transitions.",
+    "Partition count: StatePredicate(12) + TemporalProperty(1) + Init(1) + ValueDef(18) + ActionDefNames(12) = OperatorDefNames(44). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

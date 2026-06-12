@@ -1,0 +1,190 @@
+{
+  "id": null,
+  "Specification": "This module defines helper notions on directed acyclic graphs for DAG-based consensus protocols, focusing on vertices that are pairs of a network node and a round. It defines leader vertices, a deterministic-but-arbitrary ordering of set elements, a way to find the previous leader in a DAG, and a recursive linearization procedure that turns a DAG into a sequence. The specification is not itself a full transition-system protocol model with variables and actions; instead it provides structural functions and predicates intended to support safety and liveness reasoning about DAG-based consensus, assuming a genesis vertex and that DAG paths terminate at genesis.",
+  "ModuleName": "BlockDag",
+  "ExtendsModules": [
+    "FiniteSets",
+    "Sequences",
+    "Integers",
+    "Utils",
+    "Digraph",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "R",
+    "Leader"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "IsLeader(Genesis)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "V",
+    "Node",
+    "Round",
+    "LeaderVertex",
+    "IsLeader",
+    "Genesis",
+    "OrderSet",
+    "PreviousLeader",
+    "Linearize",
+    "Compatible"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [
+    "OrderSet",
+    "Linearize"
+  ],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "e",
+    "dagOfL",
+    "prevL",
+    "dagOfPrev",
+    "remaining"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF v = <<>> THEN 0 ELSE v[2]",
+    "IF r > 0 THEN <<Leader(r), r>> ELSE <<>>",
+    "IF S = {} THEN <<>> ELSE LET e == CHOOSE e \\in S : TRUE IN Append(OrderSet(S \\ {e}), e)",
+    "IF Vertices(dag) = {<<>>} THEN <<>> ELSE LET dagOfL == SubDag(dag, {l}) prevL == PreviousLeader(dagOfL, Round(l)) dagOfPrev == SubDag(dag, {prevL}) remaining == Vertices(dagOfL) \\ Vertices(dagOfPrev) IN Linearize(dagOfPrev, prevL) \\o OrderSet(remaining \\ {l}) \\o <<l>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{l}",
+    "{l2 \\in Vertices(dag) : IsLeader(l2) /\\ Round(l2) < r}",
+    "{<<>>}",
+    "{prevL}",
+    "{e}",
+    "{Round(l2) : l2 \\in {l2 \\in Vertices(dag) : IsLeader(l2) /\\ Round(l2) < r}}",
+    "{Len(s1), Len(s2)}"
+  ],
+  "SetOperators": [
+    "\\times",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "v[1]",
+    "v[2]",
+    "Leader(r)",
+    "s1[i]",
+    "s2[i]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<<Leader(r), r>>",
+    "<<l>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Min({Len(s1), Len(s2)})"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE e \\in S : TRUE",
+    "CHOOSE l \\in Vertices(dag) : \n    /\\  IsLeader(l)\n    /\\  Round(l) = Max({Round(l2) : l2 \\in \n            {l2 \\in Vertices(dag) : IsLeader(l2) /\\ Round(l2) < r}})"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries e, dagOfL, prevL, dagOfPrev, remaining | Reason: Phase 3 requires LET-bound names to be stored in LetInNames; NamesInLet is not the correct field name per the prompt.\nField: IfThenElse | Change: removed non-verbatim context markers \u201c(in Round)\u201d, \u201c(in LeaderVertex)\u201d, \u201c(in OrderSet)\u201d, \u201c(in Linearize)\u201d | Reason: Values must appear in the TLA+ file; those annotations do not exist in the file.\nField: SetEnumeration | Change: added \"{e}\", \"{Round(l2) : l2 \\\\in {l2 \\\\in Vertices(dag) : IsLeader(l2) /\\\\ Round(l2) < r}}\", and \"{Len(s1), Len(s2)}\" | Reason: These set expressions appear in the TLA+ file and were missing.\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is present as a top-level assumption, not as a proof command; this module contains no proof commands.\nField: Empty-field verification | Change: confirmed [] is correct for FunctionOverride, RecordAccess, LocalOperatorNames, PrimedVariables, UnchangedExprs, EnabledExprs, TemporalSubscript, AlwaysOp, EventuallyOp, LeadsToOp, GuaranteesOp, ActionComposition, FairnessConditions, PlusCalAlgorithm, PlusCalProcesses | Reason: The TLA+ file contains no instances of these constructs.\nField: Completeness check | Change: verified top-level operator counts match: file count = 10, JSON OperatorDefNames count = 10 | Reason: Phase 2 completeness requirement.",
+  "OperatorDefNames_StatePredicate": [
+    "IsLeader",
+    "Compatible"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "V",
+    "Node",
+    "Round",
+    "LeaderVertex",
+    "Genesis",
+    "OrderSet",
+    "PreviousLeader",
+    "Linearize"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/BlockDag/BlockDag.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(8) + ActionDefNames(0) = OperatorDefNames(10). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms. In this file FunctionConstructor itself is empty, so both sub-fields are empty.",
+    "Operators V, Node, Round, LeaderVertex, Genesis, OrderSet, PreviousLeader, and Linearize are placed in ValueDef because they compute sets, tuple-derived values, sequences, or selected vertices rather than defining Boolean state predicates, temporal properties, or init predicates.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

@@ -1,0 +1,250 @@
+{
+  "id": null,
+  "Specification": "This specification models the Paxos consensus algorithm, focusing on the core protocol without explicit leader or learner processes. The model abstracts message passing by tracking the set of all messages ever sent, rather than modeling messages in transit, loss, or duplication, as the primary concern is safety rather than liveness under unreliable communication. The specification defines the possible messages, the state variables for acceptors' ballots and votes, and the actions corresponding to the phases of the protocol. It includes a refinement mapping to the Voting module, and verifies both safety (via an inductive invariant) and liveness (via temporal properties), with a clear separation between the protocol's actions and the refinement mapping. The fault model assumes quorums with intersection properties, and the design omits explicit learners for abstraction.",
+  "ModuleName": "Paxos",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [
+    "Voting"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Value",
+    "Acceptor",
+    "Quorum"
+  ],
+  "VariableNames": [
+    "maxBal",
+    "maxVBal",
+    "maxVal",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "QuorumAssumption"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => V!Spec"
+  ],
+  "OperatorDefNames": [
+    "Ballot",
+    "None",
+    "Message",
+    "vars",
+    "TypeOK",
+    "Init",
+    "Send",
+    "Phase1a",
+    "Phase1b",
+    "Phase2a",
+    "Phase2b",
+    "Next",
+    "Spec",
+    "votes",
+    "V",
+    "Inv"
+  ],
+  "ActionDefNames": [
+    "Send",
+    "Phase1a",
+    "Phase1b",
+    "Phase2a",
+    "Phase2b",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "Q1b",
+    "Q1bv"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF maxVBal[a] = -1 THEN maxVal[a] = None ELSE <<maxVBal[a], maxVal[a]>> \\in votes[a] (in Inv)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"1a\"}",
+    "{\"1b\"}",
+    "{\"2a\"}",
+    "{\"2b\"}",
+    "{}",
+    "{m \\in msgs : /\\ m.type = \"1b\" /\\ m.acc \\in Q /\\ m.bal = b}",
+    "{m \\in Q1b : m.mbal \\geq 0}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\cap"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]",
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs: /\\ mm.type = \"2b\" /\\ mm.acc = a }}]"
+  ],
+  "FunctionApplication": [
+    "maxBal[a]",
+    "maxVBal[a]",
+    "maxVal[a]",
+    "votes[a]"
+  ],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![a] = m.bal]",
+    "[maxVBal EXCEPT ![a] = m.bal]",
+    "[maxVal EXCEPT ![a] = m.val]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"1a\"}, bal : Ballot]",
+    "[type : {\"1b\"}, acc : Acceptor, bal : Ballot, mbal : Ballot \\cup {-1}, mval : Value \\cup {None}]",
+    "[type : {\"2a\"}, bal : Ballot, val : Value]",
+    "[type : {\"2b\"}, acc : Acceptor, bal : Ballot, val : Value]",
+    "[type |-> \"1a\", bal |-> b]",
+    "[type |-> \"1b\", acc |-> a, bal |-> m.bal, mbal |-> maxVBal[a], mval |-> maxVal[a]]",
+    "[type |-> \"2a\", bal |-> b, val |-> v]",
+    "[type |-> \"2b\", acc |-> a, bal |-> m.bal, val |-> m.val]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m.acc",
+    "m.mbal",
+    "m.mval",
+    "m.val",
+    "mm.type",
+    "mm.acc",
+    "mm.bal",
+    "mm.val"
+  ],
+  "TupleConstructor": [
+    "<<maxBal, maxVBal, maxVal, msgs>>",
+    "<<-1, None>>",
+    "<<m.bal, m.val>>",
+    "<<maxVBal[a], maxVal[a]>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "\\geq"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Value"
+  ],
+  "StringLiterals": [
+    "1a",
+    "1b",
+    "2a",
+    "2b"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "msgs",
+    "maxBal",
+    "maxVBal",
+    "maxVal"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<maxBal, maxVBal, maxVal>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: BooleanConstants | Change: Added [\"TRUE\", \"FALSE\"] | Reason: These are always present in TLA+ as built-in Boolean constants and should be included unless the spec uses a custom Boolean definition, which it does not.\nField: SetOperators | Change: Removed \"SUBSET\" | Reason: \"SUBSET\" is not used in the file and should not be in SetOperators; it is not present in the TLA+ file.\nField: MembershipOps | Change: Added \"\\\\notin\" | Reason: The expression \"CHOOSE v : v \\\\notin Value\" appears in the file, so \"\\\\notin\" must be present in MembershipOps.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "Ballot",
+    "None",
+    "Message",
+    "vars",
+    "TypeOK",
+    "votes",
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "V"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |-> {<<m.bal, m.val>> : m \\in {mm \\in msgs: /\\ mm.type = \"2b\" /\\ mm.acc = a }}]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<maxBal, maxVBal, maxVal>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Paxos/Paxos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(7) + TemporalProperty(1) + Init(1) + ValueDef(1) + ActionDefNames(6) = 16 = OperatorDefNames total. Verified.",
+    "Spec is placed in TemporalProperty because its body is Init /\\ [][Next]_vars, i.e., a temporal formula.",
+    "FunctionConstructor_ByDomain contains three entries; FunctionConstructor_SetType contains two. Their union equals FunctionConstructor.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "V is placed in ValueDef by elimination: it is an INSTANCE substitution, not a state predicate, temporal property, or init predicate."
+  ]
+}

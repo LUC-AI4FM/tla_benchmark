@@ -1,0 +1,281 @@
+{
+  "id": null,
+  "Specification": "This specification models the Dijkstra-Scholten tree algorithm for detecting termination of a diffusing distributed computation over an arbitrary directed network. Processes can be active or idle, send computation messages along graph edges, and send acknowledgment control messages in the reverse direction; the algorithm dynamically maintains an overlay tree of non-neutral processes rooted at the leader. The spec assumes asynchronous unordered delivery without message loss, and proves safety properties about counter consistency, overlay-tree structure, and correct termination detection, as well as a liveness property stating that once the computation has terminated, the leader eventually becomes neutral and thus detects termination.",
+  "ModuleName": "EWD687a",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [
+    "Graphs"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Procs",
+    "Leader",
+    "Edges"
+  ],
+  "VariableNames": [
+    "active",
+    "sentUnacked",
+    "rcvdUnacked",
+    "upEdge",
+    "msgs",
+    "acks"
+  ],
+  "AssumptionNames": [
+    "/\\ \\A e \\in Edges :\n             /\\ (e \\in Procs \\X Procs)\n             /\\ (e[1] # e[2])\n        /\\ Leader \\in Procs\n        /\\ InEdges(Leader) = {}"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => CountersConsistent",
+    "THEOREM Spec => TreeWithRoot",
+    "THEOREM Spec => []DT1Inv",
+    "THEOREM Spec => DT2"
+  ],
+  "OperatorDefNames": [
+    "InEdges",
+    "OutEdges",
+    "NotAnEdge",
+    "vars",
+    "TypeOK",
+    "neutral",
+    "Init",
+    "SendMsg",
+    "RcvAck",
+    "SendAck",
+    "RcvMsg",
+    "Idle",
+    "Next",
+    "Spec",
+    "CountersConsistent",
+    "TreeWithRoot",
+    "DT1Inv",
+    "Terminated",
+    "DT2",
+    "StableUpEdge"
+  ],
+  "ActionDefNames": [
+    "SendMsg",
+    "RcvAck",
+    "SendAck",
+    "RcvMsg",
+    "Idle",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "E",
+    "N",
+    "G",
+    "O"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF neutral(p)' THEN [upEdge EXCEPT ![p] = NotAnEdge] ELSE upEdge",
+    "IF neutral(p) THEN [upEdge EXCEPT ![p] = e] ELSE upEdge"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{Leader}",
+    "{NotAnEdge}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\X",
+    "DOMAIN",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Procs -> BOOLEAN]",
+    "[Edges -> Nat]",
+    "[Procs \\ {Leader} -> Edges \\cup {NotAnEdge}]",
+    "[p \\in Procs |-> p = Leader]",
+    "[e \\in Edges |-> 0]",
+    "[p \\in Procs \\ {Leader} |-> NotAnEdge]"
+  ],
+  "FunctionApplication": [
+    "e[2]",
+    "e[1]",
+    "upEdge[p]",
+    "active[p]",
+    "rcvdUnacked[e]",
+    "sentUnacked[e]",
+    "acks[e]",
+    "msgs[e]",
+    "upEdge[p][2]",
+    "rcvdUnacked[d]",
+    "sentUnacked[d]",
+    "upEdge'[p]"
+  ],
+  "FunctionOverride": [
+    "[sentUnacked EXCEPT ![e] = @ + 1]",
+    "[msgs EXCEPT ![e] = @ + 1]",
+    "[acks EXCEPT ![e] = @ - 1]",
+    "[sentUnacked EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ - 1]",
+    "[acks EXCEPT ![e] = @ + 1]",
+    "[upEdge EXCEPT ![p] = NotAnEdge]",
+    "[msgs EXCEPT ![e] = @ - 1]",
+    "[rcvdUnacked EXCEPT ![e] = @ + 1]",
+    "[active EXCEPT ![p] = TRUE]",
+    "[upEdge EXCEPT ![p] = e]",
+    "[active EXCEPT ![p] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[edge |-> E, node |-> N]"
+  ],
+  "RecordAccess": [
+    "O.edge",
+    "O.node"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<active, msgs, acks, sentUnacked, rcvdUnacked, upEdge>>",
+    "<<active, acks, rcvdUnacked, upEdge>>",
+    "<<active, msgs, rcvdUnacked, upEdge>>",
+    "<<active, msgs, sentUnacked>>",
+    "<<acks, sentUnacked>>",
+    "<<msgs, acks, sentUnacked, rcvdUnacked, upEdge>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "sentUnacked",
+    "msgs",
+    "acks",
+    "rcvdUnacked",
+    "upEdge",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, acks, rcvdUnacked, upEdge>>",
+    "UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>",
+    "UNCHANGED <<active, msgs, sentUnacked>>",
+    "UNCHANGED <<acks, sentUnacked>>",
+    "UNCHANGED <<msgs, acks, sentUnacked, rcvdUnacked, upEdge>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "[][ \\A p \\in Procs \\ {Leader} :\n        (upEdge[p] # NotAnEdge) => upEdge[p] = upEdge'[p] ]_upEdge"
+  ],
+  "AlwaysOp": [
+    "[] \\A e \\in Edges: sentUnacked[e] = rcvdUnacked[e] + acks[e] + msgs[e]",
+    "[](\n          /\\ O.edge # {} => G!IsTreeWithRoot(O, Leader)\n          /\\ N:: \\A n \\in O.node: ~neutral(n))",
+    "[]DT1Inv",
+    "[][ \\A p \\in Procs \\ {Leader} :\n        (upEdge[p] # NotAnEdge) => upEdge[p] = upEdge'[p] ]_upEdge"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Terminated ~> neutral(Leader)"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(Next)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"E\",\"N\",\"G\",\"O\"] | Reason: correctness; prompt specifies LetInNames and these are LET-bound names from TreeWithRoot\nField: IfThenElse | Change: removed contextual suffixes \"(in SendAck)\" and \"(in RcvMsg)\" | Reason: correctness; entries must be expressions that literally appear in the file\nField: FunctionApplication | Change: added \"upEdge'[p]\" | Reason: completeness; primed function application appears in StableUpEdge\nField: TemporalSubscript | Change: removed \"WF_vars(Next)\" | Reason: correctness; fairness is not a temporal subscript\nField: AlwaysOp | Change: normalized TreeWithRoot entry to literal file form \"[](...)\" and added \"[][ \\\\A p \\\\in Procs \\\\ {Leader} : ... ]_upEdge\" | Reason: completeness; outermost [] formulas must appear here, and StableUpEdge was missing\nField: AlwaysOp | Change: retained full subscripted always formula in StableUpEdge form | Reason: phase 1 rule requires full subscript for subscripted always operators\nField: AssumptionNames | Change: normalized trailing whitespace in the stored assumption text | Reason: cleanup for verbatim unnamed ASSUME block content\nField: OperatorDefNames | Change: no value change; verified count 20 matches top-level == definition count 20 | Reason: completeness check passed\nField: ActionDefNames | Change: no value change; verified all listed operators are actions and no non-actions included | Reason: correctness check passed\nField: FunctionOverride | Change: no value change; verified all 12 distinct EXCEPT forms present | Reason: empty-field/high-risk completeness check passed\nField: UnchangedExprs | Change: no value change; verified all 5 distinct UNCHANGED expressions present exactly once | Reason: completeness and deduplication check passed\nField: FairnessConditions | Change: no value change; verified only WF_vars(Next) from Spec | Reason: correctness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "neutral",
+    "Terminated"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "CountersConsistent",
+    "TreeWithRoot",
+    "DT1Inv",
+    "DT2",
+    "StableUpEdge"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "InEdges",
+    "OutEdges",
+    "NotAnEdge",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Procs |-> p = Leader]",
+    "[e \\in Edges |-> 0]",
+    "[p \\in Procs \\ {Leader} |-> NotAnEdge]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Procs -> BOOLEAN]",
+    "[Edges -> Nat]",
+    "[Procs \\ {Leader} -> Edges \\cup {NotAnEdge}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, acks, rcvdUnacked, upEdge>>",
+    "UNCHANGED <<active, msgs, rcvdUnacked, upEdge>>",
+    "UNCHANGED <<active, msgs, sentUnacked>>",
+    "UNCHANGED <<acks, sentUnacked>>",
+    "UNCHANGED <<msgs, acks, sentUnacked, rcvdUnacked, upEdge>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD687a/EWD687a.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(3) + TemporalProperty(6) + Init(1) + ValueDef(4) + ActionDefNames(6) = OperatorDefNames(20). Verified.",
+    "DT1Inv is placed in TemporalProperty because it is the body of the named safety property proved as Spec => []DT1Inv, even though its own definition is a non-temporal state predicate.",
+    "FunctionConstructor partitions exactly into ByDomain(3) and SetType(3).",
+    "UnchangedExprs partitions exactly into Explicit(5) and VarRef(0).",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in the file text; implication wrappers such as Spec => []DT1Inv do not count, and DT2 uses ~> only as shorthand.",
+    "InEdges, OutEdges, NotAnEdge, and vars are placed in ValueDef as non-Boolean helper/value definitions."
+  ]
+}

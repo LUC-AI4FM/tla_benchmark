@@ -1,0 +1,235 @@
+{
+  "id": null,
+  "Specification": "This specification models a rolling deployment of software across a small set of servers behind a load balancer. One process updates individual servers, while a separate coordinator process removes servers from the load balancer, triggers updates, waits for completion, and then restores service, with the goal of preserving availability during deployment. The translated PlusCal model checks a temporal specification consisting of initialization, step transitions, and weak fairness for both the per-server update process and the coordinator, and it defines termination as eventual completion of all processes.",
+  "ModuleName": "ModelingDeployments",
+  "ExtendsModules": [
+    "TLC",
+    "Integers"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "UPDATING"
+  ],
+  "VariableNames": [
+    "servers",
+    "load_balancer",
+    "update_flag",
+    "updated",
+    "pc"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "SameVersion",
+    "ZeroDowntime",
+    "vars",
+    "ProcSet",
+    "Init",
+    "Update",
+    "FinishUpdate",
+    "update_server",
+    "StartUpdate",
+    "Transition",
+    "Finish",
+    "start_update",
+    "Next",
+    "Spec",
+    "Termination"
+  ],
+  "ActionDefNames": [
+    "Update",
+    "FinishUpdate",
+    "update_server",
+    "StartUpdate",
+    "Transition",
+    "Finish",
+    "start_update",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF s = \"s1\" THEN FALSE ELSE TRUE"
+  ],
+  "CaseExpr": [
+    "CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\""
+  ],
+  "SetEnumeration": [
+    "{\"s1\", \"s2\", \"s3\"}",
+    "{\"start_update\"}",
+    "{\"s1\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\union",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[s \\in servers |-> FALSE]",
+    "[self \\in ProcSet |-> CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\"]",
+    "[s \\in servers |-> IF s = \"s1\" THEN FALSE ELSE TRUE]"
+  ],
+  "FunctionApplication": [
+    "updated[x]",
+    "updated[y]",
+    "updated[server]",
+    "pc[self]",
+    "update_flag[self]",
+    "pc[\"start_update\"]",
+    "updated[s]",
+    "updated[\"s1\"]"
+  ],
+  "FunctionOverride": [
+    "[updated EXCEPT ![self] = UPDATING]",
+    "[pc EXCEPT ![self] = \"FinishUpdate\"]",
+    "[updated EXCEPT ![self] = TRUE]",
+    "[pc EXCEPT ![self] = \"Done\"]",
+    "[pc EXCEPT ![\"start_update\"] = \"Transition\"]",
+    "[update_flag EXCEPT ![\"s1\"] = TRUE]",
+    "[pc EXCEPT ![\"start_update\"] = \"Finish\"]",
+    "[pc EXCEPT ![\"start_update\"] = \"Done\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< servers, load_balancer, update_flag, updated, pc >>",
+    "<< servers, load_balancer, update_flag >>",
+    "<< servers, updated >>",
+    "<< servers, update_flag, updated >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "s1",
+    "s2",
+    "s3",
+    "start_update",
+    "Update",
+    "StartUpdate",
+    "FinishUpdate",
+    "Done",
+    "Transition",
+    "Finish"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "updated",
+    "pc",
+    "load_balancer",
+    "update_flag"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << servers, load_balancer, update_flag >>",
+    "UNCHANGED << servers, updated >>",
+    "UNCHANGED << servers, update_flag, updated >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(update_server(self))",
+    "WF_vars(start_update)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in servers : WF_vars(update_server(self))",
+    "WF_vars(start_update)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "deploy"
+  ],
+  "PlusCalProcesses": [
+    "update_server",
+    "start_update"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 15, JSON count = 15 | Reason: completeness check required before continuing\nField: NamesInLet | Change: renamed field to LetInNames and kept empty array | Reason: schema check; no LET/IN definitions exist in the TLA+ file\nField: IfThenElse | Change: replaced `IF s = \"s1\" THEN FALSE ELSE TRUE (in StartUpdate)` with `IF s = \"s1\" THEN FALSE ELSE TRUE` | Reason: field values must appear in the file verbatim; removed non-file annotation\nField: CaseExpr | Change: replaced `CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\" (in Init)` with `CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\"` | Reason: field values must appear in the file verbatim; removed non-file annotation\nField: FunctionConstructor | Change: normalized multiline entries to verbatim expression forms without indentation artifacts: `[self \\in ProcSet |-> CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\"]` and `[s \\in servers |-> IF s = \"s1\" THEN FALSE ELSE TRUE]` | Reason: ensure values correspond to actual expressions in the file and deduplicate pattern forms\nField: FunctionApplication | Change: removed `pc[\"s1\"]` | Reason: expression does not appear anywhere in the TLA+ file\nField: ProofCommands | Change: removed `ASSUME` | Reason: no ASSUME, ASSUMPTION, AXIOM, or proof commands occur in the file\nField: AssumptionNames | Change: confirmed empty | Reason: the file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: RecordAccess | Change: confirmed empty | Reason: the file contains no record field access expressions of the form `e.field`\nField: LocalOperatorNames | Change: confirmed empty | Reason: there are no LET-local parametric operator definitions\nField: FunctionOverride | Change: confirmed existing non-empty list is complete | Reason: all eight distinct EXCEPT forms in the file are present\nField: PrimedVariables | Change: confirmed existing list is complete | Reason: the only primed variables appearing anywhere are `updated`, `pc`, `load_balancer`, and `update_flag`\nField: UnchangedExprs | Change: confirmed existing list is complete and deduplicated | Reason: all four distinct UNCHANGED expressions in the file are present\nField: FairnessConditions | Change: confirmed unchanged | Reason: contains only WF expressions from inside `Spec`, as required",
+  "OperatorDefNames_StatePredicate": [
+    "SameVersion",
+    "ZeroDowntime"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[s \\in servers |-> FALSE]",
+    "[self \\in ProcSet |-> CASE self \\in servers -> \"Update\" [] self = \"start_update\" -> \"StartUpdate\"]",
+    "[s \\in servers |-> IF s = \"s1\" THEN FALSE ELSE TRUE]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << servers, load_balancer, update_flag >>",
+    "UNCHANGED << servers, updated >>",
+    "UNCHANGED << servers, update_flag, updated >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ModelingDeployments/ModelingDeployments.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(2) + ActionDefNames(8) = OperatorDefNames(15). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "vars and ProcSet are placed in ValueDef as non-Boolean helper/value definitions."
+  ]
+}

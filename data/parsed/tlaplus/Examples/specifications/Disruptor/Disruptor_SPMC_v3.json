@@ -1,0 +1,264 @@
+{
+  "id": null,
+  "Specification": "This module models a Single Producer, Multi Consumer Disruptor using a ring buffer. A producer publishes sequence numbers into the buffer, while multiple consumers read them, and the specification checks that all consumers read all published values in multicast style. The model uses bounded constants such as MaxPublished and Size, includes a state constraint to bound exploration, asserts type correctness and absence of data races through the instantiated ring buffer module, and states a liveness property requiring every consumer to eventually always have read each published value.",
+  "ModuleName": "Disruptor_SPMC",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "RingBuffer"
+  ],
+  "InstanceSubstitutions": [
+    "Values <- Int"
+  ],
+  "ConstantNames": [
+    "MaxPublished",
+    "Writers",
+    "Readers",
+    "Size",
+    "NULL"
+  ],
+  "VariableNames": [
+    "ringbuffer",
+    "published",
+    "read",
+    "pc",
+    "consumed"
+  ],
+  "AssumptionNames": [
+    "Writers /= {}",
+    "Readers /= {}",
+    "Size         \\in Nat \\ {0}",
+    "MaxPublished \\in Nat \\ {0}"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "Access",
+    "Advance",
+    "Transition",
+    "Range",
+    "MinReadSequence",
+    "BeginWrite",
+    "EndWrite",
+    "BeginRead",
+    "EndRead",
+    "Init",
+    "Next",
+    "Fairness",
+    "Spec",
+    "StateConstraint",
+    "TypeOk",
+    "NoDataRaces",
+    "Liveliness"
+  ],
+  "ActionDefNames": [
+    "Transition",
+    "BeginWrite",
+    "EndWrite",
+    "BeginRead",
+    "EndRead",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "next",
+    "index",
+    "min_read"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{0}",
+    "{ Access, Advance }"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ pc EXCEPT ![t] = to ]",
+    "[ consumed EXCEPT ![reader] = Append(@, Buffer!Read(index)) ]",
+    "[ read EXCEPT ![reader] = next ]",
+    "[ r \\in Readers                |-> -1      ]",
+    "[ r \\in Readers                |-> << >>   ]",
+    "[ a \\in Writers \\union Readers |-> Advance ]",
+    "[ Readers                -> Int                 ]",
+    "[ Readers                -> Seq(Nat)            ]",
+    "[ Writers \\union Readers -> { Access, Advance } ]"
+  ],
+  "FunctionApplication": [
+    "f[x]",
+    "read[r]",
+    "read[reader]",
+    "pc[t]",
+    "consumed[r]",
+    "consumed[r][i + 1]"
+  ],
+  "FunctionOverride": [
+    "[ pc EXCEPT ![t] = to ]",
+    "[ consumed EXCEPT ![reader] = Append(@, Buffer!Read(index)) ]",
+    "[ read EXCEPT ![reader] = next ]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<\n  ringbuffer,\n  published,\n  read,\n  consumed,\n  pc\n>>",
+    "<< >>",
+    "<< consumed, published, read >>",
+    "<< consumed, read >>",
+    "<< published, read >>",
+    "<< consumed, published >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "0 .. (MaxPublished - 1)",
+    "0 .. published"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE min \\in Range(read) : \\A r \\in Readers : min <= read[r]"
+  ],
+  "StringLiterals": [
+    "Access",
+    "Advance"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "pc",
+    "published",
+    "consumed",
+    "read"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << consumed, published, read >>",
+    "UNCHANGED << consumed, read >>",
+    "UNCHANGED << published, read >>",
+    "UNCHANGED << consumed, published >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_vars(BeginRead(r))",
+    "WF_vars(EndRead(r))",
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>[] (i \\in 0 .. published => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A r \\in Readers : WF_vars(BeginRead(r))",
+    "\\A r \\in Readers : WF_vars(EndRead(r))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries [\"next\", \"index\", \"min_read\"] | Reason: LET-bound names must be stored in LetInNames; NamesInLet is not the required field.\nField: EventuallyOp | Change: corrected entry from \"<>[](i \\\\in 0 .. published => Len(consumed[r]) >= i + 1 /\\\\ consumed[r][i + 1] = i)\" to \"<>[] (i \\\\in 0 .. published => Len(consumed[r]) >= i + 1 /\\\\ consumed[r][i + 1] = i)\" | Reason: outer temporal formula in the file is <>[](...), and JSON must reflect the formula as written with the eventual-always structure.\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is used in the module assumptions, not as a proof command; value does not belong in this field.\nField: OperatorDefNames | Change: verified count unchanged at 18 | Reason: top-level == definition count in file is 18, matching JSON exactly.",
+  "OperatorDefNames_StatePredicate": [
+    "Fairness",
+    "StateConstraint",
+    "TypeOk",
+    "NoDataRaces"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveliness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Access",
+    "Advance",
+    "Range",
+    "MinReadSequence"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ r \\in Readers                |-> -1      ]",
+    "[ r \\in Readers                |-> << >>   ]",
+    "[ a \\in Writers \\union Readers |-> Advance ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Readers                -> Int                 ]",
+    "[ Readers                -> Seq(Nat)            ]",
+    "[ Writers \\union Readers -> { Access, Advance } ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << consumed, published, read >>",
+    "UNCHANGED << consumed, read >>",
+    "UNCHANGED << published, read >>",
+    "UNCHANGED << consumed, published >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/Disruptor_SPMC/Disruptor_SPMC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(2) + Init(1) + ValueDef(5) + ActionDefNames(6) = OperatorDefNames(18). Verified.",
+    "Fairness is classified as StatePredicate because its body contains fairness operators WF_vars but no explicit [], <>, or ~> and no primed variables. Spec is the temporal property that incorporates Fairness together with Init and [][Next]_vars.",
+    "Liveliness is placed in TemporalProperty because its body contains the temporal formula <>[](...).",
+    "TemporalNesting is true. Exact line: \"    <>[](i \\in 0 .. published => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)\"",
+    "UnchangedExprs_VarRef is empty because all UNCHANGED expressions in this file are explicit tuple forms; none is of the form UNCHANGED vars.",
+    "ValueDef by elimination: vars, Access, Advance, Range, and MinReadSequence are non-action, non-temporal, non-init operator definitions."
+  ]
+}

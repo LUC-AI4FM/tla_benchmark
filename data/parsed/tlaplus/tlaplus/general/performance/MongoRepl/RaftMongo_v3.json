@@ -1,0 +1,259 @@
+{
+  "id": null,
+  "Specification": "This specification models a simplified Raft-style consensus protocol for MongoDB, focusing on server roles, term numbers, and replication or rollback of per-server oplogs. The model represents each server's state and log, allows a server to become primary by a quorum-based up-to-date check, allows leaders to append client values, and allows followers to append or roll back log entries to match another server. The specification verifies the system through an initial-state predicate and a temporal next-state specification, and it also defines helper safety predicates about committed entries never being rolled back, though those verification predicates are not included in the top-level temporal specification.",
+  "ModuleName": "RaftMongo",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Server",
+    "Value",
+    "Follower",
+    "Candidate",
+    "Leader",
+    "Nil"
+  ],
+  "VariableNames": [
+    "globalCurrentTerm",
+    "state",
+    "log"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "serverVars",
+    "logVars",
+    "vars",
+    "Quorum",
+    "LogTerm",
+    "LastTerm",
+    "Min",
+    "Max",
+    "InitServerVars",
+    "InitLogVars",
+    "Init",
+    "AppendOplog",
+    "CanRollbackOplog",
+    "RollbackOplog",
+    "RollbackCommitted",
+    "NeverRollbackCommitted",
+    "BecomePrimaryByMagic",
+    "ClientWrite",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "AppendOplog",
+    "RollbackOplog",
+    "BecomePrimaryByMagic",
+    "ClientWrite",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Agree",
+    "IsCommitted",
+    "notBehind",
+    "ayeVoters"
+  ],
+  "LetInNames": [
+    "new",
+    "Agree",
+    "IsCommitted",
+    "notBehind",
+    "ayeVoters",
+    "entry",
+    "newLog"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF index = 0 THEN 0 ELSE log[i][index].term",
+    "IF Len(xlog) = 0 THEN 0 ELSE xlog[Len(xlog)].term",
+    "IF index = i THEN Leader ELSE Follower"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{i \\in SUBSET(Server) : Cardinality(i) * 2 > Cardinality(Server)}",
+    "{ node \\in Server :\n                /\\ Len(log[node]) >= logIndex\n                /\\ LogTerm(me, logIndex) = LogTerm(node, logIndex) }",
+    "{ index \\in Server : notBehind(me, index) }"
+  ],
+  "SetOperators": [
+    "SUBSET"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[i \\in Server |-> Follower]",
+    "[i \\in Server |-> << >>]",
+    "[index2 \\in 1..(Len(log[i]) - 1) |-> log[i][index2]]",
+    "[index \\in Server |-> IF index = i THEN Leader ELSE Follower]"
+  ],
+  "FunctionApplication": [
+    "log[i]",
+    "log[j]",
+    "log[i][index]",
+    "xlog[Len(xlog)]",
+    "log[me]",
+    "log[node]",
+    "state[i]",
+    "log[me][logIndex]"
+  ],
+  "FunctionOverride": [
+    "[log EXCEPT ![i] = Append(log[i], log[j][Len(log[i]) + 1])]",
+    "[log EXCEPT ![i] = new]",
+    "[log EXCEPT ![i] = newLog]"
+  ],
+  "RecordConstructor": [
+    "[term  |-> globalCurrentTerm,\n                     value |-> v]"
+  ],
+  "RecordAccess": [
+    "log[i][index].term",
+    "xlog[Len(xlog)].term"
+  ],
+  "TupleConstructor": [
+    "<<globalCurrentTerm, state>>",
+    "<<log>>",
+    "<<serverVars, logVars>>",
+    "<< >>",
+    "<<serverVars>>",
+    "<<logVars>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..(Len(log[i]) - 1)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in s : \\A y \\in s : x <= y",
+    "CHOOSE x \\in s : \\A y \\in s : x >= y"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "log",
+    "state",
+    "globalCurrentTerm"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<serverVars>>",
+    "UNCHANGED <<logVars>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count unchanged at 20 entries | Reason: Top-level `==` definition count in file = 20, JSON count = 20, so completeness matches.\nField: NamesInLet | Change: Renamed field to `LetInNames` and preserved entries | Reason: Phase 3 requires `LetInNames`; `NamesInLet` is not the specified field name.\nField: IfThenElse | Change: Replaced annotated entries with exact file expressions only | Reason: Values must appear in the TLA+ file verbatim; annotations like `(in LogTerm)` do not exist in the file.\nField: SetEnumeration | Change: Added `{ node \\\\in Server :\\n                /\\\\ Len(log[node]) >= logIndex\\n                /\\\\ LogTerm(me, logIndex) = LogTerm(node, logIndex) }` and `{ index \\\\in Server : notBehind(me, index) }` | Reason: These set comprehensions literally appear in LET definitions and the field was incomplete.\nField: FunctionApplication | Change: Added `log[i][index]`, `log[me]`, and `log[me][logIndex]` | Reason: These function applications appear in the file and the previously empty coverage was incomplete.\nField: LocalOperatorNames | Change: Verified unchanged | Reason: Entries are LET-local parametric operator definitions, which is correct for this field.\nField: AssumptionNames | Change: Verified unchanged as `[]` | Reason: The TLA+ file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks.\nField: FunctionOverride | Change: Verified unchanged | Reason: All three distinct `[log EXCEPT ![i] = ...]` forms in the file are present.\nField: RecordAccess | Change: Verified unchanged | Reason: Only literal `e.field` forms in the file are `log[i][index].term` and `xlog[Len(xlog)].term`.\nField: FairnessConditions | Change: Verified unchanged as `[]` | Reason: No `WF_` or `SF_` expressions occur in `Spec` or `Spec0`.\nField: StringLiterals | Change: Verified unchanged as `[]` | Reason: The file contains no double-quoted string literals.\nField: BooleanConstants | Change: Verified unchanged as `[]` | Reason: Neither `TRUE` nor `FALSE` appears in the file.\nField: PrimedVariables | Change: Verified unchanged | Reason: All variables appearing primed anywhere in the file are exactly `log`, `state`, and `globalCurrentTerm`.\nField: UnchangedExprs | Change: Verified unchanged | Reason: The only distinct `UNCHANGED` expressions are `UNCHANGED <<serverVars>>` and `UNCHANGED <<logVars>>`.\nField: AlwaysOp | Change: Verified unchanged | Reason: The only outermost `[]` temporal formula is `[][Next]_vars`, with full subscript included.",
+  "OperatorDefNames_StatePredicate": [
+    "CanRollbackOplog",
+    "RollbackCommitted",
+    "NeverRollbackCommitted"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "InitServerVars",
+    "InitLogVars",
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "serverVars",
+    "logVars",
+    "vars",
+    "Quorum",
+    "LogTerm",
+    "LastTerm",
+    "Min",
+    "Max"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Server |-> Follower]",
+    "[i \\in Server |-> << >>]",
+    "[index2 \\in 1..(Len(log[i]) - 1) |-> log[i][index2]]",
+    "[index \\in Server |-> IF index = i THEN Leader ELSE Follower]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<serverVars>>",
+    "UNCHANGED <<logVars>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/RaftMongo/RaftMongo.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "RollbackCommitted and NeverRollbackCommitted are classified as StatePredicate because they are Boolean-valued, contain no primed variables, and contain no temporal operators; the file comment also says they are not actions and are used for verification.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries in this file are [x \\in S |-> e] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource uses the module name as the folder name because the repository folder cannot be determined from file content alone.",
+    "Partition count: StatePredicate(3) + TemporalProperty(1) + Init(3) + ValueDef(8) + ActionDefNames(5) = OperatorDefNames(20). Verified."
+  ]
+}

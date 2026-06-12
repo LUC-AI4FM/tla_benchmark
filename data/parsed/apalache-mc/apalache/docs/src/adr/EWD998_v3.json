@@ -1,0 +1,310 @@
+{
+  "id": null,
+  "Specification": "This specification models Safra's distributed termination detection algorithm on a ring, as described in EWD 998. Nodes maintain activity status, colors, local message counters, pending in-flight messages, and a circulating token whose position, accumulated counter, and color are used to detect global termination. The spec includes safety properties relating token-based detection to actual system termination, an inductive invariant for the algorithm, a liveness property stating that termination is eventually detected, and TLC-specific state and action constraints to bound checking and collect runtime statistics.",
+  "ModuleName": "EWD998",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Utils",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "pending",
+    "token"
+  ],
+  "AssumptionNames": [
+    "NAssumption"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Nodes",
+    "Color",
+    "Token",
+    "vars",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "StateConstraint",
+    "terminationDetected",
+    "B",
+    "Termination",
+    "TerminationDetection",
+    "Inv",
+    "Liveness",
+    "ActionConstraint",
+    "Lvl",
+    "MyAlias"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Pairwise"
+  ],
+  "LetInNames": [
+    "Pairwise"
+  ],
+  "LambdaParams": [
+    "o",
+    "v"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[i] = \"black\" THEN \"black\" ELSE @",
+    "IF token.pos = N-1 \n                THEN token.q = 0 \n                ELSE token.q = Reduce(sum, counter, (token.pos+1), N-1, 0)",
+    "IF InitiateProbe THEN 1 ELSE 0",
+    "IF \\E i \\in Nodes: PassToken(i) THEN 1 ELSE 0",
+    "IF ~active[n] /\\ active'[n] THEN 1 ELSE 0",
+    "IF ~v[n] /\\ v'[n] THEN 1 ELSE 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{\"white\", \"black\"}",
+    "{i}",
+    "{active}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Int]",
+    "[Nodes -> Nat]",
+    "[i \\in Nodes |-> 0]",
+    "[ e \\in DOMAIN f |-> Op(f[e], g[e]) ]",
+    "[ n \\in Nodes |-> IF ~active[n] /\\ active'[n] THEN 1 ELSE 0 ]",
+    "[ n \\in Nodes |-> 0 ]",
+    "[ n \\in Nodes |-> o[n] + IF ~v[n] /\\ v'[n] THEN 1 ELSE 0 ]"
+  ],
+  "FunctionApplication": [
+    "color[0]",
+    "active[i]",
+    "counter[i]",
+    "pending[i]",
+    "color[i]",
+    "active[0]",
+    "counter[0]",
+    "pending[0]",
+    "f[e]",
+    "g[e]",
+    "o[n]",
+    "v[n]"
+  ],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[token EXCEPT !.pos = @ - 1,\n                            !.q = @ + counter[i],\n                            !.color = IF color[i] = \"black\" THEN \"black\" ELSE @]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[pending EXCEPT ![j] = @ + 1]",
+    "[pending EXCEPT ![i] = @ - 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[active EXCEPT ![i] = FALSE]"
+  ],
+  "RecordConstructor": [
+    "[pos : Nodes, q : Int, color : Color]",
+    "[pos |-> 0, q |-> 0, color |-> \"black\"]",
+    "[\n        active |-> active,\n        pending |-> pending,\n        color |-> color,\n        counter |-> counter,\n        token |-> token,\n\n        TokenInits  |-> TLCGetAndSet(0, +, IF InitiateProbe THEN 1 ELSE 0, 0),\n        \n        TokenPasses |-> TLCGetAndSet(1, +, IF \\E i \\in Nodes: PassToken(i) THEN 1 ELSE 0, 0),\n\n        Activations |-> TLCGetAndSet(2, \n                            LAMBDA o, v: Pairwise(o, v, +), \n                                        [ n \\in Nodes |-> IF ~active[n] /\\ active'[n] THEN 1 ELSE 0 ],\n                            [ n \\in Nodes |-> 0 ]),\n                            \n        Activations2|-> TLCGetAndSet(3, \n                            LAMBDA o, v: [ n \\in Nodes |-> o[n] + IF ~v[n] /\\ v'[n] THEN 1 ELSE 0 ], \n                                        active,\n                            [ n \\in Nodes |-> 0 ]),\n\n        Actives     |-> TLCGetAndSet(4, \\cup, {active}, {active}),\n        \n        SumQ        |-> TLCGetAndSet(5, +, token.q, 0),\n        SumQP       |-> TLCGetAndSet(6, +, token.q', 0)\n    ]"
+  ],
+  "RecordAccess": [
+    "token.pos",
+    "token.color",
+    "token.q"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, pending, token>>",
+    "<<active, counter, pending>>",
+    "<<active, color, token>>",
+    "<<token>>",
+    "<<color, counter, pending, token>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "0..token.pos",
+    "(token.pos+1)..N-1"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "white",
+    "black",
+    "level"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "token",
+    "color",
+    "counter",
+    "pending",
+    "active"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "Termination ~> terminationDetected"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "StateConstraint ==\n  /\\ \\A i \\in Nodes : counter[i] <= 3 /\\ pending[i] <= 3\n  /\\ token.q <= 3"
+  ],
+  "ActionConstraint": [
+    "ActionConstraint ==\n    token \\in Token \\* Some non-constant expression that would otherwise optimized out."
+  ],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and preserved value `Pairwise` | Reason: required field name per prompt; `Pairwise` is a LET-bound name\nField: IfThenElse | Change: replaced all annotated/non-verbatim entries with exact expressions from the TLA+ file | Reason: values must appear in the file verbatim; context tags like `(in PassToken)` do not appear in the source\nField: SetOperators | Change: removed `\\\\times` and `DOMAIN` | Reason: neither appears as a literal set operator occurrence in the file; `DOMAIN` only appears inside a function constructor and not as a standalone set operator entry\nField: FunctionApplication | Change: removed duplicate `color[i]` | Reason: deduplication required in repeated literal entries\n\nCHANGE LOG\nField: OperatorDefNames | Change: verified count unchanged at 25 | Reason: Phase 2 completeness check: file count = 25, JSON count = 25",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "StateConstraint",
+    "terminationDetected",
+    "Termination",
+    "TerminationDetection",
+    "Inv",
+    "ActionConstraint",
+    "Lvl"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Liveness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nodes",
+    "Color",
+    "Token",
+    "vars",
+    "B",
+    "MyAlias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Nodes |-> 0]",
+    "[ e \\in DOMAIN f |-> Op(f[e], g[e]) ]",
+    "[ n \\in Nodes |-> IF ~active[n] /\\ active'[n] THEN 1 ELSE 0 ]",
+    "[ n \\in Nodes |-> 0 ]",
+    "[ n \\in Nodes |-> o[n] + IF ~v[n] /\\ v'[n] THEN 1 ELSE 0 ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Int]",
+    "[Nodes -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter, pending>>",
+    "UNCHANGED <<active, color, token>>",
+    "UNCHANGED <<token>>",
+    "UNCHANGED <<color, counter, pending, token>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998/EWD998.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "TerminationDetection is placed in StatePredicate because it is a non-temporal Boolean operator over the current state: terminationDetected => Termination contains implication but no temporal operators and no primed variables.",
+    "ActionConstraint is placed in StatePredicate because its body is the Boolean state expression token \\in Token, despite its TLC model-checking role.",
+    "Lvl is placed in StatePredicate by elimination: it is Boolean-valued, non-temporal, and contains no primed variables, though it is TLC-specific rather than an invariant.",
+    "MyAlias is placed in ValueDef by elimination: it defines a non-Boolean record-valued helper for TLC statistics/view-style reporting, even though its body contains primed variables inside subexpressions.",
+    "Partition count: StatePredicate(8) + TemporalProperty(2) + Init(1) + ValueDef(6) + ActionDefNames(8) = OperatorDefNames(25). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef is empty; all UNCHANGED occurrences are explicit forms.",
+    "Liveness is placed in TemporalProperty because it uses ~>.",
+    "Spec always belongs to TemporalProperty."
+  ]
+}

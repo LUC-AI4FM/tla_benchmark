@@ -1,0 +1,317 @@
+{
+  "id": null,
+  "Specification": "This module defines a simulation-oriented wrapper around an existing ccfraft specification, adding randomized guards to selected actions, custom initialization choices, a redefined fairness condition, periodic TLC statistics serialization, and a postcondition module for counterexample shortening. The fault model is not introduced independently here; instead, the module reuses the underlying ccfraft behavior and constrains simulation scheduling through RandomElement-based throttling and IO-environment parameters. The specification also includes utilities for stopping TLC after a time budget, serializing runtime data, and a postcondition that records the depth of a discovered counterexample so TLC can be rerun in simulation mode with progressively smaller bounds.",
+  "ModuleName": "SIMccfraft",
+  "ExtendsModules": [
+    "ccfraft",
+    "TLC",
+    "Integers",
+    "IOUtils"
+  ],
+  "InstanceModules": [
+    "ccfraft",
+    "TLC",
+    "TLCExt",
+    "FiniteSets",
+    "Sequences",
+    "IOUtils",
+    "Integers"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "NodeOne",
+    "NodeTwo",
+    "NodeThree",
+    "NodeFour",
+    "NodeFive"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Servers_mc",
+    "SIMInitReconfigurationVars",
+    "SIMInitPreVoteStatus",
+    "R",
+    "SIMClientRequest",
+    "Q",
+    "SIMCheckQuorum",
+    "SIMSigTermProposeVote",
+    "C",
+    "SIMChangeConfigurationInt",
+    "T",
+    "SIMTimeout",
+    "SIMFairness",
+    "StopAfter",
+    "SerializeFilename",
+    "SerializeTLCStats",
+    "Periodically",
+    "DebugInvUpToDepth",
+    "ABSExtend",
+    "ABSCopyMaxAndExtend",
+    "SIMPostCondition"
+  ],
+  "ActionDefNames": [
+    "SIMClientRequest",
+    "SIMCheckQuorum",
+    "SIMSigTermProposeVote",
+    "SIMChangeConfigurationInt",
+    "SIMTimeout",
+    "Periodically"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "timeout"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF \"R\" \\in DOMAIN IOEnv THEN atoi(IOEnv.R) ELSE 10",
+    "IF \"Q\" \\in DOMAIN IOEnv THEN atoi(IOEnv.Q) ELSE 10",
+    "IF \"C\" \\in DOMAIN IOEnv THEN atoi(IOEnv.C) ELSE 10",
+    "IF \"T\" \\in DOMAIN IOEnv THEN atoi(IOEnv.T) ELSE 1000",
+    "IF (\"SIM_TIMEOUT\" \\in DOMAIN IOEnv) /\\ IOEnv.SIM_TIMEOUT # \"\" THEN atoi(IOEnv.SIM_TIMEOUT) ELSE 1200",
+    "IF CounterExample.state = {} THEN TRUE ELSE /\\ PrintT(\"Length of counterexample: \" \\o ToString(Cardinality(CounterExample.state))) /\\ Serialize(ToString(Cardinality(CounterExample.state) - 1), \"depth.txt\", [format |-> \"TXT\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"TRUNCATE_EXISTING\">>]).exitValue = 0"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{NodeOne, NodeTwo, NodeThree, NodeFour, NodeFive}",
+    "{Leader, Candidate}",
+    "{}",
+    "{{}}"
+  ],
+  "SetOperators": [
+    "\\",
+    "DOMAIN",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "preVoteStatus[i]",
+    "preVoteStatus[j]",
+    "RandomElement(R)",
+    "RandomElement(Q)",
+    "RandomElement(C)",
+    "RandomElement(T)",
+    "leadershipState[s]",
+    "atoi(IOEnv.R)",
+    "atoi(IOEnv.Q)",
+    "atoi(IOEnv.C)",
+    "atoi(IOEnv.T)",
+    "atoi(IOEnv.SIM_TIMEOUT)",
+    "TLCSet(\"exit\", TLCGet(\"duration\") > timeout)",
+    "TLCGet(\"duration\")",
+    "ToString(R)",
+    "ToString(T)",
+    "ToString(Q)",
+    "ToString(C)",
+    "ToString(JavaTime)",
+    "Serialize(<<TLCGet(\"stats\")>>, SerializeFilename, [format |-> \"NDJSON\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"APPEND\">>])",
+    "TLCGet(\"stats\")",
+    "TLCGet(\"level\")",
+    "TLCGet(\"config\")",
+    "MappingToAbs!ExtendAxiom(i)",
+    "MappingToAbs!CopyMaxAndExtendAxiom(i)",
+    "PrintT(\"Length of counterexample: \" \\o ToString(Cardinality(CounterExample.state)))",
+    "ToString(Cardinality(CounterExample.state))",
+    "Cardinality(CounterExample.state)",
+    "Serialize(ToString(Cardinality(CounterExample.state) - 1), \"depth.txt\", [format |-> \"TXT\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"TRUNCATE_EXISTING\">>])",
+    "ToString(Cardinality(CounterExample.state) - 1)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[format |-> \"NDJSON\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"APPEND\">>]",
+    "[format |-> \"TXT\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"TRUNCATE_EXISTING\">>]"
+  ],
+  "RecordAccess": [
+    "IOEnv.R",
+    "IOEnv.Q",
+    "IOEnv.C",
+    "IOEnv.T",
+    "IOEnv.SIM_TIMEOUT",
+    "CounterExample.state",
+    "TLCGet(\"config\").depth",
+    "Serialize(ToString(Cardinality(CounterExample.state) - 1), \"depth.txt\", [format |-> \"TXT\", charset |-> \"UTF-8\", openOptions |-> <<\"WRITE\", \"CREATE\", \"TRUNCATE_EXISTING\">>]).exitValue"
+  ],
+  "TupleConstructor": [
+    "<<TLCGet(\"stats\")>>",
+    "<<\"WRITE\", \"CREATE\", \"APPEND\">>",
+    "<<\"WRITE\", \"CREATE\", \"TRUNCATE_EXISTING\">>"
+  ],
+  "SequenceOps": [
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [
+    "1..IF \"R\" \\in DOMAIN IOEnv THEN atoi(IOEnv.R) ELSE 10",
+    "1..IF \"Q\" \\in DOMAIN IOEnv THEN atoi(IOEnv.Q) ELSE 10",
+    "1..IF \"C\" \\in DOMAIN IOEnv THEN atoi(IOEnv.C) ELSE 10",
+    "1..IF \"T\" \\in DOMAIN IOEnv THEN atoi(IOEnv.T) ELSE 1000"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "R",
+    "Q",
+    "C",
+    "T",
+    "SIM_TIMEOUT",
+    "",
+    "exit",
+    "duration",
+    "SIMccfraft_",
+    "R-",
+    "_T-",
+    "_Q-",
+    "_C-",
+    "_ts-",
+    ".ndjson",
+    "stats",
+    "NDJSON",
+    "UTF-8",
+    "WRITE",
+    "CREATE",
+    "APPEND",
+    "level",
+    "config",
+    "Length of counterexample: ",
+    "depth.txt",
+    "TXT",
+    "TRUNCATE_EXISTING"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC",
+    "TLCExt",
+    "IOUtils"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "WF_vars(RcvDropIgnoredMessage(i, j))",
+    "WF_vars(RcvUpdateTerm(i, j))",
+    "WF_vars(RcvRequestVoteRequest(i, j))",
+    "WF_vars(RcvRequestVoteResponse(i, j))",
+    "WF_vars(RcvAppendEntriesRequest(i, j))",
+    "WF_vars(RcvAppendEntriesResponse(i, j))",
+    "WF_vars(RcvProposeVoteRequest(i, j))",
+    "WF_vars(AppendEntries(s, t))",
+    "WF_vars(RequestVote(s, t))",
+    "WF_vars(SignCommittableMessages(s))",
+    "WF_vars(AdvanceCommitIndex(s))",
+    "WF_vars(AppendRetiredCommitted(s))",
+    "WF_vars(BecomeCandidateFromPreVoteCandidate(s))",
+    "WF_vars(BecomeLeader(s))",
+    "WF_vars(CCF!Timeout(s))",
+    "WF_vars(CCF!ChangeConfigurationInt(s, newConfiguration))"
+  ],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A i, j \\in Servers : WF_vars(RcvDropIgnoredMessage(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvUpdateTerm(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvRequestVoteRequest(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvRequestVoteResponse(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvAppendEntriesRequest(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvAppendEntriesResponse(i, j))",
+    "\\A i, j \\in Servers : WF_vars(RcvProposeVoteRequest(i, j))",
+    "\\A s, t \\in Servers : WF_vars(AppendEntries(s, t))",
+    "\\A s, t \\in Servers : WF_vars(RequestVote(s, t))",
+    "\\A s \\in Servers : WF_vars(SignCommittableMessages(s))",
+    "\\A s \\in Servers : WF_vars(AdvanceCommitIndex(s))",
+    "\\A s \\in Servers : WF_vars(AppendRetiredCommitted(s))",
+    "\\A s \\in Servers : WF_vars(BecomeCandidateFromPreVoteCandidate(s))",
+    "\\A s \\in Servers : WF_vars(BecomeLeader(s))",
+    "\\A s \\in Servers : WF_vars(CCF!Timeout(s))",
+    "\\A s \\in Servers : \\E newConfiguration \\in SUBSET(Servers) \\ {{}}: WF_vars(CCF!ChangeConfigurationInt(s, newConfiguration))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added \"R\", \"Q\", \"C\", \"T\" | Reason: these are top-level LOCAL operator definitions using `==`; file count = 21, JSON count corrected from 17 to 21\nField: NamesInLet | Change: renamed field to \"LetInNames\" | Reason: guide refers to `LetInNames`; LET-bound name `timeout` must be stored there\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with exact expressions from the file | Reason: values must appear in the TLA+ file; V1 included commentary like `(in LOCAL R)` and `...`\nField: SetEnumeration | Change: added \"{{}}\" | Reason: this literal appears in `SUBSET(Servers) \\ {{}}`\nField: SetOperators | Change: moved `SUBSET` here from `FiniteSetOps` and removed nothing else | Reason: `SUBSET` belongs in `SetOperators`, not `FiniteSetOps`\nField: FiniteSetOps | Change: confirmed only `Cardinality` remains | Reason: `SUBSET` must not be in `FiniteSetOps`\nField: FunctionApplication | Change: added missing literal applications and removed incompleteness | Reason: several applications appear verbatim in the file, including `RandomElement(...)`, `atoi(...)`, `TLCGet(...)`, `Serialize(...)`, `ToString(...)`, `PrintT(...)`, and mapping instance calls\nField: RecordAccess | Change: removed duplicate `CounterExample.state` entries and normalized multiline `.exitValue` expression to a verbatim single entry | Reason: deduplication required; entries must literally appear as record field accesses in the file\nField: DataStructureModules | Change: added `FiniteSets`, `Sequences` | Reason: both are instantiated in `SIMPostCondition`\nField: ToolingModules | Change: added `TLCExt`, `IOUtils` | Reason: both are instantiated tooling/utility modules in the file\nField: FairnessConditions | Change: normalized final existential fairness entry to one verbatim JSON string | Reason: field must contain only fairness expressions from `SIMFairness`; formatting cleaned while preserving content\nField: ActionDefNames | Change: no content change, explicitly verified | Reason: listed operators are action-like wrappers or action compositions; no additional top-level action defs were warranted\nField: AssumptionNames | Change: confirmed empty | Reason: file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks\nField: FunctionOverride | Change: confirmed empty | Reason: file contains no `[f EXCEPT ![e] = v]` expressions\nField: LocalOperatorNames | Change: confirmed empty | Reason: LET contains only simple binding `timeout == ...`, not parametric local operator definitions\nField: PrimedVariables | Change: confirmed empty | Reason: no primed variables appear anywhere in this file\nField: UnchangedExprs | Change: confirmed empty | Reason: no `UNCHANGED` expressions appear in this file\nField: AlwaysOp | Change: confirmed empty | Reason: no outermost `[]` temporal formulas appear in this file\nField: EventuallyOp | Change: confirmed empty | Reason: no outermost `<>` temporal formulas appear in this file\nField: LeadsToOp | Change: confirmed empty | Reason: no outermost `~>` temporal formulas appear in this file\nField: GuaranteesOp | Change: confirmed empty | Reason: no outermost `-+->` temporal formulas appear in this file\nField: EnabledExprs | Change: confirmed empty | Reason: no `ENABLED` expressions appear in this file",
+  "OperatorDefNames_StatePredicate": [
+    "SIMInitReconfigurationVars",
+    "SIMInitPreVoteStatus",
+    "StopAfter",
+    "DebugInvUpToDepth",
+    "SIMPostCondition"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "SIMFairness"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "Servers_mc",
+    "R",
+    "Q",
+    "C",
+    "T",
+    "SerializeFilename",
+    "SerializeTLCStats",
+    "ABSExtend",
+    "ABSCopyMaxAndExtend"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/SIMccfraft/SIMccfraft.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(1) + Init(0) + ValueDef(9) + ActionDefNames(6) = OperatorDefNames(21). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "All FunctionConstructor-related fields are empty because the file contains no [x \\in S |-> e] or [S -> T] function constructor expressions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "SIMFairness is placed in TemporalProperty because it is a conjunction of fairness formulas WF_vars(...), which are temporal formulas even though [], <>, and ~> do not appear textually.",
+    "SerializeFilename, SerializeTLCStats, ABSExtend, and ABSCopyMaxAndExtend are placed in ValueDef by elimination: they define computed values and are neither actions, init operators, nor temporal properties."
+  ]
+}

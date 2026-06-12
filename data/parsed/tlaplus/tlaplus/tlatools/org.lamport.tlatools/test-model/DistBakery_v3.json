@@ -1,0 +1,356 @@
+{
+  "id": null,
+  "Specification": "This specification models a distributed mutual exclusion algorithm based on Lamport's bakery-style numbering, with separate mutex processes and message-handling processes for each node. Each mutex process chooses a ticket number, broadcasts it, waits for acknowledgments and priority conditions, enters its critical section, and then broadcasts a reset; message processes receive write messages, update remote number information, and send acknowledgments. The spec includes the translated PlusCal algorithm, a type invariant, a mutual exclusion safety property, and a starvation-freedom liveness property under weak fairness assumptions for both mutex and message actions.",
+  "ModuleName": "DistBakery",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Nodes"
+  ],
+  "VariableNames": [
+    "num",
+    "rnum",
+    "acks",
+    "net",
+    "pc"
+  ],
+  "AssumptionNames": [
+    "Nodes \\subseteq Int"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "MutexProcs",
+    "MsgProcs",
+    "pr1 \\ll pr2",
+    "NextHigher",
+    "MaxPr",
+    "pr1 \\prec pr2",
+    "Write",
+    "Ack",
+    "Messages",
+    "vars",
+    "ProcSet",
+    "Init",
+    "ncs",
+    "enter",
+    "e1",
+    "cs",
+    "exit",
+    "mu",
+    "a",
+    "mg",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "Mutex",
+    "StarvationFree",
+    "const_16137059216052000",
+    "constr_16137059216053000"
+  ],
+  "ActionDefNames": [
+    "ncs",
+    "enter",
+    "e1",
+    "cs",
+    "exit",
+    "mu",
+    "a",
+    "mg",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "nonZeros",
+    "competition",
+    "msg",
+    "me"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF pr[2] < n THEN pr[1] ELSE pr[1] + 1",
+    "IF competition = { } THEN 1 ELSE NextHigher(MaxPr(competition), self.node)",
+    "IF msg.type = \"write\" THEN /\\ rnum' = [rnum EXCEPT ![me][n] = msg.num] /\\ IF msg.num = 0 THEN /\\ net' = [net EXCEPT ![n][self.node] = Tail(net[n][self.node])] ELSE /\\ net' = [net EXCEPT ![n][self.node] = Tail(net[n][self.node]), ![self.node][n] = Append(net[self.node][n], Ack)] /\\ acks' = acks ELSE /\\ acks' = [acks EXCEPT ![me] = acks[me] \\cup {n}] /\\ UNCHANGED << rnum, net >>",
+    "IF msg.num = 0 THEN /\\ net' = [net EXCEPT ![n][self.node] = Tail(net[n][self.node])] ELSE /\\ net' = [net EXCEPT ![n][self.node] = Tail(net[n][self.node]), ![self.node][n] = Append(net[self.node][n], Ack)]"
+  ],
+  "CaseExpr": [
+    "CASE self \\in MutexProcs -> \"ncs\" [] self \\in MsgProcs -> \"a\""
+  ],
+  "SetEnumeration": [
+    "{\"mutex\"}",
+    "{\"msg\"}",
+    "{Ack}",
+    "{}",
+    "{self.node}",
+    "{ }",
+    "{-1, -2}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\subseteq",
+    "\\",
+    "\\X",
+    "DOMAIN",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[node : Nodes, type : {\"mutex\"}]",
+    "[node : Nodes, type : {\"msg\"}]",
+    "[type : {\"write\"}, num : Nat]",
+    "[n \\in Nodes |-> 0]",
+    "[n \\in Nodes |-> [m \\in Nodes \\ {n} |-> 0]]",
+    "[m \\in Nodes \\ {n} |-> 0]",
+    "[n \\in Nodes |-> {}]",
+    "[i \\in Nodes |-> [j \\in Nodes \\ {i} |-> << >>]]",
+    "[j \\in Nodes \\ {i} |-> << >>]",
+    "[self \\in ProcSet |-> CASE self \\in MutexProcs -> \"ncs\" [] self \\in MsgProcs -> \"a\"]",
+    "[i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(num'[self.node])))]",
+    "[i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(0)))]",
+    "[Nodes -> Nat]",
+    "[Nodes \\ {n} -> Nat]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes \\ {n} -> Seq(Messages)]"
+  ],
+  "FunctionApplication": [
+    "pr1[1]",
+    "pr2[1]",
+    "pr1[2]",
+    "pr2[2]",
+    "num[n1]",
+    "num[n2]",
+    "pc[self]",
+    "rnum[self.node][i]",
+    "rnum[i]",
+    "acks[self.node]",
+    "net[self.node][i]",
+    "num'[self.node]",
+    "rnum[self.node][n]",
+    "net[n][self.node]",
+    "Head(net[n][self.node])",
+    "rnum[me][n]",
+    "acks[me]",
+    "rnum[n]",
+    "net[n]",
+    "pc[n]",
+    "pc[m]",
+    "num[n]"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"enter\"]",
+    "[num EXCEPT ![self.node] = IF competition = { } THEN 1 ELSE NextHigher(MaxPr(competition), self.node)]",
+    "[acks EXCEPT ![self.node] = {self.node}]",
+    "[net EXCEPT ![self.node] = [i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(num'[self.node])))]",
+    "[pc EXCEPT ![self] = \"e1\"]",
+    "[pc EXCEPT ![self] = \"cs\"]",
+    "[pc EXCEPT ![self] = \"exit\"]",
+    "[net EXCEPT ![self.node] = [i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(0)))]",
+    "[pc EXCEPT ![self] = \"ncs\"]",
+    "[rnum EXCEPT ![me][n] = msg.num]",
+    "[net EXCEPT ![n][self.node] = Tail(net[n][self.node])]",
+    "[net EXCEPT ![n][self.node] = Tail(net[n][self.node]), ![self.node][n] = Append(net[self.node][n], Ack)]",
+    "[acks EXCEPT ![me] = acks[me] \\cup {n}]",
+    "[pc EXCEPT ![self] = \"a\"]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"write\", num |-> c]",
+    "[type |-> \"ack\"]",
+    "[node : Nodes, type : {\"mutex\"}]",
+    "[node : Nodes, type : {\"msg\"}]",
+    "[type : {\"write\"}, num : Nat]"
+  ],
+  "RecordAccess": [
+    "self.node",
+    "msg.type",
+    "msg.num"
+  ],
+  "TupleConstructor": [
+    "<<number, node>>",
+    "<<nm, n>>",
+    "<<num[n1], n1>>",
+    "<<num[n2], n2>>",
+    "<< >>",
+    "<< num, rnum, acks, net, pc >>",
+    "<<rnum[i], i>>",
+    "<<num[self.node],self.node>>",
+    "<<rnum[self.node][n],n>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE max \\in PrSet : \\A pr \\in PrSet \\ {max} : pr \\ll max"
+  ],
+  "StringLiterals": [
+    "mutex",
+    "msg",
+    "write",
+    "ack",
+    "ncs",
+    "a",
+    "enter",
+    "e1",
+    "cs",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "pc",
+    "num",
+    "acks",
+    "net",
+    "rnum"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << num, rnum, acks, net >>",
+    "UNCHANGED << num, rnum, acks >>",
+    "UNCHANGED << rnum, net >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars((pc[self] # \"ncs\") /\\ mu(self))",
+    "WF_vars(mg(self))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "(pc[m]=\"enter\") ~> (pc[m]=\"cs\")"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in MutexProcs : WF_vars((pc[self] # \"ncs\") /\\ mu(self))",
+    "\\A self \\in MsgProcs : WF_vars(mg(self))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "DistributedMutex"
+  ],
+  "PlusCalProcesses": [
+    "mu \\in MutexProcs",
+    "mg \\in MsgProcs"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained entries [\"nonZeros\", \"competition\", \"msg\", \"me\"] | Reason: field name check; LET-bound names belong in LetInNames\nField: IfThenElse | Change: replaced descriptive/non-verbatim entries with expressions that occur in the file | Reason: values must appear in the TLA+ file verbatim\nField: CaseExpr | Change: removed trailing explanatory text \"(in Init)\" | Reason: value must appear in the file verbatim\nField: FunctionApplication | Change: removed \"msg.num\" and added \"rnum[me][n]\" | Reason: msg.num is record access, not function application; rnum[me][n] appears literally\nField: ComparisonOps | Change: removed \">\" | Reason: no literal \">\" comparison operator appears in the file\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is not a proof command here; it is already represented in AssumptionNames\n\nCHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 28, JSON count = 28 | Reason: completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "pr1 \\ll pr2",
+    "pr1 \\prec pr2",
+    "TypeOK",
+    "Mutex",
+    "constr_16137059216053000"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "StarvationFree"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "MutexProcs",
+    "MsgProcs",
+    "NextHigher",
+    "MaxPr",
+    "Write",
+    "Ack",
+    "Messages",
+    "vars",
+    "ProcSet",
+    "const_16137059216052000"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Nodes |-> 0]",
+    "[n \\in Nodes |-> [m \\in Nodes \\ {n} |-> 0]]",
+    "[m \\in Nodes \\ {n} |-> 0]",
+    "[n \\in Nodes |-> {}]",
+    "[i \\in Nodes |-> [j \\in Nodes \\ {i} |-> << >>]]",
+    "[j \\in Nodes \\ {i} |-> << >>]",
+    "[self \\in ProcSet |-> CASE self \\in MutexProcs -> \"ncs\" [] self \\in MsgProcs -> \"a\"]",
+    "[i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(num'[self.node])))]",
+    "[i \\in Nodes \\ {self.node} |-> Append(net[self.node][i], (Write(0)))]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[node : Nodes, type : {\"mutex\"}]",
+    "[node : Nodes, type : {\"msg\"}]",
+    "[type : {\"write\"}, num : Nat]",
+    "[Nodes -> Nat]",
+    "[Nodes \\ {n} -> Nat]",
+    "[Nodes -> SUBSET Nodes]",
+    "[Nodes \\ {n} -> Seq(Messages)]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << num, rnum, acks, net >>",
+    "UNCHANGED << num, rnum, acks >>",
+    "UNCHANGED << rnum, net >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/DistBakery/DistBakery.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "constr_16137059216053000 is classified as a StatePredicate by elimination: it is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "const_16137059216052000 is classified as a ValueDef by elimination: it defines a concrete set value.",
+    "StarvationFree is placed in TemporalProperty because it is defined with the leads-to operator ~>.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Partition count: StatePredicate(5) + TemporalProperty(2) + Init(1) + ValueDef(10) + ActionDefNames(9) = OperatorDefNames(27). Verified."
+  ]
+}

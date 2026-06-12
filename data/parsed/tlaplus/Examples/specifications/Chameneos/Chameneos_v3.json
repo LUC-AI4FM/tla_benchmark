@@ -1,0 +1,224 @@
+{
+  "id": null,
+  "Specification": "This specification models the Chameneos concurrency game, where a fixed set of chameneoses repeatedly attempt to meet in a shared meeting place and change color according to a symmetric complement rule. The model tracks each creature's current color and individual meeting count, a single shared meeting-place slot, and the total number of meetings; once the global limit N is reached, creatures that continue trying to meet instead fade. The specification verifies a safety-style arithmetic property stating that when the total number of meetings reaches N, the sum of all individual meeting counters equals 2 * N, and it uses a simple temporal specification Spec == Init /\\ [][Next]_vars without fairness assumptions.",
+  "ModuleName": "Chameneos",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "M"
+  ],
+  "VariableNames": [
+    "chameneoses",
+    "meetingPlace",
+    "numMeetings"
+  ],
+  "AssumptionNames": [
+    "N \\in (Nat \\ {0}) /\\ M \\in (Nat \\ {0})"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => []SumMet"
+  ],
+  "OperatorDefNames": [
+    "Sum",
+    "Color",
+    "Faded",
+    "Complement",
+    "vars",
+    "ChameneosID",
+    "MeetingPlaceEmpty",
+    "TypeOK",
+    "Init",
+    "Meet",
+    "Next",
+    "Spec",
+    "SumMet"
+  ],
+  "ActionDefNames": [
+    "Meet",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [
+    "Sum"
+  ],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "x",
+    "newColor",
+    "f"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF S = {} THEN 0 ELSE LET x == CHOOSE x \\in S : TRUE IN f[x] + Sum(f, S \\ {x})",
+    "IF c1 = c2 THEN c1 ELSE CHOOSE cid \\in Color \\ {c1, c2} : TRUE",
+    "IF meetingPlace = MeetingPlaceEmpty THEN IF numMeetings < N THEN /\\ meetingPlace' = cid /\\ UNCHANGED <<chameneoses, numMeetings>> ELSE /\\ chameneoses' = [chameneoses EXCEPT ![cid] = <<Faded, @[2]>>] /\\ UNCHANGED <<meetingPlace, numMeetings>> ELSE /\\ meetingPlace /= cid /\\ meetingPlace' = MeetingPlaceEmpty /\\ chameneoses' = LET newColor == Complement(chameneoses[cid][1], chameneoses[meetingPlace][1]) IN [chameneoses EXCEPT ![cid] = <<newColor, @[2] + 1>>, ![meetingPlace] = <<newColor, @[2] + 1>>] /\\ numMeetings' = numMeetings + 1",
+    "IF numMeetings < N THEN /\\ meetingPlace' = cid /\\ UNCHANGED <<chameneoses, numMeetings>> ELSE /\\ chameneoses' = [chameneoses EXCEPT ![cid] = <<Faded, @[2]>>] /\\ UNCHANGED <<meetingPlace, numMeetings>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"blue\", \"red\", \"yellow\"}",
+    "{0}",
+    "{Faded}",
+    "{ x \\in ChameneosID : chameneoses[x][1] /= Faded}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\X",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ]",
+    "[ChameneosID -> Color \\X {0}]",
+    "[c \\in ChameneosID |-> chameneoses[c][2]]"
+  ],
+  "FunctionApplication": [
+    "f[x]",
+    "chameneoses[cid]",
+    "chameneoses[meetingPlace]",
+    "chameneoses[x]",
+    "chameneoses[c]"
+  ],
+  "FunctionOverride": [
+    "[chameneoses EXCEPT ![cid] = <<Faded, @[2]>>]",
+    "[chameneoses EXCEPT ![cid] = <<newColor, @[2] + 1>>, ![meetingPlace] = <<newColor, @[2] + 1>>]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<chameneoses, meetingPlace, numMeetings>>",
+    "<<Faded, @[2]>>",
+    "<<newColor, @[2] + 1>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "1 .. M",
+    "0 .. N"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in S : TRUE",
+    "CHOOSE c : c \\notin Color",
+    "CHOOSE cid \\in Color \\ {c1, c2} : TRUE",
+    "CHOOSE e : e \\notin ChameneosID"
+  ],
+  "StringLiterals": [
+    "blue",
+    "red",
+    "yellow"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "meetingPlace",
+    "chameneoses",
+    "numMeetings"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<chameneoses, numMeetings>>",
+    "UNCHANGED <<meetingPlace, numMeetings>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]SumMet"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: removed trailing context markers \u201c(in Sum)\u201d, \u201c(in Complement)\u201d, and \u201c(in Meet)\u201d from all entries | Reason: values must appear verbatim in the TLA+ file; those annotated strings do not\nField: SetEnumeration | Change: added \"{ x \\\\in ChameneosID : chameneoses[x][1] /= Faded}\" | Reason: this set expression appears in Next and the field was incomplete\nField: CompletenessCheck | Change: verified file count = 13, JSON OperatorDefNames count = 13 | Reason: top-level operator definition count matches, so completeness check passed",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "SumMet"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Sum",
+    "Color",
+    "Faded",
+    "Complement",
+    "vars",
+    "ChameneosID",
+    "MeetingPlaceEmpty"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[c \\in ChameneosID |-> chameneoses[c][2]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ ChameneosID -> (Color \\cup {Faded}) \\X (0 .. N) ]",
+    "[ChameneosID -> Color \\X {0}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<chameneoses, numMeetings>>",
+    "UNCHANGED <<meetingPlace, numMeetings>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Chameneos/Chameneos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(7) + ActionDefNames(2) = OperatorDefNames(13). Verified.",
+    "SumMet is Boolean-valued and contains no primed variables and no temporal operators in its body, so it is classified as a StatePredicate even though it is used under [] in the theorem.",
+    "The theorem 'THEOREM Spec => []SumMet' is not an operator definition, so only Spec appears in OperatorDefNames_TemporalProperty.",
+    "MeetingPlaceEmpty, Faded, Color, ChameneosID, vars, Complement, and recursive helper Sum are placed in ValueDef as non-action, non-temporal value definitions.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource folder inferred from module name because no repository subfolder is derivable from file content."
+  ]
+}

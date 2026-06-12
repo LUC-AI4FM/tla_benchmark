@@ -1,0 +1,281 @@
+{
+  "id": null,
+  "Specification": "This module specifies a network message buffer abstraction parameterized by a delivery guarantee. It models four network behaviors: ordered without duplication, ordered with duplication, reordered without duplication, and reordered with duplication, all selected by the constant Guarantee. The module defines how messages are initialized, added, removed, queried by destination and source, observed to increase, and nondeterministically dropped under each guarantee, using a single state variable messages.",
+  "ModuleName": "Network",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences",
+    "SequencesExt",
+    "Bags",
+    "Functions",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "OrderedNoDup",
+    "Ordered",
+    "ReorderedNoDup",
+    "Reordered",
+    "Guarantee",
+    "Servers"
+  ],
+  "VariableNames": [
+    "messages"
+  ],
+  "AssumptionNames": [
+    "Guarantee \\in {OrderedNoDup, Ordered, ReorderedNoDup, Reordered}"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "ReorderDupInitMessageVar",
+    "ReorderDupWithMessage",
+    "ReorderDupWithoutMessage",
+    "ReorderDupMessages",
+    "ReorderDupMessagesTo",
+    "ReorderDupOneMoreMessage",
+    "ReorderDupDropMessages",
+    "ReorderNoDupInitMessageVar",
+    "ReorderNoDupWithMessage",
+    "ReorderNoDupWithoutMessage",
+    "ReorderNoDupMessages",
+    "ReorderNoDupMessagesTo",
+    "ReorderNoDupOneMoreMessage",
+    "ReorderNoDupDropMessages",
+    "OrderInitMessageVar",
+    "OrderWithMessage",
+    "OrderWithoutMessage",
+    "OrderMessages",
+    "OrderMessagesTo",
+    "OrderOneMoreMessage",
+    "OrderDropMessages",
+    "OrderDropOlderMessages",
+    "OrderDropConsecutiveMessages",
+    "OrderDropMessage",
+    "OrderNoDupInitMessageVar",
+    "OrderNoDupWithMessage",
+    "OrderNoDupWithoutMessage",
+    "OrderNoDupMessages",
+    "OrderNoDupMessagesTo",
+    "OrderNoDupOneMoreMessage",
+    "OrderNoDupDropMessages",
+    "InitMessageVar",
+    "Messages",
+    "MessagesTo",
+    "WithMessage",
+    "WithoutMessage",
+    "OneMoreMessage",
+    "DropMessages",
+    "DropMessage"
+  ],
+  "ActionDefNames": [
+    "ReorderDupOneMoreMessage",
+    "ReorderDupDropMessages",
+    "ReorderNoDupOneMoreMessage",
+    "ReorderNoDupDropMessages",
+    "OrderOneMoreMessage",
+    "OrderDropMessages",
+    "OrderDropOlderMessages",
+    "OrderDropConsecutiveMessages",
+    "OrderDropMessage",
+    "OrderNoDupOneMoreMessage",
+    "OrderNoDupDropMessages",
+    "OneMoreMessage",
+    "DropMessages",
+    "DropMessage"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [
+    "acc",
+    "e"
+  ],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF m \\notin (DOMAIN msgs) THEN msgs @@ (m :> 1) ELSE [ msgs EXCEPT ![m] = @ + 1 ]",
+    "IF msgs[m] = 1 THEN [ msg \\in ((DOMAIN msgs) \\ {m}) |-> msgs[msg] ] ELSE [ msgs EXCEPT ![m] = @ - 1 ]",
+    "IF acc = {} /\\ e.source = source THEN acc \\cup {e} ELSE acc",
+    "IF \\E i \\in 1..Len(msgs[m.dest]) : msgs[m.dest][i] = m THEN msgs ELSE OrderWithMessage(m, msgs)"
+  ],
+  "CaseExpr": [
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupInitMessageVar [] Guarantee = Ordered -> OrderInitMessageVar [] Guarantee = ReorderedNoDup -> ReorderNoDupInitMessageVar [] Guarantee = Reordered -> ReorderDupInitMessageVar",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupMessages [] Guarantee = Ordered -> OrderMessages [] Guarantee = ReorderedNoDup -> ReorderNoDupMessages [] Guarantee = Reordered -> ReorderDupMessages",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupMessagesTo(dest, source) [] Guarantee = Ordered -> OrderMessagesTo(dest, source) [] Guarantee = ReorderedNoDup -> ReorderNoDupMessagesTo(dest, source) [] Guarantee = Reordered -> ReorderDupMessagesTo(dest, source)",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupWithMessage(m, msgs) [] Guarantee = Ordered -> OrderWithMessage(m, msgs) [] Guarantee = ReorderedNoDup -> ReorderNoDupWithMessage(m, msgs) [] Guarantee = Reordered -> ReorderDupWithMessage(m, msgs)",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupWithoutMessage(m, msgs) [] Guarantee = Ordered -> OrderWithoutMessage(m, msgs) [] Guarantee = ReorderedNoDup -> ReorderNoDupWithoutMessage(m, msgs) [] Guarantee = Reordered -> ReorderDupWithoutMessage(m, msgs)",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupOneMoreMessage(msg) [] Guarantee = Ordered -> OrderOneMoreMessage(msg) [] Guarantee = ReorderedNoDup -> ReorderNoDupOneMoreMessage(msg) [] Guarantee = Reordered -> ReorderDupOneMoreMessage(msg)",
+    "CASE Guarantee = OrderedNoDup -> OrderNoDupDropMessages(server) [] Guarantee = Ordered -> OrderDropMessages(server) [] Guarantee = ReorderedNoDup -> ReorderNoDupDropMessages [] Guarantee = Reordered -> ReorderDupDropMessages",
+    "CASE Guarantee = OrderedNoDup -> FALSE [] Guarantee = Ordered -> OrderDropMessage(sender, Test) [] Guarantee = ReorderedNoDup -> FALSE [] Guarantee = Reordered -> FALSE"
+  ],
+  "SetEnumeration": [
+    "{OrderedNoDup, Ordered, ReorderedNoDup, Reordered}",
+    "{}",
+    "{m}",
+    "{e}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\union",
+    "\\",
+    "UNION",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ msg \\in ((DOMAIN msgs) \\ {m}) |-> msgs[msg] ]",
+    "[ s \\in Servers |-> <<>>]"
+  ],
+  "FunctionApplication": [
+    "msgs[m]",
+    "messages[s]",
+    "messages[dest]",
+    "messages[m.dest]",
+    "messages[server]",
+    "messages[server][idx]",
+    "msgs[m.dest]",
+    "msgs[m.dest][i]",
+    "Test(messages[server][idx])"
+  ],
+  "FunctionOverride": [
+    "[ msgs EXCEPT ![m] = @ + 1 ]",
+    "[ msgs EXCEPT ![m] = @ - 1 ]",
+    "[ msgs EXCEPT ![m.dest] = Append(@, m) ]",
+    "[ msgs EXCEPT ![m.dest] = RemoveFirst(@, m) ]",
+    "[ messages EXCEPT ![server] = s ]",
+    "[ messages EXCEPT ![server] = RemoveAt(@, i) ]",
+    "[ messages EXCEPT ![server] = subSeq ]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "m.dest",
+    "m.source",
+    "e.source"
+  ],
+  "TupleConstructor": [
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">"
+  ],
+  "RangeExpr": [
+    "1..Len(messages[server])",
+    "1..Len(msgs[m.dest])"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "Bags"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [
+    "ASSUME"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count unchanged at 39 entries | Reason: Top-level `==` definitions in file count = 39, JSON OperatorDefNames count = 39, so completeness matches\nField: IfThenElse | Change: Removed trailing context markers like `(in ReorderDupWithMessage)` from all entries | Reason: Entries must be the expressions that appear in the file, not annotated metadata absent from the source\nField: CaseExpr | Change: Replaced summary placeholders `CASE on Guarantee in ...` with the full CASE expressions for all 8 operators | Reason: V1 values did not appear in the file; correctness requires actual source expressions\nField: SetEnumeration | Change: Added `{e}` | Reason: Literal set `{e}` appears in `OrderMessagesTo` and was missing\nField: SequenceOps | Change: Removed `SubSeq` | Reason: `SubSeq` does not appear anywhere in the file\nField: SetOperators | Change: Retained `SUBSET` despite encoding-scan rule note | Reason: In this file `SUBSET` appears as a literal operator in `messages' \\\\in SUBSET messages`; no FiniteSetOps entry existed to move, and SetOperators matches the source text better than leaving it unrepresented",
+  "OperatorDefNames_StatePredicate": [
+    "ReorderDupInitMessageVar",
+    "ReorderDupMessagesTo",
+    "ReorderNoDupInitMessageVar",
+    "ReorderNoDupMessagesTo",
+    "OrderInitMessageVar",
+    "OrderMessagesTo",
+    "OrderNoDupInitMessageVar",
+    "OrderNoDupMessagesTo",
+    "InitMessageVar"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitMessageVar"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "ReorderDupWithMessage",
+    "ReorderDupWithoutMessage",
+    "ReorderDupMessages",
+    "ReorderNoDupWithMessage",
+    "ReorderNoDupWithoutMessage",
+    "ReorderNoDupMessages",
+    "OrderWithMessage",
+    "OrderWithoutMessage",
+    "OrderMessages",
+    "OrderNoDupWithMessage",
+    "OrderNoDupWithoutMessage",
+    "OrderNoDupMessages",
+    "Messages",
+    "MessagesTo",
+    "WithMessage",
+    "WithoutMessage"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ msg \\in ((DOMAIN msgs) \\ {m}) |-> msgs[msg] ]",
+    "[ s \\in Servers |-> <<>>]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Network/Network.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "InitMessageVar satisfies the Init naming rule and is therefore placed in OperatorDefNames_Init rather than StatePredicate.",
+    "Messages, MessagesTo, WithMessage, WithoutMessage, and the various *WithMessage/*WithoutMessage/*Messages helpers are placed in ValueDef because they compute sets, bags, sequences, or other non-temporal values rather than actions.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e] forms.",
+    "Partition count: StatePredicate(8) + TemporalProperty(0) + Init(1) + ValueDef(16) + ActionDefNames(14) = OperatorDefNames(39). Verified."
+  ]
+}

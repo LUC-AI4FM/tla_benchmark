@@ -1,0 +1,232 @@
+{
+  "id": null,
+  "Specification": "This module is a regression and validation test specification for operators provided by the FiniteSetsExt extension module, together with TLC-related support modules. It asserts expected semantic properties of set-processing operators such as Quantify, kSubset, FoldSet, ChooseUnique, SymDiff, SumSet, ProductSet, ReduceSet, and FlattenSet over both numeric and string-valued sets. The file is not a behavioral system specification in practice; instead it consists almost entirely of ASSUME statements that serve as executable tests, plus a commented-out dummy Init/Next pair noted as unnecessary scaffolding for TLC behavior exploration.",
+  "ModuleName": "FiniteSetsExtTests",
+  "ExtendsModules": [
+    "Integers",
+    "TLC",
+    "TLCExt",
+    "FiniteSets",
+    "FiniteSetsExt"
+  ],
+  "InstanceModules": [
+    "TLC"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "LET T == INSTANCE TLC IN T!PrintT(\"FiniteSetsExtTests\")",
+    "LET S == {\"a\",\"b\",\"c\",\"c\"}\n       IN Quantify(S, LAMBDA s: s = \"c\") = Cardinality({s \\in S : s = \"c\"})",
+    "\\A S \\in SUBSET {\"a\",\"b\",\"c\",\"c\"} :\n          Quantify(S, LAMBDA s: s = \"c\") = Cardinality({s \\in S : s = \"c\"})",
+    "\\A S \\in SUBSET {\"a\",\"b\",\"c\",\"c\"} :\n          Quantify(S, LAMBDA s: FALSE) = Cardinality({s \\in S : FALSE})",
+    "LET S == 1..10\n       IN Quantify(S, LAMBDA s: s = 3) = Cardinality({s \\in S : s = 3})",
+    "LET S == 1..2000000\n       IN Quantify(S, LAMBDA s: TRUE) = Cardinality(S)",
+    "LET S == {\"a\",\"b\",\"c\",\"c\"}\n       IN \\A k \\in -1..Cardinality(S) + 1: \n             kSubset(k, S) = {s \\in SUBSET S : Cardinality(s) = k}",
+    "LET S == {\"a\",\"b\",\"c\",\"c\"}\n       IN kSubset(-1, S) = {} /\\ kSubset(4, S) = {}",
+    "LET S == 1..27\n       IN kSubset(Cardinality(S), S) = {S}",
+    "{} \\notin kSubset(1, {1,2,3})",
+    "LET T == 1..3\n       IN \\A k \\in (1..Cardinality(T)):\n            /\\ \\A e \\in { ss \\in (SUBSET T) : Cardinality(ss) = k} :\n                     e \\in kSubset(k, T)\n            /\\ \\A e \\in { ss \\in (SUBSET T) : Cardinality(ss) # k} :\n                     e \\notin kSubset(k, T)",
+    "LET T == {\"a\",\"b\",\"c\"}\n           kSubsetPure(k, S) == { s \\in SUBSET S : Cardinality(s) = k }\n       IN \\A k \\in 1..Cardinality(T):\n                /\\ kSubset(k, T) = kSubsetPure(k, T)\n                /\\ kSubsetPure(k, T) = kSubset(k, T)",
+    "LET T == {\"a\",\"b\",\"c\"}\n       IN /\\ kSubset(1, T) = {{\"a\"},{\"b\"},{\"c\"}}\n          /\\ kSubset(2, T) = {{\"a\",\"b\"}, {\"a\",\"c\"}, {\"b\",\"c\"}}\n          /\\ kSubset(3, T) = {{\"a\",\"b\",\"c\"}}\n          /\\ {{\"a\"},{\"b\"},{\"c\"}} = kSubset(1, T)\n          /\\ {{\"a\",\"b\"}, {\"a\",\"c\"}, {\"b\",\"c\"}} = kSubset(2, T)\n          /\\ {{\"a\",\"b\",\"c\"}} = kSubset(3, T)",
+    "LET T == {\"a\",\"b\",\"c\"}\n           kSubsetPure(k, S) == { s \\in SUBSET S : Cardinality(s) = k }\n       IN /\\ {kSubset(k, T) : k \\in 2..3} = {kSubsetPure(k, T) : k \\in 2..3}\n          /\\ {kSubsetPure(k, T) : k \\in 2..3} = {kSubset(k, T) : k \\in 2..3}\n          /\\ {kSubsetPure(k, T) : k \\in 2..3} = {kSubset(k, T) : k \\in {3,2}}\n          /\\ (kSubset(2, T) \\cup kSubset(3, T)) = (kSubsetPure(2, T) \\cup kSubsetPure(3, T))\n          /\\ (kSubset(3, T) \\cup kSubset(2, T)) = (kSubsetPure(2, T) \\cup kSubsetPure(3, T))\n          /\\ (kSubset(1, T) \\cup kSubset(2, T) \\cup kSubset(3, T)) = (kSubsetPure(2, T) \\cup kSubsetPure(3, T) \\cup kSubsetPure(1, T))\n          /\\ (kSubset(3, T) \\cup kSubset(1, T) \\cup kSubset(2, T)) = (kSubsetPure(1, T) \\cup kSubsetPure(2, T) \\cup kSubsetPure(3, T) \\cup kSubsetPure(3, T))\n          /\\ (kSubset(3, T) \\cup kSubset(1, T) \\cup kSubset(2, T)\\cup kSubset(2, T)) = (kSubsetPure(1, T) \\cup kSubsetPure(2, T) \\cup kSubsetPure(3, T) \\cup kSubsetPure(3, T))\n          /\\ (kSubset(3, T) \\cup kSubset(1, T) \\cup kSubset(2, T) \\cup kSubset(0, T)) = (kSubsetPure(1, T) \\cup kSubsetPure(2, T) \\cup kSubsetPure(3, T) \\cup kSubsetPure(0, T))",
+    "LET T == 1..3\n           kSubsetPure(k, S) == { s \\in SUBSET S : Cardinality(s) = k }\n       IN \\A k \\in 1..Cardinality(T):\n                /\\ ((SUBSET T) \\subseteq kSubsetPure(k, T)) <=> ((SUBSET T) \\subseteq kSubset(k, T))\n                /\\ kSubsetPure(k, T) \\subseteq (SUBSET T) <=> kSubset(k, T) \\subseteq (SUBSET T)",
+    "FoldSet(LAMBDA x,y : x + y, 0, 0 .. 10) = 55",
+    "FoldSet(LAMBDA x,y : x + y, 0, 0 .. 10000) = 50005000",
+    "ChooseUnique({2, 3, 4, 5}, LAMBDA x : x % 3 = 1) = 4",
+    "AssertError(\n           \"Attempted to compute the value of an expression of form\\nCHOOSE x \\\\in S: P, but no element of S satisfied P.\\nline 163, col 26 to line 164, col 64 of module FiniteSetsExt\", \n           ChooseUnique({2, 3, 4, 5}, LAMBDA x : TRUE))",
+    "AssertError(\n           \"Attempted to compute the value of an expression of form\\nCHOOSE x \\\\in S: P, but no element of S satisfied P.\\nline 163, col 26 to line 164, col 64 of module FiniteSetsExt\", \n           ChooseUnique({}, LAMBDA x : TRUE))",
+    "AssertError(\n           \"Attempted to compute the value of an expression of form\\nCHOOSE x \\\\in S: P, but no element of S satisfied P.\\nline 163, col 26 to line 164, col 64 of module FiniteSetsExt\", \n           ChooseUnique({2, 3, 4, 5}, LAMBDA x : FALSE))",
+    "SymDiff({}, {}) = {}",
+    "SymDiff({1}, {}) = {1}",
+    "SymDiff({}, {1}) = {1}",
+    "SymDiff({}, {1,2}) = {1,2}",
+    "SymDiff({1,2}, {}) = {1,2}",
+    "SymDiff({1,2}, {2,3}) = {1,3}",
+    "SymDiff({1,2,3}, {2,3,4}) = {1,4}",
+    "SymDiff({1,2,3}, {2,3}) = {1}",
+    "SymDiff({2,3}, {2,3,4}) = {4}",
+    "SumSet(1..3) = 6",
+    "ProductSet(1..4) = 24",
+    "ReduceSet(+, 1..5, 42) = 57",
+    "FlattenSet({}) = {}",
+    "FlattenSet({{}}) = {}",
+    "FlattenSet({{},{}}) = {}",
+    "FlattenSet({{1}}) = {1}",
+    "FlattenSet({{1},{2}}) = {1,2}",
+    "FlattenSet({{{1}}}) = { {1} }",
+    "FlattenSet({{{1},{1}}}) = { {1} }",
+    "FlattenSet({{{1},{2}}}) = { {1},{2} }",
+    "FlattenSet({{\"a\"}}) = {\"a\"}",
+    "FlattenSet({{\"a\"},{\"b\"}}) = {\"a\",\"b\"}",
+    "FlattenSet({{{\"a\"}}}) = { {\"a\"} }",
+    "FlattenSet({{{\"a\"},{\"a\"}}}) = { {\"a\"} }",
+    "FlattenSet({{{\"a\"},{\"b\"}}}) = { {\"a\"},{\"b\"} }"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "kSubsetPure"
+  ],
+  "LetInNames": [
+    "T",
+    "S",
+    "kSubsetPure"
+  ],
+  "LambdaParams": [
+    "s",
+    "x",
+    "y"
+  ],
+  "Implication": [
+    "<=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"a\",\"b\",\"c\",\"c\"}",
+    "{}",
+    "{S}",
+    "{1,2,3}",
+    "{\"a\",\"b\",\"c\"}",
+    "{{\"a\"},{\"b\"},{\"c\"}}",
+    "{{\"a\",\"b\"}, {\"a\",\"c\"}, {\"b\",\"c\"}}",
+    "{{\"a\",\"b\",\"c\"}}",
+    "{3,2}",
+    "{2, 3, 4, 5}",
+    "{1}",
+    "{1,2}",
+    "{1,3}",
+    "{1,2,3}",
+    "{2,3}",
+    "{1,4}",
+    "{4}",
+    "{{}}",
+    "{{},{}}",
+    "{{1}}",
+    "{{1},{2}}",
+    "{{{1}}}",
+    "{{{1},{1}}}",
+    "{{{1},{2}}}",
+    "{{\"a\"}}",
+    "{{\"a\"},{\"b\"}}",
+    "{{{\"a\"}}}",
+    "{{{\"a\"},{\"a\"}}}",
+    "{{{\"a\"},{\"b\"}}}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [],
+  "FunctionApplication": [],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "%",
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [
+    "1..10",
+    "1..2000000",
+    "-1..Cardinality(S) + 1",
+    "1..27",
+    "1..3",
+    "2..3",
+    "0 .. 10",
+    "0 .. 10000",
+    "1..4",
+    "1..5"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE x \\in S: P"
+  ],
+  "StringLiterals": [
+    "FiniteSetsExtTests",
+    "a",
+    "b",
+    "c",
+    "Attempted to compute the value of an expression of form\nCHOOSE x \\in S: P, but no element of S satisfied P.\nline 163, col 26 to line 164, col 64 of module FiniteSetsExt"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "FiniteSetsExt"
+  ],
+  "ToolingModules": [
+    "TLC",
+    "TLCExt"
+  ],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed from NamesInLet and preserved entries [\"T\",\"S\",\"kSubsetPure\"] | Reason: Correct field name for LET-bound names; V1 used a non-schema field.\nField: SetOperators | Change: Added \"\\\\subseteq\" | Reason: The file contains subseteq expressions in the final ASSUME.\nField: ChoiceExpr | Change: Added \"CHOOSE x \\\\in S: P\" | Reason: The file contains this CHOOSE form inside AssertError string literals and it was missing from V1.\nField: DataStructureModules | Change: Added \"FiniteSetsExt\" | Reason: Module extends FiniteSetsExt and it is a data-structure/operator library module used by the spec.\nField: ToolingModules | Change: Added \"TLCExt\" | Reason: Module extends TLCExt and it is a TLC-related tooling/support module.\nField: OperatorDefNames | Change: Confirmed remains [] | Reason: File count = 0, JSON OperatorDefNames count = 0; there are no top-level == definitions in the uncommented module.\nField: ActionDefNames | Change: Confirmed remains [] | Reason: No uncommented action definitions or primed variables appear in the file.\nField: FunctionOverride | Change: Confirmed remains [] | Reason: No [f EXCEPT ![e] = v] expressions appear in the file.\nField: RecordAccess | Change: Confirmed remains [] | Reason: No e.field expressions appear in the file.\nField: IfThenElse | Change: Confirmed remains [] | Reason: No IF THEN ELSE expressions appear in the file.\nField: PrimedVariables | Change: Confirmed remains [] | Reason: No primed variable occurrences appear in uncommented text; commented Init/Next are not part of the specification.\nField: UnchangedExprs | Change: Confirmed remains [] | Reason: No UNCHANGED expressions appear in the file.\nField: AlwaysOp | Change: Confirmed remains [] | Reason: No temporal formulas with outermost [] appear in the file.\nField: EventuallyOp | Change: Confirmed remains [] | Reason: No temporal formulas with outermost <> appear in the file.\nField: LeadsToOp | Change: Confirmed remains [] | Reason: No ~> formulas appear in the file.\nField: GuaranteesOp | Change: Confirmed remains [] | Reason: No -+-> formulas appear in the file.\nField: FairnessConditions | Change: Confirmed remains [] | Reason: No WF/SF conditions appear in Spec or Spec0 or elsewhere.",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/FiniteSetsExtTests/FiniteSetsExtTests.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(0) + ActionDefNames(0) = OperatorDefNames(0). Verified.",
+    "All FunctionConstructor entries are [S -> T] forms because FunctionConstructor is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "id": null,
+  "Specification": "This module defines helper operators for exporting TLC counterexample traces to JSON and replaying a previously dumped JSON trace. It serializes a counterexample, reconstructs the set of variable names appearing in the trace, detects the lasso target for liveness counterexamples by finding the unique back or stuttering edge in the action graph, and defines a replay constraint that checks the current TLC state against the stored trace level by level. It also defines a replay view that includes the current level to avoid state collapsing and maps the level beyond the finite dump back to the lasso target so liveness cycles can be replayed correctly. The design relies on JSON arrays to represent serialized sets and explicitly notes assumptions about ordering and variable-subset replay compatibility.",
+  "ModuleName": "_JsonTrace",
+  "ExtendsModules": [],
+  "InstanceModules": [
+    "TLC",
+    "TLCExt",
+    "Json",
+    "Sequences",
+    "Naturals"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "_JsonTraceFile",
+    "_JsonTraceInputFile"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "_JsonTrace",
+    "_TLCState",
+    "_JsonTraceDump",
+    "_JsonTraceLassoTarget",
+    "_JsonTraceConstraint",
+    "_JsonTraceView"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "trace",
+    "vars",
+    "actions",
+    "i",
+    "level",
+    "traceLen",
+    "lassoTarget"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF CounterExample.state = {} \\/ (\"console\" \\in DOMAIN CounterExample /\\ CounterExample[\"console\"] = FALSE) THEN TRUE ELSE /\\ LET trace == ToTrace(CounterExample) vars == UNION { DOMAIN trace[i] : i \\in DOMAIN trace } IN JsonSerialize(_JsonTraceFile, [counterexample |-> CounterExample, vars |-> vars]) /\\ PrintT(\"CounterExample written: \" \\o _JsonTraceFile) (in _JsonTrace)",
+    "IF \\E i \\in DOMAIN actions : actions[i][3][1] <= actions[i][1][1] THEN LET i == CHOOSE i \\in DOMAIN actions : actions[i][3][1] <= actions[i][1][1] IN actions[i][3][1] ELSE 0 (in _JsonTraceLassoTarget)",
+    "IF level <= traceLen THEN << level, _TLCState(level) >> ELSE << lassoTarget, _TLCState(level) >> (in _JsonTraceView)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "UNION",
+    "DOMAIN",
+    "\\cap"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [],
+  "FunctionApplication": [
+    "trace[i]",
+    "CounterExample[\"console\"]",
+    "_JsonTraceDump[\"counterexample\"]",
+    "actions[i]",
+    "_JsonTraceDump[\"vars\"]",
+    "_TLCState(level)",
+    "_TLCState(level)[v]",
+    "trace[level]",
+    "trace[level][2]",
+    "trace[level][2][v]",
+    "_JsonTraceDump[\"counterexample\"][\"action\"]",
+    "_JsonTraceDump[\"counterexample\"][\"state\"]",
+    "_JsonTraceDump[\"vars\"][i]",
+    "actions[i][3]",
+    "actions[i][1]",
+    "actions[i][3][1]",
+    "actions[i][1][1]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[counterexample |-> CounterExample, vars |-> vars]"
+  ],
+  "RecordAccess": [
+    "CounterExample.state"
+  ],
+  "TupleConstructor": [
+    "<< level, _TLCState(level) >>",
+    "<< lassoTarget, _TLCState(level) >>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<=",
+    ">"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE i \\in DOMAIN actions : actions[i][3][1] <= actions[i][1][1]"
+  ],
+  "StringLiterals": [
+    "console",
+    "CounterExample written: ",
+    "counterexample",
+    "action",
+    "level",
+    "vars",
+    "state"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained values [\"trace\", \"vars\", \"actions\", \"i\", \"level\", \"traceLen\", \"lassoTarget\"] | Reason: high-risk field name mismatch; prompt requires LetInNames\nField: ChoiceExpr | Change: normalized entry to single-line verbatim expression | Reason: preserve actual file expression without inserted formatting/newline artifacts\n\nField: CompletenessCheck | Change: file count = 6, JSON OperatorDefNames count = 6 | Reason: verified all top-level == definitions are present and no extras exist",
+  "OperatorDefNames_StatePredicate": [
+    "_JsonTrace",
+    "_JsonTraceConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "_TLCState",
+    "_JsonTraceDump",
+    "_JsonTraceLassoTarget",
+    "_JsonTraceView"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/_JsonTrace/_JsonTrace.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "_JsonTrace is classified as a StatePredicate by elimination: it is Boolean-valued, contains no primed variables, and no temporal operators, even though it performs TLC/JSON side-effecting helper calls.",
+    "_JsonTraceConstraint is classified as a StatePredicate by elimination: it is Boolean-valued and state-level, using implication over current replay level and stored trace data, with no primed variables and no temporal operators.",
+    "_TLCState, _JsonTraceDump, _JsonTraceLassoTarget, and _JsonTraceView are placed in ValueDef because they compute non-temporal helper values rather than defining actions or temporal properties.",
+    "Partition count: StatePredicate(2) + TemporalProperty(0) + Init(0) + ValueDef(4) + ActionDefNames(0) = OperatorDefNames(6). Verified.",
+    "FunctionConstructor_ByDomain is empty. All FunctionConstructor entries are [S -> T] forms vacuously because FunctionConstructor itself is empty.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content."
+  ]
+}

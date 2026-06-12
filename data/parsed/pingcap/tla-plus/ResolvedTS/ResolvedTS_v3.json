@@ -1,0 +1,354 @@
+{
+  "id": null,
+  "Specification": "This module specifies a resolved timestamp mechanism over a set of region keys RM. It models region-local transaction message generation and application, forwarding of messages through a channel to a resolver, and production of resolved timestamps and commit timestamps into output queues. The specification includes transaction steps such as prewrite, commit, rollback, message application, fetch-ts requests, and resolver-side handling, and it verifies safety properties about commit timestamp consistency, resolved timestamp consistency, and overall type correctness; it also defines a liveness-style leads-to property showing that FetchTS messages can eventually produce a resolved timestamp when no region has an outstanding prewrite.",
+  "ModuleName": "ResolvedTS",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "RM"
+  ],
+  "VariableNames": [
+    "rmState",
+    "reState",
+    "nextTS",
+    "resolvedQueue",
+    "outputTSQueue",
+    "chan",
+    "chanOffset"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "Safety ==\n  RTSpec => [](/\\ CommitConsistency\n               /\\ ResolvedConsistency\n               /\\ RTTypeOK)"
+  ],
+  "OperatorDefNames": [
+    "vars",
+    "Messages",
+    "ResolvedItem",
+    "RTTypeOK",
+    "RTInit",
+    "PessimisticPrewrite",
+    "Prewrite",
+    "HasLastPrewriteApplied",
+    "Commit",
+    "Rollback",
+    "Apply",
+    "TxnEventsWithPessimistic",
+    "TxnEvents",
+    "Min",
+    "Max",
+    "FetchTS",
+    "TryResolve",
+    "CanHandleMsg",
+    "HandleMsgFetchTS",
+    "HandleMsgPrewrite",
+    "HandleMsgCommit",
+    "HandleMsgRollback",
+    "HandleMsg",
+    "RTNext",
+    "RTNextWithPessimistic",
+    "RTSpec",
+    "RTSpecWithPessimistic",
+    "ResolveLiveness",
+    "CommitConsistency",
+    "ResolvedConsistency"
+  ],
+  "ActionDefNames": [
+    "PessimisticPrewrite",
+    "Prewrite",
+    "Commit",
+    "Rollback",
+    "Apply",
+    "TxnEventsWithPessimistic",
+    "TxnEvents",
+    "FetchTS",
+    "TryResolve",
+    "CanHandleMsg",
+    "HandleMsgFetchTS",
+    "HandleMsgPrewrite",
+    "HandleMsgCommit",
+    "HandleMsgRollback",
+    "HandleMsg",
+    "RTNext",
+    "RTNextWithPessimistic"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "t",
+    "rm",
+    "appliedOffset",
+    "resolvedTS",
+    "cTS",
+    "nonZero",
+    "min",
+    "nextIndex",
+    "lastResolvedTS",
+    "newResolvedTS",
+    "m",
+    "resolved",
+    "index"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF s = {} THEN 0\n    ELSE CHOOSE n \\in s: \\A m \\in s: n \\leq m",
+    "IF s = {} THEN 0\n    ELSE CHOOSE n \\in s: \\A m \\in s: n \\geq m",
+    "IF Len(resolvedQueue) = 0 THEN 0\n                         ELSE resolvedQueue[Len(resolvedQueue)].ts",
+    "IF resolvedQueue = << >> THEN 0\n                                ELSE resolvedQueue[Len(resolvedQueue)].ts",
+    "IF newResolvedTS # lastResolvedTS\n            THEN /\\ outputTSQueue' = Append(outputTSQueue, newResolvedTS)\n                 /\\ resolvedQueue' = Append(resolvedQueue,\n                                                [ts |-> newResolvedTS,\n                                                index |-> nextIndex + 1])\n            ELSE UNCHANGED <<resolvedQueue, outputTSQueue>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"Prewrite\", \"Commit\", \"Rollback\"}",
+    "{\"FetchTS\"}",
+    "{}",
+    "{cTS}",
+    "{lastResolvedTS, min}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[RM -> [state: {\"prewrited\", \"committed\"},\n                           pTS: Nat, cTS: Nat,\n                           msgs: Seq(Messages), appliedOffset: Nat]]",
+    "[RM -> [minPTS: Nat]]",
+    "[r \\in RM |-> [state |-> \"committed\",\n                   pTS |-> 0, cTS |-> 0,\n                   msgs |-> << >>, appliedOffset |-> 0]]",
+    "[state |-> \"committed\",\n                   pTS |-> 0, cTS |-> 0,\n                   msgs |-> << >>, appliedOffset |-> 0]",
+    "[r \\in RM |-> [minPTS |-> 0]]",
+    "[minPTS |-> 0]"
+  ],
+  "FunctionApplication": [
+    "rmState[r]",
+    "rm.msgs[Len(rm.msgs)]",
+    "rmState[r].msgs[appliedOffset + 1]",
+    "reState[r]",
+    "resolvedQueue[Len(resolvedQueue)]",
+    "chan[chanOffset + 1]",
+    "reState[re]",
+    "resolvedQueue[i]",
+    "outputTSQueue[j]",
+    "reState[rm]",
+    "rmState[rm]",
+    "chan[i]"
+  ],
+  "FunctionOverride": [
+    "[rmState  EXCEPT  ![r].state = \"prewrited\",\n                                        ![r].pTS = t,\n                                        ![r].msgs = Append(rmState[r].msgs,\n                                                        [type |-> \"Prewrite\",\n                                                         rm |-> r, ts |-> t])]",
+    "[rmState  EXCEPT  ![r].state = \"committed\",\n                                        ![r].cTS = t,\n                                        ![r].msgs = Append(rmState[r].msgs,\n                                                        [type |-> \"Commit\",\n                                                         rm |-> r, ts |-> t])]",
+    "[rmState  EXCEPT  ![r].state = \"committed\",\n                                    ![r].pTS = 0,\n                                    ![r].msgs = Append(rmState[r].msgs,\n                                                    [type |-> \"Rollback\",\n                                                     rm |-> r, ts |-> 0])]",
+    "[rmState  EXCEPT ![r].appliedOffset = appliedOffset + 1]",
+    "[reState EXCEPT ![m.rm].minPTS = m.ts]",
+    "[reState EXCEPT ![m.rm].minPTS = 0]"
+  ],
+  "RecordConstructor": [
+    "[type: {\"Prewrite\", \"Commit\", \"Rollback\"}, rm: RM, ts: Nat]",
+    "[type: {\"FetchTS\"}, ts: Nat]",
+    "[ts: Nat, index: Nat]",
+    "[state: {\"prewrited\", \"committed\"},\n                           pTS: Nat, cTS: Nat,\n                           msgs: Seq(Messages), appliedOffset: Nat]",
+    "[minPTS: Nat]",
+    "[state |-> \"committed\",\n                   pTS |-> 0, cTS |-> 0,\n                   msgs |-> << >>, appliedOffset |-> 0]",
+    "[minPTS |-> 0]",
+    "[type |-> \"Prewrite\",\n                                                         rm |-> r, ts |-> t]",
+    "[type |-> \"Commit\",\n                                                         rm |-> r, ts |-> t]",
+    "[type |-> \"Rollback\",\n                                                     rm |-> r, ts |-> 0]",
+    "[type |-> \"FetchTS\", ts |-> cTS]",
+    "[ts |-> newResolvedTS,\n                                                index |-> nextIndex + 1]"
+  ],
+  "RecordAccess": [
+    "rmState[r].state",
+    "rmState[r].msgs",
+    "rm.state",
+    "rm.msgs",
+    "rm.appliedOffset",
+    "rm.msgs[Len(rm.msgs)].type",
+    "rmState[r].appliedOffset",
+    "reState[r].minPTS",
+    "resolvedQueue[Len(resolvedQueue)].ts",
+    "chan[chanOffset + 1].type",
+    "m.ts",
+    "m.rm",
+    "resolved.index",
+    "resolved.ts",
+    "rmState[rm].state",
+    "rmState[rm].pTS",
+    "rmState[rm].cTS",
+    "reState[re].minPTS",
+    "reState[rm].minPTS",
+    "chan[i].type"
+  ],
+  "TupleConstructor": [
+    "<<rmState, reState, nextTS,\n          resolvedQueue, outputTSQueue,\n          chan, chanOffset>>",
+    "<< >>",
+    "<<resolvedQueue, outputTSQueue, reState, chan, chanOffset>>",
+    "<<nextTS, resolvedQueue, outputTSQueue, reState,\n                     chan, chanOffset>>",
+    "<<nextTS, resolvedQueue, outputTSQueue, reState, chanOffset>>",
+    "<<rmState, reState, chanOffset,\n                         resolvedQueue, outputTSQueue>>",
+    "<<resolvedQueue, outputTSQueue>>",
+    "<<nextTS, rmState, reState, chan>>",
+    "<<nextTS, rmState, outputTSQueue, resolvedQueue, chan>>",
+    "<<nextTS, rmState, resolvedQueue, chan>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">=",
+    "\\leq",
+    "\\geq"
+  ],
+  "RangeExpr": [
+    "1..Len(chan)",
+    "1..Len(resolvedQueue)",
+    "index..Len(outputTSQueue)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE n \\in s: \\A m \\in s: n \\leq m",
+    "CHOOSE n \\in s: \\A m \\in s: n \\geq m"
+  ],
+  "StringLiterals": [
+    "Prewrite",
+    "Commit",
+    "Rollback",
+    "FetchTS",
+    "prewrited",
+    "committed"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "rmState",
+    "nextTS",
+    "resolvedQueue",
+    "outputTSQueue",
+    "reState",
+    "chan",
+    "chanOffset"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<resolvedQueue, outputTSQueue, reState, chan, chanOffset>>",
+    "UNCHANGED <<nextTS, resolvedQueue, outputTSQueue, reState,\n                     chan, chanOffset>>",
+    "UNCHANGED <<nextTS, resolvedQueue, outputTSQueue, reState, chanOffset>>",
+    "UNCHANGED <<rmState, reState, chanOffset,\n                         resolvedQueue, outputTSQueue>>",
+    "UNCHANGED <<resolvedQueue, outputTSQueue>>",
+    "UNCHANGED <<nextTS, rmState, reState, chan>>",
+    "UNCHANGED <<nextTS, rmState, outputTSQueue, resolvedQueue, chan>>",
+    "UNCHANGED <<nextTS, rmState, resolvedQueue, chan>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][RTNext]_vars",
+    "[][RTNextWithPessimistic]_vars"
+  ],
+  "AlwaysOp": [
+    "[][RTNext]_vars",
+    "[][RTNextWithPessimistic]_vars",
+    "[](/\\ CommitConsistency\n               /\\ ResolvedConsistency\n               /\\ RTTypeOK)"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "(/\\ \\A rm \\in RM: /\\ reState[rm].minPTS = 0\n     /\\ \\E i \\in 1..Len(chan): chan[i].type = \"FetchTS\" /\\ i < chanOffset)\n        ~> Len(resolvedQueue) # 0"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained LET-bound names | Reason: field name mismatch; prompt requires LetInNames\nField: IfThenElse | Change: replaced paraphrased entries with verbatim TLA+ expressions | Reason: values must appear in the file verbatim\nField: SetEnumeration | Change: replaced \"{lastResolvedTS}\" with \"{lastResolvedTS, min}\" | Reason: original entry does not exist; actual set enumeration in file is Max({lastResolvedTS, min})\nField: ComparisonOps | Change: added \"\\\\leq\" and \"\\\\geq\" | Reason: these operators appear explicitly in Min/Max and ResolvedConsistency\nField: UnchangedExprs | Change: normalized \"UNCHANGED    <<nextTS, resolvedQueue, outputTSQueue, reState,\\n                     chan, chanOffset>>\" to \"UNCHANGED <<nextTS, resolvedQueue, outputTSQueue, reState,\\n                     chan, chanOffset>>\" | Reason: UNCHANGED expressions must be stored with a space after UNCHANGED, not extra inline spacing\nField: OperatorDefNames | Change: verified count 30 matches file top-level == count 30; no content change | Reason: completeness check required\nField: ActionDefNames | Change: verified entries are action operators/compositions only; no content change | Reason: correctness check required\nField: AssumptionNames | Change: confirmed empty | Reason: file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: FunctionOverride | Change: confirmed non-empty entries complete | Reason: all EXCEPT forms in file are represented\nField: RecordAccess | Change: confirmed entries appear verbatim in file | Reason: empty/removal check required\nField: EnabledExprs | Change: confirmed empty | Reason: file contains no ENABLED expressions\nField: FairnessConditions | Change: confirmed empty | Reason: file contains no WF/SF expressions in Spec or Spec0\nField: PlusCalAlgorithm | Change: confirmed empty array | Reason: no PlusCal algorithm in file\nField: PlusCalProcesses | Change: confirmed empty array | Reason: no PlusCal processes in file",
+  "OperatorDefNames_StatePredicate": [
+    "RTTypeOK",
+    "HasLastPrewriteApplied",
+    "CommitConsistency",
+    "ResolvedConsistency"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "RTSpec",
+    "RTSpecWithPessimistic",
+    "ResolveLiveness"
+  ],
+  "OperatorDefNames_Init": [
+    "RTInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Messages",
+    "ResolvedItem",
+    "Min",
+    "Max"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[r \\in RM |-> [state |-> \"committed\",\n                   pTS |-> 0, cTS |-> 0,\n                   msgs |-> << >>, appliedOffset |-> 0]]",
+    "[r \\in RM |-> [minPTS |-> 0]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[RM -> [state: {\"prewrited\", \"committed\"},\n                           pTS: Nat, cTS: Nat,\n                           msgs: Seq(Messages), appliedOffset: Nat]]",
+    "[RM -> [minPTS: Nat]]",
+    "[state |-> \"committed\",\n                   pTS |-> 0, cTS |-> 0,\n                   msgs |-> << >>, appliedOffset |-> 0]",
+    "[minPTS |-> 0]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<resolvedQueue, outputTSQueue, reState, chan, chanOffset>>",
+    "UNCHANGED <<nextTS, resolvedQueue, outputTSQueue, reState,\n                     chan, chanOffset>>",
+    "UNCHANGED <<nextTS, resolvedQueue, outputTSQueue, reState, chanOffset>>",
+    "UNCHANGED <<rmState, reState, chanOffset,\n                         resolvedQueue, outputTSQueue>>",
+    "UNCHANGED <<resolvedQueue, outputTSQueue>>",
+    "UNCHANGED <<nextTS, rmState, reState, chan>>",
+    "UNCHANGED <<nextTS, rmState, outputTSQueue, resolvedQueue, chan>>",
+    "UNCHANGED <<nextTS, rmState, resolvedQueue, chan>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ResolvedTS/ResolvedTS.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(3) + Init(1) + ValueDef(5) + ActionDefNames(17) = OperatorDefNames(30). Verified.",
+    "ResolveLiveness is placed in TemporalProperty because its body uses the leads-to operator ~>.",
+    "The theorem Safety has the form RTSpec => [](...). The implication wrapper does not change the temporal meaning, but the theorem is not included in operator partitioning because it is a theorem, not an operator definition.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file; RTSpec and RTSpecWithPessimistic use [][], ResolveLiveness uses ~> only, and Safety uses implication around [] rather than temporal-inside-temporal.",
+    "UnchangedExprs_VarRef is empty because all UNCHANGED expressions in this file are explicit tuple forms.",
+    "ValueDef by elimination: vars, Messages, ResolvedItem, Min, and Max are non-action, non-temporal, non-init operators that compute values."
+  ]
+}

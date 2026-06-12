@@ -1,0 +1,213 @@
+{
+  "id": null,
+  "Specification": "This module specifies a message-passing abstraction in which messages are stored in a state variable as a function from message values to delivery counts. It models delivery, loss, timeout detection, processing, and sending of requests and responses, with message loss represented by a count of -1 and processed messages represented by decrementing or clearing counts. The module provides helper predicates and actions for identifying receivable messages, clearing or ignoring timed-out or superseded messages, and sending messages to a single recipient or an ensemble, but it does not define a full temporal system specification in this file.",
+  "ModuleName": "MessagePassing",
+  "ExtendsModules": [
+    "FiniteSets",
+    "FiniteSetsExt",
+    "Sequences",
+    "SequencesExt",
+    "Integers",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "AddEntryRequestMessage",
+    "AddEntryResponseMessage",
+    "FenceRequestMessage",
+    "FenceResponseMessage",
+    "ReadRequestMessage",
+    "ReadResponseMessage"
+  ],
+  "VariableNames": [
+    "messages"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "ReadTimeoutForBookie",
+    "WriteTimeoutForBookie",
+    "ReadTimeoutCount",
+    "ClearWriteTimeout",
+    "IgnoreFurtherReadResponses",
+    "DelCountOf",
+    "SendMessagesToEnsemble",
+    "SendMessage",
+    "ProcessedOneAndSendAnother",
+    "MessageProcessed",
+    "ReceivableMessageOfType",
+    "ReceivableRequest",
+    "ReceivableResponse",
+    "IsEarliestMsg"
+  ],
+  "ActionDefNames": [
+    "ClearWriteTimeout",
+    "IgnoreFurtherReadResponses",
+    "SendMessagesToEnsemble",
+    "SendMessage",
+    "ProcessedOneAndSendAnother",
+    "MessageProcessed"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "pair",
+    "possible_del_counts",
+    "msgs_to_send"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF \\E b \\in ensemble : ReadTimeoutForBookie(messages, cid, b) THEN Cardinality({ b \\in ensemble : ReadTimeoutForBookie(messages, cid, b)}) ELSE 0",
+    "IF /\\ (m.type = AddEntryRequestMessage \\/ m.type = AddEntryResponseMessage) /\\ m.bookie \\in bookies /\\ m.cid = cid /\\ m.recovery = recovery /\\ messages[m] = -1 THEN 0 ELSE messages[m]",
+    "IF msg = m THEN 0 ELSE IF /\\ m.bookie \\in ensemble /\\ m.cid = msg.cid /\\ (m.type = ReadRequestMessage \\/ m.type = ReadResponseMessage) /\\ messages[m] = 1 THEN 0 ELSE messages[m]",
+    "IF /\\ m.bookie \\in ensemble /\\ m.cid = msg.cid /\\ (m.type = ReadRequestMessage \\/ m.type = ReadResponseMessage) /\\ messages[m] = 1 THEN 0 ELSE messages[m]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ReadRequestMessage, ReadResponseMessage}",
+    "{AddEntryRequestMessage, AddEntryResponseMessage}",
+    "{-1, 1}",
+    "{ AddEntryRequestMessage, FenceRequestMessage, ReadRequestMessage }",
+    "{ AddEntryResponseMessage, FenceResponseMessage, ReadResponseMessage }"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\X",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[m \\in DOMAIN messages |-> IF /\\ (m.type = AddEntryRequestMessage \\/ m.type = AddEntryResponseMessage) /\\ m.bookie \\in bookies /\\ m.cid = cid /\\ m.recovery = recovery /\\ messages[m] = -1 THEN 0 ELSE messages[m]]",
+    "[m \\in DOMAIN messages |-> IF msg = m THEN 0 ELSE IF /\\ m.bookie \\in ensemble /\\ m.cid = msg.cid /\\ (m.type = ReadRequestMessage \\/ m.type = ReadResponseMessage) /\\ messages[m] = 1 THEN 0 ELSE messages[m]]",
+    "[m \\in msgs |-> DelCountOf(m, counts)]"
+  ],
+  "FunctionApplication": [
+    "msgs[msg]",
+    "messages[m]",
+    "c[1]",
+    "pair[2]",
+    "messages[received_msg]",
+    "messages[msg]"
+  ],
+  "FunctionOverride": [
+    "[messages EXCEPT ![received_msg] = @-1]",
+    "[messages EXCEPT ![msg] = @ - 1]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "msg.bookie",
+    "msg.cid",
+    "msg.type",
+    "msg.recovery",
+    "m.type",
+    "m.bookie",
+    "m.cid",
+    "m.recovery",
+    "msg2.recovery",
+    "msg.entry.id",
+    "msg2.entry.id",
+    "msg2.cid",
+    "msg2.bookie"
+  ],
+  "TupleConstructor": [],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE c \\in counts : c[1] = msg"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "messages"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Removed trailing context markers \u201c(in ReadTimeoutCount)\u201d and \u201c(in ClearWriteTimeout)\u201d and \u201c(in IgnoreFurtherReadResponses)\u201d from all entries | Reason: Values must appear in the TLA+ file verbatim; those annotated strings do not exist in the file\nField: Completeness | Change: Verified top-level operator count: file count = 14, JSON OperatorDefNames count = 14 | Reason: Phase 2 completeness check passed; no missing or extra operator definitions",
+  "OperatorDefNames_StatePredicate": [
+    "ReadTimeoutForBookie",
+    "WriteTimeoutForBookie",
+    "ReceivableMessageOfType",
+    "ReceivableRequest",
+    "ReceivableResponse",
+    "IsEarliestMsg"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "ReadTimeoutCount",
+    "DelCountOf"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[m \\in DOMAIN messages |-> IF /\\ (m.type = AddEntryRequestMessage \\/ m.type = AddEntryResponseMessage) /\\ m.bookie \\in bookies /\\ m.cid = cid /\\ m.recovery = recovery /\\ messages[m] = -1 THEN 0 ELSE messages[m]]",
+    "[m \\in DOMAIN messages |-> IF msg = m THEN 0 ELSE IF /\\ m.bookie \\in ensemble /\\ m.cid = msg.cid /\\ (m.type = ReadRequestMessage \\/ m.type = ReadResponseMessage) /\\ messages[m] = 1 THEN 0 ELSE messages[m]]",
+    "[m \\in msgs |-> DelCountOf(m, counts)]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MessagePassing/MessagePassing.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "ReadTimeoutCount is placed in ValueDef because it returns a numeric count rather than a Boolean predicate, action, or temporal property.",
+    "DelCountOf is placed in ValueDef because it is a helper operator that returns a delivery-count value selected from counts.",
+    "Partition count: StatePredicate(6) + TemporalProperty(0) + Init(0) + ValueDef(2) + ActionDefNames(6) = OperatorDefNames(14). Verified."
+  ]
+}

@@ -1,0 +1,294 @@
+{
+  "id": null,
+  "Specification": "This module models an abstract two-peer TCP finite state machine based on RFC 9293, focusing on connection-state transitions rather than low-level protocol details such as sequence numbers. It represents per-peer TCP control block existence, per-peer connection state, and in-flight network messages as sequences, and models user-triggered actions, protocol-driven state transitions, and reset behavior. The specification checks a state invariant about agreement on the ESTABLISHED state when no messages are in flight, and a liveness property that a peer in SYN-SENT eventually reaches ESTABLISHED, LISTEN, or CLOSED. The design explicitly includes RFC note-inspired transitions such as the FIN-WAIT-1 to TIME-WAIT shortcut and a reset action applicable broadly across states, and it adds weak fairness both for system steps and for a specific user close action to avoid getting stuck in SYN-SENT.",
+  "ModuleName": "tcp",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "SequencesExt",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Peers"
+  ],
+  "VariableNames": [
+    "tcb",
+    "connstate",
+    "network"
+  ],
+  "AssumptionNames": [
+    "Cardinality(Peers) = 2"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "States",
+    "vars",
+    "TypeOK",
+    "Init",
+    "PASSIVE_OPEN",
+    "ACTIVE_OPEN",
+    "CLOSE_SYN_SENT",
+    "CLOSE_SYN_RECEIVED",
+    "SEND",
+    "CLOSE_LISTEN",
+    "CLOSE_ESTABLISHED",
+    "CLOSE_CLOSE_WAIT",
+    "User",
+    "SynSent",
+    "SynReceived",
+    "Listen",
+    "Established",
+    "FinWait1",
+    "FinWait2",
+    "Closing",
+    "LastAck",
+    "TimeWait",
+    "Note2",
+    "System",
+    "Note3",
+    "Reset",
+    "Next",
+    "Spec",
+    "Inv",
+    "Prop"
+  ],
+  "ActionDefNames": [
+    "PASSIVE_OPEN",
+    "ACTIVE_OPEN",
+    "CLOSE_SYN_SENT",
+    "CLOSE_SYN_RECEIVED",
+    "SEND",
+    "CLOSE_LISTEN",
+    "CLOSE_ESTABLISHED",
+    "CLOSE_CLOSE_WAIT",
+    "User",
+    "SynSent",
+    "SynReceived",
+    "Listen",
+    "Established",
+    "FinWait1",
+    "FinWait2",
+    "Closing",
+    "LastAck",
+    "TimeWait",
+    "Note2",
+    "System",
+    "Note3",
+    "Reset",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "<=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"LISTEN\", \"CLOSED\", \"SYN-SENT\", \"SYN-RECEIVED\", \"ESTABLISHED\", \"FIN-WAIT-1\", \"FIN-WAIT-2\", \"CLOSING\", \"CLOSE-WAIT\", \"LAST-ACK\", \"TIME-WAIT\"}",
+    "{\"SYN\", \"SYN,ACK\", \"ACK\", \"RST\", \"FIN\"}",
+    "{\"ACKofFIN\"}",
+    "{\"ESTABLISHED\", \"LISTEN\", \"CLOSED\"}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[ Peers -> BOOLEAN ]",
+    "[ Peers -> States ]",
+    "[ Peers -> Seq({\"SYN\", \"SYN,ACK\", \"ACK\", \"RST\", \"FIN\"} \\cup {\"ACKofFIN\"}) ]",
+    "[p \\in Peers |-> FALSE]",
+    "[p \\in Peers |-> \"CLOSED\"]",
+    "[p \\in Peers |-> <<>>]"
+  ],
+  "FunctionApplication": [
+    "connstate[local]",
+    "network[local]",
+    "tcb[local]",
+    "network[p]",
+    "connstate[p]",
+    "connstate[remote]"
+  ],
+  "FunctionOverride": [
+    "[connstate EXCEPT ![local] = \"LISTEN\"]",
+    "[tcb EXCEPT ![local] = TRUE]",
+    "[ network EXCEPT ![remote] = Append(@, \"SYN\")]",
+    "[connstate EXCEPT ![local] = \"SYN-SENT\"]",
+    "[connstate EXCEPT ![local] = \"CLOSED\"]",
+    "[tcb EXCEPT ![local] = FALSE]",
+    "[ network EXCEPT ![remote] = Append(@, \"FIN\")]",
+    "[connstate EXCEPT ![local] = \"FIN-WAIT-1\"]",
+    "[ network EXCEPT ![remote] = Append(@, \"SYN,ACK\"),\n                                         ![local] = Tail(network[local])]",
+    "[connstate EXCEPT ![local] = \"SYN-RECEIVED\"]",
+    "[ network EXCEPT ![remote] = Append(@, \"ACK\"),\n                                         ![local] = Tail(network[local])]",
+    "[connstate EXCEPT ![local] = \"ESTABLISHED\"]",
+    "[ network EXCEPT ![local] = Tail(network[local])]",
+    "[ network EXCEPT ![remote] = Append(@, \"ACKofFIN\"),\n                                   ![local] = Tail(network[local])]",
+    "[connstate EXCEPT ![local] = \"CLOSE-WAIT\"]",
+    "[connstate EXCEPT ![local] = \"CLOSING\"]",
+    "[connstate EXCEPT ![local] = \"FIN-WAIT-2\"]",
+    "[connstate EXCEPT ![local] = \"TIME-WAIT\"]",
+    "[connstate EXCEPT ![local] = \"LAST-ACK\"]",
+    "[ network EXCEPT ![remote] = Append(@, \"ACKofFIN\"),\n                                   ![local] = SubSeq(network[local], 3, Len(network[local]))]",
+    "[ network EXCEPT ![remote] = Append(@, \"RST\")]",
+    "[connstate EXCEPT ![local] = \"CLOSED\"]",
+    "[connstate EXCEPT ![local] = \"LISTEN\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<tcb, connstate, network>>",
+    "<<>>",
+    "<<\"SYN\">>",
+    "<<\"SYN,ACK\">>",
+    "<<\"RST\">>",
+    "<<\"ACK\">>",
+    "<<\"FIN\">>",
+    "<< \"FIN\", \"ACKofFIN\" >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "LISTEN",
+    "CLOSED",
+    "SYN-SENT",
+    "SYN-RECEIVED",
+    "ESTABLISHED",
+    "FIN-WAIT-1",
+    "FIN-WAIT-2",
+    "CLOSING",
+    "CLOSE-WAIT",
+    "LAST-ACK",
+    "TIME-WAIT",
+    "SYN",
+    "SYN,ACK",
+    "ACK",
+    "RST",
+    "FIN",
+    "ACKofFIN"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "connstate",
+    "tcb",
+    "network"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED network",
+    "UNCHANGED tcb"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)",
+    "WF_vars(\\E local, remote \\in Peers: CLOSE_SYN_SENT(local, remote))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "connstate[p] = \"SYN-SENT\" ~> connstate[p] \\in {\"ESTABLISHED\", \"LISTEN\", \"CLOSED\"}"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)",
+    "WF_vars(\\E local, remote \\in Peers: CLOSE_SYN_SENT(local, remote))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: FunctionOverride | Change: Added \"[connstate EXCEPT ![local] = \\\"CLOSED\\\"]\" and \"[connstate EXCEPT ![local] = \\\"LISTEN\\\"]\" as distinct occurrences from Note3 | Reason: Completeness check requires every distinct EXCEPT form appearing in the file; these were missing as separate Note3 outcomes.\nField: ProofCommands | Change: Removed \"ASSUME\" | Reason: ASSUME is present as a top-level assumption, not a proof command; the value does not belong in this field.\nField: OperatorDefNames | Change: Verified count unchanged at 30 entries | Reason: Top-level == definition count in file is 30, matching JSON count 30.",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Prop"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "States",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Peers |-> FALSE]",
+    "[p \\in Peers |-> \"CLOSED\"]",
+    "[p \\in Peers |-> <<>>]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Peers -> BOOLEAN ]",
+    "[ Peers -> States ]",
+    "[ Peers -> Seq({\"SYN\", \"SYN,ACK\", \"ACK\", \"RST\", \"FIN\"} \\cup {\"ACKofFIN\"}) ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED network",
+    "UNCHANGED tcb"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/tcp/tcp.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(2) + ActionDefNames(23) = OperatorDefNames(30). Verified.",
+    "Prop is placed in TemporalProperty because its body uses the leads-to operator ~>.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

@@ -1,0 +1,378 @@
+{
+  "id": null,
+  "Specification": "This module specifies a light client detector algorithm for Tendermint-style light client verification, based on the referenced English detection specification. The detector compares a target light block obtained from a primary peer with one obtained from a secondary peer and, if they disagree, iteratively searches for evidence by verifying intermediate heights and recording a conflicting block together with a common trusted height. The model includes a faulty validator set bounded by a parameterized faulty ratio, distinguishes correct versus faulty primary and secondary peers, and explicitly models local and reference clocks with drift, including the possibility that clock assumptions are violated. The specification defines initialization, fetching and comparison of light blocks, evidence construction, switching from secondary to primary evidence search, and several invariants about evidence soundness, accuracy, and precision under trusting-period assumptions.",
+  "ModuleName": "LCDetector_003_draft",
+  "ExtendsModules": [
+    "Integers"
+  ],
+  "InstanceModules": [
+    "Blockchain_003_draft",
+    "LCVerificationApi_003_draft"
+  ],
+  "InstanceSubstitutions": [
+    "ULTIMATE_HEIGHT <- (TARGET_HEIGHT + 1)"
+  ],
+  "ConstantNames": [
+    "AllNodes",
+    "TRUSTED_HEIGHT",
+    "TARGET_HEIGHT",
+    "TRUSTING_PERIOD",
+    "CLOCK_DRIFT",
+    "REAL_CLOCK_DRIFT",
+    "FAULTY_RATIO",
+    "IS_PRIMARY_CORRECT",
+    "IS_SECONDARY_CORRECT"
+  ],
+  "VariableNames": [
+    "blockchain",
+    "localClock",
+    "refClock",
+    "Faulty",
+    "state",
+    "fetchedLightBlocks1",
+    "fetchedLightBlocks2",
+    "fetchedLightBlocks1b",
+    "commonHeight",
+    "nextHeightToTry",
+    "evidences"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "a <: b",
+    "ULTIMATE_HEIGHT",
+    "BC",
+    "LC",
+    "ET",
+    "IsTerminated",
+    "InitLightBlocks",
+    "Init",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "PickNextHeight",
+    "CompareLast",
+    "CreateEvidence",
+    "SwitchToPrimary",
+    "CreateEvidenceForSecondary",
+    "CreateEvidenceForPrimary",
+    "AdvanceClocks",
+    "Next",
+    "NeverNoEvidence",
+    "NeverFoundEvidence",
+    "NeverFaultyPeer",
+    "NeverCreateEvidence",
+    "NeverFoundEvidencePrimary",
+    "NeverReachTargetHeight",
+    "EvidenceWhenFaultyInv",
+    "NoEvidenceForCorrectInv",
+    "CommonHeightOnEvidenceInv",
+    "AccuracyInv",
+    "PrecisionInvGrayZone",
+    "PrecisionInvLocal"
+  ],
+  "ActionDefNames": [
+    "CompareLast",
+    "CreateEvidence",
+    "SwitchToPrimary",
+    "CreateEvidenceForSecondary",
+    "CreateEvidenceForPrimary",
+    "AdvanceClocks",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "hdr",
+    "lightHdr",
+    "SoundEvidence"
+  ],
+  "NamesInLet": [
+    "hdr",
+    "lightHdr",
+    "status",
+    "trustedBlock",
+    "trustedLightBlock",
+    "ref",
+    "lastCommit",
+    "largerHeights",
+    "HeightRange",
+    "targetStatus",
+    "block1",
+    "block2",
+    "conflicting",
+    "conflictingHeader",
+    "SoundEvidence"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF height < ULTIMATE_HEIGHT\n          THEN blockchain[height + 1].lastCommit\n          ELSE blockchain[height].VS",
+    "IF isPeerCorrect\n    THEN CopyLightBlockFromChain(block, height)\n    ELSE BC!IsLightBlockAllowedByDigitalSignatures(height, block)",
+    "IF largerHeights = ({} <: {Int})\n    THEN -1\n    ELSE CHOOSE h \\in largerHeights:\n            \\A h2 \\in largerHeights: h <= h2",
+    "IF latest.header = fetchedLightBlocks1[TARGET_HEIGHT].header\n            THEN\n                 /\\ state' = <<\"NoEvidence\", \"SECONDARY\">>\n                 /\\ fetchedLightBlocks2' =\n                        [h \\in (DOMAIN fetchedLightBlocks2) \\union {TARGET_HEIGHT} |->\n                            IF h = TARGET_HEIGHT THEN latest ELSE fetchedLightBlocks2[h]]\n                 /\\ UNCHANGED <<commonHeight, nextHeightToTry>>\n            ELSE\n                 /\\ commonHeight' = TRUSTED_HEIGHT\n                 /\\ nextHeightToTry' = PickNextHeight(fetchedLightBlocks1, TRUSTED_HEIGHT)\n                 /\\ state' = IF nextHeightToTry' >= 0\n                             THEN <<\"CreateEvidence\", \"SECONDARY\">>\n                             ELSE <<\"FaultyPeer\", \"SECONDARY\">>\n                 /\\ UNCHANGED fetchedLightBlocks2",
+    "IF h = TARGET_HEIGHT THEN latest ELSE fetchedLightBlocks2[h]",
+    "IF block1.header /= block2.header\n                     THEN\n                       /\\ state' = <<\"FoundEvidence\", peer>>\n                       /\\ evidences' = evidences \\union\n                            {[peer |-> peer,\n                              conflictingBlock |-> block1,\n                              commonHeight |-> commonHeight]}\n                       /\\ UNCHANGED <<commonHeight, nextHeightToTry>>\n                     ELSE\n                       /\\ nextHeightToTry' = PickNextHeight(refBlocks, nextHeightToTry)\n                       /\\ commonHeight' = nextHeightToTry\n                       /\\ state' = IF nextHeightToTry' >= 0\n                                   THEN state\n                                   ELSE <<\"NoEvidence\", peer>>\n                       /\\ UNCHANGED evidences",
+    "IF nextHeightToTry' >= 0\n                             THEN <<\"CreateEvidence\", \"SECONDARY\">>\n                             ELSE <<\"FaultyPeer\", \"SECONDARY\">>",
+    "IF nextHeightToTry' >= 0\n                                   THEN state\n                                   ELSE <<\"NoEvidence\", peer>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{ <<\"NoEvidence\", \"PRIMARY\">>, <<\"NoEvidence\", \"SECONDARY\">>, <<\"FaultyPeer\", \"PRIMARY\">>, <<\"FaultyPeer\", \"SECONDARY\">>, <<\"FoundEvidence\", \"PRIMARY\">> }",
+    "{}",
+    "{TRUSTED_HEIGHT}",
+    "{\"finishedSuccess\", \"finishedFailure\"}",
+    "{[peer |-> peer, conflictingBlock |-> block1, commonHeight |-> commonHeight]}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\union",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[peer |-> STRING, conflictingBlock |-> BC!LBT, commonHeight |-> Int]",
+    "[Heights -> SUBSET AllNodes]",
+    "[Heights -> Int]",
+    "[height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> nextVS[h], lastCommit |-> lastCommit[h]]",
+    "[header |-> hdr(h), Commits |-> commit[h]]",
+    "[ h \\in Heights |-> lightHdr(h) ]",
+    "[h \\in Heights1 |-> \"StateVerified\"]",
+    "[header |-> trustedBlock, Commits |-> AllNodes]",
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in (DOMAIN fetchedLightBlocks2) \\union {TARGET_HEIGHT} |-> IF h = TARGET_HEIGHT THEN latest ELSE fetchedLightBlocks2[h]]",
+    "[h \\in HeightsRange |-> \"StateVerified\"]"
+  ],
+  "FunctionApplication": [
+    "timestamp[h]",
+    "vs[h]",
+    "nextVS[h]",
+    "lastCommit[h]",
+    "commit[h]",
+    "blockchain[TRUSTED_HEIGHT]",
+    "blockchain[height]",
+    "blockchain[height + 1]",
+    "fetchedLightBlocks1[TARGET_HEIGHT]",
+    "fetchedLightBlocks2[h]",
+    "refBlocks[nextHeightToTry]",
+    "targetBlocks[nextHeightToTry]",
+    "state[1]",
+    "peerBlocks[e.commonHeight]",
+    "peerBlocks[conflictingHeader.height]",
+    "blockchain[TARGET_HEIGHT]",
+    "fetchedLightBlocks2[TARGET_HEIGHT]",
+    "fetchedLightBlocks1[TRUSTED_HEIGHT]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[peer |-> STRING, conflictingBlock |-> BC!LBT, commonHeight |-> Int]",
+    "[height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> nextVS[h], lastCommit |-> lastCommit[h]]",
+    "[header |-> hdr(h), Commits |-> commit[h]]",
+    "[header |-> trustedBlock, Commits |-> AllNodes]",
+    "[peer |-> peer, conflictingBlock |-> block1, commonHeight |-> commonHeight]"
+  ],
+  "RecordAccess": [
+    "blockchain[height + 1].lastCommit",
+    "blockchain[height].VS",
+    "latest.header",
+    "fetchedLightBlocks1[TARGET_HEIGHT].header",
+    "block1.header",
+    "block2.header",
+    "e.conflictingBlock",
+    "conflicting.header",
+    "e.peer",
+    "e.commonHeight",
+    "conflictingHeader.height",
+    "peerBlocks[conflictingHeader.height].header",
+    "fetchedLightBlocks2[TARGET_HEIGHT].header",
+    "blockchain[TARGET_HEIGHT].header",
+    "fetchedLightBlocks1[TRUSTED_HEIGHT].header"
+  ],
+  "TupleConstructor": [
+    "<<state, blockchain, localClock, refClock, Faulty, fetchedLightBlocks1, fetchedLightBlocks2, fetchedLightBlocks1b, commonHeight, nextHeightToTry, evidences >>",
+    "<<a, b>>",
+    "<<\"NoEvidence\", \"PRIMARY\">>",
+    "<<\"NoEvidence\", \"SECONDARY\">>",
+    "<<\"FaultyPeer\", \"PRIMARY\">>",
+    "<<\"FaultyPeer\", \"SECONDARY\">>",
+    "<<\"FoundEvidence\", \"PRIMARY\">>",
+    "<<\"Init\", \"SECONDARY\">>",
+    "<<commonHeight, nextHeightToTry>>",
+    "<<blockchain, Faulty, fetchedLightBlocks1, fetchedLightBlocks1b, evidences>>",
+    "<<\"CreateEvidence\", \"SECONDARY\">>",
+    "<<commonHeight, nextHeightToTry, evidences>>",
+    "<<\"FoundEvidence\", peer>>",
+    "<<\"NoEvidence\", peer>>",
+    "<<blockchain, refClock, Faulty, localClock, fetchedLightBlocks1, fetchedLightBlocks1b>>",
+    "<<blockchain, Faulty, fetchedLightBlocks1, fetchedLightBlocks2>>",
+    "<<\"FoundEvidence\", \"SECONDARY\">>",
+    "<<\"CreateEvidence\", \"PRIMARY\">>",
+    "<<blockchain, refClock, Faulty, localClock, fetchedLightBlocks1, fetchedLightBlocks2, fetchedLightBlocks1b, commonHeight, evidences >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "TRUSTED_HEIGHT..TARGET_HEIGHT"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE h \\in largerHeights:\n            \\A h2 \\in largerHeights: h <= h2"
+  ],
+  "StringLiterals": [
+    "NoEvidence",
+    "PRIMARY",
+    "SECONDARY",
+    "FaultyPeer",
+    "FoundEvidence",
+    "Init",
+    "StateVerified",
+    "finishedSuccess",
+    "CreateEvidence",
+    "finishedFailure",
+    "SUCCESS"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "state",
+    "fetchedLightBlocks2",
+    "commonHeight",
+    "nextHeightToTry",
+    "evidences",
+    "fetchedLightBlocks1b",
+    "refClock",
+    "localClock"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<commonHeight, nextHeightToTry>>",
+    "UNCHANGED fetchedLightBlocks2",
+    "UNCHANGED <<blockchain, Faulty,\n                   fetchedLightBlocks1, fetchedLightBlocks1b, evidences>>",
+    "UNCHANGED <<commonHeight, nextHeightToTry, evidences>>",
+    "UNCHANGED evidences",
+    "UNCHANGED <<blockchain, refClock, Faulty, localClock,\n                   fetchedLightBlocks1, fetchedLightBlocks2, fetchedLightBlocks1b,\n                   commonHeight, evidences >>",
+    "UNCHANGED <<blockchain, refClock, Faulty, localClock,\n        fetchedLightBlocks1, fetchedLightBlocks1b>>",
+    "UNCHANGED <<blockchain, Faulty,\n        fetchedLightBlocks1, fetchedLightBlocks2>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added `BC` and `LC` | Reason: top-level `==` definition count in file is 31, JSON count was 29; these two top-level operator definitions were missing.\nField: Implication | Change: added `<=>` | Reason: Phase 1 rule requires `Implication` to contain only `=>` and `<=>`; V1 omitted `<=>`.\nField: IfThenElse | Change: replaced paraphrased summaries with verbatim TLA+ conditional expressions | Reason: field values must appear in the file; several V1 entries were descriptive text and not literal file content.\nField: ProofCommands | Change: removed `ASSUME` | Reason: the file contains no `ASSUME`, `ASSUMPTION`, proof, or theorem commands; value did not appear in the file.\nField: OperatorDefNames | Change: verified no LET-bound names included and no duplicates | Reason: Phase 3/4 correctness and deduplication checks.\nField: ActionDefNames | Change: verified unchanged | Reason: listed operators are actions or action compositions; invariants and value definitions were correctly excluded.\nField: AssumptionNames | Change: confirmed `[]` | Reason: the file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks.\nField: FunctionOverride | Change: confirmed `[]` | Reason: the file contains no `[f EXCEPT ![e] = v]` forms.\nField: RecordAccess | Change: confirmed entries verbatim | Reason: all listed record accesses literally appear in the file.\nField: LocalOperatorNames | Change: confirmed `hdr`, `lightHdr`, `SoundEvidence` only | Reason: these are the only parametric LET-local operators; other LET bindings belong in `NamesInLet`.\nField: BooleanConstants | Change: confirmed `[]` | Reason: the file contains neither `TRUE` nor `FALSE`.\nField: Temporal fields | Change: confirmed `TemporalSubscript`, `AlwaysOp`, `EventuallyOp`, `LeadsToOp`, `GuaranteesOp`, `ActionComposition`, `FairnessConditions` all `[]` | Reason: the file contains no top-level temporal formulas with `[]`, `<>`, `~>`, `-+->`, no action composition `A \\\\cdot B`, and no WF/SF conditions in `Spec`/`Spec0`.\nField: Completeness | Change: verified operator count | Reason: file count = 31, JSON OperatorDefNames count = 31 after correction.",
+  "OperatorDefNames_StatePredicate": [
+    "IsTerminated",
+    "NeverNoEvidence",
+    "NeverFoundEvidence",
+    "NeverFaultyPeer",
+    "NeverCreateEvidence",
+    "NeverFoundEvidencePrimary",
+    "NeverReachTargetHeight",
+    "EvidenceWhenFaultyInv",
+    "NoEvidenceForCorrectInv",
+    "CommonHeightOnEvidenceInv",
+    "AccuracyInv",
+    "PrecisionInvGrayZone",
+    "PrecisionInvLocal"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitLightBlocks",
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "a <: b",
+    "ULTIMATE_HEIGHT",
+    "BC",
+    "LC",
+    "ET",
+    "CopyLightBlockFromChain",
+    "FetchLightBlockInto",
+    "PickNextHeight"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ h \\in Heights |-> lightHdr(h) ]",
+    "[h \\in Heights1 |-> \"StateVerified\"]",
+    "[h \\in {TRUSTED_HEIGHT} |-> trustedLightBlock]",
+    "[h \\in (DOMAIN fetchedLightBlocks2) \\union {TARGET_HEIGHT} |-> IF h = TARGET_HEIGHT THEN latest ELSE fetchedLightBlocks2[h]]",
+    "[h \\in HeightsRange |-> \"StateVerified\"]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[peer |-> STRING, conflictingBlock |-> BC!LBT, commonHeight |-> Int]",
+    "[Heights -> SUBSET AllNodes]",
+    "[Heights -> Int]",
+    "[height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> nextVS[h], lastCommit |-> lastCommit[h]]",
+    "[header |-> hdr(h), Commits |-> commit[h]]",
+    "[header |-> trustedBlock, Commits |-> AllNodes]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<commonHeight, nextHeightToTry>>",
+    "UNCHANGED <<blockchain, Faulty,\n                   fetchedLightBlocks1, fetchedLightBlocks1b, evidences>>",
+    "UNCHANGED <<commonHeight, nextHeightToTry, evidences>>",
+    "UNCHANGED <<blockchain, refClock, Faulty, localClock,\n                   fetchedLightBlocks1, fetchedLightBlocks2, fetchedLightBlocks1b,\n                   commonHeight, evidences >>",
+    "UNCHANGED <<blockchain, refClock, Faulty, localClock,\n        fetchedLightBlocks1, fetchedLightBlocks1b>>",
+    "UNCHANGED <<blockchain, Faulty,\n        fetchedLightBlocks1, fetchedLightBlocks2>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/LCDetector_003_draft/LCDetector_003_draft.tla",
+  "VerificationTools": [
+    "Apalache",
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(13) + TemporalProperty(0) + Init(2) + ValueDef(9) + ActionDefNames(7) = OperatorDefNames(31). Verified.",
+    "No temporal operator [], <>, or ~> appears in this file, so OperatorDefNames_TemporalProperty is empty.",
+    "InitLightBlocks is classified under Init because its name begins with \"Init\", per the required naming rule, even though it is a parameterized helper used for initialization.",
+    "ValueDef by elimination: a <: b, ULTIMATE_HEIGHT, BC, LC, ET, CopyLightBlockFromChain, FetchLightBlockInto, PickNextHeight, vars.",
+    "UnchangedExprs_VarRef is empty because the file contains no UNCHANGED vars form; all UNCHANGED entries are either explicit tuples or single variable references.",
+    "FunctionConstructor_ByDomain and FunctionConstructor_SetType together partition FunctionConstructor. Note that record constructors such as [peer |-> STRING, conflictingBlock |-> BC!LBT, commonHeight |-> Int], [height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> nextVS[h], lastCommit |-> lastCommit[h]], [header |-> hdr(h), Commits |-> commit[h]], and [header |-> trustedBlock, Commits |-> AllNodes] are included in FunctionConstructor_SetType by required two-way partitioning, even though they are also record constructors.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource folder inferred from the module name because the repository subfolder is not derivable from file content alone."
+  ]
+}

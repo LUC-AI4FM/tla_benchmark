@@ -1,0 +1,245 @@
+{
+  "id": null,
+  "Specification": "This module defines an instrumented and configurable variant of the EWD998 channel-based termination-detection specification for use with TLC trace generation and statistics collection. It adds feature-flag controlled optimizations to token passing, constrains initial simulation states to realistic ones, and defines a behavior specification in which system steps and environment steps evolve under the inherited variables from the base module. The file also configures TLC to run in generation mode, disables deadlock checking because termination is expected, records when termination occurs, and writes per-behavior measurements such as action counts and delay between environment termination and detection to a CSV output.",
+  "ModuleName": "EWD998Chan_opts",
+  "ExtendsModules": [
+    "EWD998Chan",
+    "TLC",
+    "TLCExt",
+    "IOUtils",
+    "CSV"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "F"
+  ],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"generate\"",
+    "TLCGet(\"config\").depth = -1",
+    "TLCGet(\"config\").deadlock = FALSE",
+    "TLCGet(\"revision\").timestamp >= 1628119427",
+    "F \\subseteq FeatureFlags",
+    "TLCSet(1, 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "FeatureFlags",
+    "InitSim",
+    "PassTokenOpts",
+    "SystemOpts",
+    "SpecOpts",
+    "AtTermination",
+    "AtTerminationDetected",
+    "Features",
+    "Nodes"
+  ],
+  "ActionDefNames": [
+    "PassTokenOpts",
+    "SystemOpts",
+    "AtTerminationDetected"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "tkn",
+    "o"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "FALSE",
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF color[n] = \"black\" THEN \"black\" ELSE tkn.color",
+    "IF EWD998!Termination # EWD998!Termination' THEN TLCSet(1, TLCGet(\"level\")) ELSE TRUE"
+  ],
+  "CaseExpr": [
+    "CASE \"pt3\" \\in F /\\ color[n] = \"black\" -> 0 [] \"pt4\" \\in F /\\ tkn.color =\"black\" -> 0 [] OTHER -> n-1"
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{\"pt1\",\"pt2\",\"pt3\",\"pt4\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[n \\in Node |-> TRUE]",
+    "[n \\in Node |-> \"white\"]"
+  ],
+  "FunctionApplication": [
+    "active[n]",
+    "color[n]",
+    "inbox[n]",
+    "inbox[n][j]",
+    "counter[n]",
+    "o[\"InitiateProbe\"]",
+    "o[\"PassTokenOpts\"]",
+    "o[\"SendMsg\"]",
+    "o[\"RecvMsg\"]",
+    "o[\"Deactivate\"]"
+  ],
+  "FunctionOverride": [
+    "[inbox EXCEPT ![CASE \"pt3\" \\in F /\\ color[n] = \"black\" -> 0 [] \"pt4\" \\in F /\\ tkn.color =\"black\" -> 0 [] OTHER -> n-1] = Append(@, [tkn EXCEPT !.q = tkn.q + counter[n], !.color = IF color[n] = \"black\" THEN \"black\" ELSE tkn.color]), ![n] = RemoveAt(@, j)]",
+    "[tkn EXCEPT !.q = tkn.q + counter[n], !.color = IF color[n] = \"black\" THEN \"black\" ELSE tkn.color]",
+    "[color EXCEPT ![n] = \"white\"]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "TLCGet(\"config\").mode",
+    "TLCGet(\"config\").depth",
+    "TLCGet(\"config\").deadlock",
+    "TLCGet(\"revision\").timestamp",
+    "inbox[n][j].type",
+    "inbox[n][j].color",
+    "tkn.color",
+    "tkn.q",
+    "TLCGet(\"stats\").behavior.actions",
+    "IOEnv.Out",
+    "IOEnv.F",
+    "IOEnv.N"
+  ],
+  "TupleConstructor": [
+    "<<active, counter>>",
+    "<< F, N, TLCGet(\"level\"), TLCGet(1), TLCGet(\"level\") - TLCGet(1), o[\"InitiateProbe\"],o[\"PassTokenOpts\"], o[\"SendMsg\"],o[\"RecvMsg\"],o[\"Deactivate\"] >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(inbox[n])",
+    "1..256"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE s \\in SUBSET FeatureFlags : ToString(s) = IOEnv.F",
+    "CHOOSE n \\in 1..256 : ToString(n) = IOEnv.N"
+  ],
+  "StringLiterals": [
+    "config",
+    "mode",
+    "generate",
+    "deadlock",
+    "revision",
+    "timestamp",
+    "pt1",
+    "pt2",
+    "pt3",
+    "pt4",
+    "white",
+    "black",
+    "tok",
+    "level",
+    "stats",
+    "behavior",
+    "actions",
+    "%1$s#%2$s#%3$s#%4$s#%5$s#%6$s#%7$s#%8$s#%9$s#%10$s",
+    "InitiateProbe",
+    "PassTokenOpts",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "inbox",
+    "color"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][\\E n \\in Node: SystemOpts(n) \\/ Environment]_vars"
+  ],
+  "AlwaysOp": [
+    "[][\\E n \\in Node: SystemOpts(n) \\/ Environment]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "AtTerminationDetected"
+  ],
+  "ActionConstraint": [
+    "AtTermination"
+  ],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 9, JSON count = 9 | Reason: completeness check required before continuing\nField: ActionDefNames | Change: added `AtTerminationDetected` | Reason: it directly primes behavior via `TLCSet(1, 0)` in its body and is an action-level operator\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: prompt explicitly requires `LetInNames`; high-risk correctness field\nField: IfThenElse | Change: replaced descriptive entries with exact TLA+ expressions | Reason: JSON values must appear in the file verbatim\nField: CaseExpr | Change: replaced descriptive summary with literal CASE expression | Reason: prior value did not appear in the file\nField: FunctionApplication | Change: added `counter[n]` | Reason: this application appears in `tkn.q + counter[n]`\nField: FunctionOverride | Change: normalized all three entries to literal TLA+ forms without commentary/format artifacts; changed `[ color EXCEPT ![n] = \"white\" ]` to `[color EXCEPT ![n] = \"white\"]` | Reason: each distinct EXCEPT form must appear verbatim; prior spacing/comment-heavy forms were not exact\nField: RecordAccess | Change: added `TLCGet(\"config\").mode`, `TLCGet(\"config\").depth`, `TLCGet(\"config\").deadlock`, and `TLCGet(\"revision\").timestamp` | Reason: these literal record-access expressions appear in ASSUME statements and were missing\nField: TupleConstructor | Change: replaced multiline/commented entry with literal tuple expression only | Reason: tuple entries must be expressions, not include comments\nField: SetOperators | Change: retained `SUBSET` and `\\\\subseteq` | Reason: `SUBSET` belongs in `SetOperators`, not `FiniteSetOps`\nField: FiniteSetOps | Change: confirmed empty | Reason: file contains no finite-set operator belonging in this field\nField: AssumptionNames | Change: confirmed six entries exactly, including unnamed ASSUME expressions and `ASSUME TLCSet(1, 0)` | Reason: completeness check over all ASSUME blocks\nField: PrimedVariables | Change: confirmed `inbox`, `color` only | Reason: all primed variable occurrences, including EXCEPT clauses, are covered\nField: UnchangedExprs | Change: confirmed `UNCHANGED <<active, counter>>` only | Reason: exactly one distinct UNCHANGED expression appears\nField: AlwaysOp | Change: confirmed full subscript form `[][\\\\E n \\\\in Node: SystemOpts(n) \\\\/ Environment]_vars` | Reason: full temporal subscript required\nField: FairnessConditions | Change: confirmed empty | Reason: no WF/SF expressions occur in `Spec` or `Spec0`\nField: LocalOperatorNames | Change: confirmed empty | Reason: LET contains only simple bindings `tkn` and `o`, no local parametric operators\nField: RecordAccess | Change: retained only expressions that literally appear in file | Reason: prompt requires verbatim record-access expressions only\nField: PlusCalAlgorithm | Change: confirmed empty array form | Reason: empty fields must use `[]`, never empty string\nField: PlusCalProcesses | Change: confirmed empty array form | Reason: empty fields must use `[]`, never empty string",
+  "OperatorDefNames_StatePredicate": [
+    "InitSim"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "SpecOpts"
+  ],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "FeatureFlags",
+    "AtTermination",
+    "Features",
+    "Nodes"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> TRUE]",
+    "[n \\in Node |-> \"white\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998Chan_opts/EWD998Chan_opts.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "AtTermination is placed in ValueDef by elimination: it is not listed in ActionDefNames, is not temporal, is not an Init operator, and is not a current-state predicate because it contains a primed reference EWD998!Termination'.",
+    "FunctionConstructor_SetType is empty; all FunctionConstructor entries are [x \\in S |-> e] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "Partition count: StatePredicate(1) + TemporalProperty(1) + Init(0) + ValueDef(4) + ActionDefNames(3) = OperatorDefNames(9). Verified."
+  ]
+}

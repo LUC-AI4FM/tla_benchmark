@@ -1,0 +1,193 @@
+{
+  "id": null,
+  "Specification": "This specification models a state-based CRDT counter replicated across a finite set of nodes. Each node stores a vector-like map of counts for every node, local increments update only the originating node's own component, and gossip merges copy pointwise maxima from one node's view into another node's view. The spec assumes Node is finite, defines safety and monotonicity properties over the replicated counter state, and introduces a fairness/liveness package asserting weak fairness for gossip and that eventually only gossip steps occur; it also states a convergence property that all node views are repeatedly eventually equal.",
+  "ModuleName": "CRDT",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Node"
+  ],
+  "VariableNames": [
+    "counter"
+  ],
+  "AssumptionNames": [
+    "NodeAssumption"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "TypeOK",
+    "Safety",
+    "Monotonic",
+    "Monotonicity",
+    "Convergence",
+    "Init",
+    "Increment",
+    "Gossip",
+    "Next",
+    "Spec",
+    "Fairness",
+    "FairSpec"
+  ],
+  "ActionDefNames": [
+    "Increment",
+    "Gossip",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "Max"
+  ],
+  "LetInNames": [
+    "Max"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF a > b THEN a ELSE b"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[Node -> [Node -> Nat]]",
+    "[Node -> Nat]",
+    "[n \\in Node |-> [o \\in Node |-> 0]]",
+    "[o \\in Node |-> 0]",
+    "[nodeView \\in Node |-> Max(counter[n][nodeView], counter[o][nodeView])]"
+  ],
+  "FunctionApplication": [
+    "counter[n]",
+    "counter[o]",
+    "counter[n][n]",
+    "counter[o][n]",
+    "counter'[n][o]",
+    "counter[n][o]",
+    "counter[n][nodeView]",
+    "counter[o][nodeView]"
+  ],
+  "FunctionOverride": [
+    "[counter EXCEPT ![n][n] = @ + 1]",
+    "[counter EXCEPT ![o] = [nodeView \\in Node |-> Max(counter[n][nodeView], counter[o][nodeView])]]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    ">",
+    ">="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "counter"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Monotonic]_counter",
+    "[][Next]_counter",
+    "[\\E n, o \\in Node : Gossip(n,o)]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Monotonic]_counter",
+    "[]<>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "[][Next]_counter",
+    "<>[][\\E n, o \\in Node : Gossip(n,o)]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "<>[][\\E n, o \\in Node : Gossip(n,o)]_vars"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A n, o \\in Node : WF_vars(Gossip(n,o))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and kept `[\"Max\"]` | Reason: schema requires `LetInNames`; `Max` is LET-bound in `Gossip`\nField: IfThenElse | Change: replaced `IF a > b THEN a ELSE b (in Gossip, inside LET Max(a, b))` with `IF a > b THEN a ELSE b` | Reason: value must appear verbatim in the TLA+ file\nField: FunctionOverride | Change: normalized second entry to `[counter EXCEPT ![o] = [nodeView \\\\in Node |-> Max(counter[n][nodeView], counter[o][nodeView])]]` | Reason: entry must match a literal EXCEPT form in the file; removed added spacing not present verbatim\nField: TemporalSubscript | Change: removed `WF_vars(Gossip(n,o))` | Reason: WF/SF expressions are fairness conditions, not temporal subscript expressions\nField: TemporalSubscript | Change: replaced `[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` with `[\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` | Reason: the file contains this bracketed action subscript inside `<>[]...`; the outermost operator is not `[]`\nField: AlwaysOp | Change: replaced malformed `[] [][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` with `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` removal from this field and added correct outermost formula `<>\\[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` as `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` represented `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars`? Actually stored as `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` equivalent string `<>\\[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` not valid, so final stored `<>\\[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` simplified to `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars`? | Reason: V1 entry did not exist in the file; the actual outermost temporal formula is `<>[][\\E n, o \\in Node : Gossip(n,o)]_vars`, which belongs in `EventuallyOp`, not as a new `[]...` formula\nField: AlwaysOp | Change: retained only formulas whose outermost operator is `[]`: `[][Monotonic]_counter`, `[]<>(\\\\A n, o \\\\in Node : counter[n] = counter[o])`, `[][Next]_counter` | Reason: phase 2 requires classification by outermost temporal operator\nField: EventuallyOp | Change: retained `<>(\\\\A n, o \\\\in Node : counter[n] = counter[o])` and `<>\\[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` as JSON string `<>[][\\\\E n, o \\\\in Node : Gossip(n,o)]_vars` | Reason: these are the temporal formulas in the file with outermost `<>`\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME NodeAssumption == IsFiniteSet(Node)` is an assumption block, not a proof command\nField: AssumptionNames | Change: confirmed `NodeAssumption` only | Reason: file has exactly one named ASSUME block\nField: OperatorDefNames | Change: no content change; verified count 13 matches top-level `==` definitions count 13 | Reason: completeness check passed\n\n",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "Safety"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Monotonicity",
+    "Convergence",
+    "Spec",
+    "Fairness",
+    "FairSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Monotonic"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> [o \\in Node |-> 0]]",
+    "[o \\in Node |-> 0]",
+    "[nodeView \\in Node |-> Max(counter[n][nodeView], counter[o][nodeView])]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node -> [Node -> Nat]]",
+    "[Node -> Nat]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/CRDT/CRDT.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Monotonic is placed in ValueDef by elimination: it is Boolean-valued but contains primed variables, so it is not a state predicate; it is not temporal and is not an action in ActionDefNames.",
+    "Partition count: StatePredicate(2) + TemporalProperty(5) + Init(1) + ValueDef(2) + ActionDefNames(3) = OperatorDefNames(13). Verified.",
+    "TemporalNesting is true. Exact line: Convergence == []<>(\\A n, o \\in Node : counter[n] = counter[o])",
+    "TemporalNesting is true. Exact line: /\\ <>[][\\E n, o \\in Node : Gossip(n,o)]_vars"
+  ]
+}

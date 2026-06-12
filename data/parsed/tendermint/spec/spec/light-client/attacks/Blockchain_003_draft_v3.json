@@ -1,0 +1,233 @@
+{
+  "id": null,
+  "Specification": "This module gives a high-level TLA+ model of a Tendermint-style blockchain intended specifically for reasoning about a light client. It models nodes, validator sets, commits, block headers, a global reference clock, and a monotonically growing blockchain up to a bounded ultimate height. The fault model assumes a set of faulty validators drawn from AllNodes, with the set of faulty nodes represented explicitly and intended to be non-decreasing; the initialization constrains each block's validator set so faulty validators remain below a specified threshold ratio, and the spec includes helper predicates for two-thirds commits, trusting-period checks, and whether a light block could be justified by digital signatures.",
+  "ModuleName": "Blockchain_003_draft",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "AllNodes",
+    "ULTIMATE_HEIGHT",
+    "TRUSTING_PERIOD"
+  ],
+  "VariableNames": [
+    "refClock",
+    "blockchain",
+    "Faulty"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Min",
+    "Heights",
+    "Commits",
+    "BlockHeaders",
+    "LightBlocks",
+    "vars",
+    "Corr",
+    "a <: b",
+    "NT",
+    "NodeSet",
+    "EmptyNodeSet",
+    "BT",
+    "LBT",
+    "InTrustingPeriod",
+    "TwoThirds",
+    "FaultyValidatorsFewerThan",
+    "IsLightBlockAllowedByDigitalSignatures",
+    "InitToHeight",
+    "AdvanceTime"
+  ],
+  "ActionDefNames": [
+    "AdvanceTime"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "TP",
+    "SP",
+    "FN",
+    "CN",
+    "CP",
+    "FP",
+    "TP"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF a < b THEN a ELSE b",
+    "IF h < ULTIMATE_HEIGHT THEN vs[h + 1] ELSE AllNodes"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{1}",
+    "{NT}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\intersect",
+    "\\"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[height |-> Int, time |-> Int, lastCommit |-> {NT}, VS |-> {NT}, NextVS |-> {NT}]",
+    "[header |-> BT, Commits |-> {NT}]",
+    "[Heights -> SUBSET AllNodes]",
+    "[Heights -> Int]",
+    "[h \\in Heights |-> [height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> IF h < ULTIMATE_HEIGHT THEN vs[h + 1] ELSE AllNodes, lastCommit |-> lastCommit[h]]]"
+  ],
+  "FunctionApplication": [
+    "maxRatio[2]",
+    "maxRatio[1]",
+    "blockchain[ht]",
+    "timestamp[ULTIMATE_HEIGHT]",
+    "timestamp[1]",
+    "vs[1]",
+    "lastCommit[1]",
+    "lastCommit[h]",
+    "vs[h - 1]",
+    "vs[h]",
+    "timestamp[h]",
+    "timestamp[h - 1]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[height: Heights, time: Int, lastCommit: Commits, VS: SUBSET AllNodes, NextVS: SUBSET AllNodes]",
+    "[header: BlockHeaders, Commits: Commits]",
+    "[height |-> Int, time |-> Int, lastCommit |-> {NT}, VS |-> {NT}, NextVS |-> {NT}]",
+    "[header |-> BT, Commits |-> {NT}]",
+    "[height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> IF h < ULTIMATE_HEIGHT THEN vs[h + 1] ELSE AllNodes, lastCommit |-> lastCommit[h]]"
+  ],
+  "RecordAccess": [
+    "header.time",
+    "block.header",
+    "block.Commits",
+    "block.header.height",
+    "block.header.time"
+  ],
+  "TupleConstructor": [
+    "<<refClock, blockchain, Faulty>>",
+    "<<a, b>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..ULTIMATE_HEIGHT"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "refClock"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<blockchain, Faulty>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: Renamed field from `NamesInLet` to `LetInNames` and added missing inner LET-bound `TP` | Reason: LET-bound names must be stored in `LetInNames`; file contains `TP, SP` in `TwoThirds`, `FN, CN, CP, FP` in outer LET of `FaultyValidatorsFewerThan`, and another `TP` in the inner LET.\nField: IfThenElse | Change: Removed contextual suffixes `(in Min)` and `(in InitToHeight)` | Reason: Field values must be expressions that literally appear in the TLA+ file.\nField: SetOperators | Change: Removed `DOMAIN` | Reason: `DOMAIN` does not appear anywhere in the file.\nField: FunctionApplication | Change: Removed `timestamp[h + 1]` | Reason: This expression does not appear in the file.\nField: StringLiterals | Change: Removed `STRING` | Reason: `STRING` is an identifier, not a double-quoted string literal; the file contains no string literals.\nField: AssumptionNames | Change: Confirmed remains empty | Reason: No `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks appear in the file.\nField: FunctionOverride | Change: Confirmed remains empty | Reason: No `[f EXCEPT ![e] = v]` expressions appear in the file.\nField: LocalOperatorNames | Change: Confirmed remains empty | Reason: No local parametric operator definitions inside LET blocks appear in the file.\nField: RecordAccess | Change: Confirmed unchanged | Reason: All listed accesses appear verbatim in the file.\nField: AlwaysOp | Change: Confirmed remains empty | Reason: No temporal formulas with outermost `[]` appear in the file.\nField: EventuallyOp | Change: Confirmed remains empty | Reason: No temporal formulas with outermost `<>` appear in the file.\nField: LeadsToOp | Change: Confirmed remains empty | Reason: No `~>` formulas appear in the file.\nField: GuaranteesOp | Change: Confirmed remains empty | Reason: No `-+->` formulas appear in the file.\nField: FairnessConditions | Change: Confirmed remains empty | Reason: No WF/SF fairness conditions appear in `Spec` or `Spec0`, and no such operators exist in the file.\nField: BooleanConstants | Change: Confirmed remains empty | Reason: Neither `TRUE` nor `FALSE` appears in the file.\nField: OperatorDefNames | Change: Verified count and contents | Reason: File count = 19, JSON OperatorDefNames count = 19; counts match and no LET-bound names are included.",
+  "OperatorDefNames_StatePredicate": [
+    "InTrustingPeriod",
+    "TwoThirds",
+    "FaultyValidatorsFewerThan",
+    "IsLightBlockAllowedByDigitalSignatures"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "InitToHeight"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Min",
+    "Heights",
+    "Commits",
+    "BlockHeaders",
+    "LightBlocks",
+    "vars",
+    "Corr",
+    "a <: b",
+    "NT",
+    "NodeSet",
+    "EmptyNodeSet",
+    "BT",
+    "LBT"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[h \\in Heights |-> [height |-> h, time |-> timestamp[h], VS |-> vs[h], NextVS |-> IF h < ULTIMATE_HEIGHT THEN vs[h + 1] ELSE AllNodes, lastCommit |-> lastCommit[h]]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[height |-> Int, time |-> Int, lastCommit |-> {NT}, VS |-> {NT}, NextVS |-> {NT}]",
+    "[header |-> BT, Commits |-> {NT}]",
+    "[Heights -> SUBSET AllNodes]",
+    "[Heights -> Int]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<blockchain, Faulty>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Blockchain_003_draft/Blockchain_003_draft.tla",
+  "VerificationTools": [
+    "TLC",
+    "Apalache"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(0) + Init(1) + ValueDef(13) + ActionDefNames(1) = OperatorDefNames(19). Verified.",
+    "Function-valued and structural helper definitions placed in ValueDef include BlockHeaders, LightBlocks, BT, LBT, NodeSet, EmptyNodeSet, NT, vars, Corr, Heights, Commits, Min, and the Apalache annotation operator a <: b.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone.",
+    "VerificationTools includes Apalache because the file contains explicit APALACHE annotations and includes the annotation operator a <: b.",
+    "VerificationTools includes TLC because the module is a standard state-machine style TLA+ spec with variables and actions and is likely to admit a .cfg model, even though no explicit Spec operator is present."
+  ]
+}

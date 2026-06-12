@@ -1,0 +1,212 @@
+{
+  "id": null,
+  "Specification": "This module adapts an underlying Nano specification to make it amenable to TLC model checking. It introduces a model-level hash function state and a helper implementation of hash calculation so that hash assignment can be represented with finite state, and it adds a stuttering action to stop progress gracefully once available hashes are exhausted. The specification verifies safety-related properties by asserting that the overall behavior satisfies both a type invariant and the underlying Nano safety invariant, while using a view that ignores hashFunction and lastHash when hashing states for model checking.",
+  "ModuleName": "MCNano",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets"
+  ],
+  "InstanceModules": [
+    "Nano"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "CalculateHash",
+    "Hash",
+    "NoHashVal",
+    "PrivateKey",
+    "PublicKey",
+    "Node",
+    "GenesisBalance",
+    "NoBlockVal"
+  ],
+  "VariableNames": [
+    "hashFunction",
+    "lastHash",
+    "distributedLedger",
+    "received"
+  ],
+  "AssumptionNames": [
+    "/\\ Cardinality(PrivateKey) = Cardinality(PublicKey)\n  /\\ Cardinality(PrivateKey) <= Cardinality(Node)\n  /\\ GenesisBalance \\in Nat"
+  ],
+  "TheoremNames": [
+    "THEOREM Safety == Spec => TypeInvariant /\\ SafetyInvariant"
+  ],
+  "OperatorDefNames": [
+    "Vars",
+    "View",
+    "KeyPair",
+    "Ownership",
+    "N",
+    "UndefinedHashesExist",
+    "HashOf",
+    "CalculateHashImpl",
+    "TypeInvariant",
+    "SafetyInvariant",
+    "Init",
+    "StutterWhenHashesDepleted",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "CalculateHashImpl",
+    "StutterWhenHashesDepleted",
+    "Next",
+    "Spec"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "hash"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \\E hash \\in Hash : hashFunction[hash] = block\n  THEN CHOOSE hash \\in Hash : hashFunction[hash] = block\n  ELSE CHOOSE hash \\in Hash : hashFunction[hash] = N!NoBlock",
+    "IF UndefinedHashesExist\n  THEN N!Next\n  ELSE StutterWhenHashesDepleted"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{N!NoBlock}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[PrivateKey -> PublicKey]",
+    "[Node -> PrivateKey]",
+    "[hash \\in Hash |-> N!NoBlock]",
+    "[Hash -> N!Block \\cup {N!NoBlock}]"
+  ],
+  "FunctionApplication": [
+    "mapping[privateKey]",
+    "mapping[node]",
+    "hashFunction[hash]"
+  ],
+  "FunctionOverride": [
+    "[hashFunction EXCEPT ![hash] = block]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<hashFunction, lastHash, distributedLedger, received>>",
+    "<<distributedLedger, received>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE mapping \\in [PrivateKey -> PublicKey] :\n        /\\ \\A publicKey \\in PublicKey :\n            /\\ \\E privateKey \\in PrivateKey :\n                /\\ mapping[privateKey] = publicKey",
+    "CHOOSE mapping \\in [Node -> PrivateKey] :\n        /\\ \\A privateKey \\in PrivateKey :\n            /\\ \\E node \\in Node :\n                /\\ mapping[node] = privateKey",
+    "CHOOSE hash \\in Hash : hashFunction[hash] = block",
+    "CHOOSE hash \\in Hash : hashFunction[hash] = N!NoBlock"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "hashFunction"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED hashFunction",
+    "UNCHANGED lastHash",
+    "UNCHANGED distributedLedger",
+    "UNCHANGED received"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_Vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_Vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added \"N\" | Reason: top-level operator definitions counted from `==` are 14 in file, and V1 had only 13; `N == INSTANCE Nano` was missing.\nField: ActionDefNames | Change: added \"Spec\" | Reason: `Spec` is defined as a temporal composition `/\\\\ Init /\\\\ [][Next]_Vars`, so under the stated criterion of operators defined as compositions of actions/temporal action structure, it should be included.\nField: NamesInLet | Change: renamed field to \"LetInNames\" and preserved value `[\"hash\"]` | Reason: Phase 3 requires `LetInNames`; V1 used a nonconforming field name.\nField: IfThenElse | Change: replaced annotated/non-verbatim entries with exact TLA+ expressions | Reason: field values must appear in the file; V1 entries included added `(in ...)` annotations that do not exist verbatim.\nField: FunctionApplication | Change: added \"mapping[node]\" | Reason: this function application appears in `Ownership` and was missing.\nField: Completeness | Change: verified operator counts | Reason: file count = 14, JSON OperatorDefNames count = 14 after correction.",
+  "OperatorDefNames_StatePredicate": [
+    "UndefinedHashesExist",
+    "TypeInvariant",
+    "SafetyInvariant"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Vars",
+    "View",
+    "KeyPair",
+    "Ownership",
+    "N",
+    "HashOf"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[hash \\in Hash |-> N!NoBlock]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[PrivateKey -> PublicKey]",
+    "[Node -> PrivateKey]",
+    "[Hash -> N!Block \\cup {N!NoBlock}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED hashFunction",
+    "UNCHANGED lastHash",
+    "UNCHANGED distributedLedger",
+    "UNCHANGED received"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MCNano/MCNano.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Spec is listed in ActionDefNames from V2 and therefore is excluded from the four mandatory OperatorDefNames sub-fields, even though semantically it is a temporal property. The required partition count still holds because ActionDefNames are counted as their own partition.",
+    "HashOf is placed in ValueDef because it is a non-Boolean helper function returning a hash value via IF/THEN/ELSE and CHOOSE.",
+    "KeyPair, Ownership, N, Vars, and View are placed in ValueDef by elimination: they are non-action, non-temporal operator definitions that compute values or structural helpers.",
+    "Partition count: StatePredicate(3) + TemporalProperty(0) + Init(1) + ValueDef(6) + ActionDefNames(4) = OperatorDefNames(14). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource folder inferred from module name because no repository folder information is present in the file content."
+  ]
+}

@@ -1,0 +1,375 @@
+{
+  "id": null,
+  "Specification": "This specification models Lamport's Bakery algorithm for mutual exclusion among N processes. The algorithm is specified using a PlusCal algorithm block, which is then translated into TLA+ actions and temporal properties. The model includes the lexicographic ordering relation for ticket numbers, and defines the state variables, process actions, and the main temporal specification. The specification verifies mutual exclusion, type correctness, and includes a detailed inductive invariant (Inv) with a full TLAPS proof of mutual exclusion. The model assumes a crash-free, asynchronous system with no faults, and is designed for both model checking and deductive verification.",
+  "ModuleName": "Bakery",
+  "ExtendsModules": [
+    "Naturals",
+    "TLAPS"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "num",
+    "flag",
+    "pc",
+    "unchecked",
+    "max",
+    "nxt"
+  ],
+  "AssumptionNames": [
+    "N \\in Nat"
+  ],
+  "TheoremNames": [
+    "TypeCorrect == Spec => []TypeOK",
+    "Spec => []MutualExclusion"
+  ],
+  "OperatorDefNames": [
+    "Procs",
+    "a \\prec b",
+    "vars",
+    "ProcSet",
+    "Init",
+    "ncs",
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "w1",
+    "w2",
+    "cs",
+    "exit",
+    "p",
+    "Next",
+    "Spec",
+    "MutualExclusion",
+    "TypeOK",
+    "Before",
+    "IInv",
+    "Inv",
+    "Trying",
+    "InCS",
+    "DeadlockFree",
+    "StarvationFree",
+    "ISpec",
+    "IInit"
+  ],
+  "ActionDefNames": [
+    "ncs",
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "w1",
+    "w2",
+    "cs",
+    "exit",
+    "p",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF unchecked[self] # {} THEN ... ELSE ... (in e2)",
+    "IF num[i] > max[self] THEN ... ELSE ... (in e2)",
+    "IF unchecked[self] # {} THEN ... ELSE ... (in w1)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{\"ncs\", \"e1\", \"e2\", \"e3\", \"e4\", \"w1\", \"w2\", \"cs\", \"exit\"}",
+    "{\"ncs\", \"e1\", \"exit\"}",
+    "{\"e4\", \"w1\", \"w2\", \"cs\"}",
+    "{\"e2\", \"e3\"}",
+    "{\"e4\", \"w1\", \"w2\"}",
+    "{\"w1\", \"w2\"}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\",
+    "UNION"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Procs |-> 0]",
+    "[i \\in Procs |-> FALSE]",
+    "[self \\in Procs |-> {}]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in Procs |-> 1]",
+    "[pc EXCEPT ![self] = \"e1\"]",
+    "[flag EXCEPT ![self] = ~ flag[self]]",
+    "[flag EXCEPT ![self] = TRUE]",
+    "[unchecked EXCEPT ![self] = Procs \\ {self}]",
+    "[max EXCEPT ![self] = 0]",
+    "[num EXCEPT ![self] = k]",
+    "[num EXCEPT ![self] = i]",
+    "[flag EXCEPT ![self] = FALSE]",
+    "[nxt EXCEPT ![self] = i]",
+    "[unchecked EXCEPT ![self] = unchecked[self] \\ {i}]",
+    "[unchecked EXCEPT ![self] = @ \\ {nxt[self]}]"
+  ],
+  "FunctionApplication": [
+    "num[i]",
+    "flag[self]",
+    "unchecked[self]",
+    "max[self]",
+    "nxt[self]",
+    "pc[self]",
+    "num[nxt[self]]",
+    "flag[nxt[self]]",
+    "pc[nxt[self]]",
+    "unchecked[nxt[self]]",
+    "max[nxt[self]]"
+  ],
+  "FunctionOverride": [
+    "[flag EXCEPT ![self] = ~ flag[self]]",
+    "[flag EXCEPT ![self] = TRUE]",
+    "[unchecked EXCEPT ![self] = Procs \\ {self}]",
+    "[max EXCEPT ![self] = 0]",
+    "[num EXCEPT ![self] = k]",
+    "[num EXCEPT ![self] = i]",
+    "[flag EXCEPT ![self] = FALSE]",
+    "[nxt EXCEPT ![self] = i]",
+    "[unchecked EXCEPT ![self] = unchecked[self] \\ {i}]",
+    "[unchecked EXCEPT ![self] = @ \\ {nxt[self]}]",
+    "[num EXCEPT ![self] = 0]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< num[self], self >>",
+    "<< num[nxt[self]], nxt[self] >>",
+    "<< num[i], i >>",
+    "<< num[j], j >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">"
+  ],
+  "RangeExpr": [
+    "1..N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "ncs",
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "w1",
+    "w2",
+    "cs",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "num",
+    "flag",
+    "unchecked",
+    "max",
+    "nxt",
+    "pc"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << num, flag, unchecked, max, nxt >>",
+    "UNCHANGED <<unchecked, max>>",
+    "UNCHANGED << num, nxt >>",
+    "UNCHANGED << flag, unchecked, max, nxt >>",
+    "UNCHANGED << num, flag, nxt >>",
+    "UNCHANGED << num, flag, unchecked, max >>",
+    "UNCHANGED << num, flag, max, nxt >>",
+    "UNCHANGED << num, max, nxt >>",
+    "UNCHANGED unchecked"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars((pc[self] # \"ncs\") /\\ p(self))"
+  ],
+  "AlwaysOp": [
+    "[]TypeOK",
+    "[]MutualExclusion"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [
+    "(\\E i \\in Procs : Trying(i)) ~> (\\E i \\in Procs : InCS(i))",
+    "\\A i \\in Procs : Trying(i) ~> InCS(i)"
+  ],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A self \\in Procs : WF_vars((pc[self] # \"ncs\") /\\ p(self))"
+  ],
+  "ProofHints": [
+    "PTL",
+    "SMT",
+    "SMTT(30)"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "DEFS",
+    "HIDE",
+    "NEW",
+    "TAKE"
+  ],
+  "ProofStructureSteps": [
+    "<1>",
+    "<1>1",
+    "<1>2",
+    "<2>",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<2>9",
+    "<2>10",
+    "<2>11",
+    "<1>3",
+    "<1>4",
+    "<3>",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<4>",
+    "<4>1",
+    "<4>2"
+  ],
+  "AssumeProveBlocks": [
+    "ASSUME TypeOK, [Next]_vars PROVE TypeOK'",
+    "SUFFICES ASSUME TypeOK, [Next]_vars PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, ncs(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, e1(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, e2(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, e3(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, e4(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, w1(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, w2(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, cs(self) PROVE TypeOK'",
+    "ASSUME NEW self \\in Procs, exit(self) PROVE TypeOK'",
+    "SUFFICES ASSUME NEW q \\in Procs PROVE IInv!(q)'",
+    "SUFFICES ASSUME NEW i \\in Procs PROVE IInv!(i)'",
+    "SUFFICES ASSUME NEW j \\in Procs PROVE IInv!(j)'"
+  ],
+  "PlusCalAlgorithm": [
+    "Bakery"
+  ],
+  "PlusCalProcesses": [
+    "p"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: NamesInLet | Change: Removed \"min\" | Reason: No LET-bound \"min\" appears in the TLA+ file; this is a spurious entry.\nField: SetOperators | Change: Removed \"SUBSET\" | Reason: \"SUBSET\" is a finite set operator and should not be in SetOperators.\nField: ComparisonOps | Change: Removed \"<=\" | Reason: \"<=\" does not appear in the TLA+ file.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "MutualExclusion",
+    "TypeOK",
+    "Before",
+    "IInv",
+    "Inv",
+    "Trying",
+    "InCS"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "DeadlockFree",
+    "StarvationFree",
+    "ISpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init",
+    "IInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Procs",
+    "a \\prec b",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Procs |-> 0]",
+    "[i \\in Procs |-> FALSE]",
+    "[self \\in Procs |-> {}]",
+    "[self \\in Procs |-> 0]",
+    "[self \\in Procs |-> 1]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << num, flag, unchecked, max, nxt >>",
+    "UNCHANGED <<unchecked, max>>",
+    "UNCHANGED << num, nxt >>",
+    "UNCHANGED << flag, unchecked, max, nxt >>",
+    "UNCHANGED << num, flag, nxt >>",
+    "UNCHANGED << num, flag, unchecked, max >>",
+    "UNCHANGED << num, flag, max, nxt >>",
+    "UNCHANGED << num, max, nxt >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED unchecked"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Bakery/Bakery.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(7) + TemporalProperty(4) + Init(2) + ValueDef(4) + ActionDefNames(11) = 28 = OperatorDefNames total. Verified.",
+    "DeadlockFree and StarvationFree are classified as temporal properties because their bodies use the ~> (leads-to) temporal operator.",
+    "ISpec is classified as a temporal property because it is of the form Inv /\\ [][Next]_vars, which is a temporal formula.",
+    "No temporal operator appears explicitly nested inside another temporal operator in this file, so TemporalNesting is false.",
+    "FunctionConstructor_SetType is empty: all FunctionConstructor entries are [x \\in S |-> e] forms."
+  ]
+}

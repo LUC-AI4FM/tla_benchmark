@@ -1,0 +1,286 @@
+{
+  "id": null,
+  "Specification": "This specification models Lamport's distributed mutual-exclusion algorithm from the 1978 paper \"Time, Clocks and the Ordering of Events in a Distributed System\". It represents a set of processes that communicate by pairwise FIFO message queues, using logical clocks, request messages, acknowledgements, and release notifications to coordinate entry into a critical section. The specification defines the initial state, the process actions for sending and receiving protocol messages, a next-state relation, and a temporal specification `Spec == Init /\\\\ [][Next]_vars`; it also states safety-oriented predicates such as type correctness, a bounded-network property for model checking, a clock bound state constraint helper, and the mutual exclusion invariant `Mutex`.",
+  "ModuleName": "LamportMutex",
+  "ExtendsModules": [
+    "Naturals",
+    "Sequences"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "N",
+    "maxClock"
+  ],
+  "VariableNames": [
+    "clock",
+    "req",
+    "ack",
+    "network",
+    "crit"
+  ],
+  "AssumptionNames": [
+    "NType",
+    "maxClockType"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Proc",
+    "Clock",
+    "ReqMessage",
+    "AckMessage",
+    "RelMessage",
+    "Message",
+    "TypeOK",
+    "Init",
+    "beats",
+    "Broadcast",
+    "Request",
+    "ReceiveRequest",
+    "ReceiveAck",
+    "Enter",
+    "Exit",
+    "ReceiveRelease",
+    "Next",
+    "vars",
+    "Spec",
+    "ClockConstraint",
+    "BoundedNetwork",
+    "Mutex"
+  ],
+  "ActionDefNames": [
+    "Request",
+    "ReceiveRequest",
+    "ReceiveAck",
+    "Enter",
+    "Exit",
+    "ReceiveRelease",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "m",
+    "c"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF s=r THEN network[s][r] ELSE Append(network[s][r], m)",
+    "IF c > clock[p] THEN c + 1 ELSE @ + 1"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{0}",
+    "{AckMessage, RelMessage}",
+    "{p}",
+    "{}",
+    "{q}"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Proc -> Clock]",
+    "[Proc -> [Proc -> Nat]]",
+    "[Proc -> SUBSET Proc]",
+    "[Proc -> [Proc -> Seq(Message)]]",
+    "[p \\in Proc |-> 1]",
+    "[p \\in Proc |-> [q \\in Proc |-> 0]]",
+    "[p \\in Proc |-> {}]",
+    "[p \\in Proc |-> [q \\in Proc |-> <<>> ]]",
+    "[r \\in Proc |-> IF s=r THEN network[s][r] ELSE Append(network[s][r], m)]"
+  ],
+  "FunctionApplication": [
+    "ReqMessage(c)",
+    "beats(p,q)",
+    "clock[p]",
+    "req[p]",
+    "req[p][q]",
+    "req[p][p]",
+    "network[s][r]",
+    "Broadcast(p, ReqMessage(clock[p]))",
+    "network[q][p]",
+    "Head(network[q][p])",
+    "Tail(@)",
+    "Append(@, AckMessage)",
+    "Broadcast(p, RelMessage)",
+    "Len(network[p][q])"
+  ],
+  "FunctionOverride": [
+    "[req EXCEPT ![p][p] = clock[p]]",
+    "[network EXCEPT ![p] = Broadcast(p, ReqMessage(clock[p]))]",
+    "[ack EXCEPT ![p] = {p}]",
+    "[req EXCEPT ![p][q] = c]",
+    "[clock EXCEPT ![p] = IF c > clock[p] THEN c + 1 ELSE @ + 1]",
+    "[network EXCEPT ![q][p] = Tail(@),\n                                       ![p][q] = Append(@, AckMessage)]",
+    "[ack EXCEPT ![p] = @ \\union {q}]",
+    "[network EXCEPT ![q][p] = Tail(@)]",
+    "[network EXCEPT ![p] = Broadcast(p, RelMessage)]",
+    "[req EXCEPT ![p][p] = 0]",
+    "[ack EXCEPT ![p] = {}]",
+    "[req EXCEPT ![p][q] = 0]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"req\", clock |-> c]",
+    "[type |-> \"ack\", clock |-> 0]",
+    "[type |-> \"rel\", clock |-> 0]"
+  ],
+  "RecordAccess": [
+    "m.clock",
+    "m.type"
+  ],
+  "TupleConstructor": [
+    "<<>>",
+    "<<clock, crit>>",
+    "<<ack, crit>>",
+    "<<clock, req, crit>>",
+    "<<clock, req, ack, network>>",
+    "<<clock, ack, crit>>",
+    "<<req, network, clock, ack, crit>>",
+    "<< >>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<="
+  ],
+  "RangeExpr": [
+    "1 .. N"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "req",
+    "ack",
+    "rel"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "req",
+    "network",
+    "ack",
+    "clock",
+    "crit"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<clock, crit>>",
+    "UNCHANGED <<ack, crit>>",
+    "UNCHANGED <<clock, req, crit>>",
+    "UNCHANGED <<clock, req, ack, network>>",
+    "UNCHANGED clock",
+    "UNCHANGED <<clock, ack, crit>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count remains 22 | Reason: top-level `==` definitions in file = 22, JSON count = 22, so completeness check passed\nField: Specification | Change: escaped conjunction in embedded TLA from `/\\\\` to `/\\\\\\\\` | Reason: JSON strings must encode TLA conjunction `/\\` as `/\\\\`\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: correctness check requires LET-bound names to appear in `LetInNames`\nField: IfThenElse | Change: removed annotation suffixes ` (in Broadcast)` and ` (in ReceiveRequest)` | Reason: field must contain expressions that literally appear in the file\nField: SetEnumeration | Change: added `{q}` | Reason: appears verbatim in `@ \\\\union {q}` and was missing\nField: SetOperators | Change: removed `SUBSET` and `DOMAIN` | Reason: `SUBSET` must not be in `SetOperators`; `DOMAIN` does not appear in the file\nField: FunctionConstructor | Change: removed `[Proc -> Nat]`, `[Proc -> Seq(Message)]`, `[q \\\\in Proc |-> 0]`, `[q \\\\in Proc |-> <<>> ]` | Reason: these exact constructor patterns do not appear verbatim as standalone expressions in the file\nField: RangeExpr | Change: removed `1 .. maxClock+1` | Reason: this range appears only in a comment, not in the TLA+ expression body\nField: FunctionOverride | Change: reordered one pair of entries but kept all 12 distinct overrides | Reason: completeness check found 12 distinct EXCEPT forms in file and JSON now matches them exactly",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "beats",
+    "ClockConstraint",
+    "BoundedNetwork",
+    "Mutex"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Proc",
+    "Clock",
+    "ReqMessage",
+    "AckMessage",
+    "RelMessage",
+    "Message",
+    "Broadcast",
+    "vars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Proc |-> 1]",
+    "[p \\in Proc |-> [q \\in Proc |-> 0]]",
+    "[p \\in Proc |-> {}]",
+    "[p \\in Proc |-> [q \\in Proc |-> <<>> ]]",
+    "[r \\in Proc |-> IF s=r THEN network[s][r] ELSE Append(network[s][r], m)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Proc -> Clock]",
+    "[Proc -> [Proc -> Nat]]",
+    "[Proc -> SUBSET Proc]",
+    "[Proc -> [Proc -> Seq(Message)]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<clock, crit>>",
+    "UNCHANGED <<ack, crit>>",
+    "UNCHANGED <<clock, req, crit>>",
+    "UNCHANGED <<clock, req, ack, network>>",
+    "UNCHANGED <<clock, ack, crit>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED clock"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/LamportMutex/LamportMutex.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Broadcast is placed in ValueDef because it is a non-Boolean helper function that constructs an updated function value rather than a state predicate, action, init predicate, or temporal property.",
+    "Partition count: StatePredicate(5) + TemporalProperty(1) + Init(1) + ValueDef(8) + ActionDefNames(7) = OperatorDefNames(22). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

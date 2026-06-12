@@ -222,9 +222,7 @@ def compare_code_quality(
     return comparison
 
 
-# ---------------------------------------------------------------------------
-# Convenience wrappers used by dpo_model_tester and other callers
-# ---------------------------------------------------------------------------
+# convenience wrappers used by dpo_model_tester and other callers
 
 def compute_cyclomatic_complexity(code: str) -> float:
     return cyclomatic_complexity(code)
@@ -242,6 +240,5 @@ def compute_maintainability_index(code: str) -> float:
 
 
 def compute_codebleu(generated_code: str, reference_ast: dict[str, Any], spec_id: int) -> float:
-    """Compute AST-based similarity between generated code and a reference AST."""
     gen_ast = extract_ast(generated_code)
     return codebleu_ast_similarity(gen_ast, reference_ast)

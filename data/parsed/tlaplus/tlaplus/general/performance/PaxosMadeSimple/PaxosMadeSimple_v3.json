@@ -1,0 +1,286 @@
+{
+  "id": null,
+  "Specification": "This module specifies Lamport's Paxos consensus algorithm in the style of \"Paxos Made Simple\", modeling leaders by ballot number and acceptors as separate processes. It uses a message-history style model in which the variable msgs contains all messages ever sent, rather than explicitly modeling channels, message loss, or delivery; safety is expressed over what may be received from that history. The specification defines the translated PlusCal state machine, a type invariant, predicates describing when a value is chosen, and a correctness property asserting agreement-like uniqueness of chosen values; it also includes a theorem claiming that correctness is always true, with comments noting that the theorem is actually false for the current spec and should be checked with TLC.",
+  "ModuleName": "PaxosMadeSimple",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Value",
+    "Acceptor",
+    "Quorum"
+  ],
+  "VariableNames": [
+    "maxBal",
+    "maxVBal",
+    "maxVVal",
+    "msgs"
+  ],
+  "AssumptionNames": [
+    "QA",
+    "BallotAssump"
+  ],
+  "TheoremNames": [
+    "Spec => []Correctness"
+  ],
+  "OperatorDefNames": [
+    "Ballot",
+    "None",
+    "Message",
+    "sentMsgs",
+    "Max",
+    "HighestAcceptedValue",
+    "ShowsSafeAt",
+    "vars",
+    "ProcSet",
+    "Init",
+    "acceptor",
+    "leader",
+    "Next",
+    "Spec",
+    "TypeOK",
+    "ChosenIn",
+    "Chosen",
+    "Correctness",
+    "Votes"
+  ],
+  "ActionDefNames": [
+    "acceptor",
+    "leader",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "Q1b"
+  ],
+  "LambdaParams": [
+    "m1",
+    "m2"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF b \\geq maxVBal[self]\n                                  THEN /\\ maxVBal' = [maxVBal EXCEPT ![self] = b]\n                                       /\\ maxVVal' = [maxVVal EXCEPT ![self] = m.val]\n                                  ELSE /\\ TRUE\n                                       /\\ UNCHANGED << maxVBal, maxVVal >>",
+    "IF \\E  v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        THEN CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        ELSE <<>>"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{-1}",
+    "{\"1a\"}",
+    "{\"1b\"}",
+    "{None}",
+    "{\"2a\"}",
+    "{\"2b\"}",
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\cap",
+    "\\subseteq"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]",
+    "[a \\in Acceptor |-> \n    [b \\in Nat |-> IF \\E  v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        THEN CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        ELSE <<>>]]",
+    "[b \\in Nat |-> IF \\E  v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        THEN CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        ELSE <<>>]"
+  ],
+  "FunctionApplication": [
+    "maxBal[self]",
+    "maxVBal[self]",
+    "maxVVal[self]",
+    "sentMsgs(\"1a\", b)",
+    "sentMsgs(\"2a\", b)",
+    "sentMsgs(\"1b\", b)",
+    "sentMsgs(\"2b\", b)",
+    "acceptor(self)",
+    "leader(self)",
+    "Chosen(v1)",
+    "Chosen(v2)",
+    "ChosenIn(b,v)",
+    "LessEq(y,x)",
+    "Max(Q1bMessages, LAMBDA m1,m2 : m1.mbal \\leq m2.mbal)",
+    "ShowsSafeAt(Q, self, v)"
+  ],
+  "FunctionOverride": [
+    "[maxBal EXCEPT ![self] = b]",
+    "[maxVBal EXCEPT ![self] = b]",
+    "[maxVVal EXCEPT ![self] = m.val]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"1a\"}, bal : Ballot]",
+    "[type : {\"1b\"}, acc : Acceptor, bal : Ballot,\n                 mbal : Ballot \\cup {-1}, mval : Value \\cup {None}]",
+    "[type : {\"2a\"}, bal : Ballot, val : Value]",
+    "[type : {\"2b\"}, acc : Acceptor, bal : Ballot, val : Value]",
+    "[type |-> \"1b\", acc |-> self, bal |-> b,\n                                               mbal |-> maxVBal[self], mval |-> maxVVal[self]]",
+    "[type |-> \"2b\", acc |-> self,\n                                                       bal |-> b, val |-> m.val]",
+    "[type |-> \"1a\", bal |-> self]",
+    "[type |-> \"2a\", bal |-> self, val |-> v]",
+    "[type |-> \"2b\", bal |-> b, acc |-> a, val |-> v]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m1.mbal",
+    "m2.mbal",
+    "mval",
+    "m.acc",
+    "m.mbal",
+    "m.val"
+  ],
+  "TupleConstructor": [
+    "<< maxBal, maxVBal, maxVVal, msgs >>",
+    "<<maxVBal, maxVVal>>",
+    "<<>>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    ">",
+    "\\leq",
+    "\\geq"
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Value",
+    "CHOOSE x \\in xs : \\A y \\in xs : LessEq(y,x)",
+    "CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs"
+  ],
+  "StringLiterals": [
+    "1a",
+    "1b",
+    "2a",
+    "2b"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "maxBal",
+    "msgs",
+    "maxVBal",
+    "maxVVal"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<maxVBal, maxVVal>>",
+    "UNCHANGED << maxVBal, maxVVal >>",
+    "UNCHANGED maxBal",
+    "UNCHANGED << maxBal, maxVBal, maxVVal >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]Correctness"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "PCon"
+  ],
+  "PlusCalProcesses": [
+    "acceptor",
+    "leader"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from NamesInLet and retained [\\\"Q1b\\\"] | Reason: Phase 3 requires LET-bound simple names to be stored in LetInNames; NamesInLet is not the expected field.\nField: IfThenElse | Change: replaced paraphrased acceptor IF entry with verbatim TLA+ IF-THEN-ELSE expression | Reason: JSON values must appear in the TLA+ file verbatim; V1 contained a summary that does not occur in the file.\nField: AlwaysOp | Change: added \\\"[][Next]_vars\\\" | Reason: Phase 1/2 require outermost [] temporal formulas to appear in AlwaysOp with full subscript; Spec contains [][Next]_vars.\nField: OperatorDefNames | Change: verified count remains 19 | Reason: Top-level == definition count in file is 19, matching JSON count 19.\n",
+  "OperatorDefNames_StatePredicate": [
+    "ShowsSafeAt",
+    "TypeOK",
+    "ChosenIn",
+    "Chosen",
+    "Correctness"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Ballot",
+    "None",
+    "Message",
+    "sentMsgs",
+    "Max",
+    "HighestAcceptedValue",
+    "vars",
+    "ProcSet",
+    "Votes"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[a \\in Acceptor |-> -1]",
+    "[a \\in Acceptor |-> None]",
+    "[a \\in Acceptor |-> \n    [b \\in Nat |-> IF \\E  v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        THEN CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        ELSE <<>>]]",
+    "[b \\in Nat |-> IF \\E  v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        THEN CHOOSE v \\in Value : [type |-> \"2b\", bal |-> b, acc |-> a, val |-> v] \\in msgs\n        ELSE <<>>]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Acceptor -> Ballot \\cup {-1}]",
+    "[Acceptor -> Value \\cup {None}]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<maxVBal, maxVVal>>",
+    "UNCHANGED << maxVBal, maxVVal >>",
+    "UNCHANGED << maxBal, maxVBal, maxVVal >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED maxBal"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/PaxosMadeSimple/PaxosMadeSimple.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(1) + Init(1) + ValueDef(9) + ActionDefNames(3) = OperatorDefNames(19). Verified.",
+    "Correctness is classified as a StatePredicate because its body is Boolean-valued and contains no primed variables or temporal operators, even though the theorem uses it inside []Correctness.",
+    "The theorem `Spec => []Correctness` is temporal, but theorem names are not part of OperatorDefNames. Spec is the only operator definition placed in TemporalProperty.",
+    "Votes is placed in ValueDef by elimination: it defines a computed function-valued history summary, not a state predicate, action, init predicate, or temporal property.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in the source file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

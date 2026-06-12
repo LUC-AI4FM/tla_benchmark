@@ -1,0 +1,230 @@
+{
+  "id": null,
+  "Specification": "This specification models an inner sequential memory/request handling component with per-process register files, a per-process queue of issued operations, and a memory array. Processes can issue requests into free registers, receive responses for reads and writes, and internally remove completed operations from the head of their queue, updating memory for writes and checking consistency for reads. The spec asserts a data invariant over the register file, operation queues, and memory structure, and defines a temporal specification with weak fairness for response actions and queue removal so that enabled operations are not postponed forever.",
+  "ModuleName": "InnerSequential",
+  "ExtendsModules": [
+    "RegisterInterface",
+    "Naturals",
+    "Sequences",
+    "FiniteSets"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "opQ",
+    "mem"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [
+    "THEOREM Spec => []DataInvariant"
+  ],
+  "OperatorDefNames": [
+    "Done",
+    "DataInvariant",
+    "Init",
+    "IssueRequest",
+    "RespondToRd",
+    "RespondToWr",
+    "RemoveOp",
+    "Internal",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "IssueRequest",
+    "RespondToRd",
+    "RespondToWr",
+    "RemoveOp",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "idx"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF regFile[p][r].op = \"Free\" THEN 0 ELSE 1",
+    "IF Head(opQ[proc]).req.op = \"Rd\"\n              THEN mem\n              ELSE [mem EXCEPT ![Head(opQ[proc]).req.adr] = \n                                   Head(opQ[proc]).req.val]"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{Done}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[Proc -> Seq([req : Request, reg : Reg \\cup {Done}])]",
+    "[Adr -> Val]",
+    "[Proc -> [Reg -> FreeRegValue]]",
+    "[Reg -> FreeRegValue]",
+    "[p \\in Proc |-> << >>]"
+  ],
+  "FunctionApplication": [
+    "regFile[p]",
+    "regFile[p][r]",
+    "opQ[p]",
+    "opQ[p][i]",
+    "regFile[proc][reg]",
+    "opQ[proc]",
+    "mem[Head(opQ[proc]).req.adr]"
+  ],
+  "FunctionOverride": [
+    "[regFile EXCEPT ![proc][reg] = req]",
+    "[opQ EXCEPT ![proc] = Append(@, [req |-> req, reg |-> reg])]",
+    "[regFile EXCEPT ![proc][reg].val = val,\n                                     ![proc][reg].op  = \"Free\"]",
+    "[opQ EXCEPT ![proc][idx].req.val = val,\n                                ![proc][idx].reg     = Done ]",
+    "[regFile EXCEPT ![proc][reg].op  = \"Free\"]",
+    "[opQ EXCEPT ![proc][idx].reg = Done]",
+    "[mem EXCEPT ![Head(opQ[proc]).req.adr] = \n                                   Head(opQ[proc]).req.val]",
+    "[opQ EXCEPT ![proc] = Tail(@)]"
+  ],
+  "RecordConstructor": [
+    "[req : Request, reg : Reg \\cup {Done}]",
+    "[req |-> req, reg |-> reg]"
+  ],
+  "RecordAccess": [
+    "opQ[p][i].reg",
+    "regFile[p][r].op",
+    "regFile[proc][reg].op",
+    "Head(opQ[proc]).reg",
+    "Head(opQ[proc]).req.op",
+    "Head(opQ[proc]).req.adr",
+    "Head(opQ[proc]).req.val"
+  ],
+  "TupleConstructor": [
+    "<< >>",
+    "<<regFile, opQ, mem>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Head",
+    "Tail"
+  ],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE v : v \\notin Reg",
+    "CHOOSE i \\in DOMAIN opQ[proc] : \n                                         opQ[proc][i].reg = reg",
+    "CHOOSE i \\in DOMAIN opQ[proc] : opQ[proc][i].reg = reg"
+  ],
+  "StringLiterals": [
+    "Free",
+    "Rd",
+    "Wr"
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "Sequences",
+    "FiniteSets"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "regFile",
+    "opQ",
+    "mem"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED mem",
+    "UNCHANGED regFile"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_<<regFile, opQ, mem>>",
+    "WF_<<regFile, opQ, mem>>(RespondToRd(proc, reg) \n                                        \\/ RespondToWr(proc, reg))",
+    "WF_<<regFile, opQ, mem>>(RemoveOp(proc))"
+  ],
+  "AlwaysOp": [
+    "[]DataInvariant",
+    "[][Next]_<<regFile, opQ, mem>>"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A proc \\in Proc, reg \\in Reg :\n        WF_<<regFile, opQ, mem>>(RespondToRd(proc, reg) \n                                        \\/ RespondToWr(proc, reg))",
+    "\\A proc \\in Proc : WF_<<regFile, opQ, mem>>(RemoveOp(proc))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: IfThenElse | Change: Replaced both entries with verbatim TLA+ IF expressions only, removing appended explanatory text | Reason: Values must appear in the file exactly; prior entries contained non-file text \"(in DataInvariant)\" and \"(in RemoveOp)\"\nField: Completeness | Change: Verified top-level operator count file count = 10, JSON OperatorDefNames count = 10 | Reason: Phase 2 completeness check passed with no missing or extra operator definitions",
+  "OperatorDefNames_StatePredicate": [
+    "DataInvariant",
+    "Internal"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Done"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[p \\in Proc |-> << >>]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Proc -> Seq([req : Request, reg : Reg \\cup {Done}])]",
+    "[Adr -> Val]",
+    "[Proc -> [Reg -> FreeRegValue]]",
+    "[Reg -> FreeRegValue]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED mem",
+    "UNCHANGED regFile"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/InnerSequential/InnerSequential.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Internal is classified as a StatePredicate rather than an action because it contains no primed variables and is Boolean-valued, even though it is used inside Next alongside actions.",
+    "Done is placed in ValueDef by elimination; it defines a value using CHOOSE and is neither Boolean, action, temporal, nor init.",
+    "Spec is placed in TemporalProperty because its body contains the temporal formula [][Next]_<<regFile, opQ, mem>> and fairness conditions.",
+    "The theorem 'THEOREM Spec => []DataInvariant' is not an operator definition and therefore does not appear in OperatorDefNames_TemporalProperty.",
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(1) + ActionDefNames(5) = OperatorDefNames(10). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

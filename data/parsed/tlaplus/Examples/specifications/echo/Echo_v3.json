@@ -1,0 +1,311 @@
+{
+  "id": null,
+  "Specification": "This module specifies the Echo algorithm for constructing a spanning tree in an undirected connected graph starting from a single initiator. The graph is modeled by a set of nodes and a Boolean neighborhood relation R, with assumptions that R is irreflexive, symmetric, and connected; communication is modeled by per-node inbox sets containing message records. The PlusCal algorithm is included together with its TLA+ translation, and the specification verifies safety-style properties such as type correctness, absence of a parent for the initiator, parent-neighbor consistency, parent-child consistency, and ancestor properties at termination, as well as a termination temporal property stating that all processes eventually reach Done.",
+  "ModuleName": "Echo",
+  "ExtendsModules": [
+    "Naturals",
+    "FiniteSets",
+    "Relation",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Node",
+    "initiator",
+    "R"
+  ],
+  "VariableNames": [
+    "inbox",
+    "pc",
+    "parent",
+    "children",
+    "rcvd",
+    "nbrs"
+  ],
+  "AssumptionNames": [
+    "/\\ initiator \\in Node\n       /\\ R \\in [Node \\X Node -> BOOLEAN]\n       /\\ IsIrreflexive(R, Node)\n       /\\ IsSymmetric(R, Node)\n       /\\ IsConnected(R, Node)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "NoNode",
+    "neighbors",
+    "send",
+    "receive",
+    "multicast",
+    "vars",
+    "ProcSet",
+    "Init",
+    "n0",
+    "n1",
+    "n2",
+    "node",
+    "Terminating",
+    "Next",
+    "Spec",
+    "Termination",
+    "TypeOK",
+    "InitiatorNoParent",
+    "ParentIsNeighbor",
+    "ParentChild",
+    "IsParent",
+    "IsAncestor",
+    "AncestorProperties",
+    "DebugExpression",
+    "DebugExpression2",
+    "NotNotTypeOK"
+  ],
+  "ActionDefNames": [
+    "n0",
+    "n1",
+    "n2",
+    "node",
+    "Terminating",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "net",
+    "anc"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF m \\in dest THEN net[m] \\cup {[kind |-> knd, sndr |-> p]} ELSE net[m]",
+    "IF self = initiator THEN /\\ inbox' = multicast(inbox, self, nbrs[self], \"m\") ELSE /\\ TRUE /\\ inbox' = inbox",
+    "IF rcvd[self] < Cardinality(nbrs[self]) THEN /\\ \\E msg \\in inbox[self]: LET net == receive(inbox, self, msg) IN /\\ rcvd' = [rcvd EXCEPT ![self] = rcvd[self]+1] /\\ IF self # initiator /\\ rcvd'[self] = 1 THEN /\\ Assert((msg.kind = \"m\"), \"Failure of assertion at line 50, column 16.\") /\\ parent' = [parent EXCEPT ![self] = msg.sndr] /\\ inbox' = multicast(net, self, nbrs[self] \\\\ {msg.sndr}, \"m\") ELSE /\\ inbox' = net /\\ UNCHANGED parent /\\ IF msg.kind = \"c\" THEN /\\ children' = [children EXCEPT ![self] = children[self] \\cup {msg.sndr}] ELSE /\\ TRUE /\\ UNCHANGED children /\\ pc' = [pc EXCEPT ![self] = \"n1\"] ELSE /\\ pc' = [pc EXCEPT ![self] = \"n2\"] /\\ UNCHANGED << inbox, parent, children, rcvd >>",
+    "IF self # initiator /\\ rcvd'[self] = 1 THEN /\\ Assert((msg.kind = \"m\"), \"Failure of assertion at line 50, column 16.\") /\\ parent' = [parent EXCEPT ![self] = msg.sndr] /\\ inbox' = multicast(net, self, nbrs[self] \\\\ {msg.sndr}, \"m\") ELSE /\\ inbox' = net /\\ UNCHANGED parent",
+    "IF msg.kind = \"c\" THEN /\\ children' = [children EXCEPT ![self] = children[self] \\cup {msg.sndr}] ELSE /\\ TRUE /\\ UNCHANGED children",
+    "IF self # initiator THEN /\\ Assert((parent[self] \\in nbrs[self]), \"Failure of assertion at line 65, column 10.\") /\\ inbox' = send(inbox, self, parent[self], \"c\") ELSE /\\ TRUE /\\ inbox' = inbox"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{[kind |-> knd, sndr |-> p]}",
+    "{msg}",
+    "{msg.sndr}",
+    "{NoNode}",
+    "{\"m\",\"c\"}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "\\",
+    "\\X"
+  ],
+  "FiniteSetOps": [
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[Node \\X Node -> BOOLEAN]",
+    "[n \\in Node |-> {}]",
+    "[m \\in Node |-> IF m \\in dest THEN net[m] \\cup {[kind |-> knd, sndr |-> p]} ELSE net[m]]",
+    "[self \\in Node |-> NoNode]",
+    "[self \\in Node |-> {}]",
+    "[self \\in Node |-> 0]",
+    "[self \\in Node |-> neighbors(self)]",
+    "[self \\in ProcSet |-> \"n0\"]",
+    "[Node -> (Node \\cup {NoNode})]",
+    "[Node -> SUBSET Node]",
+    "[Node -> Nat]",
+    "[Node -> SUBSET [kind : {\"m\",\"c\"}, sndr : Node]]",
+    "[m,n \\in Node |-> n = parent[m]]"
+  ],
+  "FunctionApplication": [
+    "R[m,n]",
+    "net[m]",
+    "inbox[self]",
+    "pc[self]",
+    "nbrs[self]",
+    "rcvd[self]",
+    "parent[self]",
+    "children[self]",
+    "pc[m]",
+    "pc[n]",
+    "parent[n]",
+    "children[m]",
+    "anc[n, initiator]",
+    "nbrs[n]",
+    "inbox[n]"
+  ],
+  "FunctionOverride": [
+    "[net EXCEPT ![q] = @ \\cup {[kind |-> knd, sndr |-> p]}]",
+    "[net EXCEPT ![p] = @ \\ {msg}]",
+    "[pc EXCEPT ![self] = \"n1\"]",
+    "[rcvd EXCEPT ![self] = rcvd[self]+1]",
+    "[parent EXCEPT ![self] = msg.sndr]",
+    "[children EXCEPT ![self] = children[self] \\cup {msg.sndr}]",
+    "[pc EXCEPT ![self] = \"n2\"]",
+    "[pc EXCEPT ![self] = \"Done\"]"
+  ],
+  "RecordConstructor": [
+    "[kind |-> knd, sndr |-> p]",
+    "[kind : {\"m\",\"c\"}, sndr : Node]"
+  ],
+  "RecordAccess": [
+    "msg.kind",
+    "msg.sndr"
+  ],
+  "TupleConstructor": [
+    "<< inbox, pc, parent, children, rcvd, nbrs >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<="
+  ],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE x : x \\notin Node"
+  ],
+  "StringLiterals": [
+    "m",
+    "c",
+    "n0",
+    "n1",
+    "n2",
+    "Done",
+    "Failure of assertion at line 50, column 16.",
+    "Failure of assertion at line 65, column 10."
+  ],
+  "ArithmeticModules": [
+    "Naturals"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "inbox",
+    "pc",
+    "parent",
+    "children",
+    "rcvd",
+    "nbrs"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << parent, children, rcvd, nbrs >>",
+    "UNCHANGED parent",
+    "UNCHANGED children",
+    "UNCHANGED << inbox, parent, children, rcvd >>",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified count matches top-level definitions; file count = 26, JSON count = 26 | Reason: completeness check required before continuing\nField: NamesInLet -> LetInNames | Change: renamed field and retained values [\"net\", \"anc\"] | Reason: requested schema uses LetInNames; high-risk correctness field\nField: IfThenElse | Change: replaced non-verbatim paraphrased entries with TLA+ expressions that literally appear in the file | Reason: values must appear in the source file; V1 contained explanatory text not present in the module\nField: SetEnumeration | Change: removed \"{initiator}\" | Reason: this set literal does not appear anywhere in the TLA+ file\nField: ProofCommands | Change: removed \"ASSUME\" | Reason: ASSUME is present as a module assumption block, not a proof command; value does not belong in this field\nField: PlusCalAlgorithm | Change: changed [\"Echo\"] to [] | Reason: field must be [] when empty; there is no named PlusCal algorithm token stored in this extraction field\nField: PlusCalProcesses | Change: changed [\"process (node \\\\in Node)\"] to [] | Reason: field must be [] when empty; V1 stored source text where empty-field convention is required",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "InitiatorNoParent",
+    "ParentIsNeighbor",
+    "ParentChild",
+    "AncestorProperties",
+    "DebugExpression",
+    "DebugExpression2",
+    "NotNotTypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "NoNode",
+    "neighbors",
+    "send",
+    "receive",
+    "multicast",
+    "vars",
+    "ProcSet",
+    "IsParent",
+    "IsAncestor"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[n \\in Node |-> {}]",
+    "[m \\in Node |-> IF m \\in dest THEN net[m] \\cup {[kind |-> knd, sndr |-> p]} ELSE net[m]]",
+    "[self \\in Node |-> NoNode]",
+    "[self \\in Node |-> {}]",
+    "[self \\in Node |-> 0]",
+    "[self \\in Node |-> neighbors(self)]",
+    "[self \\in ProcSet |-> \"n0\"]",
+    "[m,n \\in Node |-> n = parent[m]]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Node \\X Node -> BOOLEAN]",
+    "[Node -> (Node \\cup {NoNode})]",
+    "[Node -> SUBSET Node]",
+    "[Node -> Nat]",
+    "[Node -> SUBSET [kind : {\"m\",\"c\"}, sndr : Node]]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << parent, children, rcvd, nbrs >>",
+    "UNCHANGED << inbox, parent, children, rcvd >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/Echo/Echo.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "AncestorProperties is classified as StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators; the implication in its body is non-temporal.",
+    "send, receive, multicast, IsParent, and IsAncestor are placed in ValueDef by elimination: they are non-action operator definitions computing values or relations and are not Boolean state predicates in the required sense.",
+    "UnchangedExprs contains two single-variable forms, UNCHANGED parent and UNCHANGED children, that are neither explicit tuple forms nor references to a previously defined tuple variable such as vars. To preserve exact V2 content while satisfying the requested two-way split as closely as possible, they are omitted from both sub-fields.",
+    "Partition count: StatePredicate(8) + TemporalProperty(2) + Init(1) + ValueDef(9) + ActionDefNames(6) = OperatorDefNames(26). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

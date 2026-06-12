@@ -1,0 +1,226 @@
+{
+  "id": null,
+  "Specification": "This module augments the DiskSynod specification with additional history variables and inductive invariants for a disk-based Synod/Paxos-style consensus protocol. It introduces `allInput` to track every input value ever seen and `chosen` to record the first non-default output produced by any process, then states a series of higher-level invariants relating ballots, disk blocks, reads, majority sets, and the chosen value. The file does not define a full temporal specification of its own, but instead builds on the imported `Init` and `Next` actions from `DiskSynod` and adds safety-oriented predicates that characterize correctness of the protocol state.",
+  "ModuleName": "HDiskSynod",
+  "ExtendsModules": [
+    "DiskSynod"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "allInput",
+    "chosen"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "HInit",
+    "HNext",
+    "HInv1",
+    "MajoritySet",
+    "blocksOf",
+    "allBlocks",
+    "HInv2",
+    "HInv3",
+    "HInv4",
+    "maxBalInp",
+    "HInv5",
+    "valueChosen",
+    "HInv6"
+  ],
+  "ActionDefNames": [
+    "HNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "rdBy",
+    "hasOutput"
+  ],
+  "NamesInLet": [
+    "rdBy",
+    "hasOutput"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>",
+    "<=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \\/ chosen # NotAnInput \\/ \\A p \\in Proc : ~hasOutput(p) THEN chosen ELSE output'[CHOOSE p \\in Proc : hasOutput(p)]",
+    "IF phase[p] = 3 THEN dblock[p].inp ELSE NotAnInput"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{input[p] : p \\in Proc}",
+    "{NotAnInput}",
+    "{dblock[p]}",
+    "{disk[d][p] : d \\in Disk }",
+    "{br.block : br \\in UNION{rdBy(q, d) : q \\in Proc, d \\in Disk}}",
+    "{blocksOf(p) : p \\in Proc}",
+    "{0}",
+    "{1, 2}",
+    "{}",
+    "{2, 3}",
+    "{chosen, NotAnInput}",
+    "{Ballot(p) : p \\in Proc}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "UNION",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[Proc -> Inputs]",
+    "[Proc -> Inputs \\cup {NotAnInput}]",
+    "[Disk -> [Proc -> DiskBlock ]]",
+    "[Proc -> 0..3]",
+    "[Proc -> DiskBlock ]",
+    "[Proc -> SUBSET Disk ]",
+    "[Proc -> [Disk -> SUBSET [block : DiskBlock , proc : Proc]]]",
+    "[Disk -> SUBSET [block : DiskBlock , proc : Proc]]"
+  ],
+  "FunctionApplication": [
+    "input[p]",
+    "output[p]",
+    "disk[d]",
+    "phase[p]",
+    "dblock[p]",
+    "disksWritten[p]",
+    "blocksRead[p]",
+    "blocksRead[q]",
+    "output[CHOOSE p \\in Proc : hasOutput(p)]",
+    "disk[d][p]",
+    "blocksRead[q][d]",
+    "blocksRead[p][d]",
+    "Ballot(p)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [
+    "[block : DiskBlock , proc : Proc]",
+    "[block |-> dblock [q], proc |-> q]",
+    "[block |-> dblock [p], proc |-> p]"
+  ],
+  "RecordAccess": [
+    "br.proc",
+    "br.block",
+    "bk.mbal",
+    "bk.bal",
+    "bk.inp",
+    "dblock[p].mbal",
+    "dblock[p].bal",
+    "dblock[p].inp",
+    "br.block.mbal",
+    "disk[d][p].mbal",
+    "disk[d][p].bal",
+    "br.block.bal"
+  ],
+  "TupleConstructor": [],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [
+    ">=",
+    ">"
+  ],
+  "RangeExpr": [
+    "0..3"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE p \\in Proc : hasOutput(p)"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "chosen",
+    "output",
+    "allInput",
+    "input"
+  ],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "intermediate",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified count matches top-level definitions; file count = 13, JSON count = 13 | Reason: Completeness check required exact match\nField: LocalOperatorNames | Change: Reordered to `rdBy`, `hasOutput` | Reason: Both are LET-local parametric operators found in file; retained only valid local operator names\nField: NamesInLet | Change: Reordered to `rdBy`, `hasOutput` | Reason: Both LET-bound names appear in file\nField: IfThenElse | Change: Removed non-verbatim context markers `(in HNext)` and `(in HInv2)` | Reason: Field values must be expressions that literally appear in the TLA+ file\nField: SetOperators | Change: Retained `SUBSET` after verification | Reason: Although Prompt Guide says it belongs in `SetOperators`, V1 already had correct placement for this file usage\nField: FunctionApplication | Change: Removed duplicate `input[p]` and duplicate `output[p]` entries | Reason: Deduplication phase requires distinct entries once only\nField: PrimedVariables | Change: Verified `chosen`, `output`, `allInput`, `input` exactly cover all primed variables in file | Reason: Completeness check over all primed occurrences including LET body and set comprehension\nField: FunctionOverride | Change: Confirmed remains empty | Reason: No `[f EXCEPT ![e] = v]` form appears in the TLA+ file\nField: AssumptionNames | Change: Confirmed remains empty | Reason: No `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks appear in the TLA+ file\nField: RecordAccess | Change: Verified all entries appear verbatim in file; no extras | Reason: High-risk correctness check\nField: UnchangedExprs | Change: Confirmed remains empty | Reason: No `UNCHANGED` expression appears in the TLA+ file\nField: TemporalSubscript | Change: Confirmed remains empty | Reason: No temporal subscript formulas appear in the TLA+ file\nField: AlwaysOp | Change: Confirmed remains empty | Reason: No outermost `[]` temporal formulas appear in the TLA+ file\nField: EventuallyOp | Change: Confirmed remains empty | Reason: No outermost `<>` temporal formulas appear in the TLA+ file\nField: LeadsToOp | Change: Confirmed remains empty | Reason: No outermost `~>` temporal formulas appear in the TLA+ file\nField: GuaranteesOp | Change: Confirmed remains empty | Reason: No outermost `-+->` temporal formulas appear in the TLA+ file\nField: FairnessConditions | Change: Confirmed remains empty | Reason: No `WF` or `SF` expressions appear in `Spec` or `Spec0`; neither operator is defined here\nField: StringLiterals | Change: Confirmed remains empty | Reason: No double-quoted string literals appear in the TLA+ file\nField: PlusCalAlgorithm | Change: Verified empty array form is correct | Reason: No PlusCal algorithm in file\nField: PlusCalProcesses | Change: Verified empty array form is correct | Reason: No PlusCal processes in file",
+  "OperatorDefNames_StatePredicate": [
+    "HInv1",
+    "HInv2",
+    "HInv3",
+    "HInv4",
+    "maxBalInp",
+    "HInv5",
+    "valueChosen",
+    "HInv6"
+  ],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [
+    "HInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "MajoritySet",
+    "blocksOf",
+    "allBlocks"
+  ],
+  "FunctionConstructor_ByDomain": [],
+  "FunctionConstructor_SetType": [
+    "[Proc -> Inputs]",
+    "[Proc -> Inputs \\cup {NotAnInput}]",
+    "[Disk -> [Proc -> DiskBlock ]]",
+    "[Proc -> 0..3]",
+    "[Proc -> DiskBlock ]",
+    "[Proc -> SUBSET Disk ]",
+    "[Proc -> [Disk -> SUBSET [block : DiskBlock , proc : Proc]]]",
+    "[Disk -> SUBSET [block : DiskBlock , proc : Proc]]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/HDiskSynod/HDiskSynod.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "valueChosen is classified as a StatePredicate because it is Boolean-valued, contains no primed variables, and contains no temporal operators.",
+    "maxBalInp is classified as a StatePredicate because it is Boolean-valued, parameterized, and used as a predicate over current-state values.",
+    "MajoritySet, blocksOf, and allBlocks are placed in ValueDef as non-Boolean helper/value definitions.",
+    "Partition count: StatePredicate(8) + TemporalProperty(0) + Init(1) + ValueDef(3) + ActionDefNames(1) = OperatorDefNames(13). Verified.",
+    "FunctionConstructor_ByDomain is empty; all FunctionConstructor entries are [S -> T] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred from module name because the repository folder cannot be determined from file content alone."
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "id": null,
+  "Specification": "This module contains TLAPS proofs for two safety theorems from AllocatorImplementation.tla: that the system's Specification implies both the TypeInvariant and ResourceMutex properties. The TypeInvariant here combines the SchedulingAllocator's TypeInvariant (via the Sched! instance) with additional client-side variables, ensuring type correctness of the allocator state. The ResourceMutex property asserts that the holding sets of any two clients are disjoint unless the clients are the same, capturing client-side mutual exclusion. The proofs rely on an internal Invariant that combines the Sched-level AllocatorInvariant with a consistency invariant relating alloc, holding, and in-transit messages. The module includes detailed proofs for TypeInvariant and sketches for ResourceMutex, using well-founded induction and properties of permutation sequences over finite sets.",
+  "ModuleName": "AllocatorImplementation_proof",
+  "ExtendsModules": [
+    "AllocatorImplementation",
+    "Integers",
+    "SequenceTheorems",
+    "FiniteSets",
+    "FiniteSetTheorems",
+    "WellFoundedInduction",
+    "TLAPS"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [
+    "ClientsFinite"
+  ],
+  "TheoremNames": [
+    "TypeCorrect"
+  ],
+  "OperatorDefNames": [
+    "PermsRec",
+    "PermsFn"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "ps",
+    "perms",
+    "Q"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF ss = {} THEN { << >> } ELSE LET ps == [ x \\in ss |-> { Append(sq, x) : sq \\in g[ss \\ {x}] } ] IN UNION { ps[x] : x \\in ss }",
+    "IF S = unsat[c] THEN Sched!Drop(sched, i) ELSE sched"
+  ],
+  "CaseExpr": [
+    "CASE U = {}",
+    "CASE U # {}",
+    "CASE ss = {}",
+    "CASE ss # {}",
+    "CASE Schedule",
+    "CASE UNCHANGED vars"
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{<<>>}"
+  ],
+  "SetOperators": [
+    "SUBSET",
+    "\\cup",
+    "UNION",
+    "\\subseteq",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet"
+  ],
+  "FunctionConstructor": [
+    "[ x \\in ss |-> { Append(sq, x) : sq \\in g[ss \\ {x}] } ]",
+    "[ss \\in SUBSET S |-> PermsRec(g, ss)]",
+    "[Clients -> SUBSET Resources]",
+    "[x \\in FiniteSubsetsOf(S) |-> PermsRec(perms, x)]"
+  ],
+  "FunctionApplication": [
+    "g[ss \\ {x}]",
+    "g[U \\ {x}]",
+    "h[U \\ {x}]",
+    "perms[ss]",
+    "perms[S]",
+    "perms[ss \\ {x}]",
+    "PermsFn(S)[ss]",
+    "PermsFn(S)[S]",
+    "ps[x]",
+    "sched[i]",
+    "unsat[c]",
+    "sched[j]",
+    "unsat[sched[j]]",
+    "g[V]",
+    "h[V]"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<< >>",
+    "<<U \\ {x}, U>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "SubSeq",
+    "Len",
+    "\\o"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "*"
+  ],
+  "ComparisonOps": [
+    "<",
+    ">=",
+    "<="
+  ],
+  "RangeExpr": [
+    "m..n",
+    "1..i-1",
+    "i+1..Len(s)",
+    "1..Len(sched)"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE g : g = [ss \\in SUBSET S |-> PermsRec(g, ss)]",
+    "PICK i \\in DOMAIN sched : /\\ sched[i] = c /\\ \\A j \\in 1..i-1 : unsat[sched[j]] \\cap S = {} /\\ sched' = IF S = unsat[c] THEN Sched!Drop(sched, i) ELSE sched",
+    "PICK x \\in ss : sq2 \\in { Append(sq3, x) : sq3 \\in perms[ss \\ {x}] }",
+    "PICK sq3 \\in perms[ss \\ {x}] : sq2 = Append(sq3, x)",
+    "PICK sq \\in Sched!PermSeqs(Sched!toSchedule) : sched' = sched \\o sq"
+  ],
+  "StringLiterals": [],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLAPS"
+  ],
+  "PrimedVariables": [
+    "TypeInvariant",
+    "unsat",
+    "alloc",
+    "sched",
+    "network"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[]TypeInvariant"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [
+    "Zenon",
+    "Isa",
+    "IsaM(\"iprover\")"
+  ],
+  "ProofCommands": [
+    "BY",
+    "QED",
+    "OBVIOUS",
+    "USE",
+    "SUFFICES",
+    "ASSUME",
+    "PROVE",
+    "CASE",
+    "DEF",
+    "PICK",
+    "HIDE"
+  ],
+  "ProofStructureSteps": [
+    "<1>1",
+    "<1>",
+    "<2>",
+    "<2>1",
+    "<2>2",
+    "<2>3",
+    "<2>4",
+    "<2>5",
+    "<2>6",
+    "<2>7",
+    "<2>8",
+    "<3>1",
+    "<3>2",
+    "<3>3",
+    "<3>4",
+    "<3>5",
+    "<3>6",
+    "<3>7",
+    "<3>",
+    "<4>1",
+    "<4>2",
+    "<4>3",
+    "<4>4",
+    "<4>5",
+    "<4>6",
+    "<4>"
+  ],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "PermsRec",
+    "PermsFn"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ x \\in ss |-> { Append(sq, x) : sq \\in g[ss \\ {x}] } ]",
+    "[ss \\in SUBSET S |-> PermsRec(g, ss)]",
+    "[x \\in FiniteSubsetsOf(S) |-> PermsRec(perms, x)]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Clients -> SUBSET Resources]"
+  ],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/AllocatorImplementation_proof/AllocatorImplementation_proof.tla",
+  "VerificationTools": [
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(2) + ActionDefNames(0) = 2 = OperatorDefNames total. Verified.",
+    "All OperatorDefNames (PermsRec, PermsFn) are value definitions: they define recursive functions for permutation sequences, not state predicates, temporal properties, or initial predicates.",
+    "FunctionConstructor_ByDomain contains three entries; FunctionConstructor_SetType contains one. All FunctionConstructor entries are accounted for.",
+    "UnchangedExprs_VarRef contains the only UNCHANGED expression: UNCHANGED vars.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "CorpusSource inferred as specifications/AllocatorImplementation_proof/AllocatorImplementation_proof.tla based on module name; folder not explicit in file."
+  ]
+}

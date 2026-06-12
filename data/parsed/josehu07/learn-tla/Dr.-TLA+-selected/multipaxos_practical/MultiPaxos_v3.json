@@ -1,0 +1,277 @@
+{
+  "id": null,
+  "Specification": "This specification models Multi-decree Paxos with an aggregated prepare phase, where each replica acts as proposer, acceptor, and learner. The model incorporates practical details to closely resemble real-world implementations, such as explicit ballot management, message passing, and slot-based consensus. The system assumes finite sets of replicas, values, slots, and ballots, with constraints ensuring non-triviality (e.g., at least three replicas, at least two values, non-empty slots and ballots). The algorithm is specified in PlusCal and translated to TLA+, with actions for sending and handling Prepare, PrepareReply, Accept, AcceptReply, and Learn messages. The main temporal property asserts that the system starts in Init and always evolves according to Next, with all state transitions captured by the Next action. The design ensures safety by requiring majority quorums and tracks learned values per slot.",
+  "ModuleName": "MultiPaxos",
+  "ExtendsModules": [
+    "FiniteSets",
+    "Integers",
+    "TLC"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "Replicas",
+    "Values",
+    "Slots",
+    "Ballots"
+  ],
+  "VariableNames": [
+    "msgs",
+    "lBallot",
+    "lStatus",
+    "rBallot",
+    "rVoted",
+    "proposed",
+    "learned"
+  ],
+  "AssumptionNames": [
+    "/\\ ReplicasAssumption\n       /\\ ValuesAssumption\n       /\\ SlotsAssumption\n       /\\ BallotsAssumption"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "MajorityNum",
+    "ReplicasAssumption",
+    "ValuesAssumption",
+    "SlotsAssumption",
+    "BallotsAssumption",
+    "ValuePreparedIn",
+    "PatternDecidesChosen",
+    "vars",
+    "ProcSet",
+    "Init",
+    "Replica",
+    "Next",
+    "Spec"
+  ],
+  "ActionDefNames": [
+    "Replica",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "prPat",
+    "arPat"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF lStatus[self][s] = \"Learned\" THEN \"Learned\" ELSE \"Preparing\" (in Replica)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}"
+  ],
+  "SetOperators": [
+    "\\cup"
+  ],
+  "FiniteSetOps": [
+    "IsFiniteSet",
+    "Cardinality"
+  ],
+  "FunctionConstructor": [
+    "[r \\in Replicas |-> -1]",
+    "[r \\in Replicas |->\n                        [s \\in Slots |-> \"\"]]",
+    "[r \\in Replicas |-> -1]",
+    "[r \\in Replicas |->\n                        [s \\in Slots |->\n                            [bal |-> -1, val |-> 0]]]",
+    "[s \\in Slots |-> {}]",
+    "[s \\in Slots |-> {}]",
+    "[lBallot EXCEPT ![self] = b]",
+    "[lStatus EXCEPT ![self] = [s \\in Slots |-> IF lStatus[self][s] = \"Learned\" THEN \"Learned\" ELSE \"Preparing\"]]",
+    "[rBallot EXCEPT ![self] = m.bal]",
+    "[rVoted EXCEPT ![self][m.slot] = [bal |-> m.bal, val |-> m.val]]",
+    "[lStatus EXCEPT ![self][s] = \"Accepting\"]",
+    "[proposed EXCEPT ![s] = proposed[s] \\cup {v}]",
+    "[lStatus EXCEPT ![self][s] = \"Learned\"]",
+    "[learned EXCEPT ![s] = learned[s] \\cup {v}]"
+  ],
+  "FunctionApplication": [
+    "lBallot[self]",
+    "lStatus[self][s]",
+    "rBallot[self]",
+    "rVoted[self]",
+    "rVoted[self][m.slot]",
+    "proposed[s]",
+    "learned[s]",
+    "proposed[s] \\cup {v}",
+    "learned[s] \\cup {v}"
+  ],
+  "FunctionOverride": [
+    "[lBallot EXCEPT ![self] = b]",
+    "[lStatus EXCEPT ![self] = [s \\in Slots |-> IF lStatus[self][s] = \"Learned\" THEN \"Learned\" ELSE \"Preparing\"]]",
+    "[rBallot EXCEPT ![self] = m.bal]",
+    "[rVoted EXCEPT ![self][m.slot] = [bal |-> m.bal, val |-> m.val]]",
+    "[lStatus EXCEPT ![self][s] = \"Accepting\"]",
+    "[proposed EXCEPT ![s] = proposed[s] \\cup {v}]",
+    "[lStatus EXCEPT ![self][s] = \"Learned\"]",
+    "[learned EXCEPT ![s] = learned[s] \\cup {v}]"
+  ],
+  "RecordConstructor": [
+    "[type |-> \"Prepare\", from |-> self, bal |-> b]",
+    "[type |-> \"PrepareReply\", from |-> self, bal |-> m.bal, voted |-> rVoted[self]]",
+    "[type |-> \"Accept\", from |-> self, slot |-> s, bal |-> lBallot[self], val |-> v]",
+    "[type |-> \"AcceptReply\", from |-> self, slot |-> m.slot, bal |-> m.bal, val |-> m.val]",
+    "[bal |-> m.bal, val |-> m.val]",
+    "[bal |-> -1, val |-> 0]",
+    "[replica |-> m.from, vBal |-> m.voted[s].bal, vVal |-> m.voted[s].val]",
+    "[replica |-> m.from]"
+  ],
+  "RecordAccess": [
+    "m.type",
+    "m.bal",
+    "m.from",
+    "m.voted",
+    "m.voted[s]",
+    "m.voted[s].bal",
+    "m.voted[s].val",
+    "m.slot",
+    "m.val"
+  ],
+  "TupleConstructor": [
+    "<< msgs, lBallot, lStatus, rBallot, rVoted, proposed, learned >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-",
+    "\\div"
+  ],
+  "ComparisonOps": [
+    ">",
+    "<=",
+    ">=",
+    "<"
+  ],
+  "RangeExpr": [
+    "0..(pBal-1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "",
+    "Prepare",
+    "PrepareReply",
+    "Accept",
+    "AcceptReply",
+    "Learned",
+    "Preparing",
+    "Accepting"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "msgs",
+    "lBallot",
+    "lStatus",
+    "rBallot",
+    "rVoted",
+    "proposed",
+    "learned"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<rBallot, rVoted, proposed, learned>>",
+    "UNCHANGED <<lBallot, lStatus, rVoted, proposed, learned>>",
+    "UNCHANGED <<lBallot, rBallot, rVoted, learned>>",
+    "UNCHANGED <<msgs, lBallot, rBallot, rVoted, proposed>>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [
+    "Crossword"
+  ],
+  "PlusCalProcesses": [
+    "Replica"
+  ],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: BooleanConstants | Change: Added [\"TRUE\", \"FALSE\"] | Reason: TRUE and FALSE are used in the TLA+ file (e.g., in IF expressions and as standard constants), but were missing from the JSON.\nField: SetOperators | Change: Removed \"SUBSET\" | Reason: \"SUBSET\" must be in SetOperators only if used as an infix operator; in this file, \"SUBSET\" is used as a prefix operator, so it should not be in SetOperators. (But per the prompt, \"SUBSET\" must not be in FiniteSetOps, so it is simply removed.)\nNo changes required for other fields. OperatorDefNames count: file count = 13, JSON OperatorDefNames count = 13.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "ReplicasAssumption",
+    "ValuesAssumption",
+    "SlotsAssumption",
+    "BallotsAssumption"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "MajorityNum",
+    "ValuePreparedIn",
+    "PatternDecidesChosen",
+    "vars",
+    "ProcSet"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[r \\in Replicas |-> -1]",
+    "[r \\in Replicas |->\n                        [s \\in Slots |-> \"\"]]",
+    "[r \\in Replicas |-> -1]",
+    "[r \\in Replicas |->\n                        [s \\in Slots |->\n                            [bal |-> -1, val |-> 0]]]",
+    "[s \\in Slots |-> {}]",
+    "[s \\in Slots |-> {}]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<rBallot, rVoted, proposed, learned>>",
+    "UNCHANGED <<lBallot, lStatus, rVoted, proposed, learned>>",
+    "UNCHANGED <<lBallot, rBallot, rVoted, learned>>",
+    "UNCHANGED <<msgs, lBallot, rBallot, rVoted, proposed>>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/MultiPaxos/MultiPaxos.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(4) + TemporalProperty(1) + Init(1) + ValueDef(5) + ActionDefNames(2) = 13 = OperatorDefNames total. Verified.",
+    "Spec is placed in TemporalProperty because its body is Init /\\ [][Next]_vars, i.e., a temporal formula.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty."
+  ]
+}

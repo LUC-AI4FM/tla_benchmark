@@ -1,0 +1,265 @@
+{
+  "id": null,
+  "Specification": "This module specifies a bounded producer-consumer buffer with a shared wait set, translated from a PlusCal algorithm. Producers in P append the string \"d\" to the sequence buffer when the buffer length is below capacity K, and consumers in C remove the last element when the buffer is nonempty; otherwise processes add themselves to waitset. The temporal specification is Spec == Init /\\ [][Next]_vars, and it also defines a Termination property requiring eventual arrival at a state where every process has pc[self] = \"Done\", although the translated actions keep processes at \"lbp\" or \"lbc\" and include a stuttering disjunct for a hypothetical Done state. The file also includes an invariant Inv == waitset # ProcSet, a view projection, and a large PostCondition value that encodes a TLC-generated counterexample trace and action metadata.",
+  "ModuleName": "ViewMap",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences",
+    "TLC",
+    "TLCExt"
+  ],
+  "InstanceModules": [],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "P",
+    "C",
+    "K",
+    "c1",
+    "c2",
+    "p1"
+  ],
+  "VariableNames": [
+    "buffer",
+    "waitset",
+    "pc"
+  ],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "RemoveLast",
+    "vars",
+    "ProcSet",
+    "Init",
+    "lbp",
+    "p",
+    "lbc",
+    "c",
+    "Next",
+    "Spec",
+    "Termination",
+    "Inv",
+    "view",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "lbp",
+    "p",
+    "lbc",
+    "c",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF Len(buffer) >= K THEN /\\ waitset' = (waitset \\cup {self}) /\\ pc' = [pc EXCEPT ![self] = \"lbp\"] /\\ UNCHANGED buffer ELSE /\\ buffer' = Append(buffer, \"d\") /\\ IF waitset # {} THEN /\\ \\E x \\in waitset: waitset' = waitset \\ {x} ELSE /\\ TRUE /\\ UNCHANGED waitset /\\ pc' = [pc EXCEPT ![self] = \"lbp\"]",
+    "IF waitset # {} THEN /\\ \\E x \\in waitset: waitset' = waitset \\ {x} ELSE /\\ TRUE /\\ UNCHANGED waitset",
+    "IF Len(buffer) = 0 THEN /\\ waitset' = (waitset \\cup {self}) /\\ pc' = [pc EXCEPT ![self] = \"lbc\"] /\\ UNCHANGED buffer ELSE /\\ buffer' = RemoveLast(buffer) /\\ IF waitset # {} THEN /\\ \\E x \\in waitset: waitset' = waitset \\ {x} ELSE /\\ TRUE /\\ UNCHANGED waitset /\\ pc' = [pc EXCEPT ![self] = \"lbc\"]",
+    "IF waitset # {} THEN /\\ \\E x \\in waitset: waitset' = waitset \\ {x} ELSE /\\ TRUE /\\ UNCHANGED waitset"
+  ],
+  "CaseExpr": [
+    "CASE self \\in P -> \"lbp\" [] self \\in C -> \"lbc\""
+  ],
+  "SetEnumeration": [
+    "{}",
+    "{self}",
+    "{x}",
+    "{c1}",
+    "{c1, c2}",
+    "{c2}",
+    "{c2, p1}",
+    "{p1}",
+    "{c1, p1}",
+    "{c1, c2, p1}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ i \\in 1..(Len(seq) - 1) |-> seq[i] ]",
+    "[self \\in ProcSet |-> CASE self \\in P -> \"lbp\"\n                                        [] self \\in C -> \"lbc\"]"
+  ],
+  "FunctionApplication": [
+    "seq[i]",
+    "pc[self]",
+    "TLCGet(\"generated\")"
+  ],
+  "FunctionOverride": [
+    "[pc EXCEPT ![self] = \"lbp\"]",
+    "[pc EXCEPT ![self] = \"lbc\"]"
+  ],
+  "RecordConstructor": [
+    "[ state |->\n\t\t      { << 1,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 2,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {c1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 3,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {c1, c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 4,\n\t\t           [ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 5,\n\t\t           [ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 6,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 7,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {c1, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t        << 8,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {c1, c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> },\n\t\t  action |->\n\t\t\t\t{ << << 1,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 2,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 2,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c2],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 3,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 3,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbp\",\n\t\t\t\t       context |-> [self |-> p1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 4,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 4,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbp\",\n\t\t\t\t       context |-> [self |-> p1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 5,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 5,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 6,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 6,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 7,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>,\n\t\t\t\t  << << 7,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c2],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 8,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >> } ]",
+    "[ buffer |-> <<>>,\n\t\t             waitset |-> {},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> <<>>,\n\t\t             waitset |-> {c1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> <<>>,\n\t\t             waitset |-> {c1, c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> << >>,\n\t\t             waitset |-> {p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> << >>,\n\t\t             waitset |-> {c1, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ buffer |-> << >>,\n\t\t             waitset |-> {c1, c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ]",
+    "[ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ]",
+    "[self |-> c1]",
+    "[ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ]",
+    "[ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c2],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ]",
+    "[self |-> c2]",
+    "[ name |-> \"lbp\",\n\t\t\t\t       context |-> [self |-> p1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ]",
+    "[self |-> p1]",
+    "[ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ]"
+  ],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<>>",
+    "<< buffer, waitset, pc >>",
+    "<<buffer, waitset>>",
+    "<< 1,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 2,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {c1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 3,\n\t\t           [ buffer |-> <<>>,\n\t\t             waitset |-> {c1, c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 4,\n\t\t           [ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 5,\n\t\t           [ buffer |-> <<\"d\">>,\n\t\t             waitset |-> {c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 6,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 7,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {c1, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<< 8,\n\t\t           [ buffer |-> << >>,\n\t\t             waitset |-> {c1, c2, p1},\n\t\t             pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>",
+    "<<\"d\">>",
+    "<< >>",
+    "<<\"self\">>",
+    "<< << 1,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 2,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 2,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c2],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 3,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 3,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbp\",\n\t\t\t\t       context |-> [self |-> p1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 4,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 4,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbp\",\n\t\t\t\t       context |-> [self |-> p1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 58,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 69,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 5,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 5,\n\t\t\t\t        [ buffer |-> <<\"d\">>,\n\t\t\t\t          waitset |-> {c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 6,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 6,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c1],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 7,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>",
+    "<< << 7,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >>,\n\t\t\t\t     [ name |-> \"lbc\",\n\t\t\t\t       context |-> [self |-> c2],\n\t\t\t\t       location |->\n\t\t\t\t           [ beginLine |-> 73,\n\t\t\t\t             beginColumn |-> 14,\n\t\t\t\t             endLine |-> 84,\n\t\t\t\t             endColumn |-> 60,\n\t\t\t\t             module |-> \"ViewMap\" ],\n\t\t\t\t       parameters |-> <<\"self\">> ],\n\t\t\t\t     << 8,\n\t\t\t\t        [ buffer |-> <<>>,\n\t\t\t\t          waitset |-> {c1, c2, p1},\n\t\t\t\t          pc |-> (c1 :> \"lbc\" @@ c2 :> \"lbc\" @@ p1 :> \"lbp\") ] >> >>"
+  ],
+  "SequenceOps": [
+    "Len",
+    "Append"
+  ],
+  "ArithmeticOps": [
+    "-"
+  ],
+  "ComparisonOps": [
+    ">=",
+    "="
+  ],
+  "RangeExpr": [
+    "1..(Len(seq) - 1)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "lbp",
+    "lbc",
+    "d",
+    "Done",
+    "generated",
+    "ViewMap"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "waitset",
+    "pc",
+    "buffer"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED buffer",
+    "UNCHANGED waitset",
+    "UNCHANGED vars"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>(\\A self \\in ProcSet: pc[self] = \"Done\")"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: verified top-level operator count matches file count: 14 = 14 | Reason: completeness check required before continuing\nField: IfThenElse | Change: replaced all four entries with verbatim TLA+ IF expressions and removed non-file suffixes like \u201c(in lbp)\u201d and malformed branch formatting | Reason: values must appear in the file and match actual IF structure\nField: CaseExpr | Change: removed non-file suffix \u201c(in Init)\u201d and kept only the CASE expression | Reason: value must appear verbatim in the file\nField: RecordConstructor | Change: corrected first entry formatting to match file text around `[ state |-> ... , action |-> ... ]` | Reason: prior value did not literally appear in the file\nField: ComparisonOps | Change: removed \u201c<\u201d and added \u201c=\u201d | Reason: `<` does not appear in the file; `=` is used in comparisons such as `Len(buffer) = 0`\nField: ProofCommands | Change: removed \u201cASSUME\u201d | Reason: the file contains no ASSUME, ASSUMPTION, proof, or AXIOM blocks\nField: PlusCalAlgorithm | Change: set to [] | Reason: PlusCal algorithm is inside a block comment and should be empty when no active PlusCal content is present; empty field must be [] not inferred content\nField: PlusCalProcesses | Change: set to [] | Reason: PlusCal processes are inside a block comment and should be empty when no active PlusCal content is present\nField: AssumptionNames | Change: confirmed [] | Reason: the file contains no ASSUME, ASSUMPTION, or AXIOM blocks\nField: RecordAccess | Change: confirmed [] | Reason: there are no literal `e.field` record access expressions in the file\nField: LocalOperatorNames | Change: confirmed [] | Reason: there are no LET blocks with local operator definitions\nField: FunctionOverride | Change: confirmed existing two entries are complete | Reason: both distinct `[pc EXCEPT ![self] = ...]` forms in the file are present\nField: PrimedVariables | Change: confirmed complete as [waitset, pc, buffer] | Reason: these are the only variables appearing primed anywhere, including in EXCEPT-containing actions",
+  "OperatorDefNames_StatePredicate": [
+    "Inv"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec",
+    "Termination"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "RemoveLast",
+    "vars",
+    "ProcSet",
+    "view",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ i \\in 1..(Len(seq) - 1) |-> seq[i] ]",
+    "[self \\in ProcSet |-> CASE self \\in P -> \"lbp\"\n                                        [] self \\in C -> \"lbc\"]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED buffer",
+    "UNCHANGED waitset"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED vars"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ViewMap/ViewMap.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(1) + TemporalProperty(2) + Init(1) + ValueDef(5) + ActionDefNames(5) = OperatorDefNames(14). Verified.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "PostCondition is placed in ValueDef by elimination: it defines a non-Boolean structured value used for TLC-oriented trace/counterexample data rather than a state predicate, action, init condition, or temporal property.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}

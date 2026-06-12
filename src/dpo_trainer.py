@@ -14,8 +14,8 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, get_linear_schedule_with_warmup
 
-# peft 0.19.1 checks torch.distributed.tensor as an attribute but PyTorch 2.7
-# doesn't expose it that way — import it explicitly so the attribute exists.
+# peft 0.19.1 checks torch.distributed.tensor as an attribute but pytorch 2.7
+# does not expose it that way, import it explicitly so the attribute exists.
 import torch.distributed.tensor as _dt
 import torch.distributed as _dist
 if not hasattr(_dist, "tensor"):
@@ -45,7 +45,7 @@ class PreferenceDataset(Dataset):
     def __getitem__(self, idx: int) -> dict[str, Any]:
         item = self.data[idx]
 
-        # Track prompt length to exclude prompt tokens from the DPO loss
+        # track prompt length to exclude prompt tokens from dpo loss
         prompt_tokens = self.tokenizer(
             item["prompt"],
             max_length=self.max_length,
@@ -72,12 +72,16 @@ class PreferenceDataset(Dataset):
             return_tensors="pt",
         )
 
+        rejection_type = item.get("rejection_type", "sany_fail")
+        weight = 1.0 if rejection_type == "tlc_fail" else 0.5
+
         return {
             "chosen_input_ids": chosen_tokens["input_ids"].squeeze(0),
             "chosen_attention_mask": chosen_tokens["attention_mask"].squeeze(0),
             "rejected_input_ids": rejected_tokens["input_ids"].squeeze(0),
             "rejected_attention_mask": rejected_tokens["attention_mask"].squeeze(0),
             "prompt_len": torch.tensor(prompt_len, dtype=torch.long),
+            "weight": torch.tensor(weight, dtype=torch.float),
         }
 
 
@@ -118,8 +122,7 @@ class DPOTrainer:
 
         n_gpus = torch.cuda.device_count()
         self.device     = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # Reference model goes on GPU 1 when available so the two models don't
-        # compete for the same device memory.  Falls back to GPU 0 / CPU.
+        # ref model on gpu 1 when available to avoid vram contention with policy model
         self.ref_device = torch.device("cuda:1" if n_gpus >= 2 else self.device)
 
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -129,14 +132,12 @@ class DPOTrainer:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Policy model — will be fine-tuned with LoRA
+        # policy model, fine tuned with lora
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name, torch_dtype=dtype, local_files_only=True
         ).to(self.device)
 
-        # Reference model — loaded separately from disk (avoids deepcopy OOM on large models)
-        # DPO requires comparing policy log-probs against a fixed reference to
-        # prevent the policy from drifting too far (KL constraint).
+        # reference model loaded from disk separately, avoids deepcopy oom on large models
         self.ref_model = AutoModelForCausalLM.from_pretrained(
             model_name, torch_dtype=dtype, local_files_only=True
         ).to(self.ref_device)
@@ -144,10 +145,7 @@ class DPOTrainer:
             param.requires_grad_(False)
         self.ref_model.eval()
 
-        logger.info(
-            "Models loaded | policy → %s | reference → %s | dtype=%s",
-            self.device, self.ref_device, dtype,
-        )
+        logger.info("models loaded: policy=%s ref=%s dtype=%s", self.device, self.ref_device, dtype)
 
         if self.use_lora:
             self._apply_lora()
@@ -166,10 +164,7 @@ class DPOTrainer:
         self.model = get_peft_model(self.model, peft_config)
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         total_params = sum(p.numel() for p in self.model.parameters())
-        logger.info(
-            "LoRA Applied | Trainable: %s / %s (%.2f%%)",
-            f"{trainable_params:,}", f"{total_params:,}", 100 * trainable_params / total_params,
-        )
+        logger.info("lora applied: trainable=%d total=%d (%.2f%%)", trainable_params, total_params, 100 * trainable_params / total_params)
 
     def _sequence_log_probs(
         self,
@@ -178,13 +173,12 @@ class DPOTrainer:
         attention_mask: torch.Tensor,
         prompt_len: torch.Tensor,
     ) -> torch.Tensor:
-        """Compute mean per-token log probability of the completion (excluding prompt and padding)."""
-        # Next-token prediction: logit at position i predicts token at position i+1
+        # next token prediction: logit at position i predicts token at i+1
         shift_logits = logits[:, :-1, :]           # (batch, seq-1, vocab)
         shift_labels = input_ids[:, 1:]             # (batch, seq-1)
         shift_mask = attention_mask[:, 1:].float()  # (batch, seq-1)
 
-        # Only score completion tokens, not prompt tokens
+        # score completion tokens only, not prompt tokens
         batch_size, seq_len = shift_labels.shape
         positions = torch.arange(seq_len, device=logits.device).unsqueeze(0).expand(batch_size, -1)
         completion_mask = (positions >= (prompt_len.unsqueeze(1) - 1)).float()
@@ -194,7 +188,7 @@ class DPOTrainer:
         log_probs = torch.nn.functional.log_softmax(shift_logits, dim=-1)
         token_log_probs = log_probs.gather(2, shift_labels.unsqueeze(2)).squeeze(2)
 
-        # Mean over completion tokens (clamp avoids div-by-zero on empty completions)
+        # mean over completion tokens (clamp avoids division by zero on empty completions)
         seq_log_probs = (token_log_probs * final_mask).sum(dim=-1) / final_mask.sum(dim=-1).clamp(min=1)
         return seq_log_probs
 
@@ -204,15 +198,14 @@ class DPOTrainer:
         policy_rejected_logps: torch.Tensor,
         ref_chosen_logps: torch.Tensor,
         ref_rejected_logps: torch.Tensor,
+        weights: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Standard DPO loss (Rafailov et al. 2024).
-
-        L = -E[log σ(β · (r_chosen - r_rejected))]
-        where r = log π_θ(y|x) - log π_ref(y|x)
-        """
         chosen_rewards = self.beta * (policy_chosen_logps - ref_chosen_logps)
         rejected_rewards = self.beta * (policy_rejected_logps - ref_rejected_logps)
-        loss = -torch.nn.functional.logsigmoid(chosen_rewards - rejected_rewards).mean()
+        per_sample_loss = -torch.nn.functional.logsigmoid(chosen_rewards - rejected_rewards)
+        if weights is not None:
+            per_sample_loss = per_sample_loss * weights.to(per_sample_loss.device)
+        loss = per_sample_loss.mean()
         return loss, chosen_rewards.detach().mean(), rejected_rewards.detach().mean()
 
     def _forward_pass(
@@ -221,7 +214,6 @@ class DPOTrainer:
         batch: dict[str, torch.Tensor],
         no_grad: bool = False,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Run model forward pass and return per-sequence log probabilities."""
         context = torch.no_grad() if no_grad else contextlib.nullcontext()
 
         # Determine which device this model lives on
@@ -251,33 +243,34 @@ class DPOTrainer:
             prompt_len,
         )
 
-        # Always return log-probs on the policy device so DPO loss computation is consistent
+        # return log probs on policy device for consistent dpo loss computation
         return chosen_logps.to(self.device), rejected_logps.to(self.device)
 
     def train(self, train_dataset_path: str | Path, eval_dataset_path: str | Path | None = None) -> dict[str, Any]:
-        import wandb
-
-        run = wandb.init(
-            project=self.wandb_project,
-            entity=self.wandb_entity,
-            name=self.wandb_run_name,
-            group="dpo_training",
-            job_type="train",
-            config={
-                "model_name": self.model_name,
-                "beta": self.beta,
-                "learning_rate": self.learning_rate,
-                "num_epochs": self.num_epochs,
-                "batch_size": self.batch_size,
-                "warmup_steps": self.warmup_steps,
-                "max_length": self.max_length,
-                "use_lora": self.use_lora,
-                "lora_rank": self.lora_rank,
-                "lora_alpha": self.lora_alpha,
-                "lora_dropout": self.lora_dropout,
-                "trainer": "dpo",
-            },
-        )
+        use_wandb = False
+        run = None
+        try:
+            import wandb
+            run = wandb.init(
+                project=self.wandb_project,
+                entity=self.wandb_entity,
+                name=self.wandb_run_name,
+                group="dpo_training",
+                job_type="train",
+                config={
+                    "model_name": self.model_name,
+                    "beta": self.beta,
+                    "learning_rate": self.learning_rate,
+                    "num_epochs": self.num_epochs,
+                    "batch_size": self.batch_size,
+                    "use_lora": self.use_lora,
+                    "lora_rank": self.lora_rank,
+                    "trainer": "dpo",
+                },
+            )
+            use_wandb = True
+        except Exception:
+            logger.warning("wandb not available, logging to file only")
 
         try:
             dataset = PreferenceDataset(train_dataset_path, self.tokenizer, self.max_length)
@@ -311,11 +304,11 @@ class DPOTrainer:
                 epoch_rejected_r = 0.0
 
                 for batch_idx, batch in enumerate(dataloader):
-                    # Policy forward pass — gradients must flow here
+                    # policy forward pass, gradients must flow here
                     policy_chosen_logps, policy_rejected_logps = self._forward_pass(
                         self.model, batch, no_grad=False
                     )
-                    # Reference forward pass — frozen, no gradients needed
+                    # reference forward pass, frozen, no gradients needed
                     ref_chosen_logps, ref_rejected_logps = self._forward_pass(
                         self.ref_model, batch, no_grad=True
                     )
@@ -323,6 +316,7 @@ class DPOTrainer:
                     loss, chosen_r, rejected_r = self._dpo_loss(
                         policy_chosen_logps, policy_rejected_logps,
                         ref_chosen_logps, ref_rejected_logps,
+                        weights=batch.get("weight"),
                     )
 
                     optimizer.zero_grad()
@@ -343,17 +337,18 @@ class DPOTrainer:
                     train_history["rejected_rewards"].append(rejected_val)
                     global_step += 1
 
-                    wandb.log({
-                        "train/loss": loss_val,
-                        "train/chosen_reward": chosen_val,
-                        "train/rejected_reward": rejected_val,
-                        "train/reward_margin": chosen_val - rejected_val,
-                        "train/learning_rate": scheduler.get_last_lr()[0],
-                    }, step=global_step)
+                    if use_wandb:
+                        wandb.log({
+                            "train/loss": loss_val,
+                            "train/chosen_reward": chosen_val,
+                            "train/rejected_reward": rejected_val,
+                            "train/reward_margin": chosen_val - rejected_val,
+                            "train/learning_rate": scheduler.get_last_lr()[0],
+                        }, step=global_step)
 
                     if (batch_idx + 1) % 10 == 0:
                         logger.info(
-                            "Epoch %d/%d Batch %d/%d Loss: %.4f | chosen_r: %.4f | rejected_r: %.4f",
+                            "epoch %d/%d batch %d/%d loss=%.4f chosen_r=%.4f rejected_r=%.4f",
                             epoch + 1, self.num_epochs, batch_idx + 1, len(dataloader),
                             loss_val, chosen_val, rejected_val,
                         )
@@ -362,36 +357,39 @@ class DPOTrainer:
                 avg_epoch_loss = epoch_loss / n_batches
                 train_history["epoch_losses"].append(avg_epoch_loss)
 
-                wandb.log({
-                    "train/epoch_loss": avg_epoch_loss,
-                    "train/epoch_chosen_reward": epoch_chosen_r / n_batches,
-                    "train/epoch_rejected_reward": epoch_rejected_r / n_batches,
-                    "train/epoch_reward_margin": (epoch_chosen_r - epoch_rejected_r) / n_batches,
-                    "epoch": epoch + 1,
-                }, step=global_step)
+                if use_wandb:
+                    wandb.log({
+                        "train/epoch_loss": avg_epoch_loss,
+                        "train/epoch_chosen_reward": epoch_chosen_r / n_batches,
+                        "train/epoch_rejected_reward": epoch_rejected_r / n_batches,
+                        "train/epoch_reward_margin": (epoch_chosen_r - epoch_rejected_r) / n_batches,
+                        "epoch": epoch + 1,
+                    }, step=global_step)
 
-                logger.info("Epoch %d/%d Average Loss: %.4f", epoch + 1, self.num_epochs, avg_epoch_loss)
+                logger.info("epoch %d/%d avg_loss=%.4f", epoch + 1, self.num_epochs, avg_epoch_loss)
+
+                self.save_checkpoint(self.output_dir / f"epoch_{epoch + 1}")
 
             if eval_dataset_path and Path(eval_dataset_path).exists():
                 eval_results = self.evaluate(eval_dataset_path)
                 train_history["eval_results"] = eval_results
-                wandb.log({
-                    "eval/loss": eval_results["eval_loss"],
-                    "eval/preference_accuracy": eval_results["preference_accuracy"],
-                }, step=global_step)
-                logger.info(
-                    "Eval — loss: %.4f preference_accuracy: %.4f",
-                    eval_results["eval_loss"], eval_results["preference_accuracy"],
-                )
+                if use_wandb:
+                    wandb.log({
+                        "eval/loss": eval_results["eval_loss"],
+                        "eval/preference_accuracy": eval_results["preference_accuracy"],
+                    }, step=global_step)
+                logger.info("eval loss=%.4f pref_acc=%.4f", eval_results["eval_loss"], eval_results["preference_accuracy"])
 
-            wandb.summary.update({
-                "final_train_loss": train_history["epoch_losses"][-1] if train_history["epoch_losses"] else None,
-                "eval_preference_accuracy": train_history.get("eval_results", {}).get("preference_accuracy"),
-                "model_name": self.model_name,
-            })
+            if use_wandb:
+                wandb.summary.update({
+                    "final_train_loss": train_history["epoch_losses"][-1] if train_history["epoch_losses"] else None,
+                    "eval_preference_accuracy": train_history.get("eval_results", {}).get("preference_accuracy"),
+                    "model_name": self.model_name,
+                })
 
         finally:
-            run.finish()
+            if run is not None:
+                run.finish()
 
         return train_history
 
@@ -414,6 +412,7 @@ class DPOTrainer:
             loss, _, _ = self._dpo_loss(
                 policy_chosen_logps, policy_rejected_logps,
                 ref_chosen_logps, ref_rejected_logps,
+                weights=batch.get("weight"),
             )
 
             correct = (policy_chosen_logps > policy_rejected_logps).float().mean()
@@ -436,13 +435,13 @@ class DPOTrainer:
         self.model.save_pretrained(str(checkpoint_dir))
         self.tokenizer.save_pretrained(str(checkpoint_dir))
 
-        logger.info("Model saved to: %s", checkpoint_dir)
+        logger.info("saved: %s", checkpoint_dir)
         return str(checkpoint_dir)
 
     def load_checkpoint(self, checkpoint_dir: str | Path) -> None:
         self.model = AutoModelForCausalLM.from_pretrained(str(checkpoint_dir)).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(str(checkpoint_dir))
-        logger.info("Model loaded from: %s", checkpoint_dir)
+        logger.info("loaded: %s", checkpoint_dir)
 
 
 def train_dpo_model(
@@ -508,7 +507,7 @@ def train_dpo_model(
 
     results_file = output_dir / "training_results.json"
     save_json(results, results_file)
-    logger.info("Training results saved to: %s", results_file)
+    logger.info("saved: %s", results_file)
 
     return results
 

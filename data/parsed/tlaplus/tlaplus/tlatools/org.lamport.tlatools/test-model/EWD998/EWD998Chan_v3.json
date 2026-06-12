@@ -1,0 +1,342 @@
+{
+  "id": null,
+  "Specification": "This TLA+ specification models Shmuel Safra's distributed termination detection algorithm on a ring topology, as described in EWD 998. Unlike the original, this variant represents message channels as sequences, allowing for explicit modeling of message ordering and delivery. The system consists of N nodes, each with a color, activity status, counter, and an inbox for messages, including a circulating token. The algorithm ensures that termination is detected only when all nodes are passive and the token returns to the initiator in a specific state. The specification includes a refinement mapping to a simpler set-based model (EWD998), type invariants, and state constraints to bound the state space for model checking. Temporal properties are specified to ensure correct system evolution, and the spec is designed for TLC model checking with explicit fairness and state/action constraints.",
+  "ModuleName": "EWD998Chan",
+  "ExtendsModules": [
+    "Integers",
+    "Sequences",
+    "FiniteSets",
+    "Utils"
+  ],
+  "InstanceModules": [
+    "EWD998",
+    "TLC"
+  ],
+  "InstanceSubstitutions": [
+    "active <- active",
+    "token <- LET tkn == CHOOSE i \\in 1 .. Len(inbox[tpos]): inbox[tpos][i].type = \"tok\" IN [pos   |-> tpos, q     |-> inbox[tpos][tkn].q, color |-> inbox[tpos][tkn].color]",
+    "pending <- [n \\in Nodes |-> Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "ConstantNames": [
+    "N"
+  ],
+  "VariableNames": [
+    "active",
+    "color",
+    "counter",
+    "inbox"
+  ],
+  "AssumptionNames": [
+    "NAssumption",
+    "LET x == 1 + 1 IN x = 2",
+    "Reduce(LAMBDA a,b : a + b, [i \\in Nodes |-> i], 0, N-1, 0) = 3"
+  ],
+  "TheoremNames": [
+    "THEOREM Spec => EWD998Spec"
+  ],
+  "OperatorDefNames": [
+    "Nodes",
+    "Color",
+    "vars",
+    "TokenMsg",
+    "BasicMsg",
+    "Message",
+    "TypeOK",
+    "Init",
+    "InitiateProbe",
+    "PassToken",
+    "System",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Environment",
+    "Next",
+    "Spec",
+    "NumberOfMsg",
+    "StateConstraint",
+    "tpos",
+    "EWD998",
+    "EWD998Spec",
+    "EWD998Inv",
+    "Stop",
+    "ActionConstraint",
+    "EnabledAlias",
+    "PostCondition"
+  ],
+  "ActionDefNames": [
+    "InitiateProbe",
+    "PassToken",
+    "SendMsg",
+    "RecvMsg",
+    "Deactivate",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "NamesInLet": [
+    "x",
+    "tkn",
+    "ccounter",
+    "T"
+  ],
+  "LambdaParams": [
+    "a",
+    "b",
+    "msg"
+  ],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 0 THEN << [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >> ELSE <<>> (in Init)",
+    "IF color[i] = \"black\" THEN \"black\" ELSE tkn.color (in PassToken)"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{\"white\", \"black\"}",
+    "{\"tok\"}",
+    "{\"pl\"}"
+  ],
+  "SetOperators": [
+    "\\cup",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in Nodes |-> i]",
+    "[Nodes -> Int]",
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Seq(Message)]",
+    "[i \\in Nodes |-> 0]",
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[inbox EXCEPT ![j] = Append(@, [type |-> \"pl\" ] ) ]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[ active EXCEPT ![i] = FALSE]",
+    "[inbox EXCEPT ![i] = RemoveAt(@, j) ]",
+    "[inbox EXCEPT ![N-1] = Append(@, [type |-> \"tok\", q |-> 0, color |-> \"white\"]), ![0] = RemoveAt(@, j) ]",
+    "[ color EXCEPT ![i] = \"white\" ]",
+    "[inbox EXCEPT ![i-1] = Append(@, [tkn EXCEPT !.q = tkn.q + counter[i], !.color = IF color[i] = \"black\" THEN \"black\" ELSE tkn.color]), ![i] = RemoveAt(@, j) ]",
+    "[n \\in Nodes |-> Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "FunctionApplication": [
+    "Reduce(LAMBDA a,b : a + b, [i \\in Nodes |-> i], 0, N-1, 0)",
+    "Append(@, [type |-> \"pl\" ])",
+    "Append(@, [type |-> \"tok\", q |-> 0, color |-> \"white\"])",
+    "RemoveAt(@, j)",
+    "Len(inbox[i])",
+    "Len(inbox[j])",
+    "Len(SelectSeq(ibx, LAMBDA msg: msg.type = \"pl\"))",
+    "SelectSeq(ibx, LAMBDA msg: msg.type = \"pl\")",
+    "SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")",
+    "Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\"))",
+    "T!TLCSet(\"exit\", T!TLCGet(\"distinct\") > 500)",
+    "T!TLCSet(42, T!TLCGet(\"generated\"))",
+    "T!TLCGet(\"distinct\")",
+    "T!TLCGet(\"generated\")"
+  ],
+  "FunctionOverride": [
+    "[ color EXCEPT ![0] = \"white\" ]",
+    "[counter EXCEPT ![i] = @ + 1]",
+    "[counter EXCEPT ![i] = @ - 1]",
+    "[ color EXCEPT ![i] = \"black\" ]",
+    "[ active EXCEPT ![i] = TRUE ]",
+    "[ active EXCEPT ![i] = FALSE]",
+    "[inbox EXCEPT ![j] = Append(@, [type |-> \"pl\" ] ) ]",
+    "[inbox EXCEPT ![i] = RemoveAt(@, j) ]",
+    "[inbox EXCEPT ![N-1] = Append(@, [type |-> \"tok\", q |-> 0, color |-> \"white\"]), ![0] = RemoveAt(@, j) ]",
+    "[inbox EXCEPT ![i-1] = Append(@, [tkn EXCEPT !.q = tkn.q + counter[i], !.color = IF color[i] = \"black\" THEN \"black\" ELSE tkn.color]), ![i] = RemoveAt(@, j) ]"
+  ],
+  "RecordConstructor": [
+    "[type : {\"tok\"}, q : Int, color : Color]",
+    "[type : {\"pl\"}]",
+    "[pos   |-> tpos, q     |-> inbox[tpos][tkn].q, color |-> inbox[tpos][tkn].color]"
+  ],
+  "RecordAccess": [
+    "inbox[i][j].type",
+    "inbox[j][l].type",
+    "inbox[0][j].color",
+    "inbox[0][j].q",
+    "tkn.q",
+    "tkn.color",
+    "inbox[tpos][i].type",
+    "inbox[tpos][tkn].q",
+    "inbox[tpos][tkn].color",
+    "msg.type"
+  ],
+  "TupleConstructor": [
+    "<<active, color, counter, inbox>>",
+    "<< [type |-> \"tok\", q |-> 0, color |-> \"black\" ] >>",
+    "<<>>"
+  ],
+  "SequenceOps": [
+    "Seq",
+    "Append",
+    "Len",
+    "SelectSeq"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<"
+  ],
+  "RangeExpr": [
+    "0 .. N-1",
+    "1..Len(inbox[i])",
+    "1 .. Len(inbox[i])",
+    "1 .. Len(inbox[j])",
+    "1..Len(inbox[0])",
+    "1 .. Len(inbox[tpos])"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE i \\in Nodes : \\E j \\in 1..Len(inbox[i]) : inbox[i][j].type = \"tok\"",
+    "CHOOSE i \\in 1 .. Len(inbox[tpos]): inbox[tpos][i].type = \"tok\""
+  ],
+  "StringLiterals": [
+    "white",
+    "black",
+    "tok",
+    "pl",
+    "exit"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "active",
+    "color",
+    "counter",
+    "inbox"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "EnabledExprs": [
+    "ENABLED InitiateProbe",
+    "ENABLED PassToken",
+    "ENABLED SendMsg(i)",
+    "ENABLED RecvMsg(i)",
+    "ENABLED Deactivate(i)"
+  ],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(System)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(System)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [
+    "/\\ \\A i \\in DOMAIN inbox : NumberOfMsg(inbox[i]) < 2\n  /\\ \\A i \\in DOMAIN inbox : Len(inbox[i]) < 2\n  /\\ \\A i \\in DOMAIN counter : counter[i] < 2"
+  ],
+  "ActionConstraint": [
+    "counter \\in [Nodes -> Int]"
+  ],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LocalOperatorNames | Change: Removed [\"ccounter\", \"T\"] | Reason: These are LET-bound names, not local parametric operator definitions; they should not appear in LocalOperatorNames.\nField: FunctionOverride | Change: Removed duplicate \"[ color EXCEPT ![i] = \\\"white\\\" ]\" | Reason: This entry appeared twice; only distinct patterns should be present.\n```",
+  "OperatorDefNames_StatePredicate": [
+    "TypeOK",
+    "StateConstraint"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Spec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Nodes",
+    "Color",
+    "vars",
+    "TokenMsg",
+    "BasicMsg",
+    "Message",
+    "NumberOfMsg",
+    "tpos",
+    "EWD998",
+    "EWD998Spec",
+    "EWD998Inv",
+    "Stop",
+    "ActionConstraint",
+    "EnabledAlias",
+    "PostCondition"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in Nodes |-> i]",
+    "[i \\in Nodes |-> 0]",
+    "[n \\in Nodes |-> Len(SelectSeq(inbox[n], LAMBDA msg: msg.type = \"pl\")) ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[Nodes -> Int]",
+    "[Nodes -> BOOLEAN]",
+    "[Nodes -> Color]",
+    "[Nodes -> Seq(Message)]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED <<active, counter>>",
+    "UNCHANGED <<active, color>>",
+    "UNCHANGED <<color, inbox, counter>>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED <<>>"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/EWD998Chan/EWD998Chan.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(1) + Init(1) + ValueDef(14) + ActionDefNames(6) = 24 = OperatorDefNames total. Verified.",
+    "Spec is placed in TemporalProperty because its body is Init /\\ [][Next]_vars /\\ WF_vars(System), which is a temporal formula.",
+    "All FunctionConstructor entries not in ByDomain are [S -> T] forms.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UNCHANGED <<>> is treated as an explicit (empty) tuple for UnchangedExprs_VarRef."
+  ]
+}

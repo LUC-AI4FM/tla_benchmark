@@ -1,0 +1,311 @@
+{
+  "id": null,
+  "Specification": "This module models a bounded multi-producer, multi-consumer Disruptor-style ring buffer. Producers claim sequence numbers, write their claimed sequence into a shared ring buffer, and publish availability; consumers read published entries in multicast fashion so that every consumer should eventually observe every published value. The specification checks absence of producer-consumer data races via an instantiated RingBuffer module, basic typing and bounded-state constraints, and a liveness property stating that for every reader and every publishable index below the bound, eventually always: if that index is available, then the reader has that value recorded at the corresponding position in its consumption history.",
+  "ModuleName": "Disruptor_MPMC",
+  "ExtendsModules": [
+    "Integers",
+    "FiniteSets",
+    "Sequences"
+  ],
+  "InstanceModules": [
+    "RingBuffer"
+  ],
+  "InstanceSubstitutions": [
+    "Values <- Int"
+  ],
+  "ConstantNames": [
+    "MaxPublished",
+    "Writers",
+    "Readers",
+    "Size",
+    "NULL"
+  ],
+  "VariableNames": [
+    "ringbuffer",
+    "next_sequence",
+    "claimed_sequence",
+    "published",
+    "read",
+    "pc",
+    "consumed"
+  ],
+  "AssumptionNames": [
+    "Writers /= {}",
+    "Readers /= {}",
+    "Size         \\in Nat \\ {0}",
+    "MaxPublished \\in Nat \\ {0}"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "vars",
+    "Access",
+    "Advance",
+    "Transition",
+    "Buffer",
+    "Xor",
+    "Range",
+    "MinReadSequence",
+    "MinClaimedSequence",
+    "IsPublished",
+    "Publish",
+    "AvailablePublishedSequence",
+    "BeginWrite",
+    "EndWrite",
+    "BeginRead",
+    "EndRead",
+    "Init",
+    "Next",
+    "Fairness",
+    "Spec",
+    "StateConstraint",
+    "NoDataRaces",
+    "TypeOk",
+    "Liveliness"
+  ],
+  "ActionDefNames": [
+    "Transition",
+    "Publish",
+    "BeginWrite",
+    "EndWrite",
+    "BeginRead",
+    "EndRead",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "index",
+    "round",
+    "is_even",
+    "guaranteed_published",
+    "candidate_sequences",
+    "seq",
+    "min_read",
+    "next"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [
+    "TRUE",
+    "FALSE"
+  ],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "/="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{}",
+    "{0}",
+    "{guaranteed_published}",
+    "{ TRUE, FALSE }"
+  ],
+  "SetOperators": [
+    "\\union",
+    "\\",
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ pc EXCEPT ![t] = to ]",
+    "[ published EXCEPT ![index] = Xor(TRUE, @) ]",
+    "[ claimed_sequence EXCEPT ![writer] = seq ]",
+    "[ consumed EXCEPT ![reader] = Append(@, Buffer!Read(index)) ]",
+    "[ read EXCEPT ![reader] = next ]",
+    "[ w \\in Writers                |-> -1      ]",
+    "[ i \\in 0..Buffer!LastIndex    |-> FALSE   ]",
+    "[ r \\in Readers                |-> -1      ]",
+    "[ r \\in Readers                |-> << >>   ]",
+    "[ a \\in Writers \\union Readers |-> Advance ]",
+    "[ Writers                -> Int                 ]",
+    "[ 0..Buffer!LastIndex    -> { TRUE, FALSE }     ]",
+    "[ Readers                -> Int                 ]",
+    "[ Readers                -> Seq(Nat)            ]",
+    "[ Writers \\union Readers -> { Access, Advance } ]"
+  ],
+  "FunctionApplication": [
+    "pc[t]",
+    "f[x]",
+    "read[r]",
+    "claimed_sequence[w]",
+    "published[index]",
+    "claimed_sequence[writer]",
+    "read[reader]",
+    "consumed[r]",
+    "consumed[r][i + 1]"
+  ],
+  "FunctionOverride": [
+    "[ pc EXCEPT ![t] = to ]",
+    "[ published EXCEPT ![index] = Xor(TRUE, @) ]",
+    "[ claimed_sequence EXCEPT ![writer] = seq ]",
+    "[ consumed EXCEPT ![reader] = Append(@, Buffer!Read(index)) ]",
+    "[ read EXCEPT ![reader] = next ]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [],
+  "TupleConstructor": [
+    "<<\n  ringbuffer,\n  next_sequence,\n  claimed_sequence,\n  published,\n  read,\n  consumed,\n  pc\n>>",
+    "<< >>",
+    "<< consumed, published, read >>",
+    "<< claimed_sequence, next_sequence, consumed, read >>",
+    "<< claimed_sequence, next_sequence, published, read >>",
+    "<< claimed_sequence, next_sequence, consumed, published >>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Seq",
+    "Len"
+  ],
+  "ArithmeticOps": [
+    "-",
+    "+",
+    "\\div",
+    "%"
+  ],
+  "ComparisonOps": [
+    "<=",
+    ">="
+  ],
+  "RangeExpr": [
+    "0..Buffer!LastIndex",
+    "0..(MaxPublished - 1)",
+    "0..AvailablePublishedSequence"
+  ],
+  "ChoiceExpr": [
+    "CHOOSE min \\in Range(read) :\n    \\A r \\in Readers : min <= read[r]",
+    "CHOOSE min \\in Range(claimed_sequence) :\n    \\A w \\in Writers : min <= claimed_sequence[w]",
+    "CHOOSE max \\in candidate_sequences :\n        IsPublished(max) => ~ \\E w \\in Writers :\n          /\\ claimed_sequence[w] = max + 1\n          /\\ IsPublished(claimed_sequence[w])"
+  ],
+  "StringLiterals": [
+    "Access",
+    "Advance"
+  ],
+  "ArithmeticModules": [
+    "Integers"
+  ],
+  "DataStructureModules": [
+    "FiniteSets",
+    "Sequences"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "pc",
+    "published",
+    "claimed_sequence",
+    "next_sequence",
+    "consumed",
+    "read"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << consumed, published, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, consumed, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, published, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, consumed, published >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(BeginRead(r))",
+    "WF_vars(EndRead(r))"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars"
+  ],
+  "EventuallyOp": [
+    "<>[] (i \\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)"
+  ],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "\\A r \\in Readers : WF_vars(BeginRead(r))",
+    "\\A r \\in Readers : WF_vars(EndRead(r))"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: added `Buffer` | Reason: top-level `==` definition count mismatch; file count = 24, JSON count = 23 before correction\nField: NamesInLet | Change: renamed field to `LetInNames` | Reason: correctness; requested schema uses `LetInNames`, and these are LET-bound names\nField: AlwaysOp | Change: removed `[] (i \\\\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\\\ consumed[r][i + 1] = i)` | Reason: does not appear in file; liveness formula is `<>[](...)` with outermost eventuality, not a standalone always formula\nField: ProofCommands | Change: removed `ASSUME` | Reason: `ASSUME` blocks are declarations here, not proof commands; value does not belong in this field\nField: Specification | Change: revised wording to describe liveness as `eventually always` rather than `once that index is available ... eventually always` | Reason: align summary with actual outermost temporal structure `<>[](...)`\nField: Completeness | Change: verified operator counts | Reason: file count = 24, JSON OperatorDefNames count = 24 after correction",
+  "OperatorDefNames_StatePredicate": [
+    "Xor",
+    "IsPublished",
+    "StateConstraint",
+    "NoDataRaces",
+    "TypeOk"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Fairness",
+    "Spec",
+    "Liveliness"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "vars",
+    "Access",
+    "Advance",
+    "Buffer",
+    "Range",
+    "MinReadSequence",
+    "MinClaimedSequence",
+    "AvailablePublishedSequence"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ w \\in Writers                |-> -1      ]",
+    "[ i \\in 0..Buffer!LastIndex    |-> FALSE   ]",
+    "[ r \\in Readers                |-> -1      ]",
+    "[ r \\in Readers                |-> << >>   ]",
+    "[ a \\in Writers \\union Readers |-> Advance ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ Writers                -> Int                 ]",
+    "[ 0..Buffer!LastIndex    -> { TRUE, FALSE }     ]",
+    "[ Readers                -> Int                 ]",
+    "[ Readers                -> Seq(Nat)            ]",
+    "[ Writers \\union Readers -> { Access, Advance } ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << consumed, published, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, consumed, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, published, read >>",
+    "UNCHANGED << claimed_sequence, next_sequence, consumed, published >>"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/Disruptor_MPMC/Disruptor_MPMC.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(5) + TemporalProperty(3) + Init(1) + ValueDef(8) + ActionDefNames(7) = OperatorDefNames(24). Verified.",
+    "Liveliness is a temporal property because its body contains the explicit nested temporal formula `<>[](i \\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)`.",
+    "TemporalNesting is true. Exact line: `    <>[](i \\in 0..AvailablePublishedSequence => Len(consumed[r]) >= i + 1 /\\ consumed[r][i + 1] = i)`.",
+    "NoDataRaces is placed in StatePredicate because it is a Boolean-valued current-state predicate defined as `Buffer!NoDataRaces` with no primed variables or temporal operators.",
+    "ValueDef by elimination: vars, Access, Advance, Buffer, Range, MinReadSequence, MinClaimedSequence, AvailablePublishedSequence.",
+    "UnchangedExprs_VarRef is empty because all UNCHANGED expressions in this file are explicit tuple forms; there is no `UNCHANGED vars` occurrence.",
+    "FunctionConstructor is partitioned into ByDomain and SetType only; EXCEPT forms are excluded from the sub-fields because they are function overrides, not `[x \\in S |-> e]` or `[S -> T]` constructors."
+  ]
+}

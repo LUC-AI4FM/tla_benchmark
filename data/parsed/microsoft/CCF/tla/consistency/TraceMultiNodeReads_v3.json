@@ -1,0 +1,272 @@
+{
+  "id": null,
+  "Specification": "This module defines a trace-validation wrapper around a separate MultiNodeReads specification. It reads a JSON trace log, steps through it line by line using a local variable l, and constrains system actions so that each modeled action must match the next logged event, while also permitting preparatory backfilling steps that do not advance the log. The specification additionally asserts an environment assumption for TLC execution in breadth-first, single-worker mode, defines a temporal trace-following spec over <<l, vars>>, and includes temporal properties intended to detect whether the entire trace was matched and whether that matching was non-trivial.",
+  "ModuleName": "TraceMultiNodeReads",
+  "ExtendsModules": [
+    "MultiNodeReads",
+    "Json",
+    "IOUtils",
+    "Sequences",
+    "SequencesExt"
+  ],
+  "InstanceModules": [
+    "MultiNodeReads"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [
+    "l"
+  ],
+  "AssumptionNames": [
+    "TLCGet(\"config\").mode = \"bfs\" /\\ TLCGet(\"config\").worker = 1 /\\ TLCSet(0, 0)"
+  ],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "Stats",
+    "JsonFile",
+    "JsonLog",
+    "TraceInit",
+    "logline",
+    "ToTxType",
+    "ToStatus",
+    "IsEvent",
+    "IsRwTxRequestAction",
+    "IsRwTxExecuteAction",
+    "IsRwTxResponseAction",
+    "IsStatusCommittedResponseAction",
+    "IsRoTxRequestAction",
+    "IsRoTxResponseAction",
+    "IsStatusInvalidResponseAction",
+    "PreEvent",
+    "BackfillLedgerBranch",
+    "BackfillLedgerBranchForWrite",
+    "BackfillLedgerBranchForRead",
+    "BackfillLedgerBranches",
+    "TraceNext",
+    "TraceSpec",
+    "Termination",
+    "TraceMatched",
+    "TraceMatchedNonTrivially",
+    "MNR",
+    "MNRSpec",
+    "ClientTxnsOnlyAlias"
+  ],
+  "ActionDefNames": [
+    "IsEvent",
+    "IsRwTxRequestAction",
+    "IsRwTxExecuteAction",
+    "IsRwTxResponseAction",
+    "IsStatusCommittedResponseAction",
+    "IsRoTxRequestAction",
+    "IsRoTxResponseAction",
+    "IsStatusInvalidResponseAction",
+    "PreEvent",
+    "BackfillLedgerBranch",
+    "BackfillLedgerBranchForWrite",
+    "BackfillLedgerBranchForRead",
+    "BackfillLedgerBranches",
+    "TraceNext"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "view",
+    "seqno"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [],
+  "BooleanConstants": [
+    "TRUE"
+  ],
+  "Quantifiers": [
+    "\\in"
+  ],
+  "EqualityOps": [
+    "="
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF \"JSON\" \\in DOMAIN IOEnv THEN IOEnv.JSON ELSE \"trace.ndjson\""
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [
+    "{l', TLCGet(0)}",
+    "{0}"
+  ],
+  "SetOperators": [
+    "DOMAIN",
+    "\\"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ b \\in DOMAIN ledgerBranches |-> [ e \\in { i \\in DOMAIN ledgerBranches[b] : \"tx\" \\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ] ]",
+    "[ e \\in { i \\in DOMAIN ledgerBranches[b] : \"tx\" \\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ]"
+  ],
+  "FunctionApplication": [
+    "TLCGet(0)",
+    "TLCGet(\"config\")",
+    "ToTxType[logline.type]",
+    "ToStatus[logline.status]",
+    "ledgerBranches[logline.tx_id[1]]",
+    "logline.tx_id[1]",
+    "logline.tx_id[2]",
+    "ledgerBranches[view]",
+    "ledgerBranches[b]",
+    "ledgerBranches[b][i]",
+    "ledgerBranches[b][e]",
+    "TLCGet(\"queue\")"
+  ],
+  "FunctionOverride": [
+    "[ledgerBranches EXCEPT ![view] = Append(@, [view |-> view])]"
+  ],
+  "RecordConstructor": [
+    "[view |-> view]",
+    "[l |-> l, history |-> history, ledgerBranches |-> [ b \\in DOMAIN ledgerBranches |-> [ e \\in { i \\in DOMAIN ledgerBranches[b] : \"tx\" \\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ] ]]"
+  ],
+  "RecordAccess": [
+    "IOEnv.JSON",
+    "logline.action",
+    "logline.type",
+    "logline.tx",
+    "logline.tx_id",
+    "logline.status"
+  ],
+  "TupleConstructor": [
+    "<<\"VARIABLE l (TLCGet(0))\", TLCGet(0)>>",
+    "<<l, vars>>"
+  ],
+  "SequenceOps": [
+    "Append",
+    "Len",
+    "Last"
+  ],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [
+    "<",
+    "<=",
+    ">",
+    ">="
+  ],
+  "RangeExpr": [
+    "1..Len(JsonLog)"
+  ],
+  "ChoiceExpr": [],
+  "StringLiterals": [
+    "VARIABLE l (TLCGet(0))",
+    "config",
+    "bfs",
+    "JSON",
+    "trace.ndjson",
+    "RwTxRequest",
+    "RwTxResponse",
+    "TxStatusReceived",
+    "RoTxRequest",
+    "RoTxResponse",
+    "CommittedStatus",
+    "InvalidStatus",
+    "RwTxRequestAction",
+    "RwTxExecuteAction",
+    "RwTxResponseAction",
+    "StatusCommittedResponseAction",
+    "RoTxRequestAction",
+    "RoTxResponseAction",
+    "StatusInvalidResponseAction",
+    "exit",
+    "queue",
+    "tx"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [
+    "Sequences",
+    "SequencesExt"
+  ],
+  "ToolingModules": [],
+  "PrimedVariables": [
+    "l",
+    "history",
+    "ledgerBranches"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED history"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][TraceNext]_<<l, vars>>"
+  ],
+  "AlwaysOp": [
+    "[][TraceNext]_<<l, vars>>",
+    "[](l <= Len(JsonLog) => [](TLCGet(\"queue\") \\in Nat \\ {0} \\/ l > Len(JsonLog)))",
+    "[](TLCGet(\"queue\") \\in Nat \\ {0} \\/ l > Len(JsonLog))"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: OperatorDefNames | Change: Verified complete and unchanged; top-level operator count = 28, JSON count = 28 | Reason: Phase 2 completeness check passed\nField: NamesInLet -> LetInNames | Change: Renamed field and preserved entries [\"view\", \"seqno\"] | Reason: Phase 3 requires LET-bound names in LetInNames, and NamesInLet is not the expected field\nField: BooleanConstants | Change: Removed \"FALSE\" | Reason: File contains only TRUE as a boolean constant; BooleanConstants must contain only literals that actually appear\nField: Quantifiers | Change: Added \"\\\\in\" | Reason: Bound-variable constructs appear in set comprehensions and function constructors\nField: IfThenElse | Change: Replaced `IF \"JSON\" \\\\in DOMAIN IOEnv THEN IOEnv.JSON ELSE \"trace.ndjson\" (in JsonFile)` with `IF \"JSON\" \\\\in DOMAIN IOEnv THEN IOEnv.JSON ELSE \"trace.ndjson\"` | Reason: Field must contain the expression that appears in the file, not added annotation text\nField: FunctionConstructor | Change: Removed \"[ledgerBranches EXCEPT ![view] = Append(@, [view |-> view])]\" | Reason: EXCEPT form is a function override, not a function constructor\nField: FunctionApplication | Change: Added `TLCGet(\"queue\")` | Reason: This function application appears in TraceMatched and was missing\nField: RecordAccess | Change: Removed `history'.type`, `history'.tx`, `history'.tx_id`, `history'.status` | Reason: These verbatim record-access expressions do not appear in the file; the file contains `Last(history').type`, etc.\nField: RecordConstructor | Change: Corrected final record literal to exactly `[l |-> l, history |-> history, ledgerBranches |-> [ b \\\\in DOMAIN ledgerBranches |-> [ e \\\\in { i \\\\in DOMAIN ledgerBranches[b] : \"tx\" \\\\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ] ]]` | Reason: Previous value had mismatched closing delimiters and did not match the file verbatim\nField: SequenceOps | Change: Replaced `Head`, `Tail` with `Last` | Reason: File uses Last and does not use Head or Tail\nField: DataStructureModules | Change: Added `SequencesExt` | Reason: Module extends SequencesExt and this field was incomplete\nField: ProofCommands | Change: Removed `ASSUME` | Reason: ASSUME is used as a specification construct, not a proof command, and there are no proof commands in the file",
+  "OperatorDefNames_StatePredicate": [
+    "Termination",
+    "TraceMatchedNonTrivially"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "TraceSpec",
+    "TraceMatched"
+  ],
+  "OperatorDefNames_Init": [
+    "TraceInit"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "Stats",
+    "JsonFile",
+    "JsonLog",
+    "logline",
+    "ToTxType",
+    "ToStatus",
+    "MNR",
+    "MNRSpec",
+    "ClientTxnsOnlyAlias"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ b \\in DOMAIN ledgerBranches |-> [ e \\in { i \\in DOMAIN ledgerBranches[b] : \"tx\" \\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ] ]",
+    "[ e \\in { i \\in DOMAIN ledgerBranches[b] : \"tx\" \\in DOMAIN ledgerBranches[b][i] } |-> ledgerBranches[b][e] ]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED history"
+  ],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": true,
+  "CorpusSource": "specifications/TraceMultiNodeReads/TraceMultiNodeReads.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "Partition count: StatePredicate(2) + TemporalProperty(2) + Init(1) + ValueDef(9) + ActionDefNames(14) = OperatorDefNames(28). Verified.",
+    "TraceMatched is placed in TemporalProperty because its body is headed by [] and also contains an inner [] under implication.",
+    "TemporalNesting is true. Exact line: [](l <= Len(JsonLog) => [](TLCGet(\"queue\") \\in Nat \\ {0} \\/ l > Len(JsonLog)))",
+    "Termination is classified as a StatePredicate because it is Boolean-valued and contains no primed variables or temporal operators, even though it calls TLCSet.",
+    "All FunctionConstructor entries are [x \\in S |-> e] forms; FunctionConstructor_SetType is empty.",
+    "ValueDef by elimination: Stats, JsonFile, JsonLog, logline, ToTxType, ToStatus, MNR, MNRSpec, ClientTxnsOnlyAlias."
+  ]
+}

@@ -1,0 +1,322 @@
+{
+  "id": null,
+  "Specification": "This module specifies a lower-level worker-node implementation for SwarmKit that refines a higher-level worker specification by explicitly modelling container state in addition to task state. It models worker and environment actions such as task creation and updates, manager synchronisation, container shutdown and exit, node connectivity changes, orphaning tasks when a node stays down, and worker reboot. The spec verifies that the implementation implies the higher-level worker behavior and includes temporal properties with weak fairness on agent progress actions; it also contains a theorem explaining why proving the implementation and system properties in two stages is sufficient.",
+  "ModuleName": "WorkerImpl",
+  "ExtendsModules": [
+    "TLC",
+    "Types",
+    "Tasks",
+    "EventCounter"
+  ],
+  "InstanceModules": [
+    "WorkerSpec"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [
+    "node"
+  ],
+  "VariableNames": [
+    "nodes",
+    "containers"
+  ],
+  "AssumptionNames": [
+    "node \\in Node"
+  ],
+  "TheoremNames": [
+    "ASSUME TEMPORAL SwarmKit, TEMPORAL WorkerSpec,\n               TEMPORAL WorkerImpl, TEMPORAL EventuallyAsDesired,\n               TEMPORAL Env,  \\* A simplified version of SwarmKit\n               SwarmKit /\\ WorkerSpec => EventuallyAsDesired,\n               Env /\\ WorkerImpl => WorkerSpec,\n               SwarmKit => Env\n        PROVE  SwarmKit /\\ WorkerImpl => EventuallyAsDesired"
+  ],
+  "OperatorDefNames": [
+    "WS",
+    "terminating",
+    "ContainerState",
+    "ContainerExit",
+    "ShutdownComplete",
+    "IsUp",
+    "DesiredContainers",
+    "RequiredTaskUpdates",
+    "DoSync",
+    "ProgressTask",
+    "SyncWithManager",
+    "RejectTask",
+    "WorkerDown",
+    "WorkerUp",
+    "TasksOwnedByNode",
+    "OrphanTasks",
+    "WorkerReboot",
+    "AgentProgress",
+    "Agent",
+    "CreateTask",
+    "CreateTaskQuick",
+    "UpdateTask",
+    "RemoveTask",
+    "OtherComponent",
+    "vars",
+    "Init",
+    "Next",
+    "Impl",
+    "TypeOK",
+    "wsVars",
+    "WSSpec"
+  ],
+  "ActionDefNames": [
+    "ContainerExit",
+    "ShutdownComplete",
+    "DoSync",
+    "ProgressTask",
+    "SyncWithManager",
+    "RejectTask",
+    "WorkerDown",
+    "WorkerUp",
+    "OrphanTasks",
+    "WorkerReboot",
+    "AgentProgress",
+    "Agent",
+    "CreateTask",
+    "CreateTaskQuick",
+    "UpdateTask",
+    "RemoveTask",
+    "OtherComponent",
+    "Next"
+  ],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [
+    "WantShutdown(id)",
+    "ReportFor(t)"
+  ],
+  "NamesInLet": [
+    "WantShutdown",
+    "rm",
+    "oldTasks",
+    "ReportFor",
+    "t2",
+    "affected",
+    "state"
+  ],
+  "LambdaParams": [],
+  "Implication": [
+    "=>"
+  ],
+  "Negation": [
+    "~"
+  ],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "\\A",
+    "\\E"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in",
+    "\\notin"
+  ],
+  "IfThenElse": [
+    "IF containers[id] = running /\\ WantShutdown(id) THEN terminating ELSE containers[id]",
+    "IF Id(t) \\notin DOMAIN containers THEN shutdown ELSE IF /\\ containers[Id(t)] = failed /\\ t.desired_state = shutdown THEN shutdown ELSE IF containers[Id(t)] = terminating THEN running ELSE containers[Id(t)]",
+    "IF /\\ containers[Id(t)] = failed /\\ t.desired_state = shutdown THEN shutdown ELSE IF containers[Id(t)] = terminating THEN running ELSE containers[Id(t)]",
+    "IF containers[Id(t)] = terminating THEN running ELSE containers[Id(t)]",
+    "IF s2 = running THEN containers' = Id(t) :> running @@ containers ELSE UNCHANGED containers",
+    "IF State(t2) = assigned /\\ t.node = unassigned THEN t2.node \\in Node ELSE t2.node = t.node"
+  ],
+  "CaseExpr": [
+    "CASE state \\in {running, terminating} -> failed\n                             [] state \\in {complete, failed}     -> state"
+  ],
+  "SetEnumeration": [
+    "{ running, terminating, complete, failed }",
+    "{failed, complete}",
+    "{ complete, failed }",
+    "{  \\* Possible ``progress'' (desirable) transitions\n             << assigned, accepted >>,\n             << accepted, preparing >>,\n             << preparing, ready >>,\n             << ready, starting >>,\n             << starting, running >>\n           }",
+    "{ assigned, accepted, preparing, ready, starting }",
+    "{running, terminating}",
+    "{complete, failed}",
+    "{ ready, running }",
+    "{global}",
+    "{}",
+    "{t}",
+    "{global}"
+  ],
+  "SetOperators": [
+    "DOMAIN",
+    "\\",
+    "\\union",
+    "SUBSET"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[ id \\in DOMAIN containers \\ rm |->\n           IF containers[id] = running /\\ WantShutdown(id) THEN terminating\n           ELSE containers[id]\n     ]",
+    "[ t \\in oldTasks |-> [ t EXCEPT !.status.state = ReportFor(t) ]]",
+    "[ id \\in DOMAIN containers |->\n                       LET state == containers[id]\n                       IN  CASE state \\in {running, terminating} -> failed\n                             [] state \\in {complete, failed}     -> state\n                   ]",
+    "[ n \\in Node |-> WS!nodeUp ]",
+    "[ DOMAIN containers -> ContainerState ]",
+    "[ t \\in affected |->\n                         [t EXCEPT !.status.state = orphaned] ]"
+  ],
+  "FunctionApplication": [
+    "WS!IsUp(n)",
+    "containers[id]",
+    "Id(t)",
+    "State(t)",
+    "Transitions[actor]"
+  ],
+  "FunctionOverride": [
+    "[containers EXCEPT ![id] = s2]",
+    "[containers EXCEPT ![id] = failed]",
+    "[ t EXCEPT !.status.state = ReportFor(t) ]",
+    "[t EXCEPT !.status.state = s2]",
+    "[nodes EXCEPT ![n] = WS!nodeDown]",
+    "[t EXCEPT !.status.state = rejected]",
+    "[nodes EXCEPT ![n] = WS!nodeUp]",
+    "[t EXCEPT !.status.state = orphaned]"
+  ],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "t.node",
+    "t.desired_state",
+    "t.slot",
+    "t.service",
+    "Transitions.reaper"
+  ],
+  "TupleConstructor": [
+    "<< nodes, tasks >>",
+    "<< nodes, tasks, nEvents >>",
+    "<< State(t), State(t2) >>",
+    "<< nodes, containers >>",
+    "<< tasks, containers >>",
+    "<< nodes, containers, nEvents >>",
+    "<< tasks, nEvents, nodes, containers >>",
+    "<< >>",
+    "<< tasks, nEvents, nodes >>",
+    "<< State(t), null >>"
+  ],
+  "SequenceOps": [],
+  "ArithmeticOps": [],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE t \\in tasks : Id(t) = id"
+  ],
+  "StringLiterals": [
+    "terminating",
+    "agent"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [
+    "TLC"
+  ],
+  "PrimedVariables": [
+    "containers",
+    "nodes",
+    "tasks"
+  ],
+  "UnchangedExprs": [
+    "UNCHANGED << nodes, tasks >>",
+    "UNCHANGED << nodes, tasks, nEvents >>",
+    "UNCHANGED << nodes, nEvents >>",
+    "UNCHANGED containers",
+    "UNCHANGED << nodes, containers >>",
+    "UNCHANGED << tasks, containers >>",
+    "UNCHANGED << nodes, containers, nEvents >>",
+    "UNCHANGED << containers, nEvents, nodes >>",
+    "UNCHANGED << nEvents, containers, tasks >>"
+  ],
+  "EnabledExprs": [],
+  "TemporalSubscript": [
+    "[][Next]_vars",
+    "WF_vars(AgentProgress)",
+    "[][WS!Agent \\/ OtherComponent]_wsVars",
+    "WF_wsVars(WS!AgentProgress)"
+  ],
+  "AlwaysOp": [
+    "[][Next]_vars",
+    "[][WS!Agent \\/ OtherComponent]_wsVars"
+  ],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [
+    "WF_vars(AgentProgress)",
+    "WF_wsVars(WS!AgentProgress)"
+  ],
+  "ProofHints": [],
+  "ProofCommands": [
+    "OBVIOUS",
+    "ASSUME",
+    "PROVE"
+  ],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [
+    "ASSUME TEMPORAL SwarmKit, TEMPORAL WorkerSpec,\n               TEMPORAL WorkerImpl, TEMPORAL EventuallyAsDesired,\n               TEMPORAL Env,  \\* A simplified version of SwarmKit\n               SwarmKit /\\ WorkerSpec => EventuallyAsDesired,\n               Env /\\ WorkerImpl => WorkerSpec,\n               SwarmKit => Env\n        PROVE  SwarmKit /\\ WorkerImpl => EventuallyAsDesired"
+  ],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "advanced",
+  "_changelog": "CHANGE LOG\nField: LocalOperatorNames | Change: Replaced `WantShutdown`, `ReportFor` with `WantShutdown(id)`, `ReportFor(t)` | Reason: LocalOperatorNames must contain only parametric LET definitions in `name(args)` form.\nField: IfThenElse | Change: Removed non-verbatim context suffixes like `(in DesiredContainers)` and kept only the expressions | Reason: Values must appear in the TLA+ file; contextual annotations do not.\nField: CaseExpr | Change: Replaced annotated entry with verbatim CASE expression from `WorkerReboot` | Reason: JSON value must literally appear in the file.\nField: SetEnumeration | Change: Added `{t}` | Reason: Distinct set enumeration appears in `tasks' = tasks \\ {t}`.\nField: SetEnumeration | Change: Added duplicate literal `{global}` as present in file occurrences retained by extractor normalization | Reason: Value appears in file; kept consistent with extracted set forms.\nField: FunctionOverride | Change: Normalized `[t EXCEPT !.status.state = ReportFor(t)]` to `[ t EXCEPT !.status.state = ReportFor(t) ]` | Reason: Must match verbatim occurrence in the file.\nField: RecordAccess | Change: Removed `desired_state` and `status.state` | Reason: These do not appear verbatim as standalone record accesses in the file.\nField: RecordAccess | Change: Added `Transitions.reaper` | Reason: Literal record access appears in `RemoveTask`.\nField: SetOperators | Change: No correction applied despite Phase 1 rule | Reason: V1 issue detected: `SUBSET` belongs in `SetOperators` for this extraction schema conflict with prompt rule noted; left unchanged to preserve file vocabulary.\nField: OperatorDefNames | Change: Verified count matches top-level definitions: file count = 31, JSON count = 31 | Reason: Completeness check passed.",
+  "OperatorDefNames_StatePredicate": [
+    "IsUp",
+    "TasksOwnedByNode",
+    "TypeOK"
+  ],
+  "OperatorDefNames_TemporalProperty": [
+    "Impl",
+    "WSSpec"
+  ],
+  "OperatorDefNames_Init": [
+    "Init"
+  ],
+  "OperatorDefNames_ValueDef": [
+    "WS",
+    "terminating",
+    "ContainerState",
+    "DesiredContainers",
+    "RequiredTaskUpdates",
+    "vars",
+    "wsVars"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[ id \\in DOMAIN containers \\ rm |->\n           IF containers[id] = running /\\ WantShutdown(id) THEN terminating\n           ELSE containers[id]\n     ]",
+    "[ t \\in oldTasks |-> [ t EXCEPT !.status.state = ReportFor(t) ]]",
+    "[ id \\in DOMAIN containers |->\n                       LET state == containers[id]\n                       IN  CASE state \\in {running, terminating} -> failed\n                             [] state \\in {complete, failed}     -> state\n                   ]",
+    "[ n \\in Node |-> WS!nodeUp ]",
+    "[ t \\in affected |->\n                         [t EXCEPT !.status.state = orphaned] ]"
+  ],
+  "FunctionConstructor_SetType": [
+    "[ DOMAIN containers -> ContainerState ]"
+  ],
+  "UnchangedExprs_Explicit": [
+    "UNCHANGED << nodes, tasks >>",
+    "UNCHANGED << nodes, tasks, nEvents >>",
+    "UNCHANGED << nodes, nEvents >>",
+    "UNCHANGED << nodes, containers >>",
+    "UNCHANGED << tasks, containers >>",
+    "UNCHANGED << nodes, containers, nEvents >>",
+    "UNCHANGED << containers, nEvents, nodes >>",
+    "UNCHANGED << nEvents, containers, tasks >>"
+  ],
+  "UnchangedExprs_VarRef": [
+    "UNCHANGED containers"
+  ],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/WorkerImpl/WorkerImpl.tla",
+  "VerificationTools": [
+    "TLC",
+    "TLAPS"
+  ],
+  "DivisionNotes": [
+    "DesiredContainers and RequiredTaskUpdates are placed in ValueDef because they are non-Boolean helper value definitions computing functions, not actions or temporal formulas.",
+    "WS is placed in ValueDef as an INSTANCE-valued structural definition by elimination.",
+    "terminating, ContainerState, vars, and wsVars are placed in ValueDef as constant/set/tuple structural definitions.",
+    "Impl and WSSpec are placed in TemporalProperty because their bodies contain temporal operators at the outer level: [][Next]_vars and [][WS!Agent \\/ OtherComponent]_wsVars together with weak fairness.",
+    "Partition count: StatePredicate(3) + TemporalProperty(2) + Init(1) + ValueDef(7) + ActionDefNames(18) = OperatorDefNames(31). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file.",
+    "UnchangedExprs_VarRef contains `UNCHANGED containers` because under the requested split this is the only non-tuple variable-reference UNCHANGED form present, even though `containers` is a state variable rather than a tuple variable such as `vars`."
+  ]
+}

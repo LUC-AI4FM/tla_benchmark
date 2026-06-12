@@ -1,0 +1,169 @@
+{
+  "id": null,
+  "Specification": "This module defines helper operators for deriving ShiViz-compatible metadata from a TLC execution trace, specifically identifying which process changed program counter values between consecutive states and computing a vector clock over the trace. It uses the special Toolbox trace variables `_TETrace` and `_TEPosition`, together with JSON conversion utilities, to expose a current host and clock value for visualization. The module is not a transition-system specification with variables, actions, or temporal properties; instead, it is a trace-analysis utility module built from operator definitions and comments about Toolbox override behavior.",
+  "ModuleName": "ShiViz",
+  "ExtendsModules": [],
+  "InstanceModules": [
+    "Integers",
+    "Json",
+    "TLC",
+    "Toolbox"
+  ],
+  "InstanceSubstitutions": [],
+  "ConstantNames": [],
+  "VariableNames": [],
+  "AssumptionNames": [],
+  "TheoremNames": [],
+  "OperatorDefNames": [
+    "FnHost",
+    "Host",
+    "clock",
+    "sum",
+    "FnClock",
+    "Clock"
+  ],
+  "ActionDefNames": [],
+  "RecursiveOperatorNames": [],
+  "LocalOperatorNames": [],
+  "LetInNames": [
+    "host",
+    "vclock"
+  ],
+  "LambdaParams": [],
+  "Implication": [],
+  "Negation": [],
+  "BooleanConstants": [],
+  "Quantifiers": [
+    "CHOOSE"
+  ],
+  "EqualityOps": [
+    "=",
+    "#"
+  ],
+  "MembershipOps": [
+    "\\in"
+  ],
+  "IfThenElse": [
+    "IF i = 1 THEN \"--\" ELSE IF _TETrace[i-1].pc = _TETrace[i].pc THEN host[i-1] ELSE CHOOSE p \\in DOMAIN _TETrace[i-1].pc : _TETrace[i-1].pc[p] # _TETrace[i].pc[p]",
+    "IF _TETrace[i-1].pc = _TETrace[i].pc THEN host[i-1] ELSE CHOOSE p \\in DOMAIN _TETrace[i-1].pc : _TETrace[i-1].pc[p] # _TETrace[i].pc[p]",
+    "IF n = 1 THEN [p \\in DOMAIN _TETrace[n].pc |-> 0] ELSE [p \\in DOMAIN _TETrace[n].pc |-> IF p = FnHost[n] THEN 1 ELSE 0]",
+    "IF p = FnHost[n] THEN 1 ELSE 0",
+    "IF i = 1 THEN clock(i) ELSE sum(TLCEval(vclock[i-1]), clock(i))"
+  ],
+  "CaseExpr": [],
+  "SetEnumeration": [],
+  "SetOperators": [
+    "DOMAIN"
+  ],
+  "FiniteSetOps": [],
+  "FunctionConstructor": [
+    "[i \\in DOMAIN _TETrace |-> IF i = 1 THEN \"--\" ELSE IF _TETrace[i-1].pc = _TETrace[i].pc THEN host[i-1] ELSE CHOOSE p \\in DOMAIN _TETrace[i-1].pc : _TETrace[i-1].pc[p] # _TETrace[i].pc[p]]",
+    "[p \\in DOMAIN _TETrace[n].pc |-> 0]",
+    "[p \\in DOMAIN _TETrace[n].pc |-> IF p = FnHost[n] THEN 1 ELSE 0]",
+    "[d \\in DOMAIN F |-> F[d] + G[d]]",
+    "[i \\in DOMAIN _TETrace |-> IF i = 1 THEN clock(i) ELSE sum(TLCEval(vclock[i-1]), clock(i))]"
+  ],
+  "FunctionApplication": [
+    "FnHost[_TEPosition]",
+    "_TETrace[i-1]",
+    "_TETrace[i]",
+    "host[i-1]",
+    "_TETrace[n]",
+    "FnHost[n]",
+    "F[d]",
+    "G[d]",
+    "clock(i)",
+    "vclock[i-1]",
+    "FnClock[_TEPosition]",
+    "host[i]",
+    "_TETrace[i-1].pc[p]",
+    "_TETrace[i].pc[p]",
+    "clock(n)",
+    "sum(TLCEval(vclock[i-1]), clock(i))",
+    "ToJsonObject(FnClock[_TEPosition])",
+    "TLCEval(host)",
+    "TLCEval(vclock[i-1])",
+    "TLCEval(vclock)"
+  ],
+  "FunctionOverride": [],
+  "RecordConstructor": [],
+  "RecordAccess": [
+    "_TETrace[i-1].pc",
+    "_TETrace[i].pc",
+    "_TETrace[n].pc",
+    "_TETrace[i-1].pc[p]",
+    "_TETrace[i].pc[p]"
+  ],
+  "TupleConstructor": [],
+  "SequenceOps": [],
+  "ArithmeticOps": [
+    "+",
+    "-"
+  ],
+  "ComparisonOps": [],
+  "RangeExpr": [],
+  "ChoiceExpr": [
+    "CHOOSE p \\in DOMAIN _TETrace[i-1].pc : _TETrace[i-1].pc[p] # _TETrace[i].pc[p]"
+  ],
+  "StringLiterals": [
+    "--"
+  ],
+  "ArithmeticModules": [],
+  "DataStructureModules": [],
+  "ToolingModules": [],
+  "PrimedVariables": [],
+  "UnchangedExprs": [],
+  "EnabledExprs": [],
+  "TemporalSubscript": [],
+  "AlwaysOp": [],
+  "EventuallyOp": [],
+  "LeadsToOp": [],
+  "GuaranteesOp": [],
+  "ActionComposition": [],
+  "FairnessConditions": [],
+  "ProofHints": [],
+  "ProofCommands": [],
+  "ProofStructureSteps": [],
+  "AssumeProveBlocks": [],
+  "PlusCalAlgorithm": [],
+  "PlusCalProcesses": [],
+  "ModelValues": [],
+  "OperatorOverrides": [],
+  "SymmetrySet": [],
+  "StateConstraint": [],
+  "ActionConstraint": [],
+  "ViewExpr": [],
+  "ComplexityTier": "basic",
+  "_changelog": "CHANGE LOG\nField: LetInNames | Change: renamed from `NamesInLet` and retained values `host`, `vclock` | Reason: LET-bound names must be recorded under `LetInNames`; `NamesInLet` is not the required field.\nField: Quantifiers | Change: added `CHOOSE` | Reason: the file contains `CHOOSE p \\\\in DOMAIN _TETrace[i-1].pc : ...`.\nField: IfThenElse | Change: removed appended context markers like `(in FnHost)` and `(in clock)` | Reason: values must appear in the TLA+ file; those annotated strings do not exist verbatim.\nField: FunctionConstructor | Change: normalized entries to actual constructor expressions without embedded comment text | Reason: comments are not part of the expressions; prior entries did not appear verbatim as TLA+ expressions.\nField: FunctionApplication | Change: added `host[i]`, `_TETrace[i-1].pc[p]`, `_TETrace[i].pc[p]`, `clock(n)`, `sum(TLCEval(vclock[i-1]), clock(i))`, `ToJsonObject(FnClock[_TEPosition])`, `TLCEval(host)`, `TLCEval(vclock[i-1])`, `TLCEval(vclock)` | Reason: these applications appear in the file and were missing.\nField: RecordAccess | Change: added `_TETrace[i-1].pc[p]`, `_TETrace[i].pc[p]` | Reason: these record field accesses literally appear in the file.\nField: AssumptionNames | Change: confirmed empty | Reason: the file contains no `ASSUME`, `ASSUMPTION`, or `AXIOM` blocks.\nField: FunctionOverride | Change: confirmed empty | Reason: the file contains no `[f EXCEPT ![e] = v]` expressions.\nField: LocalOperatorNames | Change: confirmed empty | Reason: there are no local parametric operator definitions inside LET blocks; `host` and `vclock` are LET-bound function-valued names, not `name(args) == expr` definitions.\nField: OperatorDefNames | Change: confirmed unchanged; file count = 6, JSON count = 6 | Reason: top-level `==` definitions are exactly `FnHost`, `Host`, `clock`, `sum`, `FnClock`, `Clock`.",
+  "OperatorDefNames_StatePredicate": [],
+  "OperatorDefNames_TemporalProperty": [],
+  "OperatorDefNames_Init": [],
+  "OperatorDefNames_ValueDef": [
+    "FnHost",
+    "Host",
+    "clock",
+    "sum",
+    "FnClock",
+    "Clock"
+  ],
+  "FunctionConstructor_ByDomain": [
+    "[i \\in DOMAIN _TETrace |-> IF i = 1 THEN \"--\" ELSE IF _TETrace[i-1].pc = _TETrace[i].pc THEN host[i-1] ELSE CHOOSE p \\in DOMAIN _TETrace[i-1].pc : _TETrace[i-1].pc[p] # _TETrace[i].pc[p]]",
+    "[p \\in DOMAIN _TETrace[n].pc |-> 0]",
+    "[p \\in DOMAIN _TETrace[n].pc |-> IF p = FnHost[n] THEN 1 ELSE 0]",
+    "[d \\in DOMAIN F |-> F[d] + G[d]]",
+    "[i \\in DOMAIN _TETrace |-> IF i = 1 THEN clock(i) ELSE sum(TLCEval(vclock[i-1]), clock(i))]"
+  ],
+  "FunctionConstructor_SetType": [],
+  "UnchangedExprs_Explicit": [],
+  "UnchangedExprs_VarRef": [],
+  "TemporalNesting": false,
+  "CorpusSource": "specifications/ShiViz/ShiViz.tla",
+  "VerificationTools": [
+    "TLC"
+  ],
+  "DivisionNotes": [
+    "All six operators are placed in ValueDef because the module is a trace-analysis utility and each top-level operator computes a non-temporal value rather than a state predicate, init predicate, or action.",
+    "Partition count: StatePredicate(0) + TemporalProperty(0) + Init(0) + ValueDef(6) + ActionDefNames(0) = OperatorDefNames(6). Verified.",
+    "TemporalNesting is false. No temporal operator appears explicitly nested inside another temporal operator in this file."
+  ]
+}
