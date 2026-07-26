@@ -1,0 +1,56 @@
+# Specification Request: Byzantine Fault-Tolerant Consensus with Fork Accountability
+
+## System Overview
+
+I need a formal specification of a single-shot Byzantine fault-tolerant consensus protocol based on the Tendermint algorithm. The system should model a fixed set of processes attempting to reach agreement on a single value, where some processes may be Byzantine (arbitrarily faulty).
+
+## System Requirements
+
+### Participants and Assumptions
+- The system consists of a known set of correct processes and a known set of potentially Byzantine processes
+- Each process has equal voting power (weight of 1)
+- The total number of Byzantine processes is bounded by a threshold T, where the system requires N > 3T for safety
+- A designated proposer function determines which process proposes in each round (modeled non-deterministically)
+
+### Protocol Behavior
+The consensus protocol should operate in rounds, where each round consists of three phases:
+1. **Propose phase**: The designated proposer broadcasts a value proposal
+2. **Prevote phase**: Processes vote on whether to accept the proposed value
+3. **Precommit phase**: Processes commit to a value if sufficient prevotes were observed
+
+Processes must track:
+- Their current round number
+- A "locked" value and round (representing a value they've committed to supporting)
+- A "valid" value and round (representing the best candidate value seen)
+- Their final decision once consensus is reached
+
+### Byzantine Behavior
+Byzantine processes can send arbitrary messages. Specifically, all possible Byzantine messages should be considered as potentially present from the initial state. This models worst-case adversarial behavior.
+
+### Value Validity
+The specification should distinguish between valid values (which correct processes may propose) and invalid values (which only Byzantine processes would propose). Correct processes should only decide on valid values.
+
+## Correctness Properties
+
+### Safety: Agreement
+If any two correct processes decide, they must decide on the same value.
+
+### Safety: Validity
+Any decision made by a correct process must be a valid value.
+
+### Accountability
+This is the key property for fork detection. If agreement is violated (a "fork" occurs), then there must exist a set of Byzantine processes (of size at least T+1) that can be identified as misbehaving through one of two detectable behaviors:
+
+1. **Equivocation**: A process sent two conflicting messages of the same type in the same round (e.g., two different prevotes for the same round)
+
+2. **Amnesia**: A process precommitted to one value in an earlier round, then later prevoted for a different value without sufficient evidence that the new value had adequate support in intermediate rounds
+
+## Evidence Collection
+The specification should track which messages were actually used by correct processes to justify their state transitions. This "evidence" collection is essential for the accountability property—it represents what could be presented to prove Byzantine misbehavior if a fork occurs.
+
+## Modeling Simplifications
+- Focus on safety properties only (liveness/fairness not required)
+- Timeouts can be modeled non-deterministically
+- Single height/decision (one-shot consensus)
+- Hashes can be modeled as identity functions
+- The system may deadlock after all processes decide (this is acceptable)

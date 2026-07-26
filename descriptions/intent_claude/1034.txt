@@ -1,0 +1,48 @@
+# Specification Request: Byzantine Fault-Tolerant Consensus Protocol
+
+## System Overview
+
+I need a formal specification of a Byzantine fault-tolerant consensus protocol inspired by DAG-based BFT systems (similar to Sailfish or related protocols). The system should model a network of nodes that collaborate to build a structured log of decisions across multiple rounds, even when some nodes may behave arbitrarily (Byzantine behavior).
+
+## System Requirements
+
+### Network Model
+- A set of participating nodes, some of which may be Byzantine (faulty)
+- The protocol should operate in rounds with a designated leader for each round (rotating leadership)
+- The system should model both synchronous and asynchronous periods, with a Global Stabilization Time (GST) after which the network becomes synchronous
+
+### Quorum and Blocking Set Structure
+- Define quorum sets such that any two quorums intersect in at least one correct (non-Byzantine) node
+- Define blocking sets that intersect every quorum and contain at least one correct node
+- These intersection properties are critical for ensuring consistency despite Byzantine behavior
+
+### Core Functionality
+- Nodes should progress through rounds, building some form of structured output (vertices or similar constructs)
+- Each round should have a deterministic leader based on a predefined schedule
+- Nodes maintain a log of committed decisions
+- The protocol should handle message exchange and state updates across rounds
+
+## Correctness Properties
+
+### Safety
+- **Agreement**: Correct nodes should not have conflicting committed entries in their logs
+- **Consistency**: The quorum intersection properties must ensure that Byzantine nodes cannot cause correct nodes to diverge
+
+### Liveness
+- **Progress**: Under favorable conditions (after GST), correct nodes should be able to advance through rounds
+- **Commitment**: Nodes should eventually be able to commit entries to their logs
+- **Termination**: The protocol should allow nodes to reach a final round
+
+## Verification Goals
+
+The specification should be suitable for model checking with a small configuration (e.g., 3 nodes with 1 Byzantine) to verify:
+1. The protocol can complete all rounds with correct nodes reaching the maximum round
+2. Nodes can successfully commit multiple entries to their logs
+3. Specific leader vertices can be committed (demonstrating the commit rule works correctly)
+
+## Configuration Constraints
+
+For tractable model checking, the specification should support:
+- Bounding the number of rounds
+- A state constraint limiting how far nodes can progress
+- The ability to check both safety invariants and liveness properties

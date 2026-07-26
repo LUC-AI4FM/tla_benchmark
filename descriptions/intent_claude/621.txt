@@ -1,0 +1,39 @@
+# Specification Request: Tendermint Consensus Accountability
+
+## System to be Modeled
+
+I need a formal specification of the Tendermint Byzantine fault-tolerant consensus protocol, specifically focused on proving safety properties through an inductive invariant approach. The model should capture the accountable aspects of the protocol—meaning it should track evidence that can be used to identify misbehaving processes when forks occur.
+
+## System Description
+
+The system consists of a fixed number of processes (some correct, some potentially faulty) that participate in a round-based consensus protocol. In each round, processes go through proposal, prevote, and precommit phases to try to reach agreement on a value. Processes maintain local state including their current round, which phase they're in, any locked value/round from previous rounds, and their final decision if made.
+
+The protocol uses threshold-based voting where certain actions require collecting messages from a sufficient number of processes (typically more than two-thirds). Faulty processes may send arbitrary messages, while correct processes follow the protocol rules.
+
+## Key Behaviors to Model
+
+- Round-based progression through propose, prevote, and precommit phases
+- Message passing for proposals, prevotes, and precommits
+- Locking mechanism where processes lock onto values they've precommitted
+- Decision finalization when sufficient precommits are received
+- Evidence collection of messages that can prove misbehavior
+- Both correct process behavior and arbitrary faulty process behavior
+
+## Correctness Properties Required
+
+**Primary Safety Property (Agreement):** When fewer than one-third of processes are faulty, no two correct processes should decide on different values.
+
+**Accountability Property:** When between one-third and two-thirds of processes are faulty, either agreement still holds, or there exists evidence proving that faulty processes either equivocated (sent conflicting messages) or exhibited amnesia (violated locking rules).
+
+**Inductive Invariant Requirements:**
+- Correct processes only send messages appropriate to their current round and phase
+- A process in the prevote/precommit phase must have sent the corresponding message
+- Decisions are backed by valid proposals and sufficient precommits
+- Locking state is consistent: locked round exists if and only if locked value exists
+- Locked values correspond to the latest round where a precommit was sent
+- Correct processes never equivocate (send conflicting votes in the same round)
+- Once enough processes precommit a value, future rounds cannot gather enough prevotes for a different value
+
+## Fault Model
+
+The specification should be parameterized by the total number of processes and a threshold for faulty processes. The key theorems should establish that safety holds under the standard assumption of fewer than one-third faulty, and accountability holds under the weaker assumption of fewer than two-thirds faulty.

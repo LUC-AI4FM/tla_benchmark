@@ -1,0 +1,13 @@
+This TLA+ module specifies a synthetic benchmark designed to stress-test the TLC model checker by controlling state space size and computational cost per state.
+
+The system models a simple counter array with configurable complexity parameters. Four constants govern behavior: N determines the array size (indices 0 through N), K sets the modulus for counter values, L controls computational expense per state evaluation, and C creates multiple disconnected initial configurations.
+
+Two variables track state: x is a function mapping domain elements to counter values, and y identifies which of C possible initial configurations is active.
+
+The initial state sets all counters to zero and nondeterministically chooses y from 1 to C, creating C distinct starting points. The next-state relation keeps y unchanged while nondeterministically selecting one counter to increment modulo K. Additionally, each transition requires finding a subset of 1..L with cardinality exactly L—a computation that forces TLC to enumerate all 2^L subsets, artificially inflating state generation time.
+
+The domain is deliberately constructed as a union of two ranges rather than a simple integer interval, triggering specific internal TLC behavior.
+
+The sole invariant verifies that all counter values remain strictly less than K, which should always hold given the modular arithmetic.
+
+This specification contains no temporal properties or fairness conditions.

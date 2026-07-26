@@ -1,0 +1,34 @@
+# Specification Request: Transaction Commit Protocol
+
+## System Overview
+
+I need a formal specification of a distributed transaction commit protocol involving multiple resource managers (participants). The protocol should model how a set of independent participants coordinate to reach a unanimous decision about whether to commit or abort a distributed transaction.
+
+## System Description
+
+The system consists of a fixed set of resource managers, each participating in a single distributed transaction. Each participant must independently decide whether it can commit its local portion of the transaction, and the group must collectively reach a consistent final decision.
+
+Each participant progresses through a lifecycle:
+- Initially, all participants are actively working on the transaction
+- A participant may signal that it is ready to commit (prepared state)
+- Eventually, each participant reaches a final decision: either committed or aborted
+
+## Behavioral Requirements
+
+1. **Preparation**: A participant that is still working on the transaction may declare itself prepared to commit.
+
+2. **Commit decision**: A participant may commit only if every participant in the system has prepared (or already committed). No participant should commit while others are still working or have aborted.
+
+3. **Abort decision**: A participant may abort at any time before committing, as long as no other participant has already committed.
+
+## Key Correctness Properties
+
+The specification must guarantee **transaction consistency**:
+
+- **No conflicting decisions**: It must be impossible for one participant to be in a committed state while another participant is in an aborted state. All participants that reach a final decision must agree on that decision.
+
+This property ensures the atomicity of the distributed transaction—either all participants commit, or all participants abort, but never a mix of both outcomes.
+
+## Purpose
+
+This specification should serve as an abstract model of transaction commit semantics, capturing the essential safety requirements without specifying the communication mechanism or failure handling. It can be used as a reference specification against which more detailed commit protocols (such as two-phase commit) can be verified.

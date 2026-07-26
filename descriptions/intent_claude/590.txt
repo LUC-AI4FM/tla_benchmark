@@ -1,0 +1,50 @@
+Please write a formal TLA+ specification for a **distributed transaction protocol based on the Percolator model**, designed to support concurrent multi-key transactions with snapshot isolation.
+
+## System Overview
+
+The system consists of multiple clients that execute transactions concurrently over a shared set of keys. Each transaction operates on multiple keys, with one designated as the "primary" key and the others as "secondary" keys. The protocol uses a two-phase commit approach with a lock-based mechanism and multi-version data storage.
+
+## Core Requirements
+
+### Transaction Lifecycle
+- Each transaction must acquire a globally unique start timestamp when it begins
+- Transactions proceed through distinct phases: reading, prewriting (acquiring locks and placing data), and committing
+- A transaction may abort at any point before committing, leaving cleanup to other transactions
+- Once the primary key is committed, the transaction is considered committed
+
+### Two-Phase Commit Protocol
+1. **Prewrite Phase**: The transaction must lock all keys it intends to write (both primary and secondary) and place provisional data. Locks can be acquired concurrently, but a key can only be locked if:
+   - No existing lock is present on the key
+   - No writes exist at or after the transaction's start timestamp
+
+2. **Commit Phase**: After all locks are acquired, the transaction obtains a commit timestamp and commits the primary key first by converting its lock to a write record. Secondary keys can be committed asynchronously.
+
+### Lock Cleanup and Conflict Resolution
+- When a transaction encounters a lock from another transaction with an older timestamp, it may clean up that "stale" lock
+- Cleanup of a secondary lock must check the primary key's status:
+  - If the primary was committed, the secondary must also be committed (rolled forward)
+  - If the primary was rolled back, the secondary should be rolled back as well
+- Rollback records must be written to prevent resurrection of cleaned-up transactions
+
+### Multi-Version Data
+- Each key maintains versioned data identified by timestamps
+- Each key maintains a write history recording committed versions and rollbacks
+- Reads observe data based on the transaction's start timestamp
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Write Consistency**: Committed writes on any key must have non-overlapping timestamp ranges, and commit timestamps must be strictly greater than start timestamps
+
+2. **Lock Consistency**: At most one lock may exist per key at any time. When a transaction is ready to commit and holds its primary lock, all secondary locks must also be held
+
+3. **Commit Integrity**: Once committed, the primary key must have its write record present and lock removed; secondary keys must either be fully committed or still hold their original locks (pending async commit)
+
+4. **Abort Safety**: An aborted transaction must not have any committed primary key record
+
+5. **Rollback Consistency**: A transaction cannot have both committed writes and rollback records—it must be entirely committed or entirely rolled back
+
+6. **Unique Writes**: Each write or rollback record must have a unique start timestamp per key
+
+7. **Snapshot Isolation**: No write may be committed with a timestamp earlier than any read that has already observed that key—readers must see a consistent snapshot

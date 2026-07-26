@@ -1,0 +1,11 @@
+This TLA+ module specifies the Dijkstra-Scholten termination detection algorithm for distributed computations, originally from EWD687a. The algorithm detects when a distributed computation has terminated by constructing a dynamic overlay tree.
+
+The system models processes connected by directed edges where computation messages flow in one direction and acknowledgment (control) messages flow in reverse. The constants are Procs (the process set), Leader (a distinguished process that initiates computation), and Edges (directed connections between processes). The leader has no incoming edges.
+
+The variables track: active (whether each process is computing), msgs and acks (counts of computation and acknowledgment messages in transit on each edge), sentUnacked and rcvdUnacked (counts of unacknowledged sent and received messages), and upEdge (each non-leader process's parent in the overlay tree, or a special NotAnEdge value).
+
+A process is neutral when idle, having acknowledged all received messages and received acknowledgments for all sent messages. Initially only the leader is active; all others are neutral.
+
+Key actions include: SendMsg (active process sends computation message), RcvMsg (receiving a message activates the process and potentially establishes a parent relationship), SendAck (acknowledging received messages with restrictions on the last ack to maintain tree properties), RcvAck (receiving acknowledgments), and Idle (becoming inactive).
+
+The specification includes weak fairness on all actions. Safety properties assert that counters remain consistent, non-neutral processes form a tree rooted at the leader, and the leader detecting termination implies actual global termination. The liveness property ensures termination is eventually detected.

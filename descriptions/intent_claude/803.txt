@@ -1,0 +1,54 @@
+# Specification Request: TLA+ Expression Level Checking
+
+## System Overview
+
+I need a formal specification for the **level-checking system used in the TLA+ specification language**. This system validates that expressions in TLA+ specifications correctly respect the semantic constraints on "levels" — a classification of expressions based on whether they involve constants, state variables, primed variables, or temporal operators.
+
+## Background
+
+In TLA+, every expression has a level from 0 to 3:
+- **Level 0**: Constant expressions (no variables)
+- **Level 1**: State functions (may reference variables, but not primed)
+- **Level 2**: Actions (may reference primed variables)
+- **Level 3**: Temporal formulas (may contain temporal operators like `[]` or `<>`)
+
+## Requirements
+
+### Core Level Constraints
+
+The specification must enforce that certain TLA+ constructs impose maximum level requirements on their subexpressions:
+
+1. When an expression is **primed** (`e'`), the expression `e` cannot already contain primed variables (level ≤ 1)
+2. The operators `ENABLED`, `UNCHANGED`, action brackets `[A]_e` and `<<A>>_e`, and action composition require their operands to be at most level 2 (no temporal operators)
+3. Non-boolean operator arguments (like elements of sets `{e, f}`) should not be temporal formulas (level ≤ 2)
+4. Temporal operators like `[]`, `<>`, leads-to (`~>`), and temporal quantifiers should not be applied directly to action-level expressions (level exactly 2 is forbidden as input)
+
+### Higher-Order Operator Handling
+
+The system must handle **second-order operators** — operators that take other operators as arguments. This requires tracking:
+
+1. **Maximum allowable levels** for each argument position of an operator
+2. **Level dependencies** — how an operator application's level depends on its arguments' levels
+3. **Argument-level constraints** — when an operator parameter is instantiated, constraints on what levels that operator's own arguments must support
+
+### Module and Definition Scope
+
+The specification must account for:
+- Operator definitions with formal parameters
+- Constant and variable declarations
+- `LET`/`IN` constructs with local definitions
+- `INSTANCE` statements that substitute expressions and operators, potentially creating level violations through composition
+
+## Key Correctness Properties
+
+1. **Level Consistency**: Every expression must have a well-defined level that respects the constraints of all constructs it uses
+
+2. **Substitution Safety**: When formal parameters are instantiated with actual expressions or operators, the resulting expression must remain level-correct
+
+3. **Constraint Propagation**: Level constraints must propagate correctly through operator definitions, so that applying a defined operator correctly enforces all constraints implied by its definition body
+
+4. **Conservative Soundness**: The system may reject some technically valid expressions (false positives) but must never accept expressions that violate TLA+ level semantics (no false negatives)
+
+## Scope Limitations
+
+The specification acknowledges that detecting all level violations through module instantiation is non-trivial. A practical implementation may perform simplified checking that catches explicit violations while potentially missing some violations that only manifest through complex instantiation chains. The specification should document where such simplifications are made.

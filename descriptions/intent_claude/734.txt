@@ -1,0 +1,47 @@
+# Specification Request: Lamport's Bakery Algorithm for Mutual Exclusion
+
+## System to Model
+
+I need a formal specification of Lamport's Bakery Algorithm, a classic solution to the mutual exclusion problem for N concurrent processes. The algorithm is inspired by the ticket-numbering system used in bakeries, where customers take numbered tickets and are served in order.
+
+## System Description
+
+The system consists of N processes that repeatedly cycle through three phases:
+1. A non-critical section (where the process does ordinary work)
+2. A doorway/entry protocol (where the process attempts to gain access to the critical section)
+3. A critical section (where the process performs work requiring exclusive access)
+
+Each process, when wanting to enter its critical section, must:
+- Signal its intent to other processes
+- Observe what ticket numbers other processes currently hold
+- Choose a ticket number larger than any it observed
+- Clear its signaling flag
+- Wait until no other process has a smaller ticket (using process ID as a tiebreaker when ticket numbers are equal)
+- Enter the critical section
+- Reset its ticket number upon exiting
+
+The algorithm must work correctly even when:
+- Processes may stutter or take arbitrarily long between steps
+- The doorway and exit phases may experience non-deterministic intermediate behaviors (such as flag toggling or arbitrary number assignments) before completing their intended action
+
+## Key Correctness Properties
+
+### Safety Properties
+
+1. **Mutual Exclusion**: At most one process may be in its critical section at any time. No two distinct processes can simultaneously occupy their critical sections.
+
+2. **Type Correctness**: All variables must maintain proper types throughout execution (ticket numbers are natural numbers, flags are booleans, etc.).
+
+### Liveness Properties
+
+3. **Deadlock Freedom**: If any process is trying to enter its critical section, then eventually some process will succeed in entering its critical section.
+
+4. **Starvation Freedom**: Every process that begins trying to enter its critical section will eventually succeed in entering it.
+
+## Fairness Requirements
+
+The specification should assume weak fairness for each process when it is actively trying to enter or exit the critical section (i.e., not idling in the non-critical section). This ensures that processes make progress when they are enabled.
+
+## Additional Considerations
+
+The specification should support verification via both model checking (for finite instances) and theorem proving (for the general case with arbitrary N). The lexicographic ordering on (ticket number, process ID) pairs is central to resolving conflicts when multiple processes compete for entry.

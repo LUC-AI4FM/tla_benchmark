@@ -1,0 +1,7 @@
+This TLA+ module extends a base `SingleNode` specification to incorporate read-only transactions alongside the existing read-write transaction behavior.
+
+The specification models a single-node system with ledger branches that can handle both read-write and read-only transaction requests. It reuses the constants, variables, and initialization from the parent `SingleNode` module, which includes a `history` sequence tracking all events and `ledgerBranches` representing the stored ledger state.
+
+Two new actions handle read-only transactions. The `RoTxRequestAction` appends a new read-only transaction request to the history with a unique identifier, leaving the ledger unchanged. The `RoTxResponseAction` processes pending read-only requests by finding an unanswered request in the history, selecting a view from the available ledger branches, and responding with the observed transaction content from that branch along with a transaction identifier encoding the view and position. Unlike read-write transactions, read-only transactions are executed and responded to atomically in a single action.
+
+The next-state relation combines the original single-node actions with the two new read-only actions, allowing any of these transitions. The temporal specification requires the system to start in the initial state and always take valid next steps while preserving the variables. No explicit fairness conditions or invariants are defined in this module; any properties would be inherited from or specified elsewhere.

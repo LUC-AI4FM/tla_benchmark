@@ -1,0 +1,9 @@
+This TLA+ module specifies a one-bit mutual exclusion protocol for N processes, based on a classic algorithm where each process uses a single boolean flag to coordinate entry into a critical section.
+
+The system models N processes (numbered 0 through N-1) that cycle between a non-critical section, an entry protocol, a critical section, and an exit protocol. The constant N defines the number of processes, and Procs is the set of process identifiers.
+
+The variables consist of a global array `flag` (one boolean per process indicating intent to enter the critical section), individual program counters `pc` tracking each process's current location, and a local variable `j` for each process used as a loop index during the entry protocol.
+
+The entry protocol works in two phases. First, a process sets its flag and scans all lower-numbered processes; if it finds another flag raised, it backs off by clearing its own flag, waits for the other process's flag to drop, then restarts. Second, after passing all lower-numbered processes, it waits for all higher-numbered processes to have their flags cleared before entering the critical section. Upon exiting, a process clears its flag.
+
+The specification defines safety through the next-state relation but includes no explicit mutual exclusion invariant or liveness properties in the module. The configuration file only references the main specification without additional properties to check.

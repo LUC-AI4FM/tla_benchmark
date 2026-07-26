@@ -1,0 +1,35 @@
+# Specification Request: Action Composition and Substitution Distributivity
+
+## System to Model
+
+I need a formal specification that demonstrates and tests the interaction between **action composition** (sequential composition of actions) and **module instantiation with substitution** in TLA+. Specifically, I want to explore whether substitution distributes over action composition—and show that it does not.
+
+## Goal
+
+The purpose is to create a test harness that illustrates a subtle semantic issue: when you have two actions composed sequentially, applying a substitution (mapping multiple variables to the same variable) to the composed action produces a *different* result than first substituting into each action individually and then composing them.
+
+## What the Specification Must Do
+
+1. Define a simple two-action system where:
+   - The first action updates one variable based on another
+   - The second action has a guard comparing the two variables and performs an update
+
+2. Create two different specifications that *should* be equivalent if substitution distributed over composition:
+   - One that composes the actions first, then applies the substitution
+   - One that applies the substitution to each action first, then composes them
+
+3. Both specifications should constrain some variable to a small finite domain to enable model checking.
+
+## Key Correctness Properties / Expected Behavior
+
+The specification should demonstrate that:
+
+1. **Non-distributivity**: The two approaches yield different behaviors. When variables are unified through substitution:
+   - Composing-then-substituting may allow behaviors (like stuttering)
+   - Substituting-then-composing may produce unsatisfiable guards (contradiction, no behaviors)
+
+2. **The classic counterexample**: When both variables in the original spec are mapped to the same variable, the guard in the second action (comparing two variables for inequality) becomes a contradiction when substitution is applied before composition, but remains satisfiable when composition happens first due to the intermediate state semantics.
+
+## Context
+
+This is meant to serve as a reference example and test case for understanding TLA+'s semantics around action composition and instantiation, as described in the formal semantics of substitution over composed actions.

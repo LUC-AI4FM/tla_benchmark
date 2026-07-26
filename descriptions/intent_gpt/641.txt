@@ -1,0 +1,12 @@
+Specify a TLA+ model of a Tendermint-style light client that verifies a target block header starting from a single trusted header. The model should capture the light client’s interactions with a blockchain (a reference chain produced by consensus) and a potentially faulty primary full node. The light client must be able to fetch headers for heights between the trusted height and the target height, store fetched headers with a per-height verification status, and iteratively attempt to verify progressively higher headers until the target is verified or verification fails.
+
+Model the following requirements and correctness properties (without prescribing an algorithmic encoding):
+
+- Safety: Any header that the light client marks as “verified” must match the corresponding header produced by the reference blockchain (i.e., verified headers are authentic).
+- Chain-of-trust: When the client finishes successfully, for every pair of stored verified headers there exists either an intermediate verified header between them, or the higher header can be validated directly from the lower one according to Tendermint rules (including sufficient overlapping commits), unless the lower header’s trusting period has expired.
+- No-false-success: If the client reports success while the initial trusted header has already left its trusting period, that outcome must be considered invalid.
+- Failure precision: If the client terminates with failure, then either the trusted header was outside the trusting period at termination or some stored block was inconsistent with the reference blockchain or had incorrect commits (i.e., the full node may have lied).
+- Liveness under honest conditions: If the primary full node is correct and the trusted header is still within its trusting period (and there exists a chain of verifiable headers), then the client should eventually terminate with success.
+- Complexity bound: Provide a bound on the number of fetch/verification probes in terms of the distance between trusted and target heights.
+
+Also capture the notion of a trusting period for headers, the verification predicate that checks temporal constraints and the required fraction of commits from a validator set (e.g., >2/3), and allow the primary to be either honest (responds with exact chain data) or faulty (may return arbitrary but signature-constrained blocks). Do not prescribe implementation details such as specific control states or loop mechanics.

@@ -1,0 +1,43 @@
+# Specification Request: TLA+ Counterexample Trace Serialization and Replay
+
+## System Overview
+
+I need a utility system for TLA+ model checking that handles the serialization of counterexample traces to JSON format and the subsequent replay/loading of those traces back into TLC for analysis or debugging.
+
+## Goals
+
+The system should support two main workflows:
+
+1. **Trace Export**: When TLC finds a counterexample (a trace demonstrating a property violation), automatically serialize that counterexample to a JSON file for external analysis, archival, or later replay.
+
+2. **Trace Replay**: Given a previously exported JSON trace file, constrain TLC's state exploration to follow exactly the states recorded in that trace, allowing developers to replay and analyze the counterexample behavior.
+
+## Functional Requirements
+
+### Trace Export
+- Detect when TLC has produced a counterexample during model checking
+- Extract the full sequence of states from the counterexample
+- Identify which variables are present across the trace
+- Serialize both the counterexample structure and variable information to a specified JSON output file
+- Provide console feedback confirming successful export
+
+### Trace Replay
+- Load a previously serialized JSON trace file
+- Constrain model checking so that at each step, the current state matches the corresponding state in the loaded trace
+- Support partial variable matching: if the current specification has a different set of variables than the original trace (due to spec evolution, aliasing, or intentional subsetting), only enforce constraints on variables that exist in both
+- Handle liveness counterexamples correctly, which contain a "lasso" structure where the trace eventually loops back to an earlier state to demonstrate an infinite cycle
+
+### Liveness Trace Support
+- Detect lasso structures in counterexample traces by identifying back-edges where the target state index is not strictly greater than the source
+- When replaying liveness traces, properly handle the extra step TLC takes beyond the recorded trace length to close the cycle
+- Provide a view mechanism that prevents spurious state collisions during replay while still allowing the lasso to close correctly
+
+## Correctness Properties
+
+1. **Faithful Replay**: When replaying a trace, every state in the replay must match the corresponding recorded state for all shared variables.
+
+2. **Graceful Degradation**: The system should handle traces with variable sets that don't exactly match the current specification, constraining only the intersection of variables.
+
+3. **Lasso Closure**: For liveness counterexamples, the replay mechanism must allow the model checker to complete the cycle back to the lasso target state.
+
+4. **Silent on Empty**: If there is no counterexample to export (successful verification), the export mechanism should be a no-op.

@@ -1,0 +1,47 @@
+# Specification Request
+
+## System Overview
+
+I need a formal specification to test the TLA+ tooling's handling of higher-order operators and module instantiation, particularly when operator arguments are passed through multiple layers of abstraction.
+
+## System to Model
+
+A simple cyclic counter that repeatedly counts from 0 to 8 and then wraps back to 0. This counter serves as a minimal concrete state machine to exercise the property-checking infrastructure.
+
+## Key Requirements
+
+### Behavioral Requirements
+- The system starts at value 0
+- The value increments by 1 on each step until reaching 8
+- After reaching 8, the value wraps back to 0
+- The value always remains in the range 0 through 8
+
+### Testing Infrastructure Requirements
+
+The specification must support testing the model checker's ability to handle:
+
+1. **Parameterized properties**: Properties that accept both operator arguments and state values, passed through module instantiation boundaries
+
+2. **Nested operator wrapping**: Properties that route through multiple layers of wrapper operators (an outer operator calling an inner operator), where the tool cannot fully inline due to substitution nodes from instantiation
+
+3. **Various operator argument types**:
+   - Operators that ignore their parameter entirely
+   - Operators that actually use their parameter to compute a result
+   - Recursive operators passed as arguments
+   - Constant operators declared at the module level
+   - Operators defined in an instantiated abstract module
+
+4. **State-only properties**: Properties that take only state variables without operator arguments
+
+5. **Property violations**: At least one property that demonstrates a violation case (where the predicate fails for certain state values)
+
+## Correctness Properties
+
+- An invariant property stating the counter value is always within bounds
+- A collection of temporal properties (primarily safety properties using "always") that exercise different argument-passing patterns
+- At least one property expected to be violated to verify the checker correctly identifies failures
+- A trivial tautology for baseline verification
+
+## Architecture
+
+The specification should use a two-module structure: a concrete module with the actual state machine and an abstract module that defines generic property templates. The concrete module instantiates the abstract module and passes various operators through its property definitions.

@@ -1,0 +1,11 @@
+This TLA+ specification models a distributed log system where commands can be written to slots, with each slot required to satisfy a consensus property.
+
+The system uses two constants: **Commands**, representing possible operations (configured as Read and Write), and **Slots**, representing log positions (configured as Slot1 and Slot2). The single variable **log** maps each slot to a set of commands.
+
+Initially, every slot in the log is empty. The **Next** action allows a single step: selecting an empty slot and writing exactly one command to it. Once a slot contains a command, it cannot be modified further. The specification includes weak fairness on the Next action, ensuring progress when steps are continuously enabled.
+
+The **Consensus** module defines a simple consensus abstraction where a set of chosen values starts empty and can transition to containing exactly one value. It includes a fairness condition quantified over a constant set (used here to exercise specific model-checker code paths).
+
+The **ConsensusOnSlot** operator instantiates the Consensus module for each slot, mapping the slot's log entry to the consensus chosen values. The **Correct** property asserts that every slot satisfies the Consensus specification—meaning each slot behaves according to the consensus temporal formula.
+
+The model checker verifies this Correct property while deadlock checking is disabled, since the system intentionally reaches states where no further actions are enabled.

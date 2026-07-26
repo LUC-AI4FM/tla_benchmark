@@ -1,0 +1,9 @@
+This TLA+ module is a test harness for running multiple simulation instances of a CCF Raft specification with varying parameter configurations.
+
+The module orchestrates external simulation runs by invoking the TLA+ model checker as a subprocess. It defines a single variable `c` representing a configuration record with four parameters (R, C, Q, T), each taking values from the set {10, 1000}, creating 16 possible configuration combinations. A boolean variable `d` tracks whether the simulation has been executed.
+
+The initial state selects one of the 16 configuration combinations for `c` and sets `d` to false. The next-state relation executes exactly once: when `d` is false, it prints the current configuration, invokes an external Java process to run simulation on "SIMccfraft.tla" with the configuration passed through environment variables, and sets `d` to true. The external command runs TLC in simulation mode with depth 1000, appending output to a log file.
+
+The specification uses the IOUtils community module to execute shell commands and capture exit values. The system requires a zero exit value from the subprocess for the transition to succeed. Deadlock checking is disabled since the specification intentionally terminates after one step.
+
+This is essentially a parameterized test runner that explores different configuration combinations for coverage testing of the underlying CCF Raft specification across multiple parallel workers.

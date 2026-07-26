@@ -1,0 +1,33 @@
+# Specification Request: ERC20 Token Contract with Approval Attack Scenario
+
+## System to Model
+
+Model an ERC20 token contract as specified in Ethereum's EIP-20 standard, focusing on the token transfer and approval mechanisms. The model should capture the asynchronous nature of blockchain transaction processing, where transactions are submitted to a pending pool and later committed in a non-deterministic order.
+
+## Required Functionality
+
+The system must support three core operations:
+
+1. **Direct Transfer**: An account holder can transfer tokens from their own balance to another address.
+
+2. **Approval**: An account holder can authorize another address (a "spender") to withdraw tokens from their account, up to a specified limit. Calling this operation overwrites any existing allowance for that spender.
+
+3. **Delegated Transfer**: A spender can transfer tokens from an account that has granted them an allowance, moving tokens to a destination address. This decreases the spender's remaining allowance accordingly.
+
+The model must reflect that transactions are first submitted and then processed separately, with processing order being non-deterministic (modeling how blockchain miners/validators can reorder transactions).
+
+## Key Correctness Properties
+
+1. **No Negative Balances**: Account balances must never become negative.
+
+2. **Transfer Validity**: Direct transfers should fail if the sender has insufficient balance or attempts to transfer a negative amount.
+
+3. **Delegated Transfer Validity**: Delegated transfers should fail if the source account has insufficient balance, if the spender's allowance is insufficient, or if the transfer amount is negative.
+
+4. **Approval Attack Detection**: The specification should be able to demonstrate the known "approve/transferFrom" attack where a spender can potentially spend more than intended when an approval amount is changed. Specifically, if an owner tries to change a spender's allowance from one positive value to another, the spender may be able to spend both the old and new amounts if they observe the pending approval and act before it commits.
+
+5. **Sum of Transfers Bounded by Approval**: Ideally, the total amount transferred via delegated transfers for any spender/owner pair should not exceed the maximum amount ever approved. This property is expected to be violated due to the approval attack.
+
+## Goal
+
+The primary goal is to formally model the ERC20 token mechanics and demonstrate through model checking that the standard approval mechanism is vulnerable to a race condition attack when allowances are modified. The model should produce counterexamples showing how a malicious spender can exploit the gap between transaction submission and commitment to extract more tokens than the owner intended to authorize.

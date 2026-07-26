@@ -1,0 +1,26 @@
+Please write a formal specification to test the scoping rules for `NEW` declarations within hierarchical proof structures.
+
+## System Description
+
+The system under test is a proof language parser/checker that supports structured, hierarchical proofs with multiple levels of nesting. The language allows introducing fresh constants (via `NEW` declarations) at various points within a proof, and these declarations have specific visibility rules that must be enforced.
+
+## Requirements
+
+The specification should verify the following scoping rules for `NEW` declarations in proofs:
+
+1. **Standard `ASSUME NEW` scope**: When a new constant is introduced via an `ASSUME NEW ... PROVE` statement, that constant should only be visible within the proof of that specific statement—not in sibling steps or parent levels.
+
+2. **`SUFFICES` exception**: When a new constant is introduced via a `SUFFICES ASSUME NEW ... PROVE` statement, that constant should remain visible for the remainder of the current proof level (i.e., in all subsequent sibling steps), not just within the suffices statement's own proof.
+
+3. **Definition shadowing**: Local definitions (using `DEFINE`) can shadow names introduced by `NEW` at outer levels, and this shadowing should be properly scoped.
+
+4. **Hierarchical independence**: Constants introduced at one proof level should not leak into sibling branches at the same level or into parent levels.
+
+5. **Reference validity**: Steps should be able to reference other steps at the same level by their labels, but only constants that are properly in scope should be usable in those references.
+
+## Key Correctness Properties
+
+- The parser/checker must reject references to constants outside their valid scope
+- The parser/checker must accept references to constants within their valid scope
+- The `SUFFICES` visibility extension must work correctly for the remainder of the proof level
+- Name shadowing between `NEW` declarations and `DEFINE` statements must be handled correctly without conflicts

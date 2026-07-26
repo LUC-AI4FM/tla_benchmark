@@ -1,0 +1,10 @@
+Specify a small tool that runs many independent executions of a model checker and collects run statistics into a CSV file for later analysis. The model should capture a controller that, at startup, ensures a CSV log file exists and contains a header row; it then repeatedly launches separate model-checker runs (simulated as independent executions), records a fixed set of runtime metadata for each run, and appends one CSV record per run. Each record must include: an identifier for the specification and run number, a timestamp for when the run was launched, revision metadata (timestamp, tag, date), the number of worker threads used, numeric run metrics produced by the checker (diameter, generated states, distinct states, queue size, and duration). The model should allow runs to produce arbitrary but well-typed metric values (nonnegative integers and strings as appropriate), and should support any finite number of runs.
+
+Correctness properties to guarantee:
+- The header row is written exactly once if the file is initially empty.
+- Every launched run results in exactly one appended CSV record containing all required fields in the specified order.
+- No two records have the same spec/run/timestamp triple (uniqueness of record identity).
+- File-appending is atomic with respect to the controller: concurrent launches must not interleave partial records.
+- Metrics preserved: each record’s fields reflect the values produced by the corresponding run and are not overwritten by later runs.
+
+Also specify invariants and temporal properties asserting termination or liveness constraints (e.g., the controller can always launch another run while resources permit, and eventually either another record is appended or the controller halts).

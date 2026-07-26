@@ -1,0 +1,11 @@
+This TLA+ module specifies a message-passing infrastructure for modeling distributed systems with unreliable communication. It provides reusable definitions for sending, receiving, and tracking messages between clients and bookies (storage nodes).
+
+The module defines six message type constants representing request-response pairs for three operations: adding entries, fencing, and reading. The single variable `messages` is a function mapping messages to delivery counts, where positive values indicate deliverable messages, -1 indicates lost messages (enabling timeout detection), and 0 indicates fully processed or cleared messages.
+
+The specification models message loss through existential quantification: when messages are sent (via `SendMessage` or `SendMessagesToEnsemble`), each message non-deterministically receives a delivery count of either 1 (delivered) or -1 (lost). This allows model checking to explore all combinations of message delivery and loss.
+
+Key operations include: sending individual or batched messages, processing received messages (decrementing their count), detecting timeouts for specific bookies, and clearing timeout states. The `ProcessedOneAndSendAnother` action atomically marks a message as processed while sending a response.
+
+Helper predicates identify receivable messages by type and distinguish requests from responses. The `IsEarliestMsg` predicate enables ordering constraints by checking if a message has the smallest entry ID among similar pending messages.
+
+This module serves as infrastructure for higher-level specifications modeling distributed storage protocols.

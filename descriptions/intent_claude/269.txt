@@ -1,0 +1,37 @@
+# Specification Request: Account Withdrawal with Request-Acknowledgment Protocol
+
+## System Overview
+
+I need a formal specification for a simple account balance system that processes withdrawal requests through an asynchronous message-passing protocol.
+
+## System Description
+
+The system models a single account with an initial balance. Clients can send withdrawal requests for various amounts, and the system processes these requests and sends back acknowledgments indicating success or failure.
+
+### Core Behavior
+
+1. **Request Submission**: A client can submit a withdrawal request for any positive amount within a defined range.
+
+2. **Request Processing**: When a request is processed:
+   - If sufficient funds exist, the withdrawal succeeds: the balance is reduced, a success acknowledgment is sent, and the withdrawal is logged.
+   - If insufficient funds exist, the withdrawal fails: a failure acknowledgment is sent, and the shortfall amount is logged. The balance remains unchanged.
+
+3. **Message Passing**: Communication happens through a set of messages that can be either requests (containing the requested amount) or acknowledgments (containing a success/failure indicator).
+
+4. **Event Logging**: The system maintains an ordered log of events, recording either successful withdrawals (with the amount) or failed attempts due to insufficient funds (with the deficit amount).
+
+## Requirements
+
+- The account starts with a fixed initial balance (e.g., 100)
+- Withdrawal amounts must be positive and bounded within a reasonable range
+- Messages should be typed distinctly as either requests or acknowledgments
+- Log entries should be typed distinctly as either withdrawal events or insufficient-funds events
+- Request processing should atomically update the balance (if applicable), remove the request, add the acknowledgment, and append to the log
+
+## Key Properties to Verify
+
+The specification should support verification of properties such as:
+- The balance never becomes negative
+- Every processed request results in exactly one acknowledgment
+- The log accurately reflects the history of processed requests
+- The sum of successful withdrawals never exceeds the initial balance

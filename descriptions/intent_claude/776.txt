@@ -1,0 +1,40 @@
+# Specification Request: Distributed Counter with Eventual Consistency
+
+## System Overview
+
+I need a formal specification for a **conflict-free replicated data type (CRDT)** implementing a distributed counter across multiple nodes. Each node maintains its own replica of the counter state and can operate independently without coordination, while the system guarantees that all nodes will eventually converge to a consistent view.
+
+## System Description
+
+The system consists of a finite set of nodes, where each node:
+
+1. **Maintains a local counter** that it can increment at any time
+2. **Keeps track of its knowledge** about what other nodes' counters look like
+3. **Periodically synchronizes** with other nodes by exchanging state information
+
+When nodes synchronize, they should merge their states in a way that preserves all increments that either node has observed, using a maximum-based merge strategy to ensure no updates are lost.
+
+## Required Behaviors
+
+- Any node can increment its own counter at any time
+- Any node can synchronize with any other node at any time
+- Synchronization should be one-way: the receiving node updates its state based on what the sending node knows
+- The merge operation must be designed so that concurrent updates at different nodes don't conflict
+
+## Key Correctness Properties
+
+### Safety Properties
+
+1. **Local authority**: Each node's view of its own counter must always be at least as current as any other node's view of that counter. No node should ever think another node's counter is higher than that node itself believes.
+
+2. **Monotonicity**: Counter values must never decrease. Every state transition must preserve or increase all counter values—the system must never "lose" increments.
+
+### Liveness Properties
+
+3. **Eventual convergence**: Under appropriate fairness assumptions (specifically: synchronization between nodes continues to happen, and eventually no new increments occur), all nodes must eventually reach identical states.
+
+## Fairness Assumptions
+
+For the convergence property to hold, assume:
+- Synchronization between any pair of nodes will eventually occur if it remains possible
+- After some point, nodes stop incrementing and only synchronization actions occur (i.e., the system eventually quiesces with respect to new increments)

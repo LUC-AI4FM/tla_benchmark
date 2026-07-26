@@ -1,0 +1,42 @@
+# Specification Request: Disk-Based Consensus Protocol
+
+## System Overview
+
+I need a formal specification of a disk-based consensus protocol where multiple processes coordinate through shared disk storage to agree on a single value. This is a variant of the Synod (Paxos-like) algorithm that uses disk operations rather than message passing for communication between processes.
+
+## System Description
+
+The system consists of multiple processes that each propose an input value and attempt to reach consensus by reading from and writing to a set of shared disks. Each process goes through phases of operation, writing blocks of data to disks and reading what other processes have written. The disks serve as the communication medium and persistent storage for the protocol state.
+
+The protocol must tolerate failures and ensure that processes can only observe consistent states, even when operating concurrently. A key aspect is that decisions depend on achieving operations across a majority of disks, ensuring that any two majority sets overlap.
+
+## Requirements
+
+### Functional Requirements
+
+1. **Input Handling**: Each process starts with an input value it proposes for consensus
+2. **Disk-Based Communication**: Processes communicate exclusively through reading and writing blocks to shared disks
+3. **Phased Execution**: Processes progress through distinct phases (preparation, voting, decision)
+4. **Ballot Numbers**: Each process uses unique ballot numbers to order competing proposals
+5. **Majority Quorums**: Operations must succeed on a majority of disks to be considered valid
+
+### Correctness Properties
+
+1. **Agreement**: If any process outputs a chosen value, all processes that output a value must output the same value
+
+2. **Validity**: Any chosen value must be one of the input values proposed by some process
+
+3. **Value Stability**: Once a value is chosen, it remains chosen forever and cannot change
+
+4. **Output Consistency**: A process can only output a value if that value has been chosen (or output nothing)
+
+5. **Monotonic Progress**: Ballot numbers and phase progression follow proper ordering constraints
+
+6. **Quorum Intersection Safety**: The protocol correctly exploits the property that any two majority sets of disks must overlap, preventing conflicting decisions
+
+## Key Safety Invariants Needed
+
+- Disk blocks maintain consistent relationships between ballot numbers and proposed values
+- Phase transitions respect the required preconditions about disk state
+- When two processes are both in active phases and have read each other's blocks from a disk, at least one must have read the other's current state
+- Once a value achieves sufficient support across a majority of disks at a particular ballot, no conflicting value can achieve similar support

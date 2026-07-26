@@ -1,0 +1,33 @@
+# Specification Request: Binary Search with Bounded Integer Arithmetic
+
+## System to Model
+
+I need a formal specification of the classic binary search algorithm that accounts for **fixed-width integer arithmetic** as it would execute on real hardware. The model should capture how the algorithm searches for a key in a sorted sequence while being subject to the limitations of machine integers (potential overflow when computing the midpoint).
+
+## Functional Requirements
+
+The algorithm should:
+
+1. **Search a sorted sequence** for a given key value
+2. **Return a non-negative index** if the key is found in the sequence
+3. **Return a negative value** if the key is not present (following the convention used in standard library implementations like Java's `Arrays.binarySearch`)
+4. **Use bounded integer arithmetic** with a configurable bit-width, simulating signed integer behavior including wraparound on overflow
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Postcondition correctness**: When the algorithm terminates on a sorted input:
+   - If the key exists in the sequence, the returned value (as a 0-based index) points to a matching element
+   - If the key does not exist, the returned value is negative
+
+2. **Termination guarantee**: The algorithm must terminate within a bounded number of steps (specifically, logarithmic in the sequence length, bounded by the integer bit-width)
+
+3. **Progress**: On each iteration where the algorithm has not yet terminated, the search interval must strictly shrink (either the lower bound increases or the upper bound decreases)
+
+## Key Modeling Concerns
+
+- The specification should be parameterized by the input sequence, the search key, and the bit-width of integers
+- Integer addition must be modeled to capture overflow behavior (wrapping semantics for signed integers)
+- The classic bug where computing `(low + high) / 2` can overflow should be observable if present
+- The specification should allow checking correctness across all possible inputs for a given bit-width

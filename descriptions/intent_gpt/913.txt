@@ -1,0 +1,15 @@
+Specify a concurrent internal memory controller that mediates read and write requests from a fixed set of clients (processors) to a shared memory array. The model should capture clients issuing requests, the controller performing requested operations on the memory, and the controller replying to clients, while separating client-visible request/response interactions from an internal memory interface used to communicate with lower-level memory machinery.
+
+Requirements:
+- The system has a finite set of addresses and values. Clients may issue either a read or write request for a particular address (writes include a value).
+- Clients may be in one of a small number of states (ready to issue, request in progress, awaiting or ready to receive response). Transitions must follow a request → perform → respond pattern for each request.
+- When a client issues a request, the controller must record that request and mark the client as busy; the request should be delivered to the internal memory interface (abstracted as an interaction that may update internal memory state).
+- When performing a write, the shared memory array must be updated atomically at the addressed location. When performing a read, the response must contain the value read from memory at the time of service.
+- After servicing, the controller must provide a reply to the originating client and return the client to the ready state.
+- The model must treat the internal memory interface as an abstract component that can change state when requests are sent or replies produced; the high-level controller must not violate the interface contract.
+Key correctness properties to guarantee:
+- Type safety / invariants: memory is always a total mapping from addresses to values; client controller state and per-client buffers always have values from their declared domains.
+- Safety of memory updates: writes update only the targeted address atomically; reads return the correct value as of service time.
+- Progress: a well-formed request should eventually be performed and replied to (no permanent starvation of a queued, sent request), modulo fairness assumptions about the internal memory interface.
+- No lost or spurious replies: every reply corresponds to a previously issued request and each issued request gets at most one reply.
+Describe nondeterminism in ordering of concurrently issued requests, but require that each client’s request lifecycle preserves these properties.

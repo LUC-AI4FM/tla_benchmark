@@ -1,0 +1,32 @@
+# Specification Request: Typed Message Queue System with Detection Flags
+
+## System Overview
+
+I need a formal specification for a message processing system that manages two separate message queues distinguished by their data types. The system should support adding messages to queues and consuming messages while tracking whether specific "target" values have been encountered.
+
+## System Description
+
+The system maintains two independent message channels:
+- One channel carries messages containing integer values (from a small fixed set, e.g., {1, 2, 3})
+- One channel carries messages containing string values (from a small fixed set, e.g., {"a", "b", "c"})
+
+The system also maintains two boolean detection flags—one for each message type—that indicate whether a particular "special" value has been seen when processing messages.
+
+## Required Operations
+
+The system must support four operations:
+1. **Add an integer message**: Non-deterministically select an integer from the allowed set and add it to the integer message queue
+2. **Process an integer message**: Remove a message from the integer queue and update the integer detection flag based on whether the message contained the target integer value (e.g., 3)
+3. **Add a string message**: Non-deterministically select a string from the allowed set and add it to the string message queue
+4. **Process a string message**: Remove a message from the string queue and update the string detection flag based on whether the message contained the target string value (e.g., "c")
+
+## Key Behaviors
+
+- Messages are stored in sets (unordered collections with no duplicates)
+- Processing a message removes it from the queue
+- The detection flags are updated each time a message is processed, reflecting only whether *that particular* message contained the target value
+- The two channels operate independently—processing one type does not affect the other type's flag
+
+## Correctness Properties
+
+The specification must guarantee **type safety**: all messages in the integer queue must be valid integer message records, and all messages in the string queue must be valid string message records. The queues should never contain malformed messages or messages of the wrong type.

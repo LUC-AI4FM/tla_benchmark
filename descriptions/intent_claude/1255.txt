@@ -1,0 +1,68 @@
+# Specification Request: TLA+ Model Checker Extension Utilities
+
+## System Overview
+
+I need a library of utility operators designed to extend the capabilities of a TLA+ model checker during specification development, debugging, and verification. This library should provide enhanced assertion mechanisms, state inspection tools, evaluation control features, and counterexample analysis capabilities.
+
+## Core Requirements
+
+### 1. Enhanced Assertion Facilities
+
+The system must provide assertion operators that go beyond simple boolean comparison:
+
+- **Equality assertions with diagnostics**: When comparing two values for equality, if they differ, the system should output both values to help diagnose the mismatch. If they match, no output should be produced.
+
+- **Expected error assertions**: The ability to verify that evaluating a particular expression produces a specific expected error message, enabling negative testing of specifications.
+
+### 2. Stateful Key-Value Operations
+
+Provide mechanisms for:
+
+- Retrieving stored values by key, with the ability to specify a default value if the key doesn't exist
+- Atomic get-and-set operations that can apply a transformation function when updating stored values
+
+### 3. Execution Trace Access
+
+Support accessing the sequence of states from the initial state to the current state during model checking. This serves as an implicit history variable without requiring explicit specification in the model.
+
+### 4. Counterexample Analysis
+
+When verification fails, provide structured access to:
+
+- The counterexample represented as a directed graph of states and transitions
+- The ability to convert counterexample data into a sequential trace format
+
+### 5. Dynamic Model Value Creation
+
+Allow programmatic creation of model values (unspecified placeholder values) at runtime, including support for typed model values that follow naming conventions.
+
+### 6. Evaluation Control
+
+Provide operators that control when and how expressions are evaluated:
+
+- **Deferred evaluation**: Delay expression evaluation until a successor state has been chosen, useful for simulation modes
+- **Caching**: Memoize expression results based on a closure, returning cached values when the closure matches
+- **No-operation wrapper**: A pass-through operator useful for setting debugger breakpoints
+
+### 7. Interactive Exploration
+
+Support interactive state exploration where the user can manually select successor states based on configurable conditions (such as when the trace depth exceeds a threshold).
+
+### 8. Fingerprinting Access
+
+Expose the internal fingerprint value that the model checker computes for any given value.
+
+### 9. Dynamic Definition Evaluation
+
+Allow evaluating named definitions dynamically by providing the definition name as a string.
+
+## Correctness Properties
+
+1. Assertion operators must be logically equivalent to their simple counterparts (e.g., equality assertion equals boolean equality) while providing additional diagnostic output
+2. Cached expression evaluation must return values identical to direct evaluation when closures match
+3. Trace access must accurately represent the prefix of the current behavior
+4. Counterexample structures must faithfully represent any property violations found during verification
+
+## Usage Context
+
+These utilities are intended for use during model checking and simulation, not as part of the core specification logic. Some operators are specifically designed for particular model checker modes (simulation vs. exhaustive checking) and may have performance implications if misused.

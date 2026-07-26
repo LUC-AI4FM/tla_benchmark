@@ -1,0 +1,46 @@
+# Specification Request: Alternating Bit Protocol Over Lossy Channels
+
+## System Overview
+
+I need a formal specification of the **Alternating Bit Protocol (ABP)**, a classic reliable data transfer protocol that operates over unreliable communication channels. The protocol should enable a sender to transmit a sequence of data values to a receiver, ensuring reliable delivery despite the possibility of message loss.
+
+## System Description
+
+The system consists of two communicating parties:
+
+1. **Sender (A)**: Holds data to transmit along with a sequence bit, and can send messages to the receiver and receive acknowledgments.
+
+2. **Receiver (B)**: Receives data messages and sends back acknowledgments containing a bit value.
+
+Communication occurs over two unidirectional channels:
+- A channel from sender to receiver carrying data messages (each tagged with a bit)
+- A channel from receiver to sender carrying acknowledgment bits
+
+## Environment Assumptions
+
+The channels are **lossy**: messages in either direction may be arbitrarily lost at any time. However, messages are not corrupted, duplicated, or reordered—they are either delivered intact or lost entirely.
+
+## Protocol Behavior
+
+The protocol should work as follows:
+- The sender repeatedly transmits its current message (data plus bit) until it receives a matching acknowledgment
+- Upon receiving a matching acknowledgment, the sender selects new data and flips its bit
+- The receiver accepts a message only if the incoming bit differs from its current bit (indicating a new message)
+- Upon accepting a new message, the receiver updates its state and acknowledges with the new bit
+- The receiver continuously sends acknowledgments with its current bit
+
+## Fairness Requirements
+
+- Both parties should be able to send messages infinitely often (weak fairness on sending)
+- Both parties must eventually process received messages when available (strong fairness on receiving)
+- Message loss may occur but is not guaranteed to happen
+
+## Correctness Properties
+
+The specification should allow verification of:
+
+1. **Safety**: The receiver's accepted data and the sender's data remain consistent according to the protocol invariant (they match when bits are equal)
+
+2. **Liveness**: Despite arbitrary message loss, the protocol should make progress—new data values should eventually be successfully transmitted and acknowledged
+
+Please model this system with explicit channel contents as sequences, allowing for non-deterministic message loss at any position in either channel.

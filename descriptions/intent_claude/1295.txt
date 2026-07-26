@@ -1,0 +1,41 @@
+# Specification Request: Termination Detection in a Ring Network
+
+## System Overview
+
+I need a formal specification for Dijkstra's termination detection algorithm (EWD 840) in a distributed system. The system consists of a fixed number of nodes arranged in a logical ring, where an underlying distributed computation is taking place. The goal is to detect when all nodes in the system have become inactive (terminated).
+
+## System Description
+
+The distributed system has two layers:
+
+1. **The underlying computation**: Nodes can be either active or inactive. Active nodes may send messages to other nodes, potentially activating them. Active nodes may also spontaneously become inactive at any time.
+
+2. **The termination detection algorithm**: A token circulates around the ring in one direction (from higher-numbered nodes to lower-numbered nodes, with node 0 initiating rounds). The algorithm uses a coloring scheme for both nodes and the token to track whether any "backwards" communication has occurred that might invalidate the current detection round.
+
+The key insight is that when a node sends a message "against" the direction of token flow (to a higher-numbered node), this could activate a node that the token has already passed, potentially giving a false termination signal. The coloring mechanism handles this by marking such events.
+
+## Behavioral Requirements
+
+1. **Token circulation**: The token should pass around the ring, with node 0 initiating new probe rounds and other nodes forwarding the token when appropriate.
+
+2. **Color propagation**: If a node sends a message backwards (against token direction), it must record this fact. When passing the token, any such marking must be propagated to the token.
+
+3. **Detection condition**: Termination is detected when the token returns to node 0 with both the token and node 0 being in a "clean" state, and node 0 is inactive.
+
+4. **Fairness**: The token-passing actions of the algorithm should be fairly scheduled (weak fairness is sufficient).
+
+## Correctness Properties
+
+### Safety Property
+When the algorithm signals termination detection, all nodes must actually be inactive. The detection mechanism must never produce a false positive.
+
+### Liveness Property
+If all nodes eventually become and remain inactive (true termination occurs), then the algorithm must eventually detect this condition. The system should not miss termination indefinitely.
+
+## Initial Conditions
+
+The specification should allow the system to start in any valid configuration of node states and colors, except that the token must start in a state that forces at least one complete round before detection can occur (to avoid spurious initial detection).
+
+## Validation Requirements
+
+An inductive invariant should be provided that captures the essential correctness reasoning: either some node ahead of the token is still active, or some node has been marked as having sent a backwards message, or the token itself carries this information.

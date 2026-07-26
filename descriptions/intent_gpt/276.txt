@@ -1,0 +1,12 @@
+Specify a formal model of the two‑phase commit protocol between a single transaction manager and a fixed set of resource managers. The model should describe the states each participant can occupy (including initial, working/prepared, committed, and aborted), the messages that can be sent (e.g., prepare, prepared, commit, abort), and the allowed ways the protocol may progress while permitting asynchronous, unreliable delivery but not message duplication beyond what the underlying message set models.
+
+Requirements:
+- The transaction manager may initiate a prepare phase and then decide to commit or abort; resource managers independently respond to prepare by moving to prepared or aborting.
+- If any resource manager reaches committed, then the transaction manager must be committed.
+- If the transaction manager is committed, every resource manager must have been prepared and no resource manager may be in working or aborted; a commit message must be present.
+- If the transaction manager is aborted, an abort message must be present.
+- For each resource manager: if it is recorded as prepared, it cannot be in working; if it is working then no prepared message exists; a prepared message implies the resource manager is not working; if it is aborted then either an abort message exists or there is no prepared message for it.
+- Any abort message must be justified: it must come from the transaction manager being aborted or from some resource manager that aborted without having been recorded prepared.
+- Any commit message must imply that all resource managers were recorded prepared, and the commit is associated either with the transaction manager being committed or with at least one resource manager being committed.
+
+Guarantee invariants capturing type/safety (well‑formed sets/states), a consistency relation between transaction manager and resource manager views, and the above safety properties that rule out contradictory states (e.g., a committed resource when transaction manager not committed). Do not prescribe a particular implementation; model possible asynchronous interleavings that respect these invariants.

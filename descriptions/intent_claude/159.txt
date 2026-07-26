@@ -1,0 +1,42 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction processing. This protocol coordinates a set of resource managers (participants) to reach agreement on whether to commit or abort a distributed transaction, with a central transaction manager acting as the coordinator.
+
+## System Components
+
+The system consists of:
+- A **transaction manager (TM)**: The coordinator that orchestrates the commit decision
+- Multiple **resource managers (RMs)**: Participants that hold resources involved in the transaction and must all agree on the outcome
+
+## Protocol Behavior
+
+The protocol should model the standard two-phase commit process:
+
+1. **Phase 1 (Voting/Prepare Phase)**: The transaction manager solicits votes from all resource managers. Each resource manager can either vote to prepare (indicating readiness to commit) or unilaterally decide to abort.
+
+2. **Phase 2 (Decision Phase)**: Based on the votes received, the transaction manager makes a global decision:
+   - If all resource managers have prepared, the TM can decide to commit
+   - If any resource manager aborts, the TM must abort the transaction
+   - The TM then communicates this decision to all participants
+
+Resource managers should react to the coordinator's decision by transitioning to committed or aborted states accordingly.
+
+## Communication Model
+
+The specification should model message-passing communication between the transaction manager and resource managers, capturing the essential messages of the protocol (prepare notifications, commit decisions, abort decisions).
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: All resource managers that reach a final decision must reach the *same* decision—either all commit or all abort. No state should be reachable where one RM has committed while another has aborted.
+
+2. **Safety of Commit**: A commit can only occur if all resource managers were prepared to commit. No resource manager should commit unless the transaction manager has decided to commit.
+
+3. **Type Correctness**: All protocol state should remain well-typed throughout execution, with resource managers and the transaction manager only occupying valid protocol states.
+
+## Scale
+
+The specification should be parameterized by the set of resource managers and should work correctly for any finite number of participants (for verification purposes, a configuration with around 7 resource managers would be appropriate for model checking).

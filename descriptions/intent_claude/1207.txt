@@ -1,0 +1,41 @@
+# Specification Request: TLA+ Subexpression Reference Validation
+
+## System to be Modeled
+
+I need a test harness for validating the behavior of a TLA+ parser/evaluator when processing **subexpression references** (the `!` operator used to refer to labeled parts of definitions and theorems). The system should verify that the parser correctly identifies legal versus illegal subexpression references in various contexts.
+
+## Goal
+
+The specification should exercise the TLA+ subexpression reference mechanism across different proof structures and definition contexts to ensure that:
+
+1. References to properly labeled subexpressions resolve correctly
+2. References to invalid or non-existent labels produce appropriate parsing errors
+3. The scoping rules for subexpression references are enforced correctly
+
+## Contexts to Test
+
+The test suite should cover subexpression references in:
+
+- **ASSUME definitions** with labeled conjuncts
+- **THEOREM statements** with complex nested proof structures including:
+  - NEW declarations with labels
+  - ASSUME/PROVE constructs
+  - SUFFICES steps
+  - Nested proof levels with their own labels
+- **Proof steps** including HAVE, TAKE, WITNESS, PICK, CASE, and DEFINE
+- **Module instantiation** contexts
+- **Nested numbered references** (e.g., referencing the 3rd component of a proof step)
+
+## Correctness Properties
+
+1. **Valid Reference Resolution**: When a subexpression reference points to a legally defined and accessible label, the reference should resolve to the labeled expression's value.
+
+2. **Invalid Reference Detection**: When a subexpression reference points to an undefined label, an out-of-scope label, or uses incorrect indexing, the parser should produce an error.
+
+3. **Scope Correctness**: Labels defined within a proof step should only be accessible from appropriate contexts (sibling steps, nested steps, or outer contexts according to TLA+ scoping rules).
+
+4. **Index Consistency**: Numeric subexpression references (like `!1`, `!2`) should correctly correspond to the positional components of the referenced construct.
+
+## Expected Behavior
+
+The specification should demonstrate that certain reference patterns are legal (should parse and evaluate correctly) while others are illegal (should trigger parsing errors). This serves as a regression test for the TLA+ tooling's handling of the subexpression reference feature.

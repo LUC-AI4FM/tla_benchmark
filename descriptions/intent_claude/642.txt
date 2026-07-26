@@ -1,0 +1,54 @@
+# Specification Request: Light Client Protocol for Blockchain Verification
+
+## System Overview
+
+I need a formal specification for a **light client protocol** that allows a resource-constrained client to verify blockchain state without downloading the full blockchain. The light client should be able to securely synchronize from a trusted starting point to a target block height by fetching and verifying light blocks (block headers with validator signatures).
+
+## System Requirements
+
+### Core Functionality
+
+The light client must:
+- Start from a known trusted block at a specific height
+- Fetch light blocks from a primary node to reach a target block height
+- Verify each fetched block against the blockchain's consensus rules
+- Track verification status of fetched blocks
+- Maintain a latest verified block that advances toward the target
+
+### Trust Model
+
+The specification must account for:
+- A **trusting period** during which validator sets can be trusted (representing a real-world time window like two weeks)
+- A configurable set of nodes, where some fraction may be faulty/Byzantine
+- The primary node (block source) may be either correct or Byzantine
+- A maximum fraction of faulty validators (less than one-third for BFT consensus)
+
+### Clock Model
+
+The system must handle:
+- Local clock drift at the light client (assumed maximum drift)
+- Actual real-world clock drift (which may differ from assumptions)
+- A reference clock representing real time for the blockchain
+- Time-based validity checks for block verification
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client never accepts a block that contradicts the actual blockchain (no successful attacks when Byzantine fraction is below threshold)
+
+2. **Liveness**: If the primary is correct, the light client eventually reaches the target height
+
+3. **Consistency**: The verified chain maintained by the light client is consistent with the reference blockchain
+
+4. **Trust Validity**: Blocks are only accepted if verified within the trusting period relative to a previously trusted block
+
+## Configuration Parameters
+
+The specification should be parameterized by:
+- The set of participating nodes
+- Starting (trusted) height and target height
+- Length of the trusting period
+- Assumed and actual clock drift bounds
+- Whether the primary node is correct
+- The fraction of potentially faulty validators

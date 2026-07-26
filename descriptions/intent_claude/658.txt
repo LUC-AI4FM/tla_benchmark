@@ -1,0 +1,48 @@
+# Specification Request: Byzantine-Tolerant Light Client Verification
+
+## System Overview
+
+I need a formal specification for a blockchain light client that can securely synchronize with a blockchain while tolerating Byzantine (faulty) behavior from validators and potentially even from the primary node it communicates with.
+
+## System Description
+
+The system models a light client attempting to verify blockchain headers from a trusted starting height to a target height. The light client does not download and validate full blocks; instead, it relies on cryptographic commitments and validator signatures to verify that block headers are legitimate.
+
+The environment includes:
+- A network of validator nodes (seven nodes in the typical configuration)
+- A blockchain maintained by these validators
+- A primary node that serves light blocks to the client (which may be Byzantine/faulty)
+- The light client itself, which has a local clock that may drift from real time
+
+## Key Requirements
+
+### Timing and Trust Model
+- The light client operates within a trusting period during which it considers previously verified blocks as valid trust anchors
+- The local clock may drift from the reference clock, and the specification should account for both assumed drift bounds and actual drift
+- Clock drift affects the light client's ability to correctly determine whether blocks are within the trusting period
+
+### Byzantine Fault Tolerance
+- The system must tolerate up to (but strictly less than) one-third of validators being faulty
+- The primary node serving blocks to the light client may itself be Byzantine/faulty
+- Faulty validators may provide invalid signatures, conflicting blocks, or attempt other attacks
+
+### Verification Process
+- The light client fetches light blocks and must verify them against previously trusted blocks
+- Verification involves checking validator signatures and ensuring sufficient overlap with trusted validator sets
+- The client tracks verification status of fetched blocks and maintains the latest verified block
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client should never accept a block that conflicts with the actual blockchain, assuming the Byzantine fault tolerance threshold is not exceeded
+
+2. **Progress Monitoring**: Track the number of verification probes/steps required to reach the target height
+
+3. **Temporal Correctness**: The light client's decisions should remain valid with respect to the trusting period, accounting for clock drift
+
+4. **Verdict Consistency**: The light client's verification verdicts should be consistent with the actual state of the blockchain and validator behavior
+
+## Monitoring Requirements
+
+The specification should track state transitions to enable verification of properties across steps, including the previous values of key state components like the last verified block, current block under examination, local clock reading, and verification verdict.

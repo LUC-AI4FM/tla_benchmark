@@ -1,0 +1,16 @@
+Specify a model of a distributed heartbeat-based failure detection service for a fixed set of processes under partial synchrony. The model should describe each process having a local, discrete clock that advances in steps; processes periodically send heartbeat ("alive") messages to all others, periodically make failure-suspicions based on locally observed time since last message from each peer, and update per-peer timeout estimates when messages are heard. The environment may nondeterministically deliver, drop, or delay messages subject to arbitrary finite delays.
+
+The specification must capture:
+- periodic sending and periodic suspicion-checking events driven by each local clock (these periods are distinct and independent);
+- for each observer-process and each target-process, a local counter measuring time since last received heartbeat and a per-observer per-target timeout value that can increase when a heartbeat is received;
+- rules for receiving batches of messages in a transition that reset counters for observed senders and possibly increase their timeouts;
+- a suspicion rule that marks a peer faulty whenever the local counter exceeds the currently used timeout for that peer;
+- sending rule that produces heartbeat messages for all peers when a sender's clock reaches its send period.
+
+Key correctness properties to guarantee and be checkable:
+- Safety (no incorrect permanent suspicion): any correct process (one that continues to send heartbeats indefinitely) is only finitely often suspected by a correct observer; in particular, if a process continues to send heartbeats, observers eventually stop suspecting it.
+- Liveness (completeness): every process that has actually crashed (stops sending) is eventually permanently suspected by every correct observer (strong completeness), or at least by some observers (weak completeness) — state which completeness goal is required.
+- Convergence of estimates: for each correct observer-target pair, the per-target timeout value stabilizes to some finite value.
+- Type and boundedness invariants: counters and timeouts remain integers and respect any assumed default bounds or initial values.
+
+Do not prescribe specific variable names or implementation steps; specify only the state elements, allowable transitions, timing constraints, and the properties above.

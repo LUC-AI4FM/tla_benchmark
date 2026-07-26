@@ -1,0 +1,7 @@
+This TLA+ module tests the caching behavior of TLC's `TLCCache` operator to verify that cached expressions are evaluated exactly once, regardless of how many times they are referenced.
+
+The specification maintains a global counter using TLC's `TLCSet` and `TLCGet` operators. The helper operator `inc` increments this counter each time it is called while returning its argument unchanged. Two definitions use `TLCCache`: `defn` computes the set {1, 2, 3, 4, 5}, and `derivedDefn` computes {1, 2, 3, 4} (elements where adding one yields a member of `defn`). Each is wrapped with `inc` to track evaluation count.
+
+The system has two variables, `x` and `y`. Two assumptions verify correctness by checking set membership: 5 must be in `defn` and must not be in `derivedDefn`. The initial state assigns `defn` to `y` and `derivedDefn` to `x`. The next-state relation checks membership in both cached definitions, asserts that the global counter equals exactly 2 (confirming each cached expression was evaluated only once across all references in assumptions, initialization, and transitions), and leaves both variables unchanged.
+
+This specification serves as a test harness verifying that `TLCCache` properly memoizes expressions so they are computed once rather than repeatedly across multiple evaluation contexts.

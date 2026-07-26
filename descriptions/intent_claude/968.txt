@@ -1,0 +1,49 @@
+# Specification Request: State Graph Explorer with Counterexample Generation
+
+## System Overview
+
+I need a formal specification of a **state-space exploration algorithm** that searches a directed graph for "bad" states (representing safety violations or deadlocks) and, when found, produces a witness path from an initial state to the violation.
+
+## Input
+
+The system operates on a directed graph with:
+- A finite set of states
+- A designated subset of initial states
+- A successor relation defining which states are reachable from each state
+- A designated subset of "violation" states that represent errors to be detected
+
+## Functional Requirements
+
+### Exploration Behavior
+
+1. **Starting point**: Begin exploration from the initial states of the graph.
+
+2. **Non-deterministic traversal**: The explorer should visit reachable states, but the specification should *not* enforce any particular traversal order (such as BFS or DFS). States awaiting exploration form a set, and any state from this set may be chosen next.
+
+3. **Visited tracking**: The system must track which states have been visited to avoid redundant exploration.
+
+4. **Termination conditions**: The exploration terminates when either:
+   - A violation state is reached, OR
+   - A deadlock is detected (a state with no successors other than itself), OR
+   - All reachable states have been fully explored
+
+### Counterexample Construction
+
+5. **Path recording**: As exploration proceeds, the system must maintain sufficient information to reconstruct a path from any visited state back to an initial state (essentially building a spanning tree of the explored portion).
+
+6. **Counterexample generation**: When a violation or deadlock is detected, the system must construct an explicit path (sequence of states) leading from an initial state to the problematic state.
+
+## Correctness Properties
+
+### Safety Properties
+- The counterexample, once complete, must be a valid path: it starts at an initial state and ends at the violation/deadlock state.
+
+### Liveness Properties
+1. **Termination**: The exploration must eventually terminate (either by finding a violation/deadlock or exhausting the reachable state space).
+
+2. **Violation detection**: If violation states exist and are reachable from initial states, the explorer must eventually find one and produce a valid counterexample path to it.
+
+## Notes
+
+- Self-loops should be excluded when determining successors (a state pointing only to itself is considered a deadlock).
+- The spanning tree structure should allow efficient backward traversal to reconstruct counterexample paths.

@@ -1,0 +1,11 @@
+Specify a formal model of a simple shared-memory controller that serializes and services memory access requests from a fixed set of clients. The model should describe the abstract behavior of an internal memory component that accepts load and store requests from clients, performs the access to the memory, and returns results or acknowledgements, while ensuring the following functional requirements and safety properties.
+
+- There is a fixed address space with values stored in memory. Clients may issue read or write requests targeted at addresses.
+- A client may only have at most one outstanding request at a time; the controller accepts a new request from a client only when that client is ready to issue one.
+- When a request is accepted, the controller records it in a per-client pending slot and marks the client as busy. Acceptance does not immediately change the logical memory contents.
+- The controller performs requests atomically one client at a time: for a write, the memory is updated to the new value; for a read, the controller obtains the current memory value for the requested address.
+- After performing the access, the controller places the response (read value or write acknowledgement) into the client’s response slot and marks the client as completed. The client may then consume the response and become ready again.
+- The controller must preserve type invariants: memory is always a total mapping from addresses to values; per-client state belongs to the expected finite set of statuses (ready, busy, done); per-client slots hold either no request, a request object, or a value/response.
+- All steps must keep memory and per-client state consistent: accepting a request should not change memory, performing a request updates memory only for writes, and responding should not alter memory or pending requests beyond clearing the response when consumed.
+
+State the set of clients, addresses, and allowed request/response formats abstractly. Specify initial conditions, the three classes of transitions (accept request, perform request, return response), and assert invariants guaranteeing the single-outstanding-request property, memory consistency, and the type invariants described above. Also specify that the system evolves under repeated nondeterministic application of these transitions.

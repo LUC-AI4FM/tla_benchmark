@@ -1,0 +1,40 @@
+# Specification Request: Leibniz Operator Substitution Validation
+
+## System to Model
+
+I need a formal specification for a **type-checking or validation system** that determines whether operator substitutions in module instantiations are semantically valid, specifically with respect to the "Leibniz" property of operators.
+
+## Background and Goal
+
+In formal specification languages that support module instantiation with operator substitution, there's an important distinction between:
+
+1. **Leibniz operators**: Operators where the arguments are treated as pure values that can be substituted according to Leibniz's law of equality (if two things are equal, one can be substituted for the other in any context without changing meaning).
+
+2. **Non-Leibniz operators**: Operators that reference primed variables (next-state values) of their arguments, or use temporal/modal constructs like enabledness predicates on their arguments. These operators violate substitutability because the argument's identity matters beyond its current value.
+
+The goal is to specify a validation system that **enforces correct substitution discipline** when instantiating modules—ensuring that only Leibniz operators can be substituted for constant operator parameters.
+
+## Requirements
+
+The system must:
+
+1. **Classify operators** as Leibniz or non-Leibniz based on whether they:
+   - Apply the prime operator to their formal parameters
+   - Use modal operators (like enabledness checks) on their parameters
+   - Invoke other non-Leibniz operators passing their parameters through
+
+2. **Accept valid instantiations** where Leibniz operators are substituted for constant operator parameters, including:
+   - Direct Leibniz operator references
+   - Lambda expressions that preserve the Leibniz property
+   - Operators imported from other modules that maintain Leibniz status
+
+3. **Reject invalid instantiations** where non-Leibniz operators are substituted for constant operator parameters, including:
+   - Operators that prime their arguments
+   - Operators that test enabledness of their arguments
+   - Imported operators that are non-Leibniz in their source module
+
+## Key Correctness Properties
+
+- **Soundness**: Every rejected substitution must genuinely involve a non-Leibniz operator being substituted where a Leibniz operator is required.
+- **Compositionality**: The Leibniz/non-Leibniz classification must be correctly propagated through module imports and lambda abstractions.
+- **Completeness**: All valid Leibniz substitutions should be accepted, even when operators are accessed through chains of module instantiations.

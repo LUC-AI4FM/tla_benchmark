@@ -1,0 +1,45 @@
+# Specification Request: TLA+ Expression Evaluation Test Suite
+
+## Overview
+
+I need a formal specification that serves as a **test harness for verifying the correct evaluation of conditional expressions and logical connectives** in TLA+. The purpose is to validate that a TLA+ model checker correctly handles nested conditional constructs and compound boolean expressions.
+
+## System Description
+
+The specification should be a minimal state machine (essentially a static system) whose sole purpose is to evaluate a series of test expressions when the model checker runs. The system itself doesn't perform any meaningful state transitions—it exists only to provide a context in which the test expressions can be checked as invariants.
+
+## Requirements
+
+### Test Coverage
+
+The specification must verify correct evaluation of:
+
+1. **Nested IF-THEN-ELSE expressions**: Conditional expressions where the "then" or "else" branches themselves contain further conditional expressions, potentially multiple levels deep.
+
+2. **CASE expressions with multiple guards**: Including scenarios where:
+   - Only one guard is true (deterministic selection)
+   - No guards are true (OTHER/default clause applies)
+   - Multiple guards could be true (nondeterministic but bounded result)
+   - CASE expressions nested within other CASE expressions
+
+3. **Compound disjunctive/conjunctive expressions**: Complex boolean expressions combining multiple disjunctions and conjunctions, verifying short-circuit evaluation and correct precedence.
+
+### Correctness Properties
+
+Each test case must verify that:
+- Nested IF-THEN-ELSE evaluates by following the correct branch at each level
+- CASE expressions select the branch corresponding to the first true guard
+- When no CASE guard matches, the OTHER clause is selected
+- When multiple CASE guards are true, the result is one of the valid possibilities (nondeterministic choice)
+- Nested logical operators with mixed conjunctions and disjunctions evaluate correctly
+
+### Behavioral Requirements
+
+- Each test should produce a clear pass/fail indication
+- Failed tests should halt execution with an identifiable error message
+- Passed tests should log confirmation of success
+- All tests must pass for the specification to be considered valid
+
+## Goal
+
+The ultimate goal is to have confidence that the TLA+ tooling correctly implements the semantics of conditional expressions and nested logical connectives, particularly in edge cases involving deep nesting and multiple potentially-matching branches.

@@ -1,0 +1,40 @@
+# Specification Request: Ring Buffer with Data Race Detection
+
+## System Overview
+
+I need a formal specification for a fixed-size circular buffer (ring buffer) data structure that supports concurrent access from multiple reader and writer threads. The buffer should be designed as a reusable component that other specifications can incorporate when modeling producer-consumer systems.
+
+## Functional Requirements
+
+### Buffer Structure
+- The buffer has a fixed number of slots determined at initialization
+- Each slot can hold either a value from a defined set of valid values, or be empty
+- Slots are accessed using indices that wrap around (circular/ring behavior)
+- All slots start empty
+
+### Concurrent Access Model
+- Multiple distinct writer threads may attempt to write to the buffer
+- Multiple distinct reader threads may attempt to read from the buffer
+- Both read and write operations are **non-atomic** — they span multiple steps to realistically model concurrent access patterns
+- The specification must track which threads are currently in the middle of reading or writing each slot
+
+### Operations
+- **Writing**: A writer can begin writing a value to a slot (marking itself as actively writing) and later complete the write (removing itself from the active set)
+- **Reading**: A reader can begin reading a slot (marking itself as actively reading), access the current value, and later complete the read (removing itself from the active set)
+- Support converting sequence numbers to buffer indices via modular arithmetic for use in higher-level protocols
+
+## Correctness Properties
+
+### Data Race Freedom (Critical Invariant)
+The primary safety property that any system using this buffer must maintain:
+1. **No simultaneous read-write conflicts**: If any thread is reading a slot, no thread may be writing to that same slot, and vice versa
+2. **No simultaneous write-write conflicts**: At most one writer may be actively writing to any given slot at a time
+
+This invariant must be preserved by the higher-level protocol using the buffer — the buffer module provides the mechanism to detect violations but leaves enforcement to the client specification.
+
+### Type Safety
+All buffer state must remain well-formed: slots contain valid values or are empty, and the tracking sets for active readers and writers contain only valid thread identifiers.
+
+## Design Intent
+
+This specification should serve as a building block for modeling lock-free or concurrent queue algorithms where data race detection is essential for verification. The non-atomic operation model forces client specifications to properly synchronize access, making race conditions visible during model checking.

@@ -1,0 +1,40 @@
+# Specification Request: Dijkstra-Scholten Termination Detection Algorithm
+
+## System Overview
+
+I need a formal specification of Dijkstra's token-ring termination detection algorithm (EWD840) for a distributed system. The algorithm detects when all processes in a ring network have become inactive and no messages are in transit.
+
+## System Description
+
+The system consists of N processes arranged in a logical ring topology (numbered 0 through N-1). Each process can be either active or passive, and processes can send messages to activate other processes. The goal is to detect global termination—the state where all processes have become inactive and will remain so.
+
+A token circulates around the ring in one direction (from node 0 to N-1, then back to 0). The challenge is that while the token traverses the ring checking for inactivity, a process that has already been checked might be reactivated by a message from a process not yet checked.
+
+## Algorithm Behavior
+
+The algorithm uses a coloring scheme to handle the interference between message passing and token circulation:
+
+- Processes and the token can be colored white or black
+- When a process sends a message "backward" (to a higher-numbered node, against token flow), it marks itself black to indicate potential interference
+- The token accumulates this information: if it encounters a black node, the token becomes black
+- A conclusive termination detection occurs only when the token completes a full round while remaining white and finding all nodes inactive and white
+
+The designated master node (node 0) initiates detection rounds and determines when termination has been conclusively detected.
+
+## Key Requirements
+
+1. **Non-deterministic environment**: Processes may spontaneously become inactive, and active processes may send activation messages to any other process at any time.
+
+2. **Token passing rules**: A non-master node passes the token only when it is inactive or when the round is already inconclusive. Passing the token resets the node's color to white.
+
+3. **Round initiation**: The master node starts a new detection round when it holds a black token or is itself black, sending a fresh white token around the ring.
+
+## Correctness Properties
+
+**Safety**: When termination is detected (white token returns to a white, inactive master node), all processes must actually be inactive. The algorithm must never falsely claim termination.
+
+**Liveness**: If all processes genuinely become and remain inactive, the algorithm must eventually detect this termination. The detection mechanism itself must make progress—fair execution of the token-passing protocol should guarantee detection.
+
+## Validation
+
+The specification should support checking that the safety and liveness properties hold, and include an inductive invariant that captures why the algorithm correctly detects termination despite the concurrent activity of processes.

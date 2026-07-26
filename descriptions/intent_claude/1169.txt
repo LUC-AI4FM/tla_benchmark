@@ -1,0 +1,43 @@
+# Specification Request: Distributed Container Task Execution on Worker Nodes
+
+## System Overview
+
+I need a formal specification for the worker-side behavior in a distributed container orchestration system (similar to Docker Swarm). The system manages task execution across a cluster of worker nodes, where a central dispatcher coordinates with worker agents to run containerized workloads.
+
+## System Description
+
+The system consists of multiple worker nodes that can be either connected to the cluster or disconnected. Each node runs an agent that receives task assignments from the dispatcher and is responsible for executing container tasks through their lifecycle.
+
+### Task Lifecycle
+
+Tasks assigned to workers progress through a series of states as the container is prepared and executed:
+- Tasks begin in an assigned state when given to a worker
+- Workers accept tasks, prepare them, mark them ready, start them, and eventually have them running
+- Running containers can complete successfully, fail, or be shut down on request
+- Workers can reject tasks at various points before they're fully running
+
+### Node Connectivity
+
+Workers can connect and disconnect from the cluster:
+- When a worker disconnects, the system detects it as down
+- When a worker reconnects, it synchronizes its task state with the dispatcher
+- If a node remains disconnected for an extended period, its tasks should be marked as orphaned
+
+## Key Requirements
+
+1. **Forward Progress Only**: Tasks should only advance forward through the state machine toward their desired state—they cannot move past the state they're supposed to reach.
+
+2. **Connectivity Requirement**: Workers can only report task state changes or progress tasks when they are connected to the cluster.
+
+3. **Graceful Shutdown**: When the system wants to stop a running container, the worker should be able to complete the shutdown and report it.
+
+4. **Failure Handling**: Running containers may exit at any time, either successfully or with failure. If a container fails while being shut down, this should be reported as a successful shutdown.
+
+5. **Task Rejection**: Workers should be able to reject tasks they cannot run, but only during the preparation phases (not once the container is actually running).
+
+6. **Orphan Detection**: Tasks on nodes that have been down for too long should be marked as orphaned, representing a special case where the orchestrator (not the agent) sets the task state.
+
+## Correctness Properties
+
+- The system should guarantee eventual progress: tasks should advance toward completion, shutdowns should complete, disconnected workers should eventually reconnect, and orphaned tasks should be handled.
+- The specification should track and bound certain non-progress events (rejections, container exits, node disconnections) to ensure the system doesn't get stuck in unproductive cycles.

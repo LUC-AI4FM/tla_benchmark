@@ -1,0 +1,21 @@
+# Session10set Module Description
+
+This TLA+ module specifies a distributed algorithm for computing shortest paths to a root node in an undirected graph, using message passing between neighboring nodes.
+
+## System Model
+
+The specification models a network of nodes connected by undirected edges, where each node attempts to discover its shortest path distance to a designated root node and identify its parent in a spanning tree rooted at that node.
+
+## Constants and Variables
+
+**Constants:** `Nodes` (the set of all nodes), `Edges` (undirected edges as two-element subsets of nodes), `root` (the distinguished root node), and `MaxNodes` (an upper bound on node count). Assumptions ensure edges connect exactly two nodes, the root exists, and all nodes are reachable from the root.
+
+**Variables:** `msgs` maps directed message queues between neighbors to sets of depth values; `depth` tracks each node's current known distance to the root; `parent` records each node's parent in the path to root.
+
+## Algorithm Behavior
+
+Initially, the root has depth zero and broadcasts this to neighbors; other nodes start with maximum depth. Each node repeatedly processes incoming messages: if a received depth value would improve its known distance by more than one, it updates its depth and parent, then propagates its new depth to other neighbors. Otherwise, it simply discards the message.
+
+## Temporal Properties
+
+The specification includes weak fairness for all node processes, ensuring each enabled node eventually takes a step. The module defines the temporal specification `Spec` combining initialization, the next-state relation, and fairness conditions. No explicit safety or liveness properties are stated for model checking.

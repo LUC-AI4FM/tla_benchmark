@@ -1,0 +1,42 @@
+# Specification Request: Serializable Memory Operations with Operation Queues
+
+## System Overview
+
+I need a formal specification for a memory system that handles operations from multiple processors, where each processor can issue memory operations that are queued and eventually executed in a serializable manner. The system should model how processors submit memory requests, how those requests are tracked and processed, and how responses are delivered back to the processors.
+
+## System Components
+
+The system should model:
+
+1. **Multiple processors** that can issue memory operations
+2. **A shared memory** organized by addresses, where each address holds a value
+3. **Per-processor operation queues** that hold pending memory operations
+4. **A register file per processor** that tracks the status of in-flight operations (whether they are pending, completed, or free for reuse)
+
+## Functional Requirements
+
+1. Processors should be able to submit memory operations (reads and/or writes) that get queued for processing
+2. Each operation should be uniquely identifiable by which processor issued it and its position in that processor's operation sequence
+3. Operations should eventually complete and return results to the issuing processor
+4. The register file should track operation lifecycle: from being issued, through completion, to being available for reuse
+
+## Correctness Properties
+
+### Safety
+- The system should maintain proper serialization semantics for memory operations
+
+### Liveness
+The specification must guarantee:
+
+1. **Request completion**: Every memory operation that is issued will eventually complete and free its associated register
+2. **Response delivery**: Every operation that enters the system will eventually reach a "done" state
+
+## Testing Configuration
+
+For model checking purposes, the specification should support:
+
+- Bounding the maximum length of operation queues per processor
+- Constraining the natural number domain to finite ranges sufficient for verification
+- Configurable initial memory state
+
+The key verification goal is to confirm that the liveness properties hold—specifically that the system never deadlocks and all operations eventually complete, regardless of the interleaving of processor actions.

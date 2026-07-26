@@ -1,0 +1,52 @@
+# Specification Request: Write-Through Cache System
+
+## System Overview
+
+I need a formal specification of a write-through cache system for a shared-memory multiprocessor. The system should model multiple processors, each with its own local cache, communicating with a shared main memory through a bounded queue of pending memory operations.
+
+## System Description
+
+The system consists of:
+
+1. **Multiple processors**: Each processor can issue read and write requests to memory addresses. Each processor has its own private cache that stores copies of memory values.
+
+2. **Shared main memory**: A single memory that holds the authoritative values for all addresses.
+
+3. **Memory request queue**: A bounded FIFO queue that holds pending memory operations. The queue has a fixed maximum capacity and processes requests in order.
+
+## Functional Requirements
+
+### Processor Operations
+- Processors should be able to issue read and write requests for memory addresses
+- Each request goes through phases: being issued, being processed, and receiving a response
+- Processors must wait for one operation to complete before issuing another
+
+### Cache Behavior
+- **Reads**: If the requested address is in the local cache, return the cached value. If not (cache miss), the request must be queued to fetch from memory.
+- **Writes**: Write-through semantics—writes update the local cache immediately and are queued to update main memory. Writes must also update or invalidate the corresponding cache entries in other processors that have cached that address.
+
+### Memory Queue Processing
+- The queue processes requests in FIFO order
+- Write requests update main memory when processed
+- Read requests fetch values from memory (accounting for any pending writes ahead in the queue) and update the requesting processor's cache
+
+### Cache Eviction
+- Cache entries may be evicted at any time, except an address cannot be evicted while that processor has a pending read waiting for that address
+
+## Correctness Properties
+
+### Type Safety
+All system components must maintain proper types throughout execution (memory maps addresses to values, caches map addresses to values or empty, control states are valid, etc.)
+
+### Cache Coherence
+**Critical property**: Whenever two processors both have a cached value for the same address, those cached values must be identical. The system must never allow different processors to observe different values for the same address in their caches.
+
+### Linearizability (Refinement)
+The cache system should correctly implement the abstract semantics of a linearizable shared memory—every execution should appear equivalent to some sequential execution where each operation takes effect atomically at some point between its invocation and response.
+
+## Parameters
+
+- The set of processors
+- The set of memory addresses
+- The set of possible values
+- The maximum queue length (must be at least 1)

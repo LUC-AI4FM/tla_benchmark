@@ -1,0 +1,19 @@
+# Key-Value Store with Snapshot Isolation
+
+This TLA+ module specifies a simple key-value store that implements snapshot isolation for concurrent transactions.
+
+## Overview
+
+The specification models a transactional key-value store where multiple transactions can operate concurrently. Each transaction works on a private snapshot of the store, and conflicts are detected at commit time based on write-write conflicts.
+
+## Constants and Variables
+
+The module declares three constants: `Key` (possible keys), `Val` (possible values), and `TxId` (transaction identifiers). Five variables track system state: `store` holds the committed key-value mappings, `tx` tracks open transactions, `snapshotStore` maintains each transaction's private snapshot, `written` logs keys modified by each transaction, and `missed` records writes from other transactions that occurred after a transaction opened.
+
+## Actions
+
+Transactions progress through several actions: `OpenTx` creates a new transaction with a snapshot of the current store; `Add`, `Update`, and `Remove` modify the transaction's local snapshot; `RollbackTx` discards a transaction's changes; `CloseTx` commits changes to the store only if no write-write conflict exists (the transaction hasn't written to any key that was modified by a concurrent committed transaction).
+
+## Specification and Properties
+
+The temporal specification allows stuttering steps. Two invariants are stated as a theorem: `TypeInvariant` ensures variables maintain correct types, and `TxLifecycle` verifies that missed writes are properly tracked and that closed transactions are cleaned up correctly.

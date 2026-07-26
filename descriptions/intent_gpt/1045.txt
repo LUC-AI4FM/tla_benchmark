@@ -1,0 +1,13 @@
+Specify a distributed consensus protocol for a set of processes that use a set of durable storage nodes (disks) to achieve single-value agreement across potentially multiple ballots. The model should capture processes proposing values, attempting ballots, writing and reading value/ballot records to and from disks, and progressing through logical phases (prepare/accept-like phases and a read phase). The system must tolerate arbitrary interleavings and crashes or resets of processes (but not disk failures) and must allow processes to restart ballots later with higher ballot numbers.
+
+Requirements:
+- Processes may propose inputs and must be able to start a ballot with a ballot number from an allowed per-process ballot space; distinct processes have disjoint ballot-number sets.
+- Processes perform two-phase interactions with disks: a phase that gathers disk state by reading majority responses, and a phase that writes chosen blocks to disks and then collects acknowledgements from a majority before committing.
+- Disk blocks store a pair of ballot metadata and a proposed value (or a marker for no value). Reads return the whole block previously written at that disk for a specific process.
+- A ballot must choose the value with highest seen ballot among read blocks if any non-empty values are observed; otherwise the proposer’s own input may be chosen.
+- Processes must only accept (decide/commit) values after obtaining confirmation from a majority of disks.
+- Process failures allow their local state to be reset and for other processes to proceed; disk contents persist across failures.
+- Safety property: at most one value can ever be chosen (agreement) and any chosen value must equal some process’s input (validity).
+- Liveness goal (optional): if a non-faulty process eventually runs with sufficiently high ballots and a majority of disks respond, then some value will be chosen.
+
+Model should abstractly represent disks, majority predicate, per-process ballot domains, and the necessary invariants ensuring that majority-written state overlaps so safety holds. Do not prescribe a particular implementation; specify behavior and correctness properties.

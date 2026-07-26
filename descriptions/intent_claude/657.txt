@@ -1,0 +1,47 @@
+# Specification Request: Light Client Verification Protocol with Faulty Primary
+
+## System Overview
+
+I need a formal specification of a blockchain light client verification protocol that can operate in an environment where the primary full node providing block data may be faulty or Byzantine.
+
+## System Description
+
+The system models a light client that attempts to verify blockchain state by fetching and validating "light blocks" (block headers with validator signatures) from a potentially malicious primary node. The light client starts from a known trusted block at a certain height and attempts to securely verify blocks up to a target height.
+
+### Environment Parameters
+
+- A network of 7 validator nodes participating in consensus
+- The light client begins with trust in a block at height 1
+- The verification goal is to reach and trust a block at height 5
+- Time-based security relies on a trusting period (representing approximately two weeks in the model's time units)
+- The model should account for clock drift between the light client's local clock and real time, with both assumed drift bounds and actual drift behavior
+- **Critically: the primary node providing light blocks is Byzantine/faulty**
+- The Byzantine fault tolerance threshold follows the standard assumption that fewer than 1/3 of validators may be faulty
+
+## Key Requirements
+
+1. **Block Fetching**: The light client must be able to request and receive light blocks from the primary node at various heights
+
+2. **Verification Logic**: The protocol must verify light blocks against previously trusted blocks, checking validator signatures and other validity conditions
+
+3. **Trusting Period Enforcement**: Blocks can only be verified if they fall within the trusting period relative to trusted blocks and the current time
+
+4. **Clock Awareness**: The specification must model local clock behavior and account for potential drift from real time
+
+5. **Bisection/Skipping**: When direct verification between heights fails, the protocol should support verification through intermediate heights
+
+## Correctness Properties
+
+The specification should allow checking:
+
+1. **Safety under Byzantine primary**: Whether the light client can be tricked into accepting invalid blocks when the primary is malicious
+
+2. **Progress tracking**: Monitor the light client's state transitions through verification attempts
+
+3. **Time-based security**: Ensure trusting period constraints are properly enforced
+
+## Modeling Notes
+
+- The specification should track previous states to enable monitoring of state transitions and verdict changes
+- The model should distinguish between the assumed clock drift bounds used by the protocol and the actual drift that occurs
+- The faulty ratio parameter determines which validators may behave Byzantine

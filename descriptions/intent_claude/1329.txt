@@ -1,0 +1,31 @@
+# Specification Request: Dijkstra's Token Ring Termination Detection Algorithm (EWD840)
+
+## System to Model
+
+I need a formal specification of Dijkstra's classic termination detection algorithm for distributed systems, known as EWD840. This algorithm detects when all processes in a distributed ring network have become idle and no messages are in transit.
+
+## System Description
+
+The system consists of N processes arranged in a logical ring topology. Each process can be either active (doing work) or passive (idle). Active processes may send messages to other processes, potentially reactivating passive processes. A single token circulates around the ring to detect global termination.
+
+## Behavioral Requirements
+
+1. **Process States**: Each process is either active or passive. An active process may become passive at any time. A passive process can only become active upon receiving a message.
+
+2. **Message Passing**: Active processes may send messages to any other process in the system. Receiving a message reactivates a passive process.
+
+3. **Token Circulation**: A token travels around the ring (from process N-1 down to process 0). The token carries color information used to detect whether termination has occurred.
+
+4. **Coloring Scheme**: Processes and the token use colors (white/black) to track whether the system state may have changed during the token's circulation. When a process sends a message to a "lower" numbered process, it taints itself, and this information must eventually reach the initiator.
+
+5. **Termination Announcement**: Process 0 (the initiator) determines when global termination can be safely announced based on the token's state and its own observations.
+
+## Correctness Properties
+
+1. **Safety**: The algorithm must never falsely announce termination. If termination is declared, all processes must genuinely be passive and no messages can be in transit.
+
+2. **Liveness**: If all processes eventually become passive and remain passive (true termination occurs), the algorithm must eventually detect and announce this termination.
+
+## Configuration
+
+The specification should be parameterized by N, the number of processes in the ring (for verification purposes, test with N = 7).

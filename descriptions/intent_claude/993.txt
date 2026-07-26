@@ -1,0 +1,55 @@
+# Specification Request: Atomic Commit Protocol with Single Broadcast
+
+## System Overview
+
+I need a formal specification of an atomic commit protocol, similar to two-phase commit (2PC), that coordinates a transaction decision among a set of distributed participants and a central coordinator.
+
+## System Components
+
+The system consists of:
+- A **coordinator** process that orchestrates the commit decision
+- Multiple **participant** processes that vote on whether to commit or abort a transaction
+
+## Required Behavior
+
+### Participant Behavior
+Each participant must be able to:
+- Receive a vote request from the coordinator
+- Cast a vote (yes or no) indicating whether it can commit
+- Send its vote to the coordinator
+- Receive and record the final transaction decision (commit or abort)
+
+### Coordinator Behavior
+The coordinator must:
+- Send vote requests to all participants
+- Collect votes from participants
+- Make a final decision based on the votes received
+- Broadcast the decision to all participants
+
+### Failure Model
+The protocol should model crash failures:
+- Both participants and the coordinator may fail (become non-alive)
+- The specification should track whether processes are faulty
+- Failed processes should not take further actions
+
+## Decision Rule
+
+The coordinator should decide to **commit** only if all participants vote "yes". If any participant votes "no" or fails to vote, the decision should be **abort**.
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement**: All participants that reach a decision must reach the same decision.
+
+2. **Validity**: 
+   - If all participants vote "yes" and there are no failures, the decision must be "commit"
+   - If any participant votes "no", the decision must be "abort"
+
+3. **Termination** (under appropriate conditions): Non-faulty participants should eventually reach a decision.
+
+4. **Integrity**: A decision, once made, cannot be changed.
+
+## Configuration
+
+The specification should be parameterized by the set of participants, allowing verification with different numbers of participants (e.g., 3 participants for model checking).

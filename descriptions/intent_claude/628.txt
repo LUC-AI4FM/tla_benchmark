@@ -1,0 +1,46 @@
+# Specification Request: Light Client Attack Detection and Isolation
+
+## System Overview
+
+I need a formal specification for a blockchain light client security system that can detect and isolate Byzantine (faulty) validators who attempt attacks by providing conflicting block information.
+
+## Context
+
+In a blockchain network with multiple validator nodes, light clients rely on peers to provide block header information rather than downloading the full blockchain. Malicious validators may attempt to deceive light clients by presenting conflicting blocks at the same height—a form of fork attack. The system must detect such conflicts and identify the attacking validators.
+
+## System Requirements
+
+### Components to Model
+
+1. **Reference Blockchain**: A canonical blockchain that represents the "true" state of the chain, with an associated clock tracking the passage of time.
+
+2. **Validator Nodes**: A set of nodes (specifically 5 nodes for this configuration), some of which may be faulty/Byzantine.
+
+3. **Light Client Detector**: A component that monitors block information from peers and identifies conflicting evidence.
+
+4. **Evidence Collection**: A mechanism to record when two peers report different blocks at the same blockchain height.
+
+### Key Parameters
+
+- The system should handle scenarios where up to (but not including) half of the validators may be faulty
+- There must be a trusting period during which block headers are considered valid for verification purposes
+- The specification should model a common trusted height from which verification begins, and a specific height at which conflicts may occur
+
+### Behavioral Requirements
+
+1. The light client detector must be able to identify when conflicting blocks are reported for the same height
+2. When a conflict is detected, the system must isolate and identify the set of validators responsible for the attack
+3. The detection mechanism must operate within the trusting period constraints—evidence from blocks outside this period cannot be reliably used
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Attack Detection**: If Byzantine validators present conflicting blocks, the system eventually detects the conflict
+2. **Correct Isolation**: When attackers are identified, the identified set accurately reflects the truly faulty validators
+3. **Safety**: Honest validators are never incorrectly identified as attackers
+4. **Consistency**: The system maintains a coherent state throughout the detection and isolation process
+
+## Configuration
+
+The specification should be parameterized to allow verification with 5 validator nodes where the conflict occurs at height 3, building on trust established at height 1.

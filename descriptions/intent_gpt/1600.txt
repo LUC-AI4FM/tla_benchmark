@@ -1,0 +1,11 @@
+Specify a concurrent mutual-exclusion protocol for N identical processes that provides a fast-path attempt and a slower contention-resolution path, and formally verify its safety and liveness goals.
+
+Model N processes repeatedly attempting to enter a single critical section. Each process may first take a fast attempt that can succeed immediately when there is no contention, or it may detect contention and take a slower, deterministic waiting path that inspects other processes’ advertised intent before reattempting. The protocol uses shared flags and a shared “owner” indicator to coordinate access, and processes must be allowed to back off and retry if they detect contention. Processes repeatedly cycle through: express intent, try a fast acquisition, possibly withdraw and wait for a window where others are not indicating interest, and then enter the critical section if successful; on exit they must clear their intent and release any ownership indicator.
+
+Require the following correctness properties to be specified and checked:
+- Mutual exclusion (safety): at most one non-aborted process may be inside the critical section at any time.
+- No permanent starvation (liveness): from any reachable state, it must always be the case that eventually some process will successfully enter the critical section (global progress).
+- Progress under contention detection: if a process observes that it failed a fast attempt, it must be able to complete the slower protocol and either enter the critical section or retry, guaranteeing the system does not deadlock.
+- Proper cleanup: on exit, processes must reset their advertised intent and any ownership markers so other processes can make progress.
+
+Also specify reasonable fairness assumptions for individual processes to avoid trivial starvation, and allow verifying the model for parameters N > 1.

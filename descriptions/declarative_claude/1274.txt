@@ -1,0 +1,11 @@
+This TLA+ module demonstrates a performance characteristic of TLC model checking related to expensive constant expressions in initialization.
+
+The specification defines a single variable `s` and models a trivial system where the variable is initialized once and never changes thereafter.
+
+The core element is `expensiveOp`, which uses a CHOOSE expression to select an arbitrary element from the power set of integers 1 through 18. This operation is computationally expensive, taking approximately 10 seconds on modern hardware, because computing the power set of an 18-element set involves enumerating over 262,000 subsets.
+
+The `Init` predicate takes a variable as a parameter and initializes it by existentially quantifying over values from 0 to 10,000, setting the variable equal to the result of `expensiveOp`. The key insight noted in comments is that a parameterized variant of this expensive operation would cause TLC to reevaluate the CHOOSE expression 10,000 times (once per potential initial value), leading to timeout. The current non-parameterized version allows TLC to cache and reuse the result.
+
+The temporal specification `Spec` combines initialization with a next-state relation that only permits stuttering steps where `s` remains unchanged.
+
+The configuration declares constants `N` and `M` set to 42, though these are unused in the module. No invariants or properties are actively checked.

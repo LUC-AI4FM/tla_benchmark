@@ -1,0 +1,33 @@
+# Specification Request: Bounded-Lag Distributed Replicated Log
+
+## System Overview
+
+I need a formal specification for a distributed replicated log system where multiple servers maintain local copies of an append-only log. The system should allow servers to extend their logs with new values and synchronize with each other, while guaranteeing that servers never fall too far behind one another.
+
+## System Description
+
+The system consists of a fixed set of servers, each maintaining its own local log (a sequence of values). There are two fundamental operations:
+
+1. **Log Extension**: A server that has the longest (or tied for longest) log among all servers may append new entries to its log. However, it cannot append so many entries that it would cause other servers to fall too far behind.
+
+2. **Log Synchronization**: A server that is behind another server may copy a suffix of entries from the more advanced server's log to catch up. When copying, the server should copy most (but potentially not all) of the missing entries.
+
+## Key Requirements
+
+- **Bounded Lag Constraint**: At all times, the difference in log lengths between any two servers must never exceed a specified maximum lag parameter. This is a hard safety invariant that must always hold.
+
+- **Consistent Prefix Property**: When a server copies entries from another server, the entries must be consistent—servers should only copy entries that extend their existing log as a prefix.
+
+- **Progress Guarantee**: Under fair scheduling, every server should be able to make progress. Specifically, every server should repeatedly be able to extend its own log (not just copy from others).
+
+## Correctness Properties
+
+### Safety
+- The length difference between any two servers' logs must always remain within the bounded lag parameter.
+
+### Liveness
+- Every server eventually extends its log infinitely often (given fair scheduling of all operations).
+
+## Assumptions and Simplifications
+
+This specification assumes that any server can atomically read the current state of all other servers' logs. This is an idealization—a real implementation would require a messaging protocol to approximate this global view. The specification is meant to capture the abstract correctness requirements before considering the complexities of actual distributed communication.

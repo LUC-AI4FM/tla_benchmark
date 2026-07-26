@@ -1,0 +1,48 @@
+# Specification Request: Paxos Consensus Algorithm
+
+## System to Model
+
+I need a formal specification of the Paxos distributed consensus algorithm. This is a protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures and asynchronous message delivery.
+
+## System Description
+
+The system consists of:
+- A set of acceptor processes that participate in the protocol
+- A set of possible values that can be proposed for consensus
+- Ballot numbers used to order proposals and establish precedence
+- Quorums (overlapping subsets of acceptors) that must agree for progress
+
+The protocol operates in two phases:
+1. A prepare/promise phase where a proposer establishes its right to make a proposal at a given ballot number
+2. An accept phase where acceptors commit to a value at a ballot number
+
+Messages flow between proposers and acceptors, with acceptors tracking the highest ballot they've promised to respect and the highest ballot at which they've accepted a value.
+
+## Requirements
+
+The specification must model:
+- The message-passing communication between participants
+- Acceptors maintaining their state (highest prepared ballot, highest accepted ballot and value)
+- The two-phase protocol structure with prepare (1a), promise (1b), propose (2a), and accept (2b) messages
+- Quorum intersection properties that enable safety
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency (Safety)**: If any value is chosen by the protocol, then at most one value can ever be chosen. Two different values cannot both be chosen.
+
+2. **Type Safety**: All messages conform to their expected structure, and acceptor state variables remain within their valid domains.
+
+3. **Message Validity**: Messages accurately reflect the protocol rules:
+   - Promise messages correctly report an acceptor's prior voting history
+   - Proposals are only made for values that are "safe" given prior votes
+   - Accept messages correspond to actual proposals
+
+4. **Acceptor Validity**: Acceptor state is internally consistent (e.g., an acceptor cannot have accepted at a ballot higher than it has prepared)
+
+5. **Refinement**: The protocol should implement an abstract consensus specification—the set of chosen values should behave according to a simple consensus model where at most one value is ever chosen.
+
+## Verification Goals
+
+The model should be checkable with a small finite configuration (a few ballots, acceptors, and values) and should support symmetry reduction on acceptors and values to make model checking tractable.

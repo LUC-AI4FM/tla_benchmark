@@ -1,0 +1,10 @@
+Specify a formal model of a reconfigurable Paxos-style replicated state machine that supports both normal commands and explicit reconfiguration commands that change the system configuration. The model should represent multiple instances (slots) of consensus, numbered ballots, and a fixed set of acceptors, and must permit acceptors to cast votes or abstain in particular instance/ballot pairs. Reconfiguration commands must be ordinary consensus commands whose effect is to install a new configuration containing quorums of acceptors. The model must permit interleaving of normal command decisions and configuration changes, while ensuring that reconfigurations respect safety: once a configuration command is learned for some instance, later instances must only become choosable under configurations consistent with the learned sequence, and commands chosen under an old configuration cannot conflict with commands chosen under later configurations in a way that violates safety.
+
+Require the model to guarantee:
+- Type correctness of state (votes, abstentions, learned decisions).
+- Agreement: for each instance index, at most one command may be learned (no two different commands learned for the same instance).
+- Safety across reconfiguration: when a reconfiguration command is learned, future choices must be constrained so that quorums and ballots prevent conflicting choices and ensure a total order of applied configurations.
+- Paxos invariants per-instance: once a quorum of acceptors has voted for a command at a ballot, that vote is stable and that command is choosable only if it cannot be superseded by a smaller-ballot choosable alternative.
+- Stability: once a vote or learned decision is made, it cannot be revoked.
+
+Do not prescribe leader or message-passing internals; specify only the state, allowed atomic state updates (voting, abstaining, learning), enabling conditions for performing votes (safety and configuration-related preconditions), and the invariants the TLA+ specification must prove.

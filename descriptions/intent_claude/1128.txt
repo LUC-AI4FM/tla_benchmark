@@ -1,0 +1,36 @@
+Please write a formal TLA+ specification for a **Two-Phase Commit Protocol**.
+
+## System Description
+
+Model a distributed transaction protocol involving multiple Resource Managers (RMs) coordinated by a single Transaction Manager (TM). The protocol ensures that all participating RMs either commit or abort a transaction unanimously—no RM should commit while another aborts.
+
+## Required Behavior
+
+The system should model:
+
+1. **Resource Manager behavior**: Each RM starts in a working state and can either:
+   - Prepare for the transaction (signaling readiness to commit)
+   - Unilaterally choose to abort (if it hasn't yet prepared)
+   - Receive and act on commit or abort decisions from the TM
+
+2. **Transaction Manager behavior**: The TM collects "prepared" signals from RMs and then:
+   - Issues a commit decision only after ALL RMs have prepared
+   - May issue an abort decision at any time before committing
+
+3. **Message passing**: The protocol uses asynchronous message exchange where:
+   - RMs send "prepared" messages to the TM
+   - The TM broadcasts either a "commit" or "abort" decision to all RMs
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type correctness**: All state variables remain within their expected domains throughout execution.
+
+2. **Transaction consistency**: It must be impossible for any two RMs to reach conflicting final states—specifically, no RM should be in a "committed" state while another RM is in an "aborted" state.
+
+## Proof Requirements
+
+The specification should support formal verification that:
+- Type correctness is an invariant (directly inductive)
+- Transaction consistency holds as an invariant (may require strengthening with auxiliary invariants that capture the relationship between message state and participant decisions)

@@ -1,0 +1,9 @@
+Model a one-shot Byzantine fault-tolerant consensus protocol for a fixed height (single instance) in which a set of processes, some Byzantine and some correct, run asynchronous rounds of a Tendermint-like proposal / prevote / precommit voting scheme. The model should allow arbitrary Byzantine initial messages (i.e., faulty processes may have sent proposals, prevotes, precommits before the run starts) and should treat timeouts and proposer selection non-deterministically. Each process has equal voting weight; values are partitioned into valid and invalid with a predicate that only correct processes propose valid values.
+
+The model must capture the following behaviors and mechanics without fixing an implementation: rounds advance, proposers may broadcast proposals (including a reference to a prior round that justifies the proposal), processes prevote and precommit based on received proposals and observed quorums, processes may become locked on values and record evidence used for decision-making, and a process decides once it observes a sufficient set of precommits for a valid value. Message delivery may be asynchronous but messages are round-tagged.
+
+Specify correctness properties to verify:
+- Safety (Agreement): no two correct processes decide different non-nil valid values.
+- Validity: any decided non-nil value must be valid.
+- Accountability: if agreement is violated, then at least one nontrivial subset of faulty processes (meeting a minimal threshold) can be shown, from the collected evidence, to exhibit either equivocation (sending two distinct messages of the same type in the same round) or amnesia (locking one value at an earlier round and later prevoting for a different value without sufficient intervening justification).
+Also request the model to support extracting witness evidence for detected forks and to parameterize by number of processes, fault bound, maximal round, and proposer selection.

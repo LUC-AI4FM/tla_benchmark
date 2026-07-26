@@ -1,0 +1,23 @@
+I need to specify a distributed mutual exclusion algorithm based on Lamport's Bakery Algorithm, adapted for a message-passing distributed system.
+
+**System Description:**
+
+Design a formal specification for a distributed bakery algorithm that provides mutual exclusion among a set of distributed nodes communicating via asynchronous message-passing channels. Unlike the original bakery algorithm which assumes shared memory, this version must work in a distributed setting where nodes can only communicate by sending and receiving messages over point-to-point FIFO channels.
+
+**System Requirements:**
+
+1. **Node Behavior:** Each node cycles through phases: a non-critical section, attempting to enter the critical section, the critical section itself, and then exiting. When a node wants to enter the critical section, it must choose a "ticket number" that establishes its priority relative to other competing nodes.
+
+2. **Ticket Number Selection:** When entering competition for the critical section, a node selects a positive integer ticket number that is larger than any ticket numbers it has observed from other nodes. The algorithm should allow flexibility in choosing any sufficiently large number (not necessarily the minimum valid choice).
+
+3. **Message-Passing Communication:** Nodes communicate via reliable FIFO channels. When a node selects a ticket number, it broadcasts this number to all other nodes. Nodes must acknowledge receipt of non-zero ticket numbers. When a node exits the critical section, it broadcasts a zero value to indicate it is no longer competing.
+
+4. **Entry Condition:** A node may enter the critical section only after receiving acknowledgments from all other nodes and confirming that it has priority over all competitors (based on lexicographic ordering of ticket number and node identifier pairs).
+
+**Correctness Properties:**
+
+1. **Mutual Exclusion:** At most one node may be in its critical section at any time.
+
+2. **Starvation Freedom:** If a node begins attempting to enter the critical section, it must eventually succeed in entering (under fair scheduling).
+
+3. **Type Safety:** All protocol state (ticket numbers, cached remote numbers, acknowledgment sets, message queues) must remain within their expected domains throughout execution.

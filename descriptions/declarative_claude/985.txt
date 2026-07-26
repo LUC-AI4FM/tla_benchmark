@@ -1,0 +1,21 @@
+# YoYoNoPruning Module Description
+
+This TLA+ specification models the Yo-Yo leader election algorithm for arbitrary undirected connected graphs, as described by Nicola Santoro. The algorithm elects the node with the smallest identity as leader through iterative elimination of candidate sources.
+
+## System Overview
+
+The algorithm operates on an undirected graph where edges become dynamically oriented. Initially, edges point from smaller to larger node identities, making local minima into sources (leader candidates) and local maxima into sinks. Each round consists of two phases: a "down" phase where sources broadcast their identity through the graph, with intermediate nodes forwarding minimum received values; and an "up" phase where sinks respond with "yes" to neighbors that sent the minimum value and "no" otherwise, with these responses propagating back. Edges receiving "no" messages reverse direction, potentially eliminating sources.
+
+## Constants and Variables
+
+**Constants:** `Nodes` (integer node identities) and `Edges` (graph edges), assumed to form a connected undirected graph.
+
+**Variables:** `phase` tracks each node's current phase; `incoming` and `outgoing` record each node's directed neighbor sets; `mailbox` holds pending messages.
+
+## Actions and Transitions
+
+The next-state relation allows any node to execute either its down phase (sources broadcast identity, others forward minimum) or up phase (propagate yes/no responses, reverse edges on "no").
+
+## Specification and Properties
+
+The temporal specification includes weak fairness on all actions. Properties checked include `TypeOK` (type correctness), `NeighborInv` (edge consistency), `NoNewSource` (sources never created, only eliminated), and `Liveness` (eventual stabilization to a single source sending only the minimum identity with all "yes" responses).

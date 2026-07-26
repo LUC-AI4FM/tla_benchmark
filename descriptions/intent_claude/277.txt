@@ -1,0 +1,44 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the Two-Phase Commit (2PC) distributed consensus protocol. This protocol coordinates a group of resource managers (participants) to agree on whether to commit or abort a distributed transaction, ensuring that all participants reach the same decision.
+
+## System Description
+
+The system consists of:
+- A **Transaction Manager (TM)** that coordinates the commit/abort decision
+- Multiple **Resource Managers (RMs)** that participate in the transaction and must all agree on the outcome
+
+## Protocol Behavior
+
+The protocol should operate in two phases:
+
+**Phase 1 (Voting/Prepare Phase):**
+- The transaction manager asks all resource managers if they are prepared to commit
+- Each resource manager responds indicating whether it can commit or needs to abort
+
+**Phase 2 (Decision Phase):**
+- If all resource managers voted to prepare/commit, the transaction manager instructs all to commit
+- If any resource manager cannot commit (or fails to respond), the transaction manager instructs all to abort
+
+## Message Types
+
+The specification should model the following types of messages exchanged between participants:
+- A commit decision message
+- An abort decision message  
+- A prepared/ready-to-commit message from individual resource managers
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency (Agreement):** All resource managers that reach a final decision must reach the *same* decision - either all commit or all abort. It should never be possible for one RM to commit while another aborts.
+
+2. **Validity:** A commit can only occur if all resource managers were prepared to commit.
+
+3. **No premature commitment:** No resource manager commits until it has received an explicit commit instruction from the transaction manager.
+
+## Goal
+
+Provide a typed specification that clearly models the protocol's state space and message-passing behavior, suitable for model checking to verify the consistency and safety properties of the two-phase commit protocol.

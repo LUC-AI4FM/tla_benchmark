@@ -1,0 +1,11 @@
+This TLA+ specification formally models the Raft consensus algorithm, a protocol for managing replicated state machines across distributed servers.
+
+The specification defines servers that can be in one of three states: Follower, Candidate, or Leader. Constants include the set of servers, possible log values, and message types for RequestVote and AppendEntries RPCs.
+
+Variables track both per-server and global state. Each server maintains its current term, state, vote record, log entries, and commit index. Leaders additionally track nextIndex and matchIndex for each follower. Candidates track received votes. Global variables include a message bag modeling the network and history variables (elections, allLogs, voterLog) used for verification.
+
+The next-state relation encompasses server actions: restarting (losing volatile state), timing out to start elections, requesting votes, becoming leader upon receiving a quorum, handling client requests, advancing commit indices, and sending AppendEntries. Message handlers process vote requests/responses and AppendEntries requests/responses, including term updates when receiving higher terms. The network can duplicate or drop messages, modeling unreliable delivery.
+
+Key protocol behaviors include leader election through majority voting, log replication via AppendEntries, and commitment of entries replicated to a quorum. The specification enforces that servers update terms and revert to follower state upon seeing higher terms.
+
+The temporal specification requires starting in the initial state and following the next-state relation, with no explicit fairness conditions. No invariants or properties are declared in this module.

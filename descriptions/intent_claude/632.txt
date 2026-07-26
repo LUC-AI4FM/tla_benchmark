@@ -1,0 +1,48 @@
+# Specification Request: Light Client Detector for Blockchain Consensus
+
+## System Overview
+
+I need a formal specification for a **light client detector** component in a blockchain system. This component is responsible for detecting misbehavior by blockchain full nodes (called "peers") that provide block data to light clients. The light client cannot store the full blockchain, so it relies on peers to provide block headers and validator signatures, but these peers may be faulty or malicious.
+
+## System Context
+
+The system operates in an environment with:
+- A reference blockchain that represents the "true" chain
+- Multiple peer nodes that can serve block data to the light client
+- A distinction between "primary" and "secondary" peers, where the light client cross-checks information
+- A set of validators, some fraction of which may be faulty/Byzantine
+- Real-time clocks with bounded drift between the light client and the blockchain
+
+## Core Functionality
+
+The detector must:
+
+1. **Fetch and verify light blocks** from multiple peer sources (primary and secondary peers)
+2. **Cross-check blocks** received from different peers to detect inconsistencies
+3. **Identify a common trusted height** when discrepancies are found between peers
+4. **Generate evidence of misbehavior** when a peer is detected providing conflicting or invalid block data
+5. **Handle clock synchronization** accounting for the fact that the light client's local clock may drift from real time
+
+## Key Parameters and Constraints
+
+- The system should work within a **trusting period** - a time window during which certain blockchain states remain valid for verification
+- There is a **fault tolerance threshold** (e.g., less than 2/3 of validators may be faulty) that the system assumes
+- Clock drift must be bounded, with both assumed maximum drift and actual drift being parameters
+- The detector operates between a **trusted height** (already verified) and a **target height** (to be verified)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Soundness**: If evidence of misbehavior is generated, there was actual misbehavior (no false accusations against correct peers)
+2. **Completeness**: If a peer provides data inconsistent with the true blockchain and the fault assumptions hold, the detector should eventually identify this
+3. **Safety under Byzantine faults**: The detector remains safe as long as the fraction of faulty validators stays below the threshold
+4. **Time-bounded verification**: Verification decisions respect the trusting period constraints
+
+## Scenarios to Model
+
+The specification should handle scenarios where:
+- The primary peer is faulty but secondary peers are correct
+- The primary peer is correct but secondary peers are faulty
+- Various combinations of correct/faulty peers
+- Different network sizes (e.g., 4 nodes as a minimal interesting case)

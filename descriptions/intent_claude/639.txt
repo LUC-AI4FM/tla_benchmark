@@ -1,0 +1,58 @@
+# Specification Request: Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification of a **light client verification protocol** for a blockchain system (similar to Tendermint). The light client is a resource-constrained participant that does not maintain the full blockchain but needs to securely verify block headers by relying on validator signatures and a trust model.
+
+## System Description
+
+The system consists of two main components:
+
+1. **A blockchain** that produces blocks over time, where each block has a header containing a validator set, next validator set, timestamp, and height. Validators may be correct or faulty (Byzantine).
+
+2. **A light client** that starts with a single trusted block header (obtained through social consensus) and attempts to verify a target block header at a specified height, without downloading all intermediate blocks.
+
+## Core Mechanism
+
+The light client should implement a **bisection-based verification algorithm**:
+
+- It maintains a store of fetched light blocks, each marked as verified, unverified, or failed
+- It communicates with a primary full node to fetch block headers and their commit signatures
+- It verifies blocks by checking that sufficient validators (more than 2/3) have signed commits
+- When there is insufficient overlap between the trusted validator set and the block being verified, it fetches intermediate blocks (bisection) to build a chain of trust
+- The algorithm terminates when the target height is successfully verified or when verification fails
+
+## Trust Model and Timing
+
+- There is a **trusting period** during which validators are assumed to be accountable
+- A trusted block must still be within the trusting period to serve as a trust anchor
+- Block timestamps must be consistent (later blocks have later times, and times are not in the future)
+- For consecutive blocks, the validator set must match the "next validator set" of the previous block
+- For non-consecutive blocks, at least 1/3 of the trusted block's next validators must have signed the untrusted block's commits
+
+## Primary Node Behavior
+
+The primary full node may be **correct or faulty**:
+- A correct primary returns authentic blocks from the actual blockchain
+- A faulty primary may return blocks with incorrect headers or forged commits, but is still constrained by digital signature rules (cannot forge signatures of correct validators)
+
+## Key Correctness Properties
+
+1. **Safety/Correctness**: Every block header marked as verified must exactly match the corresponding header in the actual blockchain (no forged headers accepted)
+
+2. **Precision**: If the algorithm terminates with failure, then either the trusting period has expired OR the primary provided false information
+
+3. **Chain of Trust**: Successfully verified blocks form a valid chain where each block can be verified from a previously verified block (or is within range where 1/3 signing overlap applies)
+
+4. **No Failed Blocks on Success**: If the algorithm terminates successfully, no blocks in the store are marked as failed
+
+5. **Liveness with Correct Primary**: If the primary is correct and a verified block within the trusting period exists, the algorithm should terminate successfully
+
+6. **Bounded Complexity**: The number of verification probes should be bounded quadratically in the height difference between trusted and target blocks
+
+## Environmental Assumptions
+
+- Time advances globally and monotonically
+- The blockchain is pre-generated up to the target height
+- Validator sets and their faulty subsets are fixed parameters
+- The algorithm should handle the trusting period potentially expiring during execution

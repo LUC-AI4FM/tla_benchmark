@@ -1,0 +1,36 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification for a distributed termination detection algorithm operating on a ring network of nodes. The algorithm is based on Dijkstra's EWD 840 paper and should detect when all nodes in a distributed computation have become permanently inactive.
+
+## System Description
+
+The system consists of a fixed number of nodes arranged in a logical ring. Each node can be either active (performing computation) or inactive (idle). The underlying distributed computation allows:
+
+- Any active node may spontaneously become inactive at any time
+- Any active node may send a message to activate another node (waking it up if it was inactive)
+
+The termination detection mechanism uses a token that circulates around the ring in one direction (from node 0 to the highest-numbered node, then back to node 0). The algorithm must detect when all nodes have terminated without interfering with the underlying computation.
+
+The key challenge is that activation messages can travel in the opposite direction of the token, potentially causing the token to "miss" activity that occurred after it passed a node. The algorithm must account for this by using colors (for both nodes and the token) to track whether such backward communication has occurred.
+
+## Requirements
+
+1. **Detection Mechanism**: The algorithm should use a token-passing scheme with node and token coloring to track potential interference from messages sent against the token's direction of travel.
+
+2. **Non-Interference**: The detection algorithm must not affect the behavior of the underlying computation—nodes should be free to activate, deactivate, and communicate independently.
+
+3. **Distributed Operation**: Only local information should be used when deciding to pass the token or change colors.
+
+## Correctness Properties
+
+### Safety Property
+**No false positives**: When termination is detected, all nodes must actually be inactive. The algorithm must never incorrectly announce termination while any node remains active.
+
+### Liveness Property
+**Eventual detection**: If all nodes become and remain inactive (true termination occurs), the algorithm must eventually detect this condition. The detection cannot be delayed indefinitely.
+
+## Additional Considerations
+
+The specification should demonstrate that the algorithm handles arbitrary initial configurations (except the token must start in a specific state to ensure the first round is inconclusive). The specification should also support verification that an appropriate inductive invariant holds to prove the safety property.

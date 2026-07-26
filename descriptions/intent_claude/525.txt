@@ -1,0 +1,37 @@
+# Specification Request: Alternating Bit Protocol with External Value Proposals
+
+## System Overview
+
+I need a formal specification of a message-passing system where two communicating parties synchronize data values using an alternating bit mechanism, with an external environment that proposes new values to be transmitted.
+
+## System Description
+
+The system consists of two endpoints (a sender and a receiver) that exchange messages containing both a data value and a single-bit sequence number. An external environment continuously proposes new data values that the sender should transmit to the receiver. The sender accepts these proposals and attempts to synchronize its current value with the receiver using the alternating bit to track acknowledgment.
+
+New value proposals arrive through a queue, representing an asynchronous environment that may propose values at varying rates.
+
+## Key Requirements
+
+1. **Message Structure**: Each endpoint maintains a message consisting of a data value paired with a bit (0 or 1) used for synchronization.
+
+2. **External Environment**: The system must model an environment that proposes new data values for transmission, with these proposals buffered in a queue.
+
+3. **Bounded Queuing**: The queue of pending value proposals should be bounded to keep the state space finite for model checking.
+
+## Correctness Properties
+
+### Safety Properties
+
+- **Type Correctness**: Both endpoints should always hold well-formed messages (valid data paired with a valid bit), and the proposal queue should always be a valid sequence of data values.
+
+- **Consistency** (conditional): When the sender and receiver agree on the bit value, they should also agree on the data value. *Note: This property may be violated when the environment proposes values faster than the receiver can synchronize.*
+
+### Liveness Properties
+
+- **Eventual Synchronization**: Whenever the two endpoints are out of sync (disagreeing on bit values), they should eventually become synchronized.
+
+- **Continuous Progress**: The system should infinitely often reach synchronized states and infinitely often reach unsynchronized states, demonstrating ongoing activity rather than deadlock or permanent quiescence.
+
+## Analysis Goals
+
+The specification should support exploring how the rate of external value proposals affects the protocol's correctness guarantees, particularly whether rapid proposal acceptance can break expected invariants.

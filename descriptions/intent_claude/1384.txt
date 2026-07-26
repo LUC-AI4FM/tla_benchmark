@@ -1,0 +1,28 @@
+# Specification Request: TLCEval Caching Behavior Verification
+
+## System to Model
+
+A test harness for verifying the correct behavior of TLA+ model checker evaluation caching, specifically ensuring that the `TLCEval` operator properly handles context-dependent expressions and prevents unwanted re-evaluation of random elements during model checking.
+
+## Goals
+
+The specification should verify two critical aspects of model checker behavior:
+
+1. **Context-sensitive caching**: When computing bounded sequences (sequences up to a maximum length over a given set), the caching mechanism must correctly recognize when results depend on parameters. Nested computations of bounded sequences should yield mathematically correct cardinalities—for example, bounded sequences of length up to 2 over bounded sequences of length up to 2 over a two-element set should have exactly 57 elements.
+
+2. **Stable random element selection**: When a definition involves random selection (such as choosing a random directed graph over a set of nodes), that selection must remain stable across multiple evaluations during model checking. Without proper caching, re-evaluation would produce different random values each time, causing spurious invariant violations.
+
+## Requirements
+
+- Support reasoning about bounded sequences: all sequences of length 0 through n over a given set
+- Support directed graphs represented as a set of edges (pairs of nodes)
+- Allow random selection from a set of possible graphs, with guaranteed stability
+- Track state variables that range over graph edges
+
+## Key Correctness Properties
+
+1. **Mathematical correctness**: Nested bounded sequence constructions must produce sets with the expected cardinality (specific values: 57 for the double-nested case over {1,2} with bound 2; 65641 for the triple-nested case over {1,2,3} with bound 3)
+
+2. **Invariant stability**: State variables representing edges must always be members of both the input graph's edges and a randomly-selected test graph's edges. This property should hold consistently without spurious violations from unstable random evaluation.
+
+3. **Deterministic behavior**: Once a random graph is selected for testing purposes, it must remain the same throughout the entire model checking run.

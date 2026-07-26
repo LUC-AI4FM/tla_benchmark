@@ -1,0 +1,54 @@
+# Specification Request: Blockchain Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification for a **blockchain light client** that can securely synchronize with a blockchain without downloading and validating every block. The light client should be able to verify block headers by checking validator signatures while protecting against attacks from Byzantine (faulty) validators.
+
+## System Requirements
+
+### Core Functionality
+
+The light client must:
+
+1. **Bootstrap from a trusted block**: Start from a known trusted block at a specific height and attempt to verify blocks up to a target height.
+
+2. **Fetch and verify light blocks**: Retrieve block headers (light blocks) from the network and verify their authenticity by checking that sufficient honest validators have signed them.
+
+3. **Handle clock-based trust**: Implement a trusting period mechanism where blocks are only considered trustworthy if they were created within a certain time window relative to the client's local clock.
+
+### Environmental Assumptions
+
+The specification should model:
+
+- **A network of validator nodes**: Some portion of which may be Byzantine/faulty
+- **Clock drift**: The light client's local clock may drift from real time, with both assumed maximum drift and actual drift being parameters
+- **Byzantine fault tolerance threshold**: The system assumes fewer than 1/3 of validators are faulty
+
+### Adversarial Model
+
+The specification must account for:
+
+- **Faulty validators**: A configurable fraction of validators may behave arbitrarily (Byzantine behavior)
+- **Potentially malicious primary node**: The node serving light blocks to the client may or may not be correct/honest
+
+## Key Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client should never accept a block that contradicts the actual blockchain state, assuming the Byzantine fault tolerance threshold holds.
+
+2. **Liveness**: Under reasonable conditions, the light client should eventually verify blocks up to the target height.
+
+3. **Trust chain integrity**: Each verified block should be properly linked through the trust chain back to the initial trusted block.
+
+4. **Timeliness**: Verification decisions must respect the trusting period—blocks outside this window should not be blindly trusted.
+
+## Parameters
+
+The specification should be parameterizable for:
+- Set of participating nodes
+- Initial trusted height and target height
+- Length of the trusting period
+- Assumed vs. actual clock drift bounds
+- Fraction of potentially faulty validators
+- Whether the primary block provider is honest or faulty

@@ -1,0 +1,56 @@
+# Specification Request: Message Passing Infrastructure for Distributed Storage
+
+## System Overview
+
+I need a formal specification for a message-passing subsystem that models unreliable network communication in a distributed storage system. This system involves clients communicating with storage nodes (bookies) through request-response message patterns.
+
+## System Description
+
+The message-passing layer should support communication for a distributed ledger or log storage system where:
+
+- Clients send requests to storage nodes for operations like adding entries, reading entries, and fencing (a coordination mechanism)
+- Storage nodes respond to these requests
+- The system must model realistic network behavior including message loss and delivery
+
+## Key Requirements
+
+### Message Types
+The system must support six distinct message types organized as request-response pairs:
+1. Entry addition (write) requests and responses
+2. Fencing requests and responses  
+3. Read requests and responses
+
+### Network Behavior Modeling
+The specification must model:
+
+1. **Unreliable delivery**: When any message is sent, the model should explore both possibilities—successful delivery and message loss—through nondeterministic choice.
+
+2. **At-most-once delivery per send**: A delivered message can be received and processed exactly once (though the same logical message could be resent as a new transmission).
+
+3. **No ordering guarantees**: Messages between the same sender and receiver may be processed in any order, regardless of when they were sent.
+
+4. **Timeout detection**: The system must be able to detect when messages have been lost so that higher-level protocols can implement timeout handling.
+
+5. **Timeout acknowledgment**: Once a timeout condition is acted upon, it should be clearable to prevent duplicate timeout handling.
+
+### Operations Needed
+
+The specification should provide primitives for:
+- Sending a single message with nondeterministic delivery/loss
+- Sending multiple messages to a set of recipients atomically (each independently subject to loss)
+- Receiving and processing a delivered message
+- Combined receive-and-reply operations
+- Detecting timeout conditions for specific message types, recipients, and clients
+- Clearing timeout state after handling
+- Ignoring pending messages (for state-space optimization when responses are no longer relevant)
+
+### Message Context
+Messages should be associable with:
+- A target storage node (bookie)
+- A client identifier
+- Whether the operation is part of a recovery process
+- Entry identifiers for ordering purposes when needed
+
+## Purpose
+
+This specification serves as a reusable communication layer for modeling distributed storage protocols, enabling verification of higher-level algorithms that must tolerate network failures, message loss, and reordering.

@@ -1,0 +1,54 @@
+# Specification Request: Paxos-Based Transaction Commit Protocol
+
+## System Overview
+
+I need a formal specification for a distributed transaction commit protocol that combines the Paxos consensus algorithm with two-phase commit semantics. The system should enable a set of resource managers to reach agreement on whether to commit or abort a distributed transaction, while being resilient to failures and not requiring a single reliable coordinator.
+
+## System Components
+
+The system involves three types of participants:
+- **Resource managers**: Participants in the distributed transaction who must each independently decide whether they can commit
+- **Acceptors**: Participants in the underlying consensus mechanism that help ensure agreement is reached consistently
+- **Leaders**: Processes that coordinate the consensus rounds (multiple processes may believe themselves to be leader simultaneously)
+
+## Required Behavior
+
+### Resource Manager Behavior
+Each resource manager should be able to:
+- Indicate it is prepared to commit the transaction
+- Unilaterally decide to abort (before preparing)
+- Learn the final commit or abort decision and transition to the appropriate final state
+
+### Consensus Mechanism
+The protocol should run separate instances of Paxos consensus—one for each resource manager—to agree on whether that resource manager prepared or aborted. The consensus mechanism must:
+- Support multiple ballot rounds to handle failures and timeouts
+- Allow leaders to initiate new ballots when progress stalls
+- Ensure acceptors respond to ballot proposals consistently
+- Require responses from a majority of acceptors before proceeding
+
+### Decision Rules
+- The transaction commits if and only if **all** resource managers have prepared
+- The transaction aborts if **any** resource manager has aborted
+- Once a decision is reached, it should be announced to all resource managers
+
+## Key Correctness Properties
+
+1. **Consistency**: The protocol must never both commit and abort—once a commit or abort decision is made, the opposite decision must be impossible
+
+2. **Agreement**: All resource managers that learn a decision must learn the same decision
+
+3. **Validity**: A commit can only occur if every resource manager actually prepared; an abort can only occur if it was possible for some resource manager to abort
+
+4. **Refinement**: The protocol must correctly implement the semantics of transaction commit—it should behave as a valid implementation of the basic transaction commit specification
+
+## Assumptions
+
+- Any two designated "majorities" of acceptors must have at least one acceptor in common
+- Ballot numbers are natural numbers, with ballot 0 having special significance for the initial round
+- The specification should address safety properties only (liveness/progress guarantees are out of scope)
+
+## Simplifications Acceptable
+
+- Message delivery can be modeled abstractly without explicit receive actions
+- Leader election need not be modeled; any process may act as leader
+- Messages can be modeled as a set of all sent messages rather than point-to-point channels

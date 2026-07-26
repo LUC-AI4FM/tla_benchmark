@@ -1,0 +1,14 @@
+Specify a write-through cache system with multiple processors sharing a single memory and a bounded memory-request queue. The model must capture processors issuing reads and writes to their private caches, caches forwarding writes immediately to the shared memory (write-through), and a coordinator that services memory requests via a FIFO or similar bounded queue. The system should include contention and potential misses: a processor read may hit in cache or miss and then enqueue a memory read request; writes from caches must update both cache and enqueue a memory-write request that will update shared memory. The queue has limited capacity; when full, new memory-write requests are blocked until space is available. The model should also allow read requests to be served directly from memory when necessary and responses to be delivered to requesting processors.
+
+Require safety properties:
+- Cache coherence: if a processor reads a location and its cache reports a value, that value must reflect the most recent write to that location that has been made visible to memory or the cache.
+- Memory consistency: memory updates from write-through operations are applied in program order for each processor and become visible to other processors according to the queue-delivery semantics.
+- FIFO order (or specified queue ordering): requests are dequeued and applied to memory in queue order and no request is lost or duplicated.
+- Bounds: the memory-request queue never exceeds its capacity.
+
+Require liveness properties:
+- Every issued read or write request by a processor either completes locally (hit) or eventually receives a response (miss serviced) — i.e., no request is permanently stalled due to scheduling or queue interactions.
+- If a read miss is pending in the queue, it will eventually be served unless the queue remains permanently full with other requests; similarly, enqueued writes will eventually be applied to memory.
+- Progress under fairness: assume weak or strong fairness for relevant request-processing and response actions so that stalled processors are eventually served.
+
+Include parameters for number of processors, cache sizes (or abstract hit/miss behavior), queue length, and an abstract memory domain of addresses and values. The specification should avoid implementation details of scheduling while enabling checking of both safety and liveness properties under bounded queue capacity.

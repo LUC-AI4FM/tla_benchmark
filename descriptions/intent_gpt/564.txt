@@ -1,0 +1,24 @@
+Specify a formal model of the classic two-phase commit protocol (one coordinator/transaction manager and a set of participant/resource managers) that captures the possible behaviors and message flows but does not prescribe implementation-level scheduling. The model should describe the following system and requirements.
+
+System to model:
+- A single coordinator (transaction manager) and a fixed set of participants (resource managers).
+- Participants can be in one of: working, prepared, committed, or aborted.
+- The coordinator initiates a commit decision once it has evidence from participants; it can decide to commit only when all participants have indicated readiness, otherwise it can decide to abort.
+- Communication is by asynchronous, unordered messages carrying one of: “Prepared” from a participant (with the participant id), or global “Commit” or “Abort” sent by the coordinator.
+- Participants may independently decide to abort before preparing; once a global Commit or Abort is observed, participants transition accordingly.
+
+Behavioral requirements (what the model must allow):
+- Participants may send a Prepared message to the coordinator when they are ready.
+- The coordinator collects Prepared messages and, when it has received Prepared from every participant, may send a Commit message; at any time it may instead send an Abort message.
+- Participants receiving Commit must transition to committed; receiving Abort must transition to aborted.
+- Messages persist in the system (model the set of all messages that have been sent), and actions may be taken nondeterministically respecting asynchronous delivery.
+
+Safety properties to guarantee:
+- Agreement: no two participants may end up in conflicting terminal states — specifically, it must be impossible for one participant to be committed while another is aborted in any reachable state.
+- Validity: participants may only become committed if every participant had previously indicated readiness (i.e., commit decisions require all participants to have been prepared).
+- Consistency of coordinator decisions with collected Prepared messages: the coordinator must not commit unless it has received Prepared from every participant.
+
+Liveness considerations (optional but desirable to model):
+- Possibility of eventual decision: if no further failures occur and messages are delivered, the coordinator eventually issues Commit or Abort, and participants eventually reach a terminal state.
+
+Specify initial conditions, allowed nondeterministic actions, and assert the safety properties above as invariants to be checked.

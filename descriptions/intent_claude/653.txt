@@ -1,0 +1,57 @@
+# Specification Request: Blockchain Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification for a blockchain light client that can securely synchronize with a blockchain without downloading all blocks. The light client should be able to verify block headers by checking validator signatures, starting from a trusted block and progressing toward a target block height.
+
+## System Requirements
+
+### Core Functionality
+
+The light client must:
+- Start from a known trusted block at a specific height and verify blocks up to a target height
+- Fetch light blocks (block headers with validator information) from a primary peer
+- Verify each fetched block against previously verified blocks using validator set signatures
+- Handle the progression from trusted state to fully synchronized state
+
+### Network Model
+
+The specification should model:
+- A fixed set of blockchain nodes/validators
+- A primary peer that provides light blocks to the client (which may or may not be honest)
+- A reference blockchain representing the actual canonical chain
+- The possibility of faulty/Byzantine validators, bounded by a maximum fraction (less than one-third)
+
+### Timing Constraints
+
+The system must account for:
+- A trusting period during which validator sets remain valid for verification
+- Clock drift between the light client's local clock and real time
+- Both assumed maximum drift and actual drift (which may differ)
+- A reference clock representing real time progression
+
+## Correctness Properties
+
+### Safety Properties
+
+1. **Sound Verification**: The light client must never accept a block that contradicts the canonical blockchain, assuming the Byzantine validators remain below the fault threshold
+2. **Trusted Period Compliance**: Verification decisions must respect the trusting period—blocks cannot be verified using validator set information that has expired
+
+### Liveness Properties
+
+1. **Progress**: If the primary peer is correct and timing assumptions hold, the light client should eventually reach the target height
+2. **Termination**: The protocol should terminate in a well-defined state (either successfully verified or with a detected error)
+
+## Parameters to Explore
+
+The specification should be parameterized to allow verification under different scenarios:
+- Different numbers of validator nodes
+- Various trusted and target heights
+- Different trusting period lengths
+- Varying assumptions about clock drift
+- Whether the primary peer behaves correctly
+- Different Byzantine fault ratios
+
+## Monitoring Requirements
+
+The specification should track state transitions to enable verification of properties about the protocol's progression, including the ability to compare previous and current states during verification steps.

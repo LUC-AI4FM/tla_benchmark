@@ -1,0 +1,15 @@
+Specify a formal TLA+ model of a write-through cache controller that mediates requests from a fixed set of processors to a single coherent memory, and prove that it implements the externally visible behaviors of an abstract live memory interface under a refinement mapping.
+
+Model the system as follows:
+- There is a finite set of addresses and values, and a fixed set of processors issuing memory requests. Each processor may issue read or write requests.
+- The cache controller exposes an external protocol to processors with the visible processor states: ready to issue a request, waiting for the controller to complete the request, and completed (ready again). Processors interact only via this protocol.
+- The controller forwards requests immediately to the underlying memory (write-through): on a write request the memory is updated synchronously with the controller accepting the operation; on a read, the controller returns the current memory value for the requested address.
+- The controller keeps, per-processor, a small per-request buffer recording the outstanding request or the returned value or a no-value marker.
+- Internal communication between controller and memory is abstracted as an internal message or internal state used only to model interaction, not visible to processors.
+
+Require the specification to guarantee:
+- Safety: every read returns the most recently written value for that address (linearizability/refinement to the abstract memory mapping of addresses to values). External traces of processor-visible state and returned values must correspond to some legal sequence of operations on an abstract memory.
+- Progress/liveness: if a processor is waiting to perform an operation, then eventually either the controller performs the operation (updates memory and produces a reply) or the situation that enables the operation disappears; formally capture fair execution of enabled internal Do/Reply transitions so that enabled requests cannot be permanently ignored.
+- Determinacy of visible control states: the controller never leaves a processor permanently in a busy state without eventually moving it to done and then ready, under the fairness assumptions.
+
+Do not commit to a particular implementation structure; instead state the observable variables (processor-visible control states, per-processor buffers holding requests/results, and the abstract memory mapping) and require that the implementation refine the abstract live memory interface via a mapping from internal state to the abstract memory and processor-visible control/buffer values.

@@ -1,0 +1,35 @@
+# Specification Request: TLA+ Proof System Temporal Formula Validation
+
+## System to be Modeled
+
+A validation system for TLA+ proof structures that enforces the logical separation between temporal and non-temporal reasoning in formal proofs.
+
+## Goal
+
+Create a specification that models the rules governing when temporal formulas (those involving temporal operators like "always" or "eventually", or primed variables representing next-state values) may legally appear within TLA+ proofs and module instantiations.
+
+## Core Requirements
+
+### Proof Step Consistency Rules
+
+1. **Non-temporal proof steps cannot use temporal justifications**: When a proof step claims to establish a non-temporal (state-level) formula, its proof or justification cannot rely on temporal formulas. The reasoning must remain at the same logical level.
+
+2. **Theorem classification matters**: If a theorem statement is non-temporal, the entire proof tree beneath it is constrained in what temporal reasoning it may employ.
+
+### Module Instantiation Rules
+
+3. **Assumption context restrictions**: When instantiating a module, any declared constant that appears within an ASSUME statement or ASSUME/PROVE construct in the original module cannot be substituted with a temporal formula. Constants used in assumptions must be instantiated with state-level expressions only.
+
+4. **Primed variables vs temporal operators**: The system should distinguish between primed variable expressions (which represent next-state values but are not inherently temporal in all contexts) and explicit temporal operators.
+
+## Key Correctness Properties
+
+1. **Logical Level Preservation**: Non-temporal proof obligations must be discharged using only non-temporal reasoning.
+
+2. **Assumption Instantiation Safety**: Module instantiation must not introduce temporal formulas into contexts where only state predicates are permitted.
+
+3. **Error Detection Completeness**: The validator must identify and reject all violations of temporal/non-temporal mixing rules at parse or validation time.
+
+## Context
+
+This validation is important because temporal and non-temporal formulas belong to different logical layers in TLA+, and mixing them incorrectly produces unsound proofs. The system should catch these errors statically before any proof checking occurs.

@@ -1,0 +1,45 @@
+# Specification Request: Function Utility Library
+
+## Overview
+
+I need a library of utility operators for working with functions (mappings) in a formal specification language. The library should provide common operations for manipulating, analyzing, and transforming functions that are useful across many different specifications.
+
+## Required Operations
+
+### Domain and Value Filtering
+- **Filter by domain**: Given a function and a predicate on domain elements, produce a new function restricted to only those domain elements satisfying the predicate.
+- **Filter by value**: Given a function and a predicate on range values, produce a new function restricted to only those domain elements whose corresponding values satisfy the predicate.
+
+### Injectivity Testing
+- Determine whether a function is injective (one-to-one), meaning no two distinct domain elements map to the same value. This should work for:
+  - Sequences (functions from 1..n to some set)
+  - Record-like functions with named fields
+  - General functions with arbitrary domains
+- The operation should produce an error when given a non-function input.
+
+### Folding/Reduction
+- **Fold over entire function**: Given a binary combining operator, an initial value, and a function, reduce all values in the function's range using the operator.
+- **Fold over subset**: Same as above, but only process values for domain elements within a specified subset.
+- These should produce appropriate errors for invalid argument types.
+
+### Function Inversion
+- Given an injective function, produce its inverse function (swapping domain and range). For a function f where f[a] = b, the inverse should map b back to a.
+- Applying inversion twice should yield the original function.
+
+### Pointwise Combination
+- Given two functions with the same domain and a binary operator, produce a new function that applies the operator to corresponding values from both functions.
+
+### Restriction Checking
+- Determine whether one function is a restriction of another—that is, whether the first function's domain is a subset of the second's domain, and they agree on all elements in the smaller domain.
+
+## Correctness Properties
+
+1. **Domain filtering correctness**: The resulting function should have exactly the domain elements satisfying the predicate, with values preserved.
+
+2. **Injectivity equivalence**: The injectivity test must agree with the mathematical definition: a function f is injective if and only if for all a, b in the domain, f[a] = f[b] implies a = b.
+
+3. **Side-effect freedom**: Operations should be pure and not modify any state; calling an operation multiple times with the same arguments must yield the same result.
+
+4. **Inverse correctness**: For injective functions, the inverse operation should satisfy the standard mathematical property that composing a function with its inverse yields the identity.
+
+5. **Type safety**: Operations should validate their inputs and produce meaningful error messages when given arguments of incorrect types.

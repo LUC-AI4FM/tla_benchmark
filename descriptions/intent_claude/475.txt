@@ -1,0 +1,42 @@
+# Specification Request: Reliable Broadcast with Crash Failures
+
+## System Overview
+
+I need a formal specification of a reliable broadcast protocol that operates in a distributed system where processes can crash. The protocol uses message diffusion (sometimes called "echo" or "flooding") to ensure that if any correct process delivers a broadcast message, all correct processes eventually deliver it.
+
+## System Model
+
+The system consists of a fixed number of processes, some of which may experience crash failures during execution. The model should be parameterized by:
+- The total number of processes
+- A threshold representing the maximum number of failures the system is designed to tolerate
+- The actual number of failures that may occur in a given execution
+
+The system assumes that the actual failures do not exceed the tolerance threshold, and the total process count must be large enough relative to the fault tolerance (specifically, more than twice the tolerance threshold).
+
+## Protocol Behavior
+
+The broadcast protocol works as follows:
+1. Some processes may initially hold a value to broadcast (they received an "init" from the application layer), while others start without any value
+2. A process that has a value to broadcast sends an ECHO message to all processes
+3. When any process receives an ECHO message, it accepts the broadcast and also sends ECHO messages to all other processes (if it hasn't already)
+4. Processes may crash at any point, after which they stop participating in the protocol
+5. Message delivery is reliable between non-crashed processes, though there may be delays
+
+## Correctness Properties
+
+The specification must verify the following safety and liveness guarantees:
+
+### Unforgeability (Safety)
+If no correct process initiates a broadcast, then no correct process should ever accept/deliver a message. This prevents spurious message acceptance.
+
+### Correctness/Validity (Liveness)
+If a correct process initiates a broadcast, then eventually some correct process accepts the message.
+
+### Relay/Agreement (Liveness)
+If any correct process accepts a message, then eventually all correct processes accept that message. This ensures consistent delivery across all non-faulty participants.
+
+## Additional Considerations
+
+- The specification should support checking both scenarios: one where at least one process initiates a broadcast, and one where no process initiates a broadcast
+- Appropriate fairness conditions should be included to enable meaningful liveness verification
+- The channel model should ensure that messages sent by correct processes are eventually received by all correct processes

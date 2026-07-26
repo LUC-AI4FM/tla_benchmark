@@ -1,0 +1,9 @@
+This TLA+ module tests the behavior of Apalache's `ApaFoldSeqLeft` operator, which folds a sequence from the left using a binary operator.
+
+The module defines a minimal state machine with a single integer variable `x` that is initialized to zero and never changes (the next-state relation leaves it unchanged).
+
+The core of the specification is the invariant `Inv`, which tests the `ApaFoldSeqLeft` function. This function applies the binary operator `A` to fold the sequence `<<1,2,3>>` starting with the initial accumulator value `{4,4}` (which equals `{4}` since sets contain no duplicates). The operator `A` takes a set and an integer, returning their union with the integer added to the set.
+
+The expected computation is: starting with `{4}`, successively union with each element of the sequence, yielding `{4} ∪ {1} ∪ {2} ∪ {3} = {1,2,3,4}`.
+
+The invariant asserts the *negation* of the expected result—that the fold does *not* equal `{1,2,3,4}`. This is intentional: the specification is designed to verify that Apalache's SMT encoding correctly evaluates the fold. If the encoding is correct, the model checker should find this invariant violated (returning UNSAT for the negation), confirming proper constraint handling.

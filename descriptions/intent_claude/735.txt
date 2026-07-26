@@ -1,0 +1,47 @@
+# Specification Request: Mutual Exclusion with Safe Registers (Boulangerie Algorithm)
+
+## System to Model
+
+A mutual exclusion protocol for N concurrent processes that coordinates access to a critical section using only **safe registers**—memory locations where reads and writes are not atomic and concurrent access may return arbitrary "legal" values during a write operation.
+
+## System Description
+
+The algorithm is a variant of Lamport's Bakery Algorithm. Each process wishing to enter the critical section:
+
+1. Signals its intent to enter
+2. Observes other processes' ticket numbers and selects a number greater than any observed
+3. Clears its intent signal
+4. Waits until it has priority over all other processes before entering the critical section
+5. Upon exiting, resets its ticket number
+
+Priority between processes is determined by comparing (ticket number, process ID) pairs lexicographically—lower values have higher priority.
+
+## Key Modeling Requirements
+
+### Safe Register Semantics
+The registers used for communication between processes are **safe registers**, not atomic registers. This means:
+- A read concurrent with a write may return any value from the register's domain (not necessarily the old or new value)
+- This non-determinism must be explicitly modeled by allowing arbitrary intermediate values to be written before the final intended value
+
+### Process Behavior
+- Processes repeatedly cycle through: non-critical section → entry protocol → critical section → exit protocol
+- During entry, a process must check all other processes (examined one at a time in this variant)
+- An optimization allows a process that draws ticket number 1 to skip checking higher-numbered processes
+
+### Fairness
+The system assumes weak fairness for each process when it is not in its non-critical section.
+
+## Correctness Properties
+
+### Safety: Mutual Exclusion
+No two distinct processes may be in the critical section simultaneously.
+
+### Liveness: Deadlock Freedom
+If any process is trying to enter the critical section, eventually some process will enter the critical section.
+
+### Liveness: Starvation Freedom
+Every process that tries to enter the critical section will eventually succeed.
+
+## Goal
+
+Formally specify this algorithm and prove that mutual exclusion is maintained despite the weak guarantees of safe registers, demonstrating that the algorithm tolerates non-atomic read/write behavior on shared variables.

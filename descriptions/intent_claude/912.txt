@@ -1,0 +1,40 @@
+# Specification Request: Internal Memory System
+
+## System Overview
+
+I need a formal specification for an internal memory system that models how multiple processors interact with a shared memory through a request-response protocol. This represents the internal workings of a memory subsystem where processors can read from and write to memory addresses.
+
+## System Description
+
+The system consists of:
+- A set of processors that can issue memory operations
+- A shared memory that maps addresses to values
+- A communication mechanism between processors and the memory
+
+Each processor follows a three-phase protocol:
+1. **Request phase**: A processor submits a memory request (either a read or write operation targeting a specific address)
+2. **Execution phase**: The memory system processes the request—for writes, it updates the memory; for reads, it retrieves the value
+3. **Response phase**: The processor receives the result and returns to an idle state, ready for the next request
+
+## Functional Requirements
+
+1. Processors must be able to issue read requests to retrieve values from memory addresses
+2. Processors must be able to issue write requests to store values at memory addresses
+3. The memory must correctly execute write operations by updating the stored value
+4. The memory must correctly execute read operations by returning the current value at the requested address
+5. Each processor operates independently and progresses through the request-execute-response cycle
+
+## Correctness Properties
+
+The specification must guarantee **type correctness** throughout all executions:
+
+1. The memory must always be a valid mapping from addresses to values
+2. The communication state for each processor must always be in one of the valid protocol phases
+3. The data buffer for each processor must contain appropriately-typed data based on the current protocol phase:
+   - When idle/ready: the buffer holds a response value (or indicates no value)
+   - When a request is pending: the buffer holds a well-formed memory request
+   - When execution is complete: the buffer holds the result value
+
+## Key Challenge
+
+The main subtlety is that the type correctness of the buffer depends on the protocol state—the buffer contains different kinds of data at different phases. The specification must ensure these constraints are maintained consistently as processors transition through protocol phases.

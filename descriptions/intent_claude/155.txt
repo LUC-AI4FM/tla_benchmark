@@ -1,0 +1,37 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Description
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction processing. The system should model how a set of resource managers coordinate with a central transaction manager to ensure that a distributed transaction either commits at all participants or aborts at all participants.
+
+## Components
+
+The system consists of:
+1. **Resource Managers (RMs)**: A fixed set of participants that each manage part of a distributed transaction. Each RM can be in states like "working," "prepared," "committed," or "aborted."
+2. **Transaction Manager (TM)**: A coordinator that orchestrates the two-phase protocol, tracking which RMs have prepared and ultimately deciding whether to commit or abort.
+3. **Message Channel**: A communication medium for exchanging protocol messages between RMs and the TM.
+
+## Protocol Behavior
+
+The protocol should work as follows:
+- **Phase 1 (Prepare)**: RMs that are ready to commit send "prepared" messages to the TM. RMs may also unilaterally decide to abort.
+- **Phase 2 (Commit/Abort)**: Once the TM has received "prepared" messages from all RMs, it can decide to commit and broadcast this decision. Alternatively, if any RM aborts or the TM decides not to proceed, the TM broadcasts an abort decision.
+
+RMs react to the TM's decision by transitioning to the appropriate final state (committed or aborted).
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: It must never be the case that one RM is in the "committed" state while another RM is in the "aborted" state. All participants must reach the same final decision.
+
+2. **Safety of Commit**: An RM can only commit if the TM has decided to commit, which only happens after all RMs have prepared.
+
+## Analysis Goals
+
+I want to be able to:
+- Verify the consistency property holds across all reachable states
+- Find example executions where the TM successfully commits
+- Find example executions where the TM aborts
+- Find example executions where all RMs reach committed/aborted states
+- Use symmetry reduction techniques since the RMs are interchangeable

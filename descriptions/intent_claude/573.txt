@@ -1,0 +1,59 @@
+# Specification Request: Distributed Consensus Protocol for CCF (Confidential Consortium Framework)
+
+## System Overview
+
+I need a formal specification of a Raft-based consensus protocol adapted for a confidential computing environment. The system manages a replicated log across a dynamic set of nodes that can join and leave the network, with specific requirements around cryptographic signatures and membership transitions.
+
+## Core Functionality Requirements
+
+### Leader Election
+- Nodes operate in one of several leadership roles: followers, candidates, or leaders
+- Support for an optional **pre-vote phase** where candidates gather preliminary support before incrementing their term, preventing disruption from partitioned nodes
+- Leaders are elected through voting, requiring majority support from all active configurations
+- Elections use the most recent *signed* (committable) log position rather than the absolute log end
+
+### Log Replication
+- Leaders replicate log entries to followers via append-entries messages
+- The log contains multiple entry types:
+  - **Regular entries** (client requests)
+  - **Signature entries** that cryptographically sign preceding entries
+  - **Reconfiguration entries** that change the active node membership
+  - **Retirement markers** for nodes leaving the service
+
+### Commitment Rules
+- Entries become committable only after a leader signs them
+- Commitment requires replication to a quorum of nodes in *every* active configuration (supporting overlapping configurations during transitions)
+- When a new leader is elected, it truncates any unsigned entries from the previous term
+
+### Dynamic Membership
+- Nodes progress through membership states: Active → RetirementOrdered → RetirementSigned → RetirementCompleted → RetiredCommitted
+- Reconfiguration transactions define which nodes participate in consensus
+- Retiring leaders must ensure proper handoff before stepping down
+- Multiple configurations can be active simultaneously during transitions
+
+### Message Guarantees
+- The network provides configurable delivery semantics (ordered, unordered, with or without duplicates)
+- Messages have integrity guarantees
+
+## Key Correctness Properties
+
+1. **Safety**: Committed log entries are never lost or contradicted—if two nodes have committed an entry at the same index, the entries must be identical
+
+2. **Leader Uniqueness**: At most one leader exists per term
+
+3. **Log Matching**: If two logs contain an entry with the same index and term, all preceding entries are identical
+
+4. **Signature Consistency**: Signature entries properly delineate committable prefixes
+
+5. **Configuration Consistency**: Membership changes are properly sequenced and committed configurations reflect the actual participating nodes
+
+6. **Membership State Machine**: Nodes transition through retirement states in the correct order, and terminal states are truly terminal
+
+7. **Liveness** (under fairness): The system eventually makes progress—leaders are elected, entries are committed, and retiring nodes eventually complete retirement
+
+## Environmental Assumptions
+
+- The set of possible nodes is finite and known
+- Initial network bootstrap begins with a designated start node
+- Terms begin at a value greater than zero
+- Network partitions and message delays are possible but messages are not corrupted

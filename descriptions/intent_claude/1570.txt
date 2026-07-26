@@ -1,0 +1,39 @@
+# Specification Request: Nested Procedure Call and Return Semantics
+
+## System to Model
+
+A sequential program execution model that demonstrates correct behavior of nested procedure calls with arguments, local variables, and returns. The system should validate that a call stack properly preserves and restores execution context across multiple levels of procedure nesting.
+
+## Description
+
+Model a program with three procedures that call each other in a chain:
+- A main entry point calls the first procedure with an argument
+- The first procedure has a local variable, performs computation, calls the second procedure twice with different computed arguments, and returns
+- The second procedure has its own local variable, validates its argument, calls the third procedure with a computed value, and returns
+- The third procedure validates its argument and returns
+
+The key aspect is that procedures must correctly pass arguments derived from their local state, and after returning from a nested call, the calling procedure's local variables and arguments must be unchanged.
+
+## Requirements
+
+1. **Argument passing**: When a procedure is called, it receives the argument value computed at the call site based on the caller's current state.
+
+2. **Local variable preservation**: Each procedure's local variables must retain their values across calls to other procedures. When a nested call returns, the caller resumes with its local state intact.
+
+3. **Argument preservation**: A procedure's own arguments must remain unchanged when it calls another procedure and that call returns.
+
+4. **Call chain validation**: The argument values must flow correctly through the call chain:
+   - The first procedure receives a specific initial argument
+   - The second procedure receives arguments computed from the first procedure's local state
+   - The third procedure receives arguments that combine state from both the first and second procedures
+
+## Correctness Properties
+
+1. **Termination**: The program must eventually complete all procedure calls and returns, reaching a final done state.
+
+2. **State integrity assertions**: At specific points during execution:
+   - Local variables must have expected values after being set
+   - Arguments must maintain their values throughout a procedure's execution
+   - Computed argument values passed to called procedures must be within expected ranges
+
+3. **No assertion failures**: All runtime checks validating the correctness of argument values and local variable preservation must pass.

@@ -1,0 +1,42 @@
+# Specification Request: Comparing Solution Efficiency Across Jug Configurations
+
+## System Overview
+
+I need a formal specification that compares two different configurations of the classic water jug puzzle to determine which one can reach a target water quantity in fewer steps. This is essentially a race between two puzzle instances to see which jug setup is more efficient.
+
+## Problem Context
+
+The water jug puzzle involves measuring a specific quantity of water using jugs of known capacities through filling, emptying, and pouring operations. Different jug configurations (varying numbers and sizes of jugs) can solve the same goal but may require different numbers of steps. For example, adding a "redundant" jug to a configuration might actually enable a shorter solution path.
+
+## Core Requirements
+
+### What the System Must Model
+
+1. **Two independent puzzle instances**: Each instance has its own set of jugs with specified capacities, operating toward the same goal quantity.
+
+2. **Valid configurations only**: Both jug configurations must be mathematically capable of solving the puzzle (the goal must fit in the largest jug and be achievable given the GCD of all jug capacities, per Bézout's identity).
+
+3. **Independent progress tracking**: The system must track how many steps each configuration has taken to reach the goal.
+
+4. **Parallel exploration**: Both configurations should be explored simultaneously to enable comparison, with each advancing independently.
+
+## Key Correctness Properties
+
+### The Central Question
+Given two different jug configurations that can each solve the puzzle, which reaches the goal in fewer steps?
+
+### What Must Be Guaranteed
+
+1. **Minimal path discovery**: The specification must ensure that the model checker finds the actual shortest solution path for *each* configuration independently—not just the shortest combined trace.
+
+2. **Fair comparison**: The exploration strategy must not artificially penalize one configuration by forcing it to take detours while waiting for the other.
+
+3. **Independent step counting**: Each configuration's step count must reflect only its own meaningful progress toward the goal.
+
+## Important Considerations
+
+This is fundamentally a comparison of two separate behaviors (a "2-hyperproperty"), which requires careful handling. A naive approach of advancing both configurations in lockstep can produce misleading results where the faster configuration appears to take unnecessary detours. The specification must ensure that the shortest path for each configuration is discovered independently.
+
+## Expected Output
+
+When checking this specification, a counterexample should reveal both configurations reaching the goal, with the step counts showing exactly how many moves each configuration required via its optimal path. This directly answers which configuration is more efficient.

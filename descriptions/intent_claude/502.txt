@@ -1,0 +1,45 @@
+# Specification Request: Multi-Decree Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the Multi-Paxos distributed consensus protocol. This is a practical variant of Paxos designed to achieve consensus on a sequence of values across multiple "slots" (forming a replicated log), with an optimization that aggregates the prepare phase across all slots.
+
+## System Description
+
+The system consists of a fixed set of replicas (at least 3) that communicate by exchanging messages. Each replica plays all three traditional Paxos roles simultaneously: proposer, acceptor, and learner. The goal is to agree on values for multiple independent slots, where each slot represents a position in a replicated log.
+
+### Key Characteristics
+
+1. **Unified Roles**: Rather than separating proposers, acceptors, and learners into distinct entities, each replica performs all functions. This reflects how practical implementations typically work.
+
+2. **Aggregated Prepare Phase**: When a replica initiates leadership, it sends a single prepare message that effectively covers all slots. Acceptors respond with their complete voting history across all slots, allowing the new leader to proceed with the accept phase for any slot without additional prepare rounds.
+
+3. **Ballot-Based Leadership**: Replicas compete for leadership using unique ballot numbers. A replica must establish leadership (by receiving prepare acknowledgments from a majority) before it can propose values.
+
+4. **Per-Slot Consensus**: Each slot independently reaches consensus on a value, but the prepare phase is shared/amortized across slots.
+
+## Functional Requirements
+
+1. Any replica may attempt to become a leader by initiating a prepare phase with a higher ballot number
+2. Acceptors must track the highest ballot they have promised to honor and, for each slot, the highest-balloted value they have accepted
+3. A leader may propose a value for a slot only after gathering prepare responses from a majority
+4. When proposing, the leader must respect any previously accepted values reported by the majority (continuing the highest-balloted previously accepted value if one exists)
+5. A value is considered chosen for a slot when a majority of acceptors have accepted it in the same ballot
+6. Once a replica learns that a value is chosen for a slot, that decision is final
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Consensus Safety**: For any given slot, at most one value can ever be learned/chosen. If multiple replicas learn values for the same slot, they must learn the same value.
+
+2. **Validity**: Any value that is learned must have been previously proposed.
+
+3. **Non-triviality**: The protocol should allow progress—it should be possible for values to eventually be chosen (though liveness under all conditions is not required for this safety-focused specification).
+
+## Configuration Parameters
+
+- A finite set of at least 3 replicas
+- A set of possible values (not including a distinguished "no value" marker)
+- A finite set of slot identifiers representing log positions
+- A set of ballot numbers (natural numbers) for ordering proposals

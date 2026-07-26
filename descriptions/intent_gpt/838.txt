@@ -1,0 +1,21 @@
+Specify a model of a simple permissioned blockchain system that captures how nodes create, sign, and append blocks to a replicated ledger using a finite pool of precomputed hash values. The model should include the following elements and guarantees, stated as requirements rather than an implementation.
+
+- Actors and keys: a finite set of nodes, each associated with a private/public key pair. Some mapping assigns every private key to at least one node and every public key to at least one private key (keys need not be one-to-one).
+
+- Blocks and ledger: blocks carry a creator identity, a pointer to a previous block (by hash), and a set of state changes (e.g., transfers). Each node maintains a local copy of the distributed ledger (a chain of blocks). The system starts from a genesis ledger with an initial balance state.
+
+- Hash resource pool: model a finite set of hash tokens. Each hash token can be assigned to at most one concrete block value. Once a token is consumed to represent a block, it becomes bound to that block forever. If all tokens are consumed, no further block creation should be possible.
+
+- Block creation and assignment: a node may propose a new block extending any existing block it knows that is valid with respect to the state, sign it with its private key, and consume an unused hash token to become that block’s identifier. Block creation must preserve ledger validity (e.g., balances nonnegative, signatures verifying against public keys).
+
+- Dissemination and acceptance: nodes can receive blocks from others and adopt them into their local ledger if they are valid and extend their current view (allow forks). Nodes may accept blocks in any order but cannot invent or reuse hash tokens.
+
+- Safety and invariants to verify:
+  - Type and domain invariants: hashes map either to “no block” or to a concrete block; ledgers and messages are well-typed.
+  - Integrity of hash pool: no two different blocks share the same hash token; once a token maps to a block it never reverts to “no block.”
+  - Signature correctness: every block’s claimed creator must have a corresponding signature verifiable by the public key associated with that creator.
+  - Balance safety: applying any block’s state changes to a ledger must not create negative balances and must preserve total funds except for well-defined permissioned minting in genesis.
+  - Progress restriction: when hash tokens are exhausted, the system must stutter (no further changes to ledgers or hashes).
+  - Liveness goal (optional to model-check): if unused hashes remain and nodes repeatedly attempt valid proposals and reliable delivery holds, then eventually some new block is appended to some node’s ledger.
+
+Model the system abstractly so that correctness properties focus on safety (no invalid blocks accepted, no double assignment of hash tokens, no negative balances) and the resource-limited nature of block identifiers, without prescribing a particular consensus algorithm or message scheduling.

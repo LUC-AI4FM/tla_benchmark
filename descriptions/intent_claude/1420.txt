@@ -1,0 +1,29 @@
+# Specification Request: TLC Multi-Worker Consistency for Random Value Evaluation
+
+## System to Model
+
+A test harness for verifying that TLC (the TLA+ model checker) correctly synchronizes the evaluation of non-deterministic expressions across multiple parallel worker threads.
+
+## Goal
+
+Ensure that when TLC runs with multiple workers, any expression involving randomness (such as selecting a random element from a large set) produces a consistent value across all workers. This is critical because if workers disagree on the value of a shared expression, the model checker could exhibit incorrect behavior or produce inconsistent results.
+
+## Requirements
+
+1. **Multi-worker execution**: The system must run with at least two parallel workers to be meaningful.
+
+2. **Random value generation**: The system must evaluate an expression that uses randomness, selecting from a sufficiently large domain to make it statistically unlikely that workers would independently arrive at the same value by chance.
+
+3. **Worker coordination**: Each worker must record the value it observes for the randomly-generated expression, continuing execution until all workers have participated.
+
+4. **Value synchronization**: The random value, once determined, must be visible to and consistent across all workers—it should not be re-evaluated independently by each worker.
+
+## Key Correctness Properties
+
+1. **Universal participation**: Every worker must eventually evaluate and record the expression (no worker should be stuck with an uninitialized value).
+
+2. **Cross-worker agreement**: All workers must observe the exact same value for the randomly-generated expression. If workers compute different values, this indicates a synchronization bug in TLC.
+
+3. **Specification metadata integrity**: The model checker must correctly report its own configuration, including the specification structure (initial states, actions, variables, constraints) with accurate source location information.
+
+4. **Runtime configuration access**: The system must be able to query runtime configuration parameters, including both standard settings and arbitrary system properties, with sensible defaults for undefined properties.

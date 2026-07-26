@@ -1,0 +1,34 @@
+# Specification Request: Condition-Based Consensus Protocol (Maximum Value Variant)
+
+## System Overview
+
+I need a formal specification of a condition-based consensus protocol for distributed systems where processes reach agreement by leveraging the maximum proposed value. This protocol is designed to solve consensus under specific input conditions, as described in the academic literature on condition-based consensus (specifically the C1 condition from Mostéfaoui et al.'s work on evaluating condition-based consensus).
+
+## System Description
+
+The system consists of N distributed processes that each begin with an initial proposed value. Processes communicate by broadcasting messages to all other processes, and the system must tolerate up to T potential failures, of which at most F actually occur during any execution. The protocol operates under the assumption that fewer than half the processes can be faulty (2T < N).
+
+The protocol proceeds in two phases:
+1. In the first phase, each process broadcasts its initial value and collects values from other processes until it has heard from a sufficient quorum. It then computes the maximum value it has observed.
+2. In the second phase, processes broadcast both their original value and the maximum they computed. Based on the messages received, a process either decides on a value that appears frequently enough, or—if it receives messages from all processes—deterministically selects a value from those it has seen.
+
+Processes may crash at any point, but crashed processes simply stop participating and do not behave maliciously.
+
+## Correctness Requirements
+
+The specification must guarantee the following properties:
+
+1. **Validity**: Any value decided by a process must have been proposed by some process initially. No "invented" values can be decided.
+
+2. **Agreement**: No two processes may decide on different values. All decisions must be consistent.
+
+3. **Termination (Conditional)**: If the input configuration satisfies a specific condition—namely, that more than F processes initially propose the maximum value among all proposals—then every non-crashed process must eventually decide.
+
+## Key Modeling Requirements
+
+- The specification should model asynchronous message passing where messages can be received in any order
+- Process crashes should be modeled as a possible transition that permanently halts a process
+- The number of actual crashes must be bounded by the parameter F
+- Message delivery should be reliable (sent messages can eventually be received by non-crashed processes)
+- The quorum threshold for phase 1 should be N - T messages
+- Fair scheduling should ensure that non-crashed processes eventually make progress

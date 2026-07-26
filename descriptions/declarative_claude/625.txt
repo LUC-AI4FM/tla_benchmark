@@ -1,0 +1,9 @@
+This TLA+ module specifies a high-level model of a Tendermint-style blockchain designed for reasoning about light client verification. The specification models blockchain state from a "bird's eye view" rather than as an evolving distributed system.
+
+The module uses three constants: AllNodes (the set of potential validators), ULTIMATE_HEIGHT (maximum blockchain height), and TRUSTING_PERIOD (duration validators remain trusted). Three variables track state: refClock (global reference time), blockchain (a function mapping heights to block headers), and Faulty (the set of Byzantine nodes).
+
+Block headers contain height, timestamp, the commit set from the previous block, current validators (VS), and next validators (NextVS). Light blocks pair headers with commit sets.
+
+The initialization predicate InitToHeight constructs an entire blockchain up to ULTIMATE_HEIGHT in one step. It non-deterministically selects faulty nodes and validator sets while enforcing key invariants: commits must come from previous validators with more than two-thirds voting power, faulty validators must remain below a specified threshold ratio, and timestamps must increase monotonically within the trusting period bounds.
+
+The specification includes predicates for checking whether headers are within the trusting period, whether two-thirds voting thresholds are met, and whether light blocks could be legitimately produced (either matching the actual blockchain or signed exclusively by faulty nodes). The single action AdvanceTime allows the reference clock to progress non-deterministically. All validators have equal voting power of one.

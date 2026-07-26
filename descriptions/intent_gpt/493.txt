@@ -1,0 +1,11 @@
+Specify a model of a distributed client that interacts with servers using session-based request/response messaging. The model should describe many clients (identified by distinct client IDs) that can open and close sessions with servers and send sequenced command requests while awaiting asynchronous responses. Each client must be able to:
+- initiate a session establishment request to a chosen server when it has no active session;
+- close an active session by sending a session close request to the server that currently serves that session;
+- send command requests to the server that holds the client’s current session, attaching a locally incrementing command sequence number with each request;
+- receive and process three kinds of responses from servers: session-open confirmations that install a session identifier for the client, session-close confirmations that clear the client’s session, and command responses that acknowledge individual commands.
+
+The model must capture an asynchronous, unreliable but fair message network where messages can be delayed and reordered but are eventually delivered unless explicitly discarded by operations that consume responses. The correctness properties to verify are:
+- Safety: a client never has more than one active session identifier at a time; command requests are only sent when a client has an active session; responses are only applied to the intended recipient client.
+- Session integrity: after receiving an open confirmation the client records the session id it was assigned, and after a close confirmation the client no longer believes it has a session.
+- Command monotonicity: each client’s command sequence numbers strictly increase with every issued command.
+- Liveness (under fair scheduling): a request that is sent and not lost will eventually lead to the corresponding response being processed by its intended client, enabling progress of session open/close and command completion.

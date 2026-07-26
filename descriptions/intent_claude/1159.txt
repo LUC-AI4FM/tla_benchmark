@@ -1,0 +1,46 @@
+# Specification Request: Fault-Tolerant Distributed Transaction Commit
+
+## System Overview
+
+I need a formal specification of a distributed transaction commit protocol that combines the Paxos consensus algorithm with two-phase commit semantics. The system should allow a set of resource managers to collectively decide whether to commit or abort a distributed transaction, while tolerating failures of individual participants.
+
+## System Components
+
+The system consists of:
+- **Resource managers**: Participants that each vote on whether they are prepared to commit
+- **Acceptors**: A set of nodes that participate in reaching consensus on each resource manager's vote
+- **Leaders**: Coordinators that drive the consensus protocol (multiple leaders may exist simultaneously due to unreliable leader election)
+- **Majorities**: Any subset of acceptors such that any two majorities overlap (quorum intersection property)
+
+## Required Behavior
+
+### Resource Manager Behavior
+- Each resource manager starts in a working state and may either:
+  - Declare itself prepared to commit, or
+  - Unilaterally decide to abort
+- Resource managers must respond appropriately when told the final transaction decision
+
+### Consensus Protocol
+- For each resource manager, the system must reach consensus on whether that manager prepared or aborted
+- The protocol should use ballot numbers to allow recovery from stalled decisions
+- Leaders initiate and drive consensus rounds, gathering responses from acceptor majorities
+- Acceptors track the highest ballot they've seen and vote accordingly
+
+### Decision Logic
+- The transaction commits if and only if consensus determines that ALL resource managers prepared
+- The transaction aborts if consensus determines that ANY resource manager aborted
+- Once a decision is reached, it is announced to all resource managers
+
+## Key Correctness Properties
+
+1. **Agreement**: The system must never both commit and abort the same transaction
+2. **Validity**: A commit can only occur if all resource managers actually prepared
+3. **Consistency with simple commit semantics**: The protocol must implement the same observable behavior as a basic transaction commit specification (where commit requires all prepared, abort is allowed otherwise)
+4. **Type correctness**: All protocol state and messages remain well-formed throughout execution
+
+## Scope
+
+This specification covers safety properties only—what events are permitted to occur. Liveness properties (guaranteeing eventual progress) are explicitly out of scope. The specification should abstract away:
+- Explicit message receipt (enabled actions depend only on sent messages)
+- Reliable leader election (any process may act as leader)
+- Duplicate messages (the message set contains at most one copy of each message)

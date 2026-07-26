@@ -1,0 +1,9 @@
+Specify a model of a rolling update process for a small cluster of identical servers behind a load balancer. The model should capture servers transitioning from an old version to a new version while ensuring client traffic is always routed only to servers that are in a consistent, runnable state. The system must allow an orchestration action that temporarily removes one or more servers from the load balancer, triggers an update on removed servers, waits for those updates to finish, and then returns them to service. Servers should be able to start an update when allowed, mark themselves as “updating” and then as “updated” when finished.
+
+The model must express and check these properties:
+- Safety: At any instant, every server that is receiving traffic must be in a compatible version state with all other servers receiving traffic (i.e., the load-balanced set must be version-homogeneous).
+- Zero downtime: There must always be at least one server in the load-balanced set that is able to serve requests (the load-balanced set must never be empty or composed only of servers in an intermediate non-serving state).
+- Progress/termination: The orchestrated update procedure should be fair and eventually complete: if an update is initiated it will eventually finish and all servers will reach the updated state.
+- Liveness under concurrency: Concurrent server update activities and the orchestrator’s actions should be allowed, but the orchestrator must wait for removed servers to finish updating before returning them to the load balancer.
+
+Model parameters should include the set of servers and a distinguished representation for an “updating” intermediate state. The specification should leave implementation choices open (how many servers are removed at once, order of updates) but must enforce the above constraints and permit verification of safety, zero-downtime, and eventual completion.

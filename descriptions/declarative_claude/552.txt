@@ -1,0 +1,9 @@
+This TLA+ module specifies a one-bit mutual exclusion protocol for N concurrent processes, numbered 0 through N-1.
+
+The system models processes competing to enter a critical section using a single boolean flag per process. The CONSTANT N defines the number of processes, and Procs is the set of process identifiers from 0 to N-1.
+
+The VARIABLES consist of: flag, an array of booleans where each process can signal its intent to enter the critical section; pc, tracking each process's program counter location; and j, a local index variable each process uses to scan other processes' flags.
+
+Each process cycles through phases: a non-critical section, an entry protocol, the critical section, and an exit protocol. In the entry protocol, a process raises its flag, then scans processes with lower indices. If it finds another process's flag raised, it backs off by lowering its own flag, waits for that flag to clear, and restarts. After clearing all lower-indexed processes, it waits for all higher-indexed processes' flags to be lowered before entering the critical section. On exit, a process simply lowers its flag and resets its index.
+
+The specification includes weak fairness for all process actions except the non-critical section, ensuring that enabled entry and exit actions eventually execute. The module defines the temporal specification Spec combining initial conditions, the next-state relation, and these fairness conditions. No explicit invariants or liveness properties are stated in the module for model checking.

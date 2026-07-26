@@ -1,0 +1,53 @@
+# Specification Request: Termination Detection for Distributed Computations (Dijkstra-Scholten Tree Algorithm)
+
+## System Overview
+
+I need a formal specification of a distributed termination detection algorithm for networks of communicating processes. The algorithm should allow a designated "leader" process to determine when a distributed computation has finished across all processes in the network.
+
+## System Model
+
+The system consists of:
+- A set of processes connected by a directed communication graph
+- One distinguished leader process that initiates the computation
+- Processes can send computational messages only along outgoing edges in the graph
+- The leader cannot receive computational messages (it only initiates work)
+- Messages may be delivered asynchronously and in any order, but are never lost
+
+## Computation Behavior
+
+- Initially, only the leader is active (busy); all other processes are idle
+- An active process may send messages to processes it can reach via outgoing edges
+- When a process receives a message, it becomes active
+- An active process may become idle at any time
+- The computation is considered terminated when all processes are idle and no messages are in transit
+
+## Termination Detection Mechanism
+
+The algorithm must detect termination by constructing a dynamic overlay tree:
+
+1. Each process must acknowledge messages it receives by sending control messages (acks) back to the sender
+2. When an idle process first receives a message (becoming non-idle), the sender becomes its "parent" in an overlay tree
+3. A process may send acknowledgments freely, except for the "last" ack to its parent—this can only be sent when:
+   - The process is idle
+   - It has received acks for all messages it sent
+   - It has acknowledged all other messages it received
+4. The overlay tree dynamically grows and shrinks as processes join and leave it
+
+## Key Correctness Properties
+
+### Safety
+- **Sound Detection**: If the leader determines that termination has occurred (by becoming "neutral"—idle with all messages fully acknowledged), then the computation has actually terminated: all processes are idle with no pending messages.
+
+### Liveness
+- **Complete Detection**: If the computation actually terminates, the leader must eventually detect this fact.
+
+### Structural Invariants
+- The overlay tree must always be a valid tree rooted at the leader (when non-empty)
+- All processes in the overlay tree must be non-neutral
+- Message counters must remain consistent: messages sent equals messages in transit plus messages received plus acknowledgments in transit
+
+## Additional Requirements
+
+- The specification should model message channels as counters (since message content and ordering are irrelevant)
+- Control messages (acks) flow in the reverse direction of computational messages
+- The algorithm must work for arbitrary network topologies (not just trees)

@@ -1,0 +1,38 @@
+# Specification Request: TLA+ Tooling Edge Case for Function Value Representations
+
+## System Overview
+
+I need a minimal TLA+ specification that demonstrates a potential bug in the TLA+ model checker (TLC) related to how it handles different internal representations of equivalent function values, particularly during liveness checking.
+
+## Goal
+
+Create a simple state machine that exercises TLC's handling of:
+1. A set of functions defined using set-theoretic function set notation (all functions from one set to another)
+2. A single explicitly constructed function record that is a member of that set
+3. State updates that use the explicit function record as a key/index
+
+## System Behavior
+
+The system should:
+- Maintain a single state variable that maps from a set of functions to a constant value
+- Initialize the variable to assign the same value to every element in its domain
+- Have a next-state relation that effectively leaves the state unchanged (a no-op or stuttering step)
+
+## Key Requirements
+
+1. **Equivalent representations**: The specification must include both a function set (all functions with a given signature) and an explicitly enumerated function that belongs to that set, demonstrating they are equal.
+
+2. **Function-as-key usage**: The state update should use the explicitly constructed function as a lookup key, rather than iterating over the function set directly.
+
+3. **Liveness property**: Include a trivially satisfiable liveness property to trigger the model checker's liveness checking machinery.
+
+4. **Optional invariant**: Include a type-correctness invariant that can be toggled on or off, to test whether invariant checking affects the bug manifestation.
+
+## Expected Correctness Properties
+
+- A basic type invariant stating the variable has the expected structure
+- A trivial liveness property (always eventually true)
+
+## Purpose
+
+This specification is designed to isolate and reproduce a specific model checker behavior where the internal representation of function values (lazily-evaluated vs. enumerated) may cause incorrect results during simulation or liveness checking, but works correctly when invariant checking forces eager evaluation.

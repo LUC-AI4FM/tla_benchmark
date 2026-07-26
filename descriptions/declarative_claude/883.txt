@@ -1,0 +1,11 @@
+This TLA+ module specifies a serializable memory system for a multiprocessor architecture with a register-based interface.
+
+The system models multiple processors (Proc) that issue read and write requests through registers (Reg) to access shared memory initialized with InitMem. The VARIABLES track: regFile (the register file interface from RegisterInterface), opQ (a per-processor queue of operations), and opOrder (a partial ordering relation among operations).
+
+Each operation in the queue records its request, associated register, and for completed reads, the source write operation it read from. Operations progress through states: pending (associated with a register) to done. The goodSource function identifies valid write sources for a read—either the initial memory or a write to the same address.
+
+The next-state relation allows processors to issue requests to free registers, respond to writes by marking them complete, or respond to reads by selecting a source write and recording the value read. An internal action can extend the operation ordering without changing other state. Every transition must maintain serializability via UpdateOpOrder.
+
+The key safety property, Serializable, requires existence of a total order on operations respecting: the recorded partial order, per-processor program order, and the constraint that no intervening write exists between a read and its source.
+
+The specification includes weak fairness for responses and for eventually ordering any pair of operations, ensuring progress. DataInvariant maintains type correctness and consistency between registers and operation queues.

@@ -1,0 +1,9 @@
+This TLA+ module specifies the Disk Synod algorithm, a disk-based variant of the Paxos consensus protocol. It extends a base Synod module and models how distributed processes achieve consensus by writing to and reading from shared disks.
+
+The specification uses constants for ballot number assignments per process, a set of disks, and a majority predicate over disk sets. Ballots are positive naturals partitioned among processes, and any two disk majorities must overlap.
+
+Variables track each process's input and output values, the state of each disk block per process, the current phase (0, 1, 2, or 3), which disks have been written, and which blocks have been read from each disk.
+
+Processes progress through phases: Phase 0 involves recovery reads from disks. In Phases 1 and 2, processes write their current block to disks, then read other processes' blocks. If a higher ballot is discovered during reads, the process restarts its ballot. Ending Phase 1 selects an input value based on the highest-ballot block seen. Ending Phase 2 produces output. The StartBallot action allows restarting with a higher ballot. Processes may fail and reset to Phase 0 with a fresh input.
+
+The temporal specification asserts initialization followed by stuttering-closed next steps. The module claims this specification implies the base SynodSpec, establishing that DiskSynod correctly implements consensus.

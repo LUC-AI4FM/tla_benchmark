@@ -1,0 +1,10 @@
+Specify a formal TLA+ model of a geo-distributed, multi-region replicated key-value store that exposes five client-facing consistency levels: strong (linearizability), bounded staleness, session, consistent prefix, and eventual. The model should represent multiple regions, a subset of regions that accept writes, and multiple clients colocated with regions. Clients issue sequences of read and write operations; writes are appended to per-region logs and propagate asynchronously between regions. Reads observe the current region-local value. The model must allow arbitrary asynchronous replication interleavings subject to the chosen consistency mode.
+
+Require the specification to capture, as properties (not as implementation constraints), the semantic guarantees for each consistency level:
+- Strong: every operation appears to take effect atomically in a single global order (linearizability); reads reflect the latest writes globally.
+- Bounded staleness: replicas differ by at most a fixed staleness bound in value or number of updates; reads are monotonic per region and clients observe their own recent writes.
+- Session: within a client session, reads are monotonic and a client always sees its prior writes (read-your-writes).
+- Consistent prefix: all replicas observe a common prefix order of updates (no missing earlier updates); per-region write histories are prefix-ordered and reads reflect that prefix.
+- Eventual: absent new writes and with continued replication, all replicas eventually converge to the same state; reads return values present in the local replica’s log.
+
+Also require general correctness properties independent of the mode: operation histories should be well-typed, per-client/read/write monotonicity constraints where appropriate, and liveness that replication eventually synchronizes replicas. The model should permit verification of these safety and liveness properties under all allowed behaviors without prescribing a particular replication protocol.

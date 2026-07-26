@@ -1,0 +1,41 @@
+# Specification Request: Alternating Bit Protocol
+
+## System Overview
+
+I need a formal specification of the **Alternating Bit Protocol**, a classic reliable data transmission protocol that ensures messages are delivered correctly over an unreliable channel that may lose or duplicate messages.
+
+## System Description
+
+The system consists of two communicating parties:
+- A **sender** that transmits data messages
+- A **receiver** that accepts messages and sends acknowledgments
+
+Communication occurs over two one-way channels:
+- A channel from sender to receiver carrying data messages (each tagged with a single-bit sequence number)
+- A channel from receiver to sender carrying acknowledgment bits
+
+The protocol should handle a set of data values that can be transmitted (for example, a small set of names or identifiers for testing purposes).
+
+## Functional Requirements
+
+1. The sender attaches an alternating bit (0 or 1) to each message it sends
+2. The receiver acknowledges received messages by sending back the bit from the received message
+3. The sender retransmits the current message until it receives the correct acknowledgment
+4. Upon receiving the correct acknowledgment, the sender advances to the next message and flips its bit
+5. The receiver only accepts a message if it carries the expected bit value
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: All protocol state (sender state, receiver state, and channel contents) remains within expected domains throughout execution
+
+2. **Data Integrity**: When the receiver has acknowledged a message (indicated by the acknowledgment channel containing the sender's current bit), the sender and receiver must agree on the current message value
+
+3. **Channel Coherence**: The channels should maintain a structured property where values transition at most once (reflecting the alternating nature of the protocol - not arbitrary sequences of mixed values)
+
+4. **Refinement**: The protocol should implement a higher-level specification of reliable message delivery - it should behave as if messages are simply transferred reliably from sender to receiver
+
+## Model Checking Constraints
+
+For verification purposes, the channel lengths should be bounded (e.g., maximum of 3 messages in each direction) to enable exhaustive state space exploration.

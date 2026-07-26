@@ -1,0 +1,44 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification of Safra's algorithm for detecting termination in a distributed system where nodes are arranged in a ring topology. The system consists of a fixed number of nodes that can be either active or inactive, and can send asynchronous messages to each other.
+
+## System Description
+
+The distributed system has the following characteristics:
+
+1. **Nodes**: A finite set of nodes (at least one) arranged in a logical ring structure, where each node knows its predecessor and successor.
+
+2. **Node Activity**: Each node can be in an active or inactive state. Active nodes can send messages to other nodes and may spontaneously become inactive. Receiving a message activates an inactive node.
+
+3. **Asynchronous Messaging**: Nodes can send messages to any other node. Messages may be in transit (not yet delivered) for an arbitrary period. There are no message losses.
+
+4. **Termination Detection**: The system uses a token-based detection mechanism. A special token circulates around the ring, collecting information to determine whether global termination has occurred.
+
+## Goal
+
+The algorithm should correctly detect when the entire distributed system has terminated—meaning all nodes are inactive and there are no messages in transit. The detection mechanism must not produce false positives (claiming termination when the system hasn't actually terminated).
+
+## Key Requirements
+
+1. **Token Circulation**: A token must circulate around the ring from node to node. A node should only pass the token when it is inactive.
+
+2. **Message Accounting**: The algorithm must track the balance between sent and received messages to ensure no messages are in flight when termination is declared.
+
+3. **Causal Tracking**: The algorithm must handle the case where a node that has already passed the token becomes reactivated by receiving a message sent by a node that hasn't yet been visited by the token in the current round.
+
+## Correctness Properties
+
+### Safety Property
+**Termination Detection Accuracy**: If the algorithm declares that termination has been detected, then the system must actually be terminated (all nodes inactive and no messages in transit).
+
+### Liveness Property
+**Eventual Detection**: If the system reaches a terminated state and remains terminated, the algorithm must eventually detect this termination.
+
+## Environment Assumptions
+
+- Nodes may start in any combination of active/inactive states
+- Active nodes may send messages at any time to any other node
+- Active nodes may spontaneously become inactive at any time
+- The token mechanism must eventually make progress (fair scheduling of token-related actions)

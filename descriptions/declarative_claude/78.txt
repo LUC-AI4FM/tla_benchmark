@@ -1,0 +1,9 @@
+This TLA+ module is a minimal test case designed to reproduce a specific bug (issue 914) in the Apalache model checker, related to type annotation inconsistencies with record types.
+
+The specification declares a single variable `m`, which is annotated with an empty record type `{}`. However, the actual behavior assigns records with fields to this variable, creating a type mismatch that the bug report targets.
+
+The initial state predicate `Init` sets `m` to a record containing a single field `foo` with the boolean value `TRUE`. This immediately contradicts the empty record type annotation.
+
+The next-state relation `Next` offers two possible transitions: either the variable `m` remains unchanged (a stuttering step), or the `foo` field of `m` is updated to `TRUE` using the EXCEPT notation. Since `foo` is already `TRUE` from initialization, this second disjunct effectively also leaves the state unchanged in terms of observable values.
+
+The specification contains no explicit safety properties, liveness properties, fairness conditions, or invariants to check. Its sole purpose is to demonstrate a crash condition in Apalache when the number of fields in an assigned record exceeds the number of fields declared in the type annotation. Under proper row-type checking, this specification would be rejected as ill-typed.

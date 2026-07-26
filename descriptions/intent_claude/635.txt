@@ -1,0 +1,36 @@
+# Specification Request: Light Client Supervisor with Verification and Attack Detection
+
+## System Overview
+
+I need a formal specification for a **light client supervisor** component that coordinates blockchain header verification and attack detection. The supervisor manages the lifecycle of fetching and validating blockchain data from a network of peer nodes, while detecting potential attacks from malicious peers.
+
+## System Description
+
+The supervisor should model a control loop that:
+
+1. **Initializes** by connecting to the peer network, with the possibility of initialization failure
+2. **Verifies headers** by communicating with a primary peer node to fetch and validate blockchain data up to a target height
+3. **Detects attacks** by cross-checking the primary's data against secondary peer nodes to identify conflicting or malicious information
+4. **Produces output** when verification succeeds without evidence of attacks
+5. **Handles peer exhaustion** when the available peers (either the primary or secondaries) cannot provide the needed data
+
+The system should support replacing the primary peer during verification if issues arise, and should loop back to continue verification after successfully processing data.
+
+## Key Behaviors to Model
+
+- The ability to fail during initialization before entering the main loop
+- Non-deterministic outcomes from the verification process (success, need to replace primary, or peer exhaustion)
+- Non-deterministic outcomes from attack detection (no evidence found, evidence of attack found, or secondary peers exhausted)
+- Terminal states representing various failure modes and attack detection outcomes
+
+## Correctness Properties
+
+The key property to verify is **peer availability**: the system should not reach a state where peers are exhausted. Specifically:
+- The primary peer pool should never be exhausted during verification
+- The secondary peer pool should never be exhausted during attack detection
+
+This property, when checked as an invariant, will help identify scenarios where peer management needs improvement or where the system requires more robust peer discovery mechanisms.
+
+## Notes
+
+This is intended as a draft specification that will be extended to include more detailed modeling of the verification and detector APIs.

@@ -1,0 +1,43 @@
+# Specification Request: Distributed Transaction Protocol (Percolator-style)
+
+## System Overview
+
+I need a formal specification of a distributed transaction system based on Google's Percolator protocol. This system should model how multiple concurrent clients can perform distributed transactions over a shared key-value store with snapshot isolation guarantees.
+
+## System Requirements
+
+### Components
+- A key-value data store where each key can hold versioned data
+- Multiple concurrent transaction clients that can read and write to the store
+- A timestamp oracle or mechanism for ordering transactions
+- A two-phase commit protocol for atomically committing multi-key transactions
+
+### Transaction Behavior
+Each client should be able to:
+- Begin a transaction and obtain a start timestamp
+- Read values from keys (seeing a consistent snapshot as of the start timestamp)
+- Write values to multiple keys
+- Commit the transaction atomically using a two-phase protocol where one key is designated as the "primary" and others are "secondaries"
+
+### Concurrency Model
+- Multiple clients operate concurrently
+- Each client has a designated primary key for its transactions
+- Clients may have overlapping key sets (creating potential conflicts)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Snapshot Isolation**: Each transaction observes a consistent snapshot of the database as of its start time
+
+2. **Atomicity**: Either all writes of a transaction become visible, or none do
+
+3. **Conflict Detection**: Write-write conflicts between concurrent transactions must be detected and resolved (typically by aborting one transaction)
+
+4. **No Lost Updates**: Concurrent writes to the same key cannot silently overwrite each other
+
+5. **Lock Safety**: The locking protocol must not leave permanent orphan locks that block progress
+
+## Model Checking Scope
+
+For verification purposes, the model should be checkable with a small configuration: a minimal number of keys (e.g., 2) and a small number of concurrent clients (e.g., 2), where each client uses a different primary key. This should be sufficient to expose concurrency bugs while remaining tractable for exhaustive state exploration.

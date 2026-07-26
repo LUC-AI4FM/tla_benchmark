@@ -1,0 +1,36 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification of Dijkstra's algorithm for detecting termination in a distributed system where processes are arranged in a ring topology (known as EWD 840).
+
+## System Description
+
+The system consists of a fixed number of processes (nodes) arranged in a logical ring. Each process can be either active (performing computation) or passive (terminated). Active processes may:
+- Send messages to other processes, potentially reactivating passive ones
+- Become passive at any time
+
+The goal is to detect when **all** processes have become passive and will remain so—meaning the distributed computation has globally terminated.
+
+## Detection Mechanism
+
+A token circulates around the ring in one direction. The algorithm uses a coloring scheme (nodes and the token can be "white" or "black") to track whether any "backward" communication has occurred that might invalidate a termination conclusion. The designated initiator node can start detection rounds, and the token carries information as it passes through the ring.
+
+## Key Requirements
+
+1. **Safety (Termination Detection Correctness)**: When the algorithm announces termination (based on the token's state and position), it must be correct—all processes must genuinely be passive. The algorithm must never falsely claim termination while any process is still active.
+
+2. **Liveness (Eventual Detection)**: If all processes do eventually become passive and stay passive, the algorithm must eventually detect this condition. Detection should not be indefinitely delayed.
+
+3. **Non-blocking**: The termination detection mechanism should make progress fairly, independent of whether the underlying computation makes progress.
+
+## Environment Assumptions
+
+- The number of nodes is a positive integer, configurable as a constant
+- Processes may reactivate each other through message passing
+- Any active process may become passive spontaneously
+- The token-passing mechanism operates fairly (will eventually proceed when enabled)
+
+## Verification Goals
+
+The specification should support checking that the safety and liveness properties hold, and should include an inductive invariant that explains why the algorithm works correctly.

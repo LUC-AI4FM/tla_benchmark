@@ -1,0 +1,66 @@
+# Specification Request: Distributed Region Merge Protocol for Multi-Raft Storage
+
+## System Overview
+
+I need a formal specification for a **region merge algorithm** in a distributed key-value storage system that uses multiple Raft consensus groups. The system partitions data into shards called "regions," where each region is replicated across multiple storage nodes using its own Raft group. When a region becomes small enough, it should be able to merge with an adjacent region.
+
+## System Model
+
+The specification should model:
+
+- **Multiple storage nodes** (stores) that each participate in multiple Raft groups
+- **Two regions** (A and B) that will be merged, where region B merges into region A
+- **Each region has a designated leader** on a specific store, and leaders do not change during the protocol
+- **A simplified Raft consensus protocol** where logs are only truly committed when applied to the state machine (not just when the commit index advances)
+
+## Required Behaviors
+
+### Raft Log Replication
+The system must support basic Raft operations:
+- Leaders sending log entries to followers
+- Followers appending entries and responding
+- Leaders advancing commit index based on quorum agreement
+- Applying committed logs to the state machine
+
+### Client Requests
+- External clients can submit normal (data) requests to the region being merged (region B)
+- These requests should be properly handled even during the merge process
+
+### Merge Protocol
+The merge protocol should proceed through these phases:
+1. **Pre-merge phase**: The target region (B) initiates the merge by recording the current replication state
+2. **Merge execution**: The source region (A) receives merge information including logs that need to be preserved from region B
+3. **Log synchronization**: Ensure all pending logs from region B are properly transferred and applied
+4. **Completion**: Mark region B as inactive (tombstone) once merge is complete
+
+### Rollback Support
+The protocol must support an optional rollback mechanism:
+- If rollback is triggered, the merging region should return to normal operation
+- Rollback should be safe to execute during the merge process
+
+### Region States
+Each region replica should track its state:
+- Normal (active and serving requests)
+- Merging (merge in progress, normal requests may be skipped)
+- Tombstone (merged away, no longer active)
+
+## Key Correctness Properties
+
+### Safety Properties
+
+1. **Consistency across replicas**: If two stores have applied the same sequence of logs for a region, they must have identical region states and must have applied the same number of normal (data) logs.
+
+2. **Merge consistency**: When the merge completes on multiple stores (region B becomes tombstone), all stores must agree on exactly how many normal logs were applied to region B before the merge—ensuring no data is lost or duplicated.
+
+3. **Raft invariants**: Standard Raft properties must hold:
+   - Exactly one leader per region
+   - Follower logs are always prefixes of leader logs
+   - Apply index never exceeds commit index
+   - Messages are properly directed between leaders and followers
+
+## Constraints and Assumptions
+
+- Leaders are fixed and do not fail or change during the protocol
+- All regions are replicated to the same set of stores
+- The specification should support configurable quorum sizes to enable efficient model checking
+- Client request volume should be bounded for verification purposes

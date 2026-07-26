@@ -1,0 +1,39 @@
+# Specification Request: Single-Node Transaction System with Read-Only Transactions
+
+## System Overview
+
+I need a formal specification for a single-node transaction processing system that supports both read-write transactions and read-only transactions. The system maintains a ledger that may have multiple branches (representing different views or versions), and must handle concurrent transaction requests while providing appropriate consistency guarantees.
+
+## Core Functionality
+
+The system should model:
+
+1. **Read-write transactions**: The existing capability to submit and process transactions that modify the ledger state (this builds on an existing single-node transaction model).
+
+2. **Read-only transactions**: A new transaction type that allows clients to query the current state of the ledger without modifying it. These transactions should:
+   - Be submitted as requests that enter the system's history
+   - Be processed by reading from any valid branch of the ledger
+   - Return a response that includes:
+     - The set of transactions observed (the ledger state at read time)
+     - A transaction identifier indicating which view and position in the ledger was read
+
+## Key Behaviors
+
+- Read-only transactions are always forwarded (never rejected)
+- A read-only transaction executes atomically—the read and response happen as a single step
+- Each read-only request must receive exactly one response
+- Read-only transactions can observe the state from any existing ledger branch that has at least one entry
+- The system maintains a complete history of all requests and responses
+
+## Correctness Properties
+
+The specification should support reasoning about:
+
+1. **Request-response matching**: Every read-only request eventually receives a response, and responses correctly reference their originating requests
+2. **No duplicate responses**: Each transaction request receives at most one response
+3. **Consistent reads**: The observed state returned by a read-only transaction must correspond to an actual ledger state (a valid prefix of some branch)
+4. **Proper transaction identification**: The transaction ID in responses must accurately reflect the ledger position that was read
+
+## Context
+
+This specification extends an existing single-node model, adding read-only transaction capability while preserving all existing behaviors for read-write transactions.

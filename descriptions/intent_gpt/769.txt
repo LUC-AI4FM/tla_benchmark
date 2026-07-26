@@ -1,0 +1,11 @@
+Specify a formal model of a single-producer, multi-consumer ring buffer system (a Disruptor-like queue) and state its correctness requirements. The system has one producer that publishes a strictly increasing sequence of events (identified by consecutive sequence numbers) into a fixed-size circular buffer, and multiple consumers that each independently read every published event (multicast delivery). The model must allow the producer to write into the next sequence slot and advance a global published cursor, and consumers to read slots in sequence, each maintaining its own read cursor. The ring buffer reuses slots after all consumers have moved past them; the producer must not overwrite a slot that any consumer still needs to read.
+
+Specify the following properties to be verified:
+
+- Safety: No data races between producer and any consumer; a consumer must never read a slot that is concurrently being written or that has been overwritten; each consumer only observes complete, monotonically increasing published sequence numbers.
+- Consistency: Each consumer sees exactly the sequence of published values in order, with no gaps or duplicates for that consumer.
+- Liveness: Every value published (up to a bounded maximum used for model checking) is eventually read by every consumer; the system should guarantee that consumers make progress and will not be indefinitely blocked from reading published events.
+- Capacity constraint: The producer must honor the ring buffer capacity and must not advance past the oldest unread slot; the model should capture the condition under which the producer is prevented from publishing because consumers lag.
+- Fairness: If actions are enabled repeatedly (producer or consumer steps), they must not be perpetually ignored; fairness assumptions should be expressible to ensure eventual reads.
+
+Do not prescribe a particular implementation; describe only the abstract state (published cursor, per-consumer read cursors, buffer slots with occupancy/ownership semantics) and the allowed atomic transitions for publishing and consuming that enforce the properties above.

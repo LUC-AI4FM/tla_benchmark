@@ -1,0 +1,42 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the classic **Two-Phase Commit (2PC) protocol** for distributed transaction processing. This protocol coordinates a set of resource managers to reach a unanimous decision on whether to commit or abort a distributed transaction.
+
+## System Components
+
+The system consists of:
+- A **transaction manager** (coordinator) that orchestrates the commit decision
+- A set of **resource managers** (participants) that each hold part of the transaction's data and must agree on the outcome
+
+## Protocol Behavior
+
+### Phase 1: Voting
+- Each resource manager independently decides whether it can commit the transaction
+- If a resource manager is ready to commit, it signals its readiness to the transaction manager
+- A resource manager may also unilaterally decide to abort while it is still undecided
+
+### Phase 2: Decision
+- The transaction manager collects readiness signals from all resource managers
+- Once **all** resource managers have indicated they are prepared, the transaction manager may issue a global commit
+- At any point before committing, the transaction manager may decide to abort the transaction
+- Resource managers act on the transaction manager's final decision (commit or abort)
+
+## Communication Model
+
+Messages are exchanged asynchronously between the transaction manager and resource managers. The model should account for messages being persistent (once sent, they remain available for receipt).
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: No resource manager commits while another aborts—all participants must reach the same final decision
+
+2. **Commit Validity**: A commit can only occur if every resource manager was prepared to commit (no resource manager should be forced to commit if it chose to abort)
+
+3. **Stability**: Once a resource manager has committed or aborted, its decision is final and cannot change
+
+## Scope
+
+The specification should model the core protocol logic without concerning itself with failure recovery, timeouts, or message loss. The focus is on demonstrating the fundamental safety properties of two-phase commit under reliable communication.

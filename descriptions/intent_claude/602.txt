@@ -1,0 +1,64 @@
+# Specification Request: Distributed Transaction Protocol with Optimistic Concurrency Control
+
+## System Overview
+
+I need a formal specification of a distributed transaction protocol that uses a two-phase commit approach with optimistic concurrency control, similar to systems used in distributed key-value stores. The protocol should support multiple concurrent clients executing transactions over a shared set of keys, where each key can have multiple historical versions.
+
+## System Description
+
+The system consists of:
+- A set of keys that can be read and written by transactions
+- Multiple clients, each executing a single transaction
+- A global timestamp oracle that provides monotonically increasing timestamps
+- Each key maintains versioned data, locks, and a commit history
+
+Each transaction operates on a designated primary key and zero or more secondary keys. The protocol follows these phases:
+1. **Start**: Obtain a start timestamp from the oracle
+2. **Read/Working**: Read keys and clean up any stale locks encountered
+3. **Prewrite**: Acquire locks on all keys, writing the primary key's lock first
+4. **Commit**: Obtain a commit timestamp, then commit the primary key (which makes the transaction durable)
+
+Clients may abort at any time before committing, leaving partial state that other transactions must clean up.
+
+## Key Requirements
+
+### Locking Protocol
+- Before committing, a transaction must lock all keys it writes to
+- The primary key must be locked before any secondary keys
+- A key can only be locked if it has no existing lock and no committed writes newer than the transaction's start timestamp
+- Locks record which key is the primary, enabling lock resolution
+
+### Lock Cleanup
+- When a transaction encounters a lock from another transaction with an earlier timestamp, it may clean it up
+- For primary key locks: roll back by removing the lock and associated data
+- For secondary key locks: check if the primary was committed; if so, complete the commit for this key; otherwise, roll back
+
+### Commit Protocol
+- A transaction commits by writing a commit record for its primary key and releasing the primary lock
+- Once the primary is committed, the transaction is considered committed
+- Secondary key locks can be cleaned up lazily (by the original client or by other transactions encountering them)
+
+## Correctness Properties
+
+### Type Safety
+All protocol state must remain well-formed throughout execution.
+
+### Write Consistency
+- Committed writes to each key must have non-overlapping timestamp intervals
+- Each write's commit timestamp must be strictly greater than its start timestamp
+
+### Lock Consistency
+- Each key may have at most one lock at any time
+- When a transaction is ready to commit (has a commit timestamp and holds its primary lock), all its secondary locks must still be held
+
+### Commit Integrity
+- Once a transaction is committed, its primary key must have the commit record and no stale locks
+- Secondary keys must either be fully committed or still hold their original lock (pending cleanup)
+- Committed data versions must exist for all keys in the transaction
+
+### Abort Safety
+- If a transaction aborts after obtaining a commit timestamp, no commit record for its primary key at that timestamp may exist
+
+### Snapshot Isolation
+- A transaction's reads must reflect a consistent snapshot as of its start timestamp
+- No write may be committed with a timestamp less than or equal to any read that already observed a later state

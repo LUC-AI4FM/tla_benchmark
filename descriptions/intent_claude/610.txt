@@ -1,0 +1,68 @@
+# Specification Request: Tendermint Consensus with Proposer-Based Timestamps
+
+## System Overview
+
+I need a formal specification of a Byzantine fault-tolerant consensus protocol based on Tendermint, extended with proposer-based timestamps and clock synchronization. The system should model how a set of distributed processes (some potentially Byzantine) reach agreement on both a value and an associated timestamp.
+
+## System Description
+
+The protocol involves a fixed set of processes divided into correct (honest) processes and potentially faulty (Byzantine) processes. The system operates in rounds, where each round has a designated proposer who suggests a value along with a timestamp derived from their local clock.
+
+The protocol proceeds through three phases per round:
+1. **Propose phase**: The designated proposer broadcasts a proposal containing a value and timestamp
+2. **Prevote phase**: Processes vote on whether the proposal is acceptable
+3. **Precommit phase**: Processes commit to the proposal if sufficient prevotes are received
+
+Processes maintain local clocks that may drift within bounded precision relative to each other and relative to real time. Proposals include timestamps that must satisfy timeliness conditions based on the receiver's local clock.
+
+## Key Requirements
+
+### Timing Model
+- Each correct process has a local clock with bounded drift from real time (accuracy bound)
+- Local clocks of correct processes are synchronized within a bounded precision
+- Message delivery is subject to a known delay bound
+- Proposals carry timestamps that must be validated against local clocks with consideration for precision and delay
+
+### Byzantine Fault Tolerance
+- The system must tolerate up to a threshold of Byzantine processes (typically less than one-third of total)
+- Byzantine processes may send arbitrary messages, including proposals with any timestamp
+- Correct processes must reach agreement despite Byzantine behavior
+
+### Locking and Validity
+- Processes may lock on values across rounds to prevent equivocation
+- Only valid values (from a predefined set) should be decided
+- Previously locked values can be re-proposed with proof of prior support
+
+## Correctness Properties
+
+### Safety Properties
+
+1. **Agreement on Value**: If any two correct processes decide, they decide on the same value
+
+2. **Agreement on Time**: If two correct processes decide in the same round, they decide on the same timestamp
+
+3. **Consensus Time Validity**: Any decided timestamp must fall within the window from the earliest initial local clock minus precision to the deciding process's end time plus precision and delay
+
+4. **Safe Validity with Correct Proposer**: If the first-round proposer is correct, any decided timestamp falls between the minimum and maximum initial local clock values among correct processes
+
+5. **Real-Time Validity (Correct Proposer)**: When a decision is made and the proposer was correct, the decided timestamp is within the accuracy bound of when the proposal was actually made
+
+6. **Real-Time Validity (General)**: Any decided timestamp is bounded relative to when the proposal was first received, accounting for accuracy, precision, and delay
+
+### Liveness-Related Properties
+
+7. **Bounded Message Delivery**: After sufficient time has elapsed since a proposal was sent, all correct processes should have inspected it
+
+8. **Timely Proposal Reception**: If a correct proposer sends a proposal and sufficient time passes, all correct processes at or before that round should have received the proposal as timely
+
+## Parameters to Configure
+
+- Number of correct and faulty processes
+- Maximum number of Byzantine faults tolerated
+- Set of valid and invalid values
+- Maximum round number
+- Maximum timestamp value
+- Message delay bound
+- Clock precision (max difference between correct processes' clocks)
+- Clock accuracy (max difference from real time)
+- Proposer selection

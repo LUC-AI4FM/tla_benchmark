@@ -1,0 +1,51 @@
+# Specification Request: Real-Time System Modeling Framework
+
+## Overview
+
+I need a formal specification framework for modeling real-time systems where the passage of time must be explicitly tracked and timing constraints on actions must be enforced.
+
+## System Description
+
+The system should provide a foundation for specifying real-time behavior in concurrent systems. It needs to model:
+
+1. **A global clock**: A continuously advancing notion of "now" that represents real time, bounded by some maximum value to keep the state space finite for model checking.
+
+2. **Timer mechanisms**: The ability to track how long a system has been waiting to perform some action, measuring elapsed time between events.
+
+## Key Requirements
+
+### Time Progression Rules
+
+- Time may advance independently when the rest of the system state remains unchanged
+- When the system takes a substantive action (state changes), time should remain fixed during that transition
+- Time must always move forward, never backward
+
+### Timer Behavior
+
+Timers should support two fundamental timing constraints:
+
+1. **Minimum delay (lower bound)**: An action cannot occur until at least a specified amount of time has elapsed since the timer was last reset. This models operations that require a minimum waiting period.
+
+2. **Maximum delay (upper bound)**: An action must occur before a specified amount of time elapses, assuming it remains enabled. This models deadlines and timeout requirements.
+
+### Timer Reset Logic
+
+A timer should reset to zero when either:
+- The associated action actually fires
+- The associated action becomes disabled (the system is no longer waiting for that action)
+
+### Fairness Requirements
+
+The specification should include fairness conditions ensuring that time eventually progresses past any given point, preventing Zeno behaviors where time gets stuck.
+
+## Correctness Properties
+
+The framework must guarantee:
+- Actions never fire before their minimum delay has elapsed
+- Actions never wait longer than their maximum delay (when continuously enabled)
+- Time progresses monotonically
+- Time remains within bounded values for finite model checking
+
+## Purpose
+
+This framework should be reusable as a building block for specifying and verifying timing properties of various real-time protocols and systems.

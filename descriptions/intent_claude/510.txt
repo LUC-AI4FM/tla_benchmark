@@ -1,0 +1,47 @@
+# Specification Request: Distributed Shortest Path Tree Construction
+
+## System Overview
+
+I need a formal specification for a distributed algorithm that constructs a shortest-path tree in an undirected graph, rooted at a designated node. The algorithm should work in a message-passing model where nodes can only communicate with their immediate neighbors.
+
+## System Description
+
+The system consists of:
+- An undirected, connected graph with a finite set of nodes and edges
+- A designated root node
+- Communication channels between adjacent nodes (bidirectional edges become directed message queues in both directions)
+
+Each node in the graph should eventually determine:
+1. Its shortest distance (in hops) from the root
+2. Which neighbor is its parent on a shortest path to the root
+
+## Algorithm Behavior
+
+The algorithm should operate as follows:
+- The root node initiates the process by announcing its distance (zero) to its neighbors
+- When a node receives a distance announcement, it checks if this represents a shorter path to the root than previously known
+- If a shorter path is found, the node updates its distance and parent, then propagates its new distance to neighbors
+- Messages sit in queues and can be processed in any order
+- The algorithm should continue running (nodes keep checking for messages) but eventually stabilize
+
+## Assumptions
+
+- The graph is connected (all nodes are reachable from the root)
+- Edges are undirected (each edge connects exactly two distinct nodes)
+- There is an upper bound on possible distances (at least the number of nodes)
+
+## Correctness Properties
+
+The specification should support verification of:
+
+1. **Termination/Stability**: Under fair scheduling, the system eventually reaches a stable state where no more updates occur and all message queues are empty.
+
+2. **Correctness of Distances**: When stable, each node's computed distance equals its true shortest-path distance from the root.
+
+3. **Valid Tree Structure**: When stable, the parent relationships form a valid spanning tree rooted at the designated root, where each node's parent is strictly closer to the root.
+
+4. **Progress**: The algorithm makes progress—nodes don't get stuck indefinitely waiting, and distance values only improve (decrease) over time.
+
+## Fairness Requirements
+
+Each node should be guaranteed to eventually process messages if messages are available—no node should be starved indefinitely.

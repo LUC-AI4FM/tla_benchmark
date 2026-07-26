@@ -1,0 +1,9 @@
+This TLA+ module specifies a light client for a Tendermint-style blockchain that attempts to verify block headers from a trusted height to a target height using a bisection-based verification protocol.
+
+The specification models the light client's interaction with a blockchain through constants defining the trusted and target heights, a trusting period during which validators remain trusted, whether the primary node is correct, and the set of all possible validator nodes.
+
+State variables track the light client's control state (working, finished successfully, or finished with failure), the next height to verify, a counter for verification probes, a store of fetched light blocks mapping heights to blocks, the verification status of each stored block, and the latest verified block. Additional variables model the blockchain state including current time, the chain itself, and faulty nodes.
+
+The main behavior involves the light client repeatedly fetching blocks and attempting verification using the ValidAndVerified predicate, which checks trusting period membership, proper validator set overlap, and commit signatures. Based on verification outcomes, blocks are marked as verified, unverified, or failed, and the next height to check is scheduled using a bisection strategy.
+
+Key safety invariants include CorrectnessInv ensuring verified headers match the actual blockchain, ProofOfChainOfTrustInv establishing a verifiable chain between stored headers, NoFailedBlocksOnSuccessInv, and PrecisionInv stating that failure implies either trusting period expiration or primary dishonesty. The specification also checks properties about successful termination when the primary is correct and trusted blocks remain valid.

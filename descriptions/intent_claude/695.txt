@@ -1,0 +1,49 @@
+# Specification Request: I/O Utilities Library for TLA+ Model Checking
+
+## System Overview
+
+I need a utility library that allows TLA+ specifications to interact with external systems during model checking. This library should bridge the gap between the formal specification world and practical I/O operations by providing a standard interface for file operations, process execution, and environment access.
+
+## Required Capabilities
+
+### 1. File Serialization and Deserialization
+
+The system must support persisting TLA+ values to files and reading them back:
+
+- **Binary serialization**: Save any TLA+ value to a file using a binary format, with optional compression support. The reverse operation should restore the original value.
+
+- **Flexible serialization**: A more general mechanism for serializing and deserializing values with configurable options, supporting different formats and destinations (files, URLs, etc.). Each serialization operation should report its success/failure status along with any output or error messages.
+
+### 2. External Process Execution
+
+The library must enable running external commands as subprocesses:
+
+- Execute a command specified as a sequence of strings (program name followed by arguments)
+- Support passing custom environment variables to the subprocess
+- Support printf-style template commands where placeholders are substituted with provided parameters
+- Each execution should return structured results including: exit code, standard output content, and standard error content
+
+### 3. Environment Variable Access
+
+Provide access to the process's environment variables as a mapping from variable names to their string values.
+
+### 4. String/Number Conversion Utilities
+
+Include helper functions for common data transformations:
+
+- Convert string representations of integers to actual integer values (useful for processing environment variables or command output)
+- Format natural numbers as zero-padded strings of a specified width (useful for generating formatted output)
+
+## Design Constraints
+
+- All I/O operations are implemented through external (Java) overrides—the TLA+ definitions serve as type signatures and documentation
+- Operations that perform side effects (like writing files) should have trivial TLA+ definitions that evaluate to TRUE
+- Operations that return values should have non-deterministic TLA+ definitions that establish the expected return type structure
+- The library should work transparently during TLC model checking when the Java implementations are available
+
+## Correctness Properties
+
+- Serialization followed by deserialization of a value should yield the original value
+- String-to-integer conversion should be the inverse of integer-to-string conversion
+- Zero-padding should produce strings of exactly the requested width (when the number doesn't exceed that width)
+- Process execution results should accurately capture the subprocess's exit status and output streams

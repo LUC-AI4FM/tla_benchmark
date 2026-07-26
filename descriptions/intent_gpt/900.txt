@@ -1,0 +1,14 @@
+Specify a parameterized model of a memory component together with its controller and buffer, suitable for formal verification. The model should capture an abstract memory device that supports read and write operations, a control interface that issues commands and receives responses, and an intermediary buffer that decouples controller requests from memory execution. The system must allow concurrent requests, preserve request ordering where required, and tolerate temporary buffering without violating atomicity of individual reads and writes.
+
+Requirements:
+- Define the externally visible request/response semantics: reads return the latest committed value for an address, and writes become visible to subsequent reads according to the memory consistency rules.
+- Model the buffer as a FIFO queue that can hold outstanding operations; the controller may enqueue requests and later dequeue responses. The buffer must not silently drop or duplicate operations.
+- Capture the handshaking/control protocol between controller and buffer and between buffer and memory: command issuance, acknowledgement, completion, and error reporting.
+- Allow the memory device to perform internal processing, including optional reordering or delays consistent with the chosen consistency model, but ensure correctness properties described below.
+
+Key correctness properties to guarantee:
+- Safety: no stale read returns a value older than permitted by the consistency semantics; no data corruption; no lost or duplicated writes.
+- Liveness: any issued request is eventually either completed or deterministically failed under bounded-failure assumptions; the system avoids deadlock under normal operation.
+- Invariants: buffer length bounds, preservation of request identifiers, and that completed operations reflect states in the memory that are reachable from the applied operations.
+
+Parameterize the model so different memory consistency policies, buffer capacities, and failure/recovery behaviors can be explored.

@@ -1,0 +1,23 @@
+# TCP State Machine Specification
+
+This TLA+ module models the TCP connection state machine as defined in RFC 9293, abstracting away details like sequence numbers to focus on state transitions.
+
+## System Overview
+
+The specification models two peers communicating over a network, tracking each peer's connection state through the standard TCP states: CLOSED, LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSING, CLOSE-WAIT, LAST-ACK, and TIME-WAIT.
+
+## Constants and Variables
+
+The constant `Peers` represents exactly two communicating endpoints. Three variables track system state: `tcb` indicates whether each peer has an active transmission control block, `connstate` holds each peer's current TCP state, and `network` models in-flight messages as sequences of segments (SYN, SYN-ACK, ACK, RST, FIN, ACKofFIN) destined for each peer.
+
+## Actions
+
+User-initiated actions include passive and active opens, close commands from various states, and send commands. System actions handle segment processing: responding to SYN with SYN-ACK, completing handshakes, processing FIN segments during connection teardown, and timeout transitions from TIME-WAIT. A separate reset action models RST segment handling per RFC note 3.
+
+## Temporal Specification
+
+The specification asserts weak fairness on system actions and on closing from SYN-SENT state, ensuring progress when enabled.
+
+## Properties
+
+The invariant checks that when no messages are in flight, both peers agree on ESTABLISHED state. The liveness property verifies that SYN-SENT eventually leads to ESTABLISHED, LISTEN, or CLOSED.

@@ -1,0 +1,9 @@
+This TLA+ module specifies the unbounded-memory atomic snapshot algorithm by Afek et al. for shared-memory concurrent systems. The algorithm allows multiple reader and writer processes to operate on shared memory while ensuring readers obtain consistent snapshots.
+
+The system distinguishes two disjoint sets of processes: Readers and Writers. Writers modify memory locations (one per writer, storing natural numbers), while readers obtain atomic snapshots of the entire memory state.
+
+Key variables track process states: `rstate` holds reader snapshot results, `wstate` indicates whether writers are idle or busy, and `rwstate` tracks the internal reading state for both readers and writers. The shared memory `mem` maps each writer to its current value. Supporting variables `rd1`, `rd2`, `view2`, `notRd1`, `notRd2`, and `moved` implement the double-collect snapshot protocol, tracking intermediate read results and detecting concurrent writes.
+
+Writers execute a three-phase protocol: begin writing, perform the actual memory update along with capturing a snapshot, then end. Readers perform double collects of all writer values. The `TryEnding` action implements the core snapshot logic: if both collects match, the snapshot is valid; otherwise, if a writer's value changed twice (tracked by `moved`), the reader borrows that writer's embedded snapshot.
+
+The specification defines safety through the next-state relation without explicit fairness conditions. No invariants or temporal properties are formally asserted for checking, though `TypeOK` is defined. The spec is intended to refine a higher-level snapshot specification with internal variables hidden.

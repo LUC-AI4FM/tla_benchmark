@@ -1,0 +1,37 @@
+# Specification Request: Distributed Bakery Mutual Exclusion Algorithm
+
+## System Overview
+
+I need a formal specification of a distributed mutual exclusion algorithm based on the bakery algorithm concept, adapted for a message-passing distributed system. The system consists of multiple nodes that communicate exclusively through asynchronous FIFO channels—there is no shared memory.
+
+## System Description
+
+The algorithm should allow any node to request entry into a critical section. To do so, a node must:
+
+1. Choose a "ticket number" that establishes its priority relative to other competing nodes. This number should be chosen to be higher than any ticket numbers the node is aware of from other participants.
+
+2. Broadcast its chosen ticket number to all other nodes and wait for acknowledgments from every node in the system.
+
+3. Before entering the critical section, ensure that its ticket gives it priority over all other nodes. Priority is determined by comparing pairs of (ticket number, node identifier) using lexicographic ordering—lower ticket numbers have priority, with node identifiers breaking ties.
+
+4. Upon exiting the critical section, broadcast a release message (indicated by resetting its ticket to zero) so other nodes know it is no longer competing.
+
+Each node must also handle incoming messages: when receiving another node's ticket number, it should record that information and send an acknowledgment; when receiving an acknowledgment, it should track that the corresponding node has been notified.
+
+## Communication Model
+
+- All communication occurs through point-to-point FIFO channels between each pair of nodes
+- Messages are delivered reliably and in order, but with arbitrary delay
+- No shared memory exists between nodes
+
+## Correctness Requirements
+
+The specification must guarantee the following properties:
+
+1. **Mutual Exclusion**: At most one node may be in its critical section at any time. No two distinct nodes may simultaneously occupy the critical section.
+
+2. **Starvation Freedom**: If a node begins attempting to enter the critical section, it must eventually succeed. Every request to enter must eventually be granted, assuming fair scheduling of all processes.
+
+## Additional Constraints for Model Checking
+
+The specification should support bounded model checking by allowing constraints on the maximum ticket numbers that can be assigned, to keep the state space finite during verification.

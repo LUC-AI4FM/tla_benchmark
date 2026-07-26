@@ -1,0 +1,37 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction processing. The system should model how a set of resource managers coordinate with a central transaction manager to atomically commit or abort a distributed transaction.
+
+## System Components
+
+The specification should model:
+
+1. **Resource Managers (RMs)**: A fixed set of participants that each manage part of a distributed transaction. Each RM can vote on whether to commit or abort.
+
+2. **Transaction Manager (TM)**: A central coordinator that collects votes from all RMs and makes the final commit/abort decision.
+
+3. **Message Passing**: Communication between the TM and RMs through message exchange.
+
+## Required Behavior
+
+The protocol should work as follows:
+
+- **Phase 1 (Voting)**: Each RM independently decides whether it can commit its part of the transaction. If ready, it sends a "prepared" message to the TM. An RM may also choose to abort unilaterally.
+
+- **Phase 2 (Decision)**: Once the TM has received "prepared" messages from *all* RMs, it can decide to commit the transaction and notify all RMs. If any RM aborts, the TM must abort the entire transaction.
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: It must never be the case that one RM commits while another RM aborts. All RMs must reach the same final decision.
+
+2. **Validity**: A commit can only happen if all RMs were prepared to commit. No RM should commit unless the TM has decided to commit.
+
+3. **Type Safety**: All state variables should maintain well-defined types throughout execution (RM states, TM state, prepared set, and messages should all have valid values).
+
+## Configuration
+
+The specification should be parameterized by the set of resource managers, allowing verification with different numbers of participants (e.g., 3 RMs for model checking).

@@ -1,0 +1,44 @@
+# Specification Request: Tendermint Consensus Protocol
+
+## System to Model
+
+I need a formal specification of the Tendermint Byzantine Fault Tolerant (BFT) consensus protocol. This is a round-based consensus algorithm used in blockchain systems where a set of validator processes must agree on a sequence of values despite some processes potentially being Byzantine (malicious or faulty).
+
+## System Description
+
+The system consists of a fixed set of processes, some of which are correct (follow the protocol) and some of which may be faulty (can behave arbitrarily). The protocol operates in rounds, where each round has a designated proposer who suggests a value, and all processes participate in voting phases to reach agreement.
+
+Each round proceeds through distinct phases:
+1. A proposal phase where the round's proposer broadcasts a proposed value
+2. A prevote phase where processes vote on whether to accept the proposal
+3. A precommit phase where processes vote to commit based on prevote outcomes
+
+Processes maintain local state about which values they have "locked" on (committed to supporting) and which values they consider "valid" based on sufficient votes seen in previous rounds.
+
+## Key Requirements
+
+The specification should model:
+- Multiple rounds of the protocol with configurable maximum rounds
+- The distinction between correct and Byzantine faulty processes
+- Message passing for proposals, prevotes, and precommits
+- The locking mechanism that prevents processes from changing their vote once they've seen enough support for a value
+- How Byzantine processes can send arbitrary (including invalid) messages
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety)**: No two correct processes decide on different values. If any correct process decides a value, all correct processes that decide must decide the same value.
+
+2. **Validity**: A decided value must be a valid value (not one of the designated invalid values that only Byzantine processes would propose).
+
+3. **Evidence of Misbehavior**: When Byzantine processes equivocate (send conflicting messages), the protocol should be able to detect and record evidence of this misbehavior.
+
+## Configuration Parameters
+
+The model should be parameterized by:
+- The total number of processes and the division into correct vs. faulty sets
+- The fault tolerance threshold (maximum number of faulty processes tolerated)
+- The set of valid and invalid values
+- The maximum number of rounds to explore
+- The proposer assignment for each round

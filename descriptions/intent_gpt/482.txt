@@ -1,0 +1,15 @@
+Specify a distributed algorithm that builds a spanning tree rooted at a designated root process in a fixed set of processes with a static symmetric neighbor relation. The system runs asynchronously: in each step, one process may perform a local action based only on its current local state and messages it has already sent or received. The model should represent per-process state including whether the process has chosen a parent, whether it has “reported” completion, and which directed messages it has sent to neighbors. Messages are reliable but their delivery is modeled by state changes that mark messages as sent and later allow the recipient to use them to choose a parent.
+
+Requirements:
+- Initially no process has a parent, no process is reported, and no messages have been sent.
+- The root never chooses a parent; non-root processes may choose a neighbor as parent only after they have evidence (a received message) from that neighbor or if that neighbor is already a parent of some process in the constructed tree (depending on the specified enabling conditions).
+- A process may send a message to a neighbor only when allowed by the neighbor relation and only when the sender has become eligible to communicate (for example, the sender is the root or already has a parent).
+- A process may atomically mark itself as “reported” when it has a parent and has not yet reported; reporting does not change parent or sent-message information.
+- Progress fairness: if an action remains continuously enabled it must eventually occur.
+
+Correctness properties to guarantee:
+- Safety: every non-root process that has a parent must have selected a neighbor as parent (no phantom parents), and message/state types remain within their declared domains.
+- Liveness: eventually every process except the root has a parent and that parent relation defines a spanning tree rooted at the designated root (no cycles, every node connected to root).
+- Additional invariants: processes that have no parent must not have sent any outgoing messages; sent-message recording preserves monotonicity (sent flags only go from false to true).
+
+Model these requirements abstractly (without prescribing a particular implementation or message-passing encoding), and include the fairness constraint ensuring eventual tree construction.

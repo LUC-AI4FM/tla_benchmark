@@ -1,0 +1,42 @@
+# Specification Request: Parallel Graph Reachability Algorithm
+
+## System Overview
+
+I need a formal specification of a parallel algorithm that computes all nodes reachable from a given root node in a directed graph. Multiple concurrent processes should cooperate to explore the graph and collectively identify the complete set of reachable nodes.
+
+## Context and Background
+
+There exists a sequential algorithm (Misra's algorithm) that computes graph reachability by maintaining a set of marked (visited) nodes and a frontier of nodes yet to be explored. The parallel version should achieve the same result using multiple cooperating processes.
+
+## Functional Requirements
+
+1. **Input**: A directed graph defined by a set of nodes and a successor function, a designated root node, and a finite non-empty set of worker processes.
+
+2. **Computation**: Each process repeatedly:
+   - Selects an unexplored node from a shared frontier
+   - If the node hasn't been marked yet, marks it and schedules its successors for exploration
+   - Successors are added to the frontier one at a time (not atomically)
+
+3. **Output**: Upon termination, a shared "marked" set containing exactly all nodes reachable from the root.
+
+## Concurrency Considerations
+
+- Multiple processes share and concurrently modify the frontier and marked sets
+- When a process marks a node, it must individually add each successor to the frontier in separate steps
+- A process may observe an empty frontier and terminate even while other processes are still adding nodes—this is acceptable as long as at least one process continues working until all reachable nodes are found
+
+## Correctness Properties
+
+1. **Partial Correctness**: If the algorithm terminates, the marked set equals exactly the set of all nodes reachable from the root.
+
+2. **Termination**: If the set of reachable nodes is finite, the algorithm must eventually terminate (under fair scheduling of all processes).
+
+3. **Safety**: The marked set only ever contains nodes that are actually reachable from the root.
+
+4. **Refinement**: The parallel algorithm should implement the sequential reachability algorithm—specifically, the parallel marked set should correspond to the sequential marked set, and parallel termination should coincide with sequential termination.
+
+## Verification Goals
+
+- Prove that the parallel algorithm correctly implements the sequential specification via refinement
+- Establish an appropriate inductive invariant relating process-local state to global state
+- Verify both safety (partial correctness) and liveness (termination under fairness)

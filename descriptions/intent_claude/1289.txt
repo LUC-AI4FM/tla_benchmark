@@ -1,0 +1,45 @@
+# Specification Request: Ring-Based Load Balancing Agent
+
+## System Overview
+
+I need a formal specification for a distributed load balancing system where a single mobile agent travels around a ring of nodes, attempting to equalize the workload across all nodes.
+
+## System Description
+
+The system consists of:
+
+1. **A ring of nodes**: A fixed number of nodes (at least 2) arranged in a circular topology, where each node maintains a queue of tasks.
+
+2. **A mobile agent**: A single agent that travels around the ring in one direction (clockwise), visiting each node in sequence. The agent can carry at most one task at a time.
+
+3. **Dynamic task creation**: Nodes can have new tasks added to them while the system runs, until task creation is disabled.
+
+## Agent Behavior
+
+The agent operates in a two-phase cycle at each node:
+
+1. **Arrive at a node**: The agent moves to the next node in the ring.
+
+2. **Observe and act**: The agent compares the current node's load to the load it observed at the previous node, then:
+   - If the current node has more tasks than the previous node and the agent is empty, it picks up one task
+   - If the current node has fewer tasks than the previous node and the agent is carrying a task, it drops the task
+   - Otherwise, it does nothing
+
+The agent then continues to the next node, repeating this process indefinitely.
+
+## Environment Behavior
+
+- Tasks can be created at any node in batches until task creation is permanently stopped
+- Once task creation stops, no new tasks enter the system
+
+## Correctness Properties to Verify
+
+1. **Bounded load**: The total number of tasks in the system (across all nodes plus any task carried by the agent) should remain bounded.
+
+2. **Eventual stability**: After task creation stops, if the system reaches a state where all nodes have equal load, the agent should eventually (and permanently) stop carrying any tasks.
+
+3. **Progress**: The agent continuously makes progress—it keeps moving and acting as long as the system runs.
+
+## Purpose
+
+The goal is to analyze whether this simple local load-balancing heuristic (comparing only adjacent nodes) can achieve global load balance, and to explore what happens in edge cases or unusual system states.

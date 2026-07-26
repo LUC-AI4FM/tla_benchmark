@@ -1,0 +1,40 @@
+# Specification Request: Resolved Timestamp Tracking for Distributed Transactions
+
+## System Overview
+
+I need a formal specification for a **resolved timestamp** mechanism used in a distributed database's change data capture (CDC) or replication system. The system tracks transaction activity across multiple keys in a region and computes a "resolved timestamp" — a timestamp below which all committed transactions are known and their commit timestamps have been output.
+
+## System Description
+
+The system involves:
+
+1. **Multiple keys (resources)** within a region that can independently undergo transactions
+2. **A transaction lifecycle** where each key can be prewritten (locked) and then either committed with a commit timestamp or rolled back
+3. **A timestamp oracle** that provides monotonically increasing timestamps
+4. **A message channel** that carries transaction events (prewrite, commit, rollback) and timestamp fetch requests to a resolver component
+5. **A resolver** that processes these messages to track the minimum pending (prewrite) timestamp across all keys and periodically computes resolved timestamps
+
+The resolver must handle two transaction modes:
+- **Optimistic transactions**: where the prewrite timestamp is obtained fresh from the timestamp oracle
+- **Pessimistic transactions**: where the prewrite timestamp may be slightly stale (obtained earlier than the current oracle time)
+
+## Functional Requirements
+
+1. Keys transition through states: they can be prewritten (pending) and then finalized via commit or rollback
+2. A commit can only occur after the corresponding prewrite has been fully applied/processed
+3. Messages flow through a channel in order, and the resolver processes them sequentially
+4. The resolver tracks the minimum prewrite timestamp among all currently-pending keys
+5. When a timestamp fetch occurs, the system computes a new resolved timestamp based on the minimum of pending prewrite timestamps and the fetched timestamp
+6. Commit timestamps are recorded in an output queue for downstream consumers
+
+## Correctness Properties
+
+1. **Commit Consistency**: For any committed transaction, the commit timestamp must be strictly greater than the prewrite timestamp (unless both are zero, indicating no active transaction)
+
+2. **Resolved Timestamp Consistency**: The resolved timestamp must be a lower bound — any commit timestamp that appears in the output queue after the resolved timestamp's recorded position must be strictly greater than that resolved timestamp. In other words, no future commits can have timestamps at or below the resolved timestamp.
+
+3. **Liveness (Progress)**: If all keys have no pending transactions and a timestamp fetch request has been processed, the system should eventually produce a resolved timestamp.
+
+## Purpose
+
+This mechanism enables downstream consumers (such as CDC readers or replicas) to know that they have observed all transaction commits up to a certain point in time, which is essential for consistent snapshots and real-time data replication.

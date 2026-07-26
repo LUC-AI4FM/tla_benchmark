@@ -1,0 +1,40 @@
+# Specification Request: Vector Clock Causal Ordering
+
+## System Overview
+
+I need a formal specification for a **vector clock system** that can determine and enforce causal ordering of events in a distributed system.
+
+## Background
+
+In distributed systems, vector clocks are used to track causality between events across multiple nodes. Each node maintains a vector of logical timestamps, and these vectors can be compared to determine if one event "happened before" another, or if two events are concurrent (neither caused the other).
+
+## Core Requirements
+
+### 1. Vector Clock Comparison
+The system must be able to compare two vector clocks to determine their causal relationship:
+- **Happened-before**: One event causally precedes another (its vector clock is component-wise less than or equal, with at least one strictly less)
+- **Concurrent**: Neither event happened before the other (incomparable vectors)
+
+### 2. Causal Order Verification
+Given a sequence of log entries (each containing a vector clock), the system must determine whether the sequence respects causal order. A sequence is in causal order if no entry appears before another entry that it causally depends on.
+
+### 3. Causal Ordering Transformation
+The system must provide a way to reorder an arbitrary log of events into a causally-consistent sequence. This means producing a permutation where the causal dependencies are respected.
+
+### 4. Extensibility for Log Entries
+The specification should support generic log entries where:
+- A projection function extracts the vector clock from each entry
+- A projection function identifies which node generated each entry
+- The vector clock domain (set of tracked nodes) can be extracted
+
+## Key Correctness Properties
+
+1. **Empty and singleton sequences** are trivially in causal order
+2. **Happened-before preservation**: If event A happened-before event B according to vector clocks, A must appear before B in any causally-ordered sequence
+3. **Concurrent event flexibility**: Concurrent events may appear in any relative order
+4. **Completeness**: The causal ordering transformation must produce a valid causal order for any input log
+5. **Vector clocks of different sizes** should be handled correctly (e.g., when comparing clocks from systems where nodes join dynamically)
+
+## Use Case
+
+This specification will be used to verify that distributed system logs can be correctly analyzed for causality and that tools processing these logs maintain causal consistency when reordering events.

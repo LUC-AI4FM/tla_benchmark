@@ -1,0 +1,49 @@
+# Specification Request: Multi-Decree Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the Multi-Paxos distributed consensus protocol. This protocol should allow a distributed system to achieve agreement on a sequence of values across multiple "slots" (also known as instances or decrees), enabling the construction of a replicated log or state machine.
+
+## System Components
+
+The system consists of three types of participants:
+- **Proposers**: Entities that initiate proposals for values to be agreed upon
+- **Acceptors**: Entities that vote on proposals and maintain the durable state of the protocol
+- **Learners**: Entities that discover which values have been chosen
+
+The protocol operates over a set of ballot numbers (proposal identifiers) and a set of slots representing independent consensus instances.
+
+## Protocol Requirements
+
+### Quorum-Based Voting
+The protocol must use a quorum system where any two quorums of acceptors have at least one member in common. This intersection property is fundamental to ensuring consistency.
+
+### Two-Phase Protocol Structure
+The protocol should implement:
+1. **Prepare phase**: A proposer establishes leadership by gaining promises from a quorum of acceptors. Critically, this phase should be *aggregated* across all slots—a single prepare phase can be used for multiple slot decisions.
+2. **Accept phase**: For each slot, once a proposer has completed the prepare phase, it can propose values for any slot and collect votes from acceptors.
+
+### Value Selection Rules
+When proposing a value for a slot:
+- If no acceptor in the quorum has previously accepted a value for that slot, the proposer may propose any value
+- If acceptors have previously accepted values, the proposer must propose the value associated with the highest ballot number among those previously accepted
+
+### Learning
+A value is considered chosen for a slot when a quorum of acceptors have all voted for the same value in the same ballot for that slot. Learners should be able to detect when this condition is met.
+
+## Correctness Properties
+
+The specification must guarantee the following safety properties:
+
+1. **Agreement**: For each slot, at most one value can be chosen. If different learners learn values for the same slot, they must learn the same value.
+
+2. **Validity**: A value can only be chosen if it was previously proposed.
+
+3. **Consistency across slots**: The protocol maintains independent consensus for each slot while preserving overall system consistency.
+
+## Modeling Scope
+
+- Assume reliable message delivery (messages are not lost, though they may be arbitrarily delayed)
+- Messages are modeled as a shared pool (modeling an asynchronous network)
+- The system should handle multiple concurrent proposers competing for leadership
+- No explicit modeling of node failures is required, but the protocol should be correct even when some acceptors are unresponsive (as long as quorums remain available)

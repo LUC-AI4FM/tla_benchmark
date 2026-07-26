@@ -1,0 +1,47 @@
+# Specification Request: Yo-Yo Leader Election Algorithm
+
+## System Overview
+
+I need a formal specification of the Yo-Yo leader election algorithm for distributed systems operating on arbitrary undirected, connected graphs without self-loops. The algorithm should elect a single leader from among all participating nodes, where each node has a unique integer identifier and the node with the smallest identifier must be elected as the leader.
+
+## System Requirements
+
+### Network Model
+- The system consists of nodes connected by an undirected graph structure
+- The graph must be connected (all nodes can reach all other nodes)
+- Each node is identified by a unique integer
+- Nodes only communicate with their immediate neighbors in the graph
+
+### Algorithm Behavior
+
+The algorithm operates by orienting the edges of the graph and executing rounds consisting of two phases:
+
+1. **Downward Phase**: Candidate nodes (those with no incoming edges) broadcast their identity values outward through the network. Intermediate nodes wait to receive values from all their "upstream" neighbors, then forward the minimum received value to their "downstream" neighbors.
+
+2. **Upward Phase**: Nodes at the "bottom" of the current orientation (those with no outgoing edges) initiate responses back up the graph. They send positive acknowledgments only toward neighbors that sent the minimum value, and negative acknowledgments to others. Intermediate nodes propagate these responses upward, sending positive acknowledgments only if they received all positive responses from below and only to the neighbor(s) that sent the minimum value.
+
+Edges that carry negative acknowledgments reverse their orientation, which may eliminate some candidate nodes from contention.
+
+### Initial Conditions
+- All edges should be initially oriented from smaller to larger node identifiers
+- This means nodes that are local minima in their neighborhood start as candidates
+
+## Correctness Properties
+
+### Safety Properties
+1. **Edge Consistency**: The orientation of edges must remain consistent between neighboring nodes, accounting for in-flight messages during edge reversals
+2. **No New Candidates**: The algorithm must never create new candidate nodes; candidates can only be eliminated, never created
+3. **Type Correctness**: All messages and node states must conform to the expected structure throughout execution
+
+### Liveness Properties
+1. **Stabilization**: The algorithm must eventually reach and remain in a stable state where:
+   - Exactly one candidate (the minimum node) remains
+   - All downward-phase messages carry the identity of this minimum node
+   - All upward-phase messages are positive acknowledgments
+
+### Key Invariant to Verify
+The specification should allow verification that multiple candidates cannot persist indefinitely—specifically, that starting from any state with two or more candidates, the system will eventually reduce to a single candidate.
+
+## Notes
+
+This specification models the algorithm *without* graph pruning, meaning the algorithm does not include a termination detection mechanism. Nodes continue executing rounds indefinitely, but the system should stabilize to a fixed point where the leader is effectively elected even though nodes don't explicitly detect this termination.

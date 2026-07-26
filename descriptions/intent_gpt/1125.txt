@@ -1,0 +1,10 @@
+Model the Paxos-based commit protocol for coordinating a distributed transaction across a fixed set of resource managers and acceptors. The model should capture multiple independent instances of Paxos — one instance per resource manager — that are used to agree on each resource manager’s local decision (prepare or abort), and a separate decision stage that determines the global outcome (Commit if every instance chose "prepared", otherwise Abort if any instance chose "aborted"). The system must include message passing abstractions (non-lossy channels where messages once sent remain visible) and asynchronous participants; leaders may be transient or concurrent and there is no assumed reliable leader election. Model acceptors that participate in Paxos ballots and leaders that initiate phase-1 and phase-2 rounds for any ballot number, with the usual Paxos constraints that a phase-2 value must respect earlier accepted values seen in phase-1 responses from a majority. Resource managers may independently decide to prepare or abort (prepare is an explicit action; abort may be spontaneous). Once a leader observes a majority of phase-2 acknowledgements for a value for a given instance, it may broadcast the final Commit or Abort for the global transaction.
+
+Specify safety properties:
+- Agreement: no two resource managers can end in contradictory final global outcomes (no mix of committed and aborted decisions accepted as final).
+- Consensus safety per instance: each Paxos instance never chooses two different values.
+- Validity: any decided per-instance value must be one proposed by some resource manager (prepared or aborted).
+- Consistency of global decision: Commit can be announced only if every instance has chosen "prepared"; if any instance has chosen "aborted" then only Abort may be announced.
+- Type and invariant constraints: messages, acceptor state, and participant states must stay within their declared domains.
+
+Do not require liveness (no guaranteed termination), but allow modeling arbitrary interleavings, concurrent leaders, and arbitrary majority definitions (only require any two majorities intersect).

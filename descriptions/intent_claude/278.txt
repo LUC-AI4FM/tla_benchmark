@@ -1,0 +1,47 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System to be Modeled
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction management. This protocol coordinates a transaction across multiple resource managers to ensure they all either commit or abort the transaction atomically.
+
+## System Description
+
+The system consists of:
+- A **transaction manager (TM)** that coordinates the commit decision
+- A set of **resource managers (RMs)** that participate in the transaction
+- An asynchronous **message-passing communication channel** between the TM and RMs
+
+## Required Behavior
+
+### Resource Manager Behavior
+- Each resource manager starts in a working state
+- A working resource manager may either:
+  - **Prepare** to commit by sending a "prepared" message to the transaction manager
+  - **Spontaneously abort** the transaction locally (without notification)
+- Once a resource manager receives a commit instruction, it commits
+- Once a resource manager receives an abort instruction, it aborts
+
+### Transaction Manager Behavior
+- The TM starts in an initial state and collects "prepared" messages from resource managers
+- The TM may **commit the transaction** only after receiving "prepared" messages from *all* resource managers
+- The TM may **abort the transaction** at any time before committing (spontaneously)
+- Once the TM decides to commit or abort, it broadcasts that decision to all resource managers
+
+### Communication Model
+- Messages are sent through an unreliable channel that may lose messages but does not corrupt or duplicate them
+- Messages may be delivered in any order
+- The channel is modeled as a set of messages that have been sent
+
+## Key Correctness Properties
+
+### Consistency (Safety)
+**No two resource managers may reach conflicting decisions.** It must never be the case that one resource manager has committed while another has aborted. This ensures the atomicity of the distributed transaction.
+
+### Type Correctness
+- Each resource manager is always in one of the valid states: working, prepared, committed, or aborted
+- The transaction manager is always in one of its valid states: initial, committed, or aborted
+- All messages in the channel are well-formed
+
+## Goals
+
+The specification should allow verification that the 2PC protocol maintains transaction consistency across all possible interleavings of participant actions and message deliveries, including scenarios where resource managers spontaneously abort before preparing.

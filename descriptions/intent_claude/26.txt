@@ -1,0 +1,35 @@
+# Specification Request: Transaction Commit Protocol
+
+## System Overview
+
+I need a formal specification of a transaction commit protocol for a distributed system with multiple resource managers (participants). The protocol coordinates these participants to reach a unanimous decision about whether to commit or abort a transaction.
+
+## System Description
+
+The system consists of a fixed set of resource managers that must collectively decide the outcome of a distributed transaction. Each resource manager progresses through a lifecycle: initially working on the transaction, then signaling readiness to commit, and finally reaching a terminal decision to either commit or abort.
+
+## Required Behavior
+
+The protocol must model the following:
+
+1. **Initial State**: All resource managers begin in an active working state, processing their portion of the transaction.
+
+2. **Preparation Phase**: A resource manager that has successfully completed its work can signal that it is prepared to commit. This is a one-way transition indicating readiness.
+
+3. **Commit Decision**: A resource manager may commit only when ALL participants have indicated they are prepared. This ensures unanimous agreement before any commit occurs.
+
+4. **Abort Decision**: A resource manager may abort at any point before committing, provided no other participant has already committed. This allows participants to back out if they encounter problems.
+
+5. **Terminal States**: Once a resource manager has committed or aborted, its decision is final and irreversible.
+
+## Key Correctness Properties
+
+The specification must guarantee the following invariants:
+
+1. **Decision Consistency**: It must never be possible for one resource manager to have committed while another has aborted. All participants that reach a terminal decision must reach the SAME decision.
+
+2. **Type Safety**: Each resource manager must always be in one of the valid states throughout the protocol execution.
+
+## Purpose
+
+This specification serves as a high-level model of transaction commit semantics, capturing the essential safety requirements without specifying the communication mechanism between participants. It should be suitable as a reference specification that more detailed protocols (such as two-phase commit) can be verified against.

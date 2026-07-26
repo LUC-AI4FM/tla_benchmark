@@ -1,0 +1,58 @@
+# Specification Request: Tendermint Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification of a **light client verification protocol** for a blockchain system (specifically following the Tendermint consensus model). The light client is a resource-constrained node that needs to verify blockchain headers without downloading and validating the entire chain.
+
+## System Description
+
+The system consists of two main components:
+
+1. **A blockchain** that produces blocks over time, with validators that may be correct or faulty (Byzantine). The blockchain has a reference clock representing real time.
+
+2. **A light client** that starts with a single trusted block header (established through social consensus) and attempts to verify a target block header at a specified height. The light client has its own local clock that may drift from the true time.
+
+The light client communicates with a **primary full node** that provides block headers and commit signatures. This primary may be correct (providing authentic blockchain data) or faulty (potentially providing forged data).
+
+## Functional Requirements
+
+The light client must:
+
+1. Start with a trusted block at a given height and attempt to verify a target block at a higher height
+2. Fetch light blocks (headers with commit signatures) from the primary node
+3. Maintain a "light store" of fetched blocks with their verification status (verified, unverified, or failed)
+4. Use a bisection-style algorithm: when verification between two heights fails due to insufficient trust (validator set changed too much), fetch intermediate blocks
+5. Track a "latest verified" block and schedule which height to check next
+6. Terminate with either success (target verified) or failure (invalid block detected)
+
+## Trust Model and Timing Constraints
+
+- Validators are trusted only within a **trusting period** after a block is created
+- The light client's local clock may drift from real time within specified bounds
+- At most a specified fraction of validators (traditionally 1/3) may be faulty
+- The primary node may be Byzantine and provide arbitrary (but signature-constrained) blocks
+
+## Key Correctness Properties
+
+The specification must allow verification of:
+
+1. **Correctness/Soundness**: Every header marked as verified in the light store must match the actual blockchain header at that height
+
+2. **Target Verification**: Upon successful termination, the target height block is in the store and verified
+
+3. **No Failed Blocks on Success**: If the protocol succeeds, no blocks in the store have failed status
+
+4. **Chain of Trust**: Verified headers form a valid trust chain - each can be verified from a previous verified header that hasn't expired
+
+5. **Precision**: If the protocol fails, either the trusted block has expired OR the primary provided false information
+
+6. **Liveness** (conditional): If the primary is correct and there exists a verified block still within its trusting period, the protocol should succeed
+
+## Parameters to Configure
+
+- Trusted height (starting point) and target height (goal)
+- Trusting period duration
+- Clock drift bounds (assumed and actual)
+- Whether the primary is correct or faulty
+- Maximum ratio of faulty validators
+- Set of all possible validator nodes

@@ -1,0 +1,53 @@
+# Specification Request: Multi-Paxos State Machine Replication
+
+## System Overview
+
+I need a formal specification of the Multi-Paxos consensus algorithm as used in state machine replication (SMR). The system should model a replicated key-value store where multiple server replicas coordinate to process write and read commands on a single key, ensuring all replicas agree on the order of operations.
+
+## System Requirements
+
+### Participants
+- A configurable set of replica servers that can act as leaders or followers
+- An implicit client that issues a sequence of write and read commands
+
+### Command Types
+- **Write commands**: Each write has a unique value that becomes both the command identifier and the value to store
+- **Read commands**: Commands that retrieve the current value of the key
+
+### Consensus Protocol
+The system must implement Multi-Paxos with the following phases:
+
+1. **Leader Election (Prepare Phase)**: Any replica can attempt to become leader by proposing a new ballot number. It must gather responses from a majority of replicas before proceeding.
+
+2. **Log Replication (Accept Phase)**: The leader assigns commands to sequential log slots and replicates them to followers. Commands are committed once a majority accepts them.
+
+3. **Commit Notification**: After committing entries, the leader notifies followers so they can apply commands to their local state.
+
+### Network Model
+The specification should model an asynchronous, non-Byzantine network where:
+- Messages may be arbitrarily delayed
+- Messages may be received multiple times (duplicates)
+- Messages may be lost, but senders retry until delivery eventually succeeds
+- Model the network efficiently as a monotonically growing set of sent messages
+
+### Leader Preemption
+Leaders can be preempted by other replicas proposing higher ballot numbers. The system must correctly handle leadership changes, including recovering any in-progress slots from the previous term.
+
+## Correctness Properties
+
+### Safety: Linearizability
+The system must provide linearizable semantics from the client's perspective. After all commands have been processed, the sequence of client-observed request and acknowledgment events must be consistent with some valid sequential execution where:
+- Each read returns the value from the most recent preceding write
+- Each write acknowledgment includes the previous value that was overwritten
+
+### Liveness: Deadlock Freedom
+The system must make progress—it should not deadlock before all pending requests have been observed (both requested and acknowledged).
+
+### Consensus Safety (Implicit)
+The underlying Paxos protocol must ensure that once a command is committed to a log slot, no different command can ever be committed to that same slot, even across leader changes.
+
+## Configuration Parameters
+- Number of replica servers (must be at least 1, typically odd for fault tolerance)
+- Set of write commands to process (at least 1)
+- Set of read commands to process (may be empty)
+- Maximum ballot number for leader election attempts (at least 2)

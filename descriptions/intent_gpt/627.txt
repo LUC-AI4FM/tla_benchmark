@@ -1,0 +1,9 @@
+Specify a formal model of a light-client verification subsystem for a proof-of-stake blockchain that uses periodic trusted checkpoint(s) and validator voting for finality. The model should capture a light client that fetches block headers and vote commits from peers, maintains a local store of fetched headers and a local clock with bounded drift relative to real time, and verifies newer headers against previously trusted headers using vote weight thresholds and trusting-period constraints.
+
+The model must ensure the client only accepts headers that meet structural validity (monotonic heights and times), have enough signed commits relative to the header’s validator set to satisfy safety thresholds, and are not from the future beyond permitted clock drift. Verification should allow direct successor acceptance when validator sets transition predictably, and otherwise require sufficient overlap of votes from a fraction-of-stake threshold. The trusting period around a trusted header must limit which later headers can be safely verified; if the trusting period expires the client must treat verification as failed.
+
+Key correctness properties:
+- Any header marked as verified by the client must equal the corresponding header in the authoritative blockchain (safety against lying peers, assuming at least one correct peer).
+- The client’s store must maintain that between any two verified headers either there exists an intermediate verified header or the later header is verifiable (untimed) from the earlier one, unless the earlier header is outside its trusting period.
+- If the client terminates reporting overall success, then the target header is verified and no fetched headers are marked as failed.
+- The model must express the bounds on local clock drift, trusting period checks, and the vote-weight thresholds (including a configurable faulty-ratio parameter) used to decide “enough trust.”

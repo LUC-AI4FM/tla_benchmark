@@ -1,0 +1,44 @@
+# Specification Request: Light Client Misbehavior Detection Protocol
+
+## System Overview
+
+I need a formal specification for a **light client detector** in a blockchain system that can identify misbehaving (Byzantine) validator nodes. The system involves a light client that synchronizes with a blockchain by fetching block headers from multiple peer nodes, and must detect when any of these peers provides fraudulent or inconsistent information.
+
+## Context and Goals
+
+The light client connects to multiple full nodes (a primary and at least one secondary) to fetch "light blocks" (block headers with validator signatures). The detector's job is to:
+
+1. Cross-check information received from different peers
+2. Identify discrepancies that indicate misbehavior
+3. Generate cryptographic evidence of misbehavior when detected
+
+This is critical for blockchain security because it allows the network to identify and punish validators who sign conflicting blocks or provide false information to light clients.
+
+## Key System Parameters
+
+- The system should model a configurable set of validator nodes
+- There is a trusted starting height and a target height the light client wants to verify
+- Time-based security is essential: there is a "trusting period" after which validator signatures are no longer considered reliable
+- Clock drift between the light client and the actual blockchain time must be accounted for (both assumed drift bounds and actual drift)
+- The protocol must tolerate up to some threshold of faulty validators (less than 1/3 of voting power)
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Soundness**: If evidence of misbehavior is generated, there actually was misbehavior (no false accusations against honest nodes)
+
+2. **Completeness**: If a peer is providing inconsistent information that conflicts with an honest peer, the detector will eventually identify the misbehavior
+
+3. **Safety under Byzantine conditions**: The protocol remains safe even when the primary node is faulty, as long as at least one secondary node is honest
+
+4. **Time-bounded security**: All verification respects the trusting period—the detector should not accept or process blocks whose validators' signatures have expired
+
+## Scenarios to Model
+
+The specification should specifically handle the case where:
+- The primary peer is **faulty** (Byzantine)
+- At least one secondary peer is **correct** (honest)
+- The faulty ratio of validators remains below the security threshold
+
+This models the realistic attack scenario where a light client's main information source is compromised, but cross-checking with honest peers should expose the attack.

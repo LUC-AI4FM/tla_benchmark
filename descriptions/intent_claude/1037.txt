@@ -1,0 +1,32 @@
+# Specification Request: Message Channel with Transit Age Tracking
+
+## System Overview
+
+I need a formal specification for an asynchronous message-passing channel that tracks how long each message has been in transit. This models a communication medium where messages take variable amounts of time to be delivered, and the system maintains metadata about each message's "age" or time spent waiting for delivery.
+
+## System Description
+
+The channel should model the following behavior:
+
+1. **Message Submission**: Processes can send messages into the channel. When a message enters the channel, it should be tagged with an initial age of zero, indicating it has just begun its journey.
+
+2. **Message Delivery**: Messages can be delivered to their intended recipients. The delivery mechanism should be non-deterministic—any subset of messages destined for a particular receiver may be delivered at any time. When messages are delivered, only the message content is provided to the receiver; the age metadata is internal to the channel.
+
+3. **Time Progression**: The channel must model the passage of time. As time advances (represented by discrete clock ticks), the age of every message still in transit should increment, reflecting that these messages have been waiting longer for delivery.
+
+## Key Requirements
+
+- Messages in transit must be distinguished from messages being delivered in the current step
+- The age tracking must accurately reflect how many time steps a message has spent in the channel
+- Delivery must respect message addressing—only messages intended for a specific receiver can be delivered to that receiver
+- The system should support arbitrary subsets of eligible messages being delivered (modeling network non-determinism)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: Messages in transit must always be properly packaged with valid age information. Delivered messages must be valid message content without the transit metadata.
+
+## Purpose
+
+This specification is intended to serve as a building block for modeling distributed systems where message delay and transit time are relevant concerns, such as protocols with timing assumptions or systems that need to reason about message freshness.

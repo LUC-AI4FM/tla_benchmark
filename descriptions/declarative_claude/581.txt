@@ -1,0 +1,9 @@
+This TLA+ module specifies a bounded version of a single-node transaction processing system, designed for model checking. It extends a base `SingleNode` module and adds constraints to limit state space exploration.
+
+The system models a node that handles read-write transactions through a request-response lifecycle. The key constant `HistoryLimit` bounds the length of the transaction history to enable finite model checking—set to 7 in the configuration.
+
+The module defines bounded versions of three actions: requesting read-write transactions, responding to them, and responding to status-committed queries. Each bounded action only proceeds if the history length remains below the limit. A fourth action, `RwTxExecuteAction`, executes without the history bound. The next-state relation combines these four actions as alternatives.
+
+The temporal specification uses the standard TLA+ form with the initial state from the base module and stuttering-allowed transitions via the bounded next-state relation.
+
+The configuration checks twelve invariants covering various correctness properties: uniqueness constraints on transactions, transaction IDs, and sequence numbers; serializability of read-write transactions (both general and committed-only variants); proper observation ordering ensuring received values match sent requests; and properties about committed versus invalid transaction status visibility. Deadlock checking is disabled, acknowledging that the bounded history may cause legitimate termination when the limit is reached.

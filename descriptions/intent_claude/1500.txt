@@ -1,0 +1,42 @@
+# Specification Request: TLA+ Coverage Statistics Testing
+
+## System Overview
+
+I need a formal specification designed to test and validate the coverage statistics reporting functionality of a TLA+ model checker or analysis tool. The specification should serve as a test harness that exercises various code patterns to verify that coverage information is reported accurately.
+
+## Purpose
+
+The goal is to create a specification with deliberately structured actions that allow verification of how a coverage analysis tool reports which parts of a specification are covered (executed) versus uncovered during model checking. This is essentially a meta-level testing specification for tooling rather than a real system.
+
+## Requirements
+
+### Basic State Space
+- The system should have a simple state space with two numeric variables
+- One variable should be initialized non-deterministically from a small finite set
+- The other variable should start at a fixed value (zero)
+
+### Action Patterns to Include
+
+The specification must include several categories of actions:
+
+1. **Reachable actions with aliased variables**: Actions that use variable aliases/definitions to test whether coverage is correctly attributed to the underlying variables versus their aliases
+
+2. **Reachable actions with different UNCHANGED syntax**: Multiple equivalent ways of expressing that variables remain unchanged (tuple notation, named tuples, individual statements) to verify coverage is reported consistently
+
+3. **Unreachable actions**: Actions guarded by impossible conditions (e.g., requiring a variable to be negative when it's always non-negative) to test that the tool correctly identifies uncovered code
+
+4. **Unreachable actions with various UNCHANGED patterns**: Combining impossible guards with different syntactic forms of unchanged expressions to verify coverage gaps are reported at the correct locations
+
+5. **Reachable but trivial actions**: Actions that are enabled but only stutter (leave state unchanged)
+
+### State Constraint
+Include a state constraint to bound the state space for practical model checking.
+
+## Key Correctness Properties for the Coverage Tool
+
+The coverage statistics tool being tested should:
+- Correctly identify which actions are reachable vs. unreachable
+- Report coverage at appropriate source locations (not through aliases when the actual variable should be reported)
+- Handle tuple-based UNCHANGED expressions properly
+- Handle individual UNCHANGED statements properly
+- Not conflate coverage of named definitions with their expansion sites

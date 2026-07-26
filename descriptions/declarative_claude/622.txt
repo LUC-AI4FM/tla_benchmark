@@ -1,0 +1,7 @@
+This TLA+ module provides a trace-replay mechanism for the TendermintAcc_004_draft specification, designed to guide the Apalache model checker along a specific execution path when exploring the full state space would be too slow.
+
+The module extends the base Tendermint accountability specification and adds infrastructure for constrained trace execution. It introduces one constant, Trace, which is a sequence of action names representing the expected execution order (excluding initialization). The module adds one variable, toReplay, which tracks the remaining actions from the trace that have yet to be executed.
+
+The initial state predicate TraceInit sets toReplay to the full provided trace, records the action as "Init", and invokes the original Init predicate from the underlying specification. The next-state relation TraceNext requires that actions remain to be replayed, removes the head of the sequence from toReplay, constrains the next action to match exactly the head of the remaining trace, and then invokes the original Next relation.
+
+This design forces the model checker to follow only the specified sequence of actions. When the trace is exhausted (toReplay becomes empty), the TraceNext predicate becomes disabled, causing the system to deadlock. This technique is useful for debugging counterexamples or verifying specific scenarios without full state-space exploration.

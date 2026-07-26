@@ -1,0 +1,15 @@
+Specify a reliable alternating-bit-style communication protocol between two endpoints A and B that exchange data messages over unreliable, lossy unidirectional channels. The model should treat A and B as independent processes that repeatedly send and receive messages; senders may repeatedly enqueue messages on the outgoing channel, and receivers repeatedly dequeue and process messages when available. Messages carry a payload chosen from a fixed Data set and a single-bit sequence tag used for duplicate suppression and ordering.
+
+Requirements:
+- Every sent data message includes both a payload and a sequence bit. Each endpoint transmits the full payload with its current sequence bit when sending.
+- Receivers accept a received message as new only when its sequence bit differs from the receiver’s current bit; upon accepting, the receiver updates its stored payload to that message’s payload and flips its sequence bit.
+- When a receiver observes a message whose sequence bit equals its current bit, it treats the message as a duplicate and ignores the payload.
+- Each channel may nondeterministically lose individual queued messages at any time; message loss can occur arbitrarily but only removes whole messages from a queue (no corruption of fields).
+- Send and receive actions may be fair or unfair as appropriate: sending should be live so endpoints keep making progress, and receiving should not be permanently starved.
+
+Key correctness properties to guarantee:
+- Safety: At all times, the stored payloads and sequence bits at A and B are consistent with the acceptance rule (i.e., payload updates only occur when the incoming message’s bit differs).
+- Liveness: Under the fairness assumptions, progress is guaranteed — senders keep producing messages and, if messages are not lost indefinitely, receivers will eventually accept new payloads when different bits are sent.
+- Message atomicity: Messages are delivered either intact or lost; no partial or corrupted deliveries occur.
+
+Do not constrain internal implementation choices such as exact queue representation or process scheduling; specify only the behaviors, nondeterminism, and the above correctness properties.

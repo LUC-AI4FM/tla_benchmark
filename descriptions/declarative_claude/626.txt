@@ -1,0 +1,26 @@
+This TLA+ specification models the attacker isolation protocol for Tendermint light clients when a full node receives evidence of conflicting blocks, following the Tendermint specification for isolating attackers.
+
+**System Overview:**
+The specification models how a full node identifies Byzantine validators who signed conflicting blocks, violating Tendermint's security model. It assumes each validator has voting power of 1.
+
+**Constants:**
+- `AllNodes`: all potential validators
+- `COMMON_HEIGHT`: block height where peers agree
+- `CONFLICT_HEIGHT`: block height where peers disagree
+- `TRUSTING_PERIOD`: validator trust duration
+- `FAULTY_RATIO`: upper bound on faulty validator ratio (typically 1/3)
+
+**Variables:**
+- `blockchain`: the full node's chain
+- `refClock`: reference clock
+- `Faulty`: set of Byzantine validators
+- `conflictingBlock`: evidence of conflicting blocks
+- `state`: isolation machine state (init, Lunatic, Equivocation, or Amnesia)
+- `attackers`: identified malicious validators
+
+**Behavior:**
+Initialization sets up a blockchain and receives arbitrary conflicting evidence that passes light client verification, with preconditions ensuring more than one-third of validators are faulty. The next-state relation classifies attacks into three types: Lunatic (invalid block fields), Equivocation (same round, different blocks), or Amnesia (different rounds), computing attackers accordingly.
+
+**Invariants:**
+- `DetectionCompleteness`: identified attackers control more than one-third of voting power
+- `DetectionAccuracy`: only faulty validators are identified as attackers

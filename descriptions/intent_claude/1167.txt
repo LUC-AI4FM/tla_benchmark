@@ -1,0 +1,44 @@
+# Specification Request: Container Orchestration Task Scheduler
+
+## System Overview
+
+I need a formal specification for a container orchestration system that manages distributed services across a cluster of worker nodes. The system should handle the lifecycle of tasks (individual units of work) that implement services requested by users.
+
+## Core Concepts
+
+The system manages:
+- **Services**: User-defined workloads that specify how many replicas should run
+- **Tasks**: Individual instances of a service that run on specific nodes
+- **Nodes**: Worker machines in the cluster that execute tasks
+
+## Functional Requirements
+
+### Service Types
+The system must support two deployment modes:
+1. **Replicated services**: Run a specific number of task instances (e.g., "run 3 copies")
+2. **Global services**: Run exactly one task instance on every node in the cluster
+
+### Task Lifecycle
+Tasks must progress through a well-defined lifecycle with states including initialization, assignment to a node, preparation, execution, and termination. The lifecycle must be monotonic—tasks can only move forward through their lifecycle, never backward to earlier states.
+
+### Task Assignment
+- Each task must be assignable to a worker node
+- Tasks start unassigned and get scheduled to specific nodes
+- For replicated services, tasks should be assigned to numbered "slots" to track which replica instance they represent
+- For global services, the node itself serves as the task's slot identifier
+
+### Desired State Management
+The orchestrator must be able to declare a target state for each task (such as "should be running" or "should be shut down"), and the system should work toward achieving that desired state.
+
+## Key Properties to Verify
+
+1. **Monotonic state progression**: Task states can only advance forward through the lifecycle, never regress
+2. **Unique task identity**: Each task must be uniquely identifiable throughout its lifetime
+3. **Valid state transitions**: Tasks should only be in valid, well-defined states
+4. **Proper slot assignment**: Replicated services use numeric slots while global services use node-based slots
+
+## Constraints
+
+- The specification should work with arbitrary sets of nodes (to allow verification with different cluster sizes)
+- The replica count has a configurable maximum bound
+- Services can be marked for removal by users

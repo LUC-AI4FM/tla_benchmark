@@ -1,0 +1,34 @@
+# Specification Request: TLC Liveness Checking Test Suite for Trivially True Properties
+
+## Goal
+
+Create a test specification to verify that the TLC model checker correctly handles temporal logic properties that are trivially true or involve vacuously satisfied conditions. This is a regression test suite for validating TLC's liveness checking implementation.
+
+## System Description
+
+The system under test is extremely simple: a single integer state component that starts at zero and can nondeterministically change to any value in a small fixed range on each step. The system has no fairness constraints, meaning it may stutter indefinitely.
+
+## Purpose
+
+The specification serves as a test harness to exercise different code paths in TLC's temporal property verification, particularly around edge cases involving:
+
+1. **Constant true/false in temporal contexts**: Properties like "eventually true" or "always true" that should trivially hold
+2. **Vacuously satisfied leads-to properties**: Cases where the antecedent of a leads-to formula is never satisfied (e.g., "FALSE leads-to anything")
+3. **Tautological state predicates**: Properties involving expressions that are trivially true at the state level (like any value equaling itself)
+4. **Nested temporal operators with trivial subformulas**: Combinations like "eventually always true" or leads-to formulas with always/eventually modalities
+
+## Correctness Requirements
+
+All of the following classes of temporal properties must be recognized as valid by the model checker:
+
+1. `<>(TRUE)` — eventually true holds on any behavior
+2. `[](TRUE)` — always true holds on any behavior  
+3. `<>[](TRUE)` — eventually permanently true holds on any behavior
+4. `FALSE ~> P` — false leading to anything is vacuously satisfied
+5. `TRUE ~> TRUE` — true leading to true is trivially satisfied
+6. `[](FALSE => <>P)` — implication with false antecedent under always
+7. Any property where state-level tautologies (self-equality) appear within temporal operators
+
+## Key Verification Concern
+
+The model checker must handle these edge cases uniformly and consistently, even when logically equivalent formulas take different internal code paths. Properties that are tautologically true should never be reported as violations, regardless of how they are syntactically expressed.

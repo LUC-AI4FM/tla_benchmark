@@ -1,0 +1,35 @@
+# Specification Request: TLA+ Fingerprinting and Set Normalization Test
+
+## System Overview
+
+I need a formal specification that serves as a test harness to verify that a TLA+ model checker correctly handles **fingerprinting** (state hashing) when dealing with equivalent set and record representations that are written differently in the syntax.
+
+## Goal
+
+The primary goal is to confirm that the model checker recognizes mathematically equivalent values as identical, even when they are expressed with:
+- Duplicate elements in set literals (e.g., `{4, 4, 3}` vs `{3, 4}`)
+- Different orderings of set elements
+- Different orderings of record fields
+- Duplicate elements within record field definitions
+
+## Requirements
+
+### What the system must model:
+1. A state space involving nested function structures that map to powersets of integers and powersets of records
+2. Transitions that assign values using syntactically different but semantically equivalent set expressions
+3. Initial states that establish baseline function mappings
+
+### Key correctness properties:
+
+1. **Set normalization**: The checker must treat sets with duplicate elements as equivalent to sets without duplicates (e.g., `{2, 2}` equals `{2}`)
+
+2. **Set ordering independence**: Sets written in different orders must hash to the same fingerprint (e.g., `{4, 3, 2}` equals `{2, 3, 4}`)
+
+3. **Record field normalization**: Records with fields containing duplicate values must be recognized as equivalent to their normalized forms
+
+4. **Record field order independence**: Records with fields listed in different orders must be treated as identical
+
+5. **State count verification**: The number of distinct states found should equal the number of distinct initial states, confirming that transitions only move between already-visited equivalent states
+
+### Expected behavior:
+The specification should pass if and only if the model checker's fingerprinting correctly normalizes all equivalent representations. If two mathematically equal values produce different fingerprints, the test should fail with a clear assertion error.

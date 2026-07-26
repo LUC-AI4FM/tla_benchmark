@@ -1,0 +1,7 @@
+This TLA+ module tests the behavior of Apalache's `ApaFoldSet` operator, which folds a function over the elements of a set to produce an accumulated result.
+
+The specification models a trivial static system with a single integer variable `x` that is initialized to zero and never changes. The actual purpose lies in the invariant check rather than the state transitions.
+
+The module defines an append operator `A` that takes a sequence and an integer, returning the sequence with the integer appended. The invariant `Inv` uses `ApaFoldSet` to fold this append operation over the set `{1,2,3}` starting from an empty sequence, then asserts that the result is *not* among any of the six possible permutations of those three elements.
+
+This invariant is intentionally the negation of what should hold: since folding append over a set should produce some permutation of the set's elements (the order being non-deterministic), the result must be one of those six sequences. By asserting the result is not in that set, the specification expects Apalache's SMT encoding to find this invariant violated (returning UNSAT for the negated property), thereby confirming the encoding correctly captures all possible fold orderings over sets.

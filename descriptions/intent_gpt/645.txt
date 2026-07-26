@@ -1,0 +1,9 @@
+Specify a TLA+ model of a proof-of-stake light client that verifies chain headers (light blocks) produced by a set of validators. The model should represent a light client that periodically requests and validates headers at increasing heights until reaching a target height. The primary goals are safety (never finalizing or accepting a header that violates the fork-choice and trust assumptions) and liveness under bounded conditions (eventually verifying a header at each target height when enough honest validators respond and timing constraints hold).
+
+Model requirements:
+- Represent a fixed validator set with a bounded fraction of Byzantine (faulty) members; honest validators follow the protocol and produce consistent headers.
+- The client maintains a trusted checkpoint at a lower height and must use it to verify higher headers via validator voting/power checks and merkle commitments; verification may require fetching headers from multiple validators.
+- Include network uncertainty: messages and responses can be delayed, lost, or returned with incorrect headers by faulty validators. The model should capture retries, probes to validators, and timeouts.
+- Include clock skew and trusting period constraints: the client must reject headers if signatures are too old or local/remote clock drift violates acceptance windows.
+- Specify correctness properties: safety (no acceptance of conflicting headers at the same height beyond trust assumptions), monotonicity (verified heights never decrease), and eventual progress (if a majority of validators are honest and within trusting period, the client eventually verifies the target height).
+- Allow modeling of a primary/peer strategy for fetching headers and of detecting misbehavior leading to excluding faulty peers.

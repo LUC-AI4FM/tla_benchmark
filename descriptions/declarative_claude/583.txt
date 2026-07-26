@@ -1,0 +1,19 @@
+# MultiNode TLA+ Specification Description
+
+This specification extends a single-node model (SingleNode) to capture the behavior of a multi-node CCF (Confidential Consortium Framework) service, focusing on consensus-related phenomena like leader election and transaction invalidation.
+
+## Core Concepts
+
+The specification builds upon the inherited SingleNode module, which provides the base variables (`ledgerBranches`, `history`, `CommitSeqNum`, `CommittedTxIDs`) and constants defining transaction types and statuses.
+
+## Key Definitions and Actions
+
+**ViewWithAllCommitted** identifies views (terms) where all committed log entries are preserved—these represent safe points from which the ledger can branch after leader changes.
+
+**TruncateLedgerAction** models leader election effects by creating a new ledger branch. It selects a view containing all committed entries and truncates the ledger at or after the commit point, appending this truncated sequence as a new branch. This simulates rollback of uncommitted transactions during view changes while preserving committed state.
+
+**StatusInvalidResponseAction** generates transaction invalidation responses. A transaction becomes invalid when: its sequence number has been committed with a different view, the current committed view exceeds the transaction's view making future commitment impossible, or the transaction belongs to the current view but remains uncommitted.
+
+## Temporal Specification
+
+The specification `SpecMultiNode` combines the initial state with a next-state relation allowing either single-node actions, ledger truncation, or status invalidation responses, under stuttering semantics.

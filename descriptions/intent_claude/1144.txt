@@ -1,0 +1,49 @@
+# Specification Request: Parallel On-the-Fly Strongly Connected Components Decomposition
+
+## System Overview
+
+I need a formal specification for a **multi-threaded algorithm that computes the strongly connected components (SCCs) of a directed graph**. The algorithm should allow multiple worker threads to explore the graph concurrently, discovering and merging SCCs on-the-fly as cycles are detected.
+
+## System Description
+
+The system consists of:
+
+1. **A directed graph** defined by a set of nodes and edges between them.
+
+2. **Multiple concurrent worker threads** that independently perform depth-first search (DFS) traversals of the graph.
+
+3. **A shared union-find (disjoint set) data structure** that tracks:
+   - Which nodes belong to the same partially-computed SCC
+   - Whether a set of nodes has been fully explored ("dead") or is still being processed ("live")
+   - Which threads are currently working on nodes within each set
+   - The set of nodes within each partition that still need exploration
+
+## Functional Requirements
+
+The algorithm must:
+
+1. **Perform concurrent DFS exploration**: Each thread independently traverses the graph, exploring outgoing edges from nodes.
+
+2. **Track thread ownership**: When a thread first encounters a node (or its containing set), it registers itself as working on that set.
+
+3. **Detect cycles**: When a thread re-encounters a node it has previously visited (detected by checking if the thread is already registered with that set), a cycle has been found.
+
+4. **Merge sets upon cycle detection**: When a cycle is found, all nodes on the current exploration path that form the cycle must be merged into a single set using the union-find structure.
+
+5. **Mark completed sets as dead**: When all nodes in a set have been fully explored (no live elements remain), the set is marked as dead and excluded from further processing.
+
+6. **Continue until complete**: Threads continue selecting unexplored nodes and exploring until all nodes have been processed.
+
+## Correctness Properties
+
+### Safety Property
+When the algorithm terminates, the partition of nodes into sets must exactly equal the true strongly connected components of the graph as defined mathematically: two nodes belong to the same SCC if and only if each is reachable from the other.
+
+### Liveness Property
+The algorithm must eventually terminate—all threads must eventually complete their work, assuming fair scheduling.
+
+## Key Constraints
+
+- Multiple threads may concurrently read and modify the shared union-find structure
+- The specification should model the interleaving of thread operations at an appropriate granularity to capture potential concurrency issues
+- The graph structure (nodes and edges) is fixed and known at the start

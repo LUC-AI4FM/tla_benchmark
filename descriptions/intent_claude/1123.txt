@@ -1,0 +1,33 @@
+# Specification Request: Distributed Transaction Commit Protocol
+
+## System Overview
+
+I need a formal specification for a distributed transaction commit protocol involving multiple resource managers (RMs). This is the kind of protocol used in distributed databases where a transaction must either commit at all participating nodes or abort at all of them.
+
+## System Description
+
+The system consists of a fixed set of resource managers that must coordinate to reach a consensus on whether to commit or abort a distributed transaction. Each resource manager independently decides whether it can commit (is "prepared") or must abort, and the system must ensure all participants reach the same final decision.
+
+## Behavioral Requirements
+
+1. **Individual RM Decisions**: Each resource manager should be able to independently signal that it is prepared to commit, or decide to abort.
+
+2. **Commit Coordination**: A resource manager may only commit the transaction if all resource managers have indicated they are prepared to commit.
+
+3. **Abort Flexibility**: Any resource manager may abort at any time before committing, but once a decision is made (commit or abort), it is final.
+
+4. **Global Agreement**: All resource managers must eventually reach the same decision—either all commit or all abort.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: It must never be the case that one resource manager commits while another aborts. All RMs that reach a final decision must agree on that decision.
+
+2. **Validity**: A commit can only happen if every resource manager was prepared to commit. If any RM aborts or was never prepared, the transaction cannot commit.
+
+3. **Stability**: Once a resource manager has committed or aborted, its decision is irrevocable.
+
+## Configuration
+
+The specification should be parameterized by the set of participating resource managers, allowing verification with different numbers of participants (e.g., a configuration with three resource managers for model checking purposes).

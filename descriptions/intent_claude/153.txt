@@ -1,0 +1,40 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction processing. This protocol coordinates a transaction across multiple resource managers (participants) with a central transaction manager (coordinator) to ensure all participants either commit or abort the transaction atomically.
+
+## System Components
+
+The system consists of:
+- A fixed set of **resource managers** (participants) that each hold part of the data involved in a transaction
+- A single **transaction manager** (coordinator) that orchestrates the commit decision
+- A **message-passing communication** mechanism between the coordinator and participants
+
+## Protocol Requirements
+
+### Phase 1: Prepare Phase
+- The transaction manager must solicit votes from all resource managers
+- Each resource manager must vote either to prepare (ready to commit) or to abort
+- Resource managers must communicate their decisions to the transaction manager
+
+### Phase 2: Commit/Abort Phase
+- The transaction manager must collect votes and make a global decision
+- If all resource managers voted to prepare, the transaction manager may decide to commit
+- If any resource manager voted to abort (or hasn't prepared), the transaction manager must abort
+- The transaction manager must communicate the final decision to all resource managers
+- Resource managers must act on the final decision accordingly
+
+## Key Correctness Properties
+
+### Safety Properties
+1. **Consistency**: All resource managers that reach a final decision must reach the *same* decision (either all commit or all abort)
+2. **No premature commit**: A commit can only occur if every resource manager has prepared
+3. **Abort validity**: If any resource manager aborts, the transaction must ultimately abort globally
+
+### Validity Properties
+- The protocol must faithfully implement the two-phase structure where preparation precedes any commit decision
+
+## Scale Requirement
+
+The specification should be verifiable with a configuration of **20 resource managers** to ensure the protocol properties hold at reasonable scale.

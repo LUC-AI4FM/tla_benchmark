@@ -1,0 +1,41 @@
+# Specification Request: TCP-Style Three-Way Handshake Protocol
+
+## System Overview
+
+I need a formal specification of a connection establishment protocol modeled after TCP's three-way handshake. The system involves two parties—an initiator and a receiver—that must coordinate to establish a mutually agreed-upon connection through message exchange.
+
+## System Description
+
+The protocol should model two endpoints communicating over an unreliable network (messages may be delayed or reordered, but not lost or corrupted in this abstraction). The network is represented as a collection of in-flight messages that both parties can read from and write to.
+
+### Participants
+
+1. **Initiator**: The party that begins the connection establishment process
+2. **Receiver**: The party that listens for and responds to connection requests
+
+### Protocol Flow
+
+The handshake should proceed through three phases:
+1. The initiator sends a synchronization request to begin the connection
+2. The receiver acknowledges the request and sends its own synchronization information
+3. The initiator confirms receipt, completing the handshake
+
+Each party maintains its own sequence number for tracking message ordering, and messages carry both sequence and acknowledgment numbers to coordinate state between the parties.
+
+### State Progression
+
+- The initiator should progress through states representing: initial/idle, request sent, and connection established
+- The receiver should progress through states representing: listening, request received, and connection established
+
+## Key Correctness Properties
+
+The specification must guarantee the following safety property:
+
+**Synchronized Establishment**: The receiver must never reach the "established" state unless the initiator has also reached the "established" state. This ensures that the receiver cannot believe a connection is ready while the initiator is still in an earlier handshake phase.
+
+## Modeling Considerations
+
+- Sequence numbers should be drawn from the natural numbers
+- Messages should be records containing synchronization flags, acknowledgment flags, and the relevant sequence/acknowledgment numbers
+- The network should allow messages to persist (modeling potential delays and reordering)
+- Non-deterministic choice of sequence numbers should be permitted to model real-world variability

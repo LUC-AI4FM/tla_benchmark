@@ -1,0 +1,44 @@
+# Specification Request: Single-Decree Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the single-decree Paxos consensus algorithm. This is a distributed consensus protocol that allows a set of processes to agree on exactly one value, even in the presence of failures. The specification should assume a fixed leader (leader election is out of scope).
+
+## System Components
+
+The system consists of:
+- A set of **acceptor** processes that participate in the consensus decision
+- A **proposer** role that drives the protocol by initiating ballot rounds
+- **Quorums**: overlapping subsets of acceptors, where any two quorums must share at least one member
+- A set of possible **values** that can be proposed
+- **Ballot numbers** used to order proposals
+
+## Protocol Requirements
+
+The protocol operates in two phases:
+
+**Phase 1 (Prepare):**
+- The proposer can initiate a new ballot by broadcasting a prepare request
+- Each acceptor responds to prepare requests by promising not to accept proposals from earlier ballots, and reports any value it has previously accepted
+
+**Phase 2 (Accept):**
+- Once the proposer has received responses from a quorum of acceptors for a ballot, it may send an accept request
+- The value proposed must respect previous acceptances: if any acceptor in the quorum previously accepted a value, the proposer must use the value from the highest-numbered ballot among those acceptances
+- Acceptors accept the proposal if they haven't made a promise to a higher ballot
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consensus Safety**: If any two acceptors have accepted values (at any ballot numbers), those values must be identical. The system must never reach a state where different values have been accepted by quorums.
+
+2. **Single Value Agreement**: At most one value can ever be chosen by the protocol.
+
+## Assumptions
+
+- The set of acceptors is finite with at least 3 members
+- All quorums pairwise intersect (ensuring consistency across rounds)
+- At least 2 distinct values are possible (making consensus non-trivial)
+- Ballot numbers are natural numbers
+- Messages may be delayed but the network is reliable (no message loss or corruption needs to be modeled explicitly)
+- The proposer is fixed/stable (no leader election)

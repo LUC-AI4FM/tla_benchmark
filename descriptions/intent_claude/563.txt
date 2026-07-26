@@ -1,0 +1,36 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System to Model
+
+I need a formal specification of the **Two-Phase Commit (2PC) distributed transaction protocol**. This protocol coordinates a set of resource managers (participants) to reach agreement on whether to commit or abort a distributed transaction, with a central transaction manager (coordinator) orchestrating the process.
+
+## System Requirements
+
+### Participants and Roles
+- A fixed set of **resource managers** that participate in the transaction
+- A single **transaction manager** that coordinates the commit decision
+
+### Protocol Behavior
+The system should model the standard two-phase commit protocol:
+
+1. **Prepare Phase**: Resource managers indicate whether they are willing to commit by sending "prepared" messages to the transaction manager
+2. **Commit/Abort Phase**: Once all resource managers are prepared, the transaction manager decides to commit; if any resource manager cannot prepare, the transaction aborts
+
+### Key Constraints
+- A resource manager can only commit if the transaction manager has decided to commit
+- A resource manager can abort at any time before committing
+- The transaction manager can only commit the transaction after receiving prepared messages from all participants
+- Once a participant commits or aborts, its decision is final
+
+## Correctness Properties
+
+### Type Safety
+The specification should maintain proper typing of all state components throughout execution.
+
+### Consistency with Transaction Commit Specification
+The two-phase commit protocol must correctly implement the abstract transaction commit specification. Specifically, the protocol should **refine** the simpler transaction commit model, guaranteeing:
+- **Agreement**: All resource managers that reach a final decision reach the same decision (all commit or all abort)
+- **Validity**: A commit can only happen if all participants were willing to commit
+- **Non-triviality**: If all participants are prepared and nothing goes wrong, commit is possible
+
+The key theorem to verify is that the 2PC protocol correctly implements the higher-level transaction commit guarantees.

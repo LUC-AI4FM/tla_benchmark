@@ -1,0 +1,44 @@
+# Specification Request: Real-Time Write-Through Cache System
+
+## System Overview
+
+I need a formal specification for a real-time write-through cache system serving multiple processors. The system should model a shared memory architecture where each processor has a local cache, and all writes are propagated through to main memory. The specification must incorporate real-time timing constraints to ensure bounded response times.
+
+## Functional Requirements
+
+The system should model:
+
+1. **Multiple processors** (a configurable number N) that can read from and write to shared memory addresses
+2. **Per-processor caches** that store local copies of memory values
+3. **Write-through behavior** where writes update both the cache and main memory
+4. **A memory queue** that buffers pending memory operations
+5. **Cache miss handling** where processors must fetch data from memory when needed
+6. **Cache eviction** to manage limited cache capacity
+
+## Real-Time Requirements
+
+The specification must enforce timing bounds on critical operations:
+
+1. **Memory queue operations** must complete within a time bound Delta
+2. **Processor-side operations** (writes, reads, and responses) must complete within a time bound Epsilon for each processor
+3. **Cache miss handling** must also complete within the Epsilon bound
+
+There is a critical relationship between these timing parameters and system scale: the bounds must satisfy a constraint involving the number of processors, the memory queue length, and the timing parameters Delta, Epsilon, and a global bound Rho.
+
+## Fairness and Scheduling
+
+The system must implement a **round-robin style scheduling discipline** for certain processor operations to prevent starvation. Specifically, operations that could conflict should be serialized in a fair rotating order, ensuring that no processor can be indefinitely blocked by others.
+
+## Correctness Properties
+
+The specification should guarantee:
+
+1. **Refinement**: The real-time cache system should correctly implement a simpler real-time memory specification—meaning that from an external observer's perspective, the cached system behaves like a direct memory system with appropriate timing guarantees
+
+2. **Timing correctness**: All operations complete within their specified real-time bounds
+
+3. **Memory consistency**: The write-through cache correctly reflects memory state as seen by all processors
+
+## Purpose
+
+This specification is intended to verify that adding caching to a multi-processor memory system preserves correctness while meeting real-time deadlines, and that the timing parameters are properly constrained relative to system scale.

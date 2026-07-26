@@ -1,0 +1,40 @@
+# Specification Request: Buffered FIFO Queue with Channel Interfaces
+
+## System Overview
+
+I need a formal specification for a buffered FIFO (First-In-First-Out) queue that sits between a sender and receiver, where communication happens through asynchronous channels rather than direct queue access.
+
+## System Description
+
+The system should model a message-passing architecture with three components:
+
+1. **Input Channel**: An asynchronous channel where external senders can place messages
+2. **Internal Buffer**: A queue that stores messages in FIFO order
+3. **Output Channel**: An asynchronous channel from which external receivers can retrieve messages
+
+The buffer acts as an intermediary that decouples the sender from the receiver, allowing them to operate at different rates.
+
+## Required Behaviors
+
+The system must support four kinds of operations:
+
+1. **Sender transmits a message**: An external sender places any valid message onto the input channel
+2. **Buffer receives from input**: The buffer takes a message from the input channel and appends it to its internal queue
+3. **Buffer sends to output**: When the queue is non-empty, the buffer can take the oldest message (head of the queue) and place it on the output channel
+4. **Receiver retrieves a message**: An external receiver takes the waiting message from the output channel
+
+## Key Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: The input channel, output channel, and internal buffer must always contain only valid messages, with the buffer maintaining proper sequence structure
+
+2. **FIFO Ordering**: Messages must be delivered to the output channel in the same order they were received from the input channel
+
+3. **Channel Protocol Compliance**: Both channels must follow proper asynchronous channel semantics (presumably defined in a separate Channel module)
+
+## Assumptions
+
+- There is a predefined set of valid messages
+- The channel behavior (send/receive semantics) is defined by a reusable Channel module
+- The internal buffer can grow without bound (no capacity limit specified)

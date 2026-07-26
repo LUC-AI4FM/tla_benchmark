@@ -1,0 +1,9 @@
+This module specifies a high-level wrapper around the DiskSynod algorithm, which models disk-based consensus in the style of Paxos. The specification extends DiskSynod and adds auxiliary variables to track consensus outcomes.
+
+The module introduces two additional variables: **chosen**, which records a value once consensus is reached, and **allInput**, which accumulates all input values ever proposed by processes.
+
+The initial state combines DiskSynod's initialization with chosen set to NotAnInput and allInput containing all initial process inputs. The next-state relation advances DiskSynod and updates chosen to capture the first output value produced by any process, preserving it thereafter. The allInput set grows monotonically with new inputs.
+
+The specification defines six invariants (HInv1 through HInv6) that together establish correctness. HInv1 specifies type correctness for all variables. HInv2 constrains disk blocks to maintain ballot ordering and input validity. HInv3 ensures proper read coordination between processes sharing disks. HInv4 establishes ballot dominance properties across phases. HInv5 relates phase-2 processes to maximum ballot inputs. HInv6 is the key safety property: once chosen is set, the predicate valueChosen confirms that value was properly chosen through majority disk writes, and all process outputs must equal chosen or remain undecided.
+
+The specification models consensus where processes coordinate through shared disk storage, ensuring agreement through majority quorums.

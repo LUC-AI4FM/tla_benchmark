@@ -1,0 +1,9 @@
+This TLA+ module specifies an implementation of the Alternating Bit Protocol for reliable data transfer over lossy channels between two parties, A and B.
+
+The system uses a constant Data representing possible data values. Variables include AVar and BVar (message records containing data and a sequence bit at each endpoint), NewValQueue (a queue of pending data to send), and two channel queues AtoB and BtoA representing messages in transit.
+
+Six concurrent processes operate: ASend repeatedly transmits the current AVar message to B. ARecv waits for acknowledgments from B; when the received bit matches AVar's bit, it dequeues new data, flips the bit, and updates AVar. BSend repeatedly sends acknowledgment bits to A. BRecv receives messages from A and updates BVar when it detects a new sequence bit. LoseMsgs non-deterministically removes messages from either channel, modeling unreliable communication. Process E represents the environment, enqueueing new data values whenever A and B are synchronized.
+
+The temporal specification requires the next-state relation with weak fairness on ASend and BSend, and strong fairness on ARecv and BRecv. The LoseMsgs process has no fairness, allowing but not requiring message loss. Process E also lacks fairness constraints.
+
+No explicit safety or liveness properties are defined in the module; the specification focuses on modeling the protocol's implementation behavior under message loss.

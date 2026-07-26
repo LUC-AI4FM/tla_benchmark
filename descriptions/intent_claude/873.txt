@@ -1,0 +1,41 @@
+# Specification Request: Slush Probabilistic Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the **Slush protocol**, a simple probabilistic consensus algorithm from the Avalanche family of protocols. The system models a network of nodes that must eventually agree on one of two possible values (which can be thought of as colors, like "Red" and "Blue").
+
+## System Description
+
+The system consists of a fixed set of nodes in a distributed network. Each node begins without any value assigned. External clients can initially assign a value to any unassigned node. Once a node has a value, it participates in a randomized sampling-based consensus process.
+
+### Core Mechanism
+
+Each node that has been assigned a value repeatedly performs the following for a fixed number of iterations:
+1. **Sample**: Randomly select a subset of other nodes of a specified size
+2. **Query**: Ask each sampled node for its current value
+3. **Respond**: When queried, a node responds with its current value (if it has no value yet, it adopts the queried value and responds with that)
+4. **Tally and potentially flip**: Count the responses—if the count for either value meets or exceeds a threshold, the node switches to that value
+
+The protocol terminates after all nodes complete their fixed number of iterations.
+
+## Configuration Parameters
+
+The specification should be parameterized by:
+- The number of nodes in the network
+- The number of sampling iterations each node performs
+- The size of the random sample taken in each iteration
+- The threshold count required to flip a node's value
+
+## Correctness Properties
+
+The specification should support checking:
+
+1. **Type Safety**: All values and messages remain well-formed throughout execution
+
+2. **Termination**: The protocol eventually completes (all nodes finish their iterations)
+
+## Important Notes
+
+This specification serves primarily as executable pseudocode for the Slush algorithm. The key limitation is that TLA+ cannot model probabilistic properties—questions like "what is the probability of convergence given specific parameters?" cannot be answered with this specification but would require probabilistic model checking tools.
+
+The specification should model asynchronous message passing between nodes and allow for all possible orderings of concurrent operations and all possible random sample selections.

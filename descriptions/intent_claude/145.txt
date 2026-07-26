@@ -1,0 +1,42 @@
+# Specification Request: Distributed Mutual Exclusion Algorithm
+
+## System Overview
+
+I need a formal specification of Lamport's distributed mutual exclusion algorithm, as described in his 1978 paper "Time, Clocks and the Ordering of Events in a Distributed System." This algorithm allows multiple processes in a distributed system to coordinate access to a shared critical section without a central coordinator.
+
+## System Description
+
+The system consists of N processes that communicate via message passing. Each process maintains a logical clock and can request entry to a critical section. The processes must coordinate using only asynchronous message passing to ensure that at most one process is in the critical section at any time.
+
+### Communication Model
+
+- Processes communicate through pairwise FIFO channels (messages between any two specific processes are delivered in the order they were sent)
+- Three types of messages are used: request messages (which carry a timestamp), acknowledgment messages, and release messages
+- Messages may experience arbitrary delays but are eventually delivered
+
+### Algorithm Behavior
+
+The algorithm should model the following process behaviors:
+
+1. **Requesting access**: A process that wants to enter the critical section broadcasts a timestamped request to all other processes and records its own request
+2. **Acknowledging requests**: When a process receives a request from another process, it updates its logical clock appropriately and sends back an acknowledgment
+3. **Entering the critical section**: A process may enter the critical section only when it has received acknowledgments from all other processes AND its own request has the highest priority (lowest timestamp, with process ID as tiebreaker) among all pending requests it knows about
+4. **Exiting and releasing**: Upon leaving the critical section, a process broadcasts a release message to all other processes and clears its own request state
+5. **Processing release messages**: When a process receives a release message, it removes the corresponding request from its local record
+
+## Correctness Properties
+
+### Safety Properties
+
+1. **Mutual Exclusion**: At most one process may be in the critical section at any time. This is the primary safety property.
+
+2. **Type Correctness**: The specification should maintain well-formed state throughout execution (clocks are positive integers, message queues contain valid messages, etc.)
+
+### Boundedness Property
+
+For practical model checking purposes, the specification should support demonstrating that communication channels remain bounded—specifically, that no channel ever accumulates more than a small fixed number of messages.
+
+## Parameters
+
+- **N**: The number of processes in the system (a positive integer)
+- **maxClock**: An upper bound on clock values for finite-state model checking purposes

@@ -1,0 +1,15 @@
+Specify a formal model of a client-observable history for a transactional storage system in which clients issue two kinds of transactions—read-write transactions that append a value and then read the list, and read-only transactions that only read the list—and where clients may observe transaction responses and later observe status notifications that indicate whether a transaction committed or was invalidated. The model should represent an append-only, totally ordered sequence of externally visible events (requests, responses, and status notifications) as observed by clients; it should not assume physical clocks or per-node logs, only the order visible to clients.
+
+The specification must capture:
+- Events for transaction requests, transaction responses (including the returning of the read sequence), and transaction-status messages (Committed or Invalid).
+- That responses carry a transaction identifier (a pair comprising a logical view and sequence number) and the application-visible result.
+- That status messages refer to a transaction identifier and indicate final outcome (Committed or Invalid).
+
+Key correctness properties to guarantee:
+- History monotonicity: the externally observed event sequence is append-only.
+- Response-status causality: if a response is observed and later a committed status for that same transaction is observed, then the transaction identifier and response observed must be consistent with being the same transaction.
+- Commit uniqueness and sequencing: committed transactions have unique identifiers and the highest committed sequence number can be derived from committed transaction identifiers.
+- Read consistency: any read (from either transaction type) that reports observing a sequence of appended values must reflect only values from transactions that have response events earlier or equal in the history and must not include effects from transactions later declared Invalid.
+- No phantom commits: a transaction marked Invalid must not contribute its effects to any later read observed by clients as coming from committed transactions.
+
+Do not constrain internal protocol steps; model only the externally visible events and enforce the above invariants over all possible histories.

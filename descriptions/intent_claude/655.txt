@@ -1,0 +1,47 @@
+# Specification Request: Blockchain Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification for a **blockchain light client verification protocol** that allows a resource-constrained client to securely synchronize with a blockchain without downloading and validating all blocks. The light client should be able to verify block headers by leveraging validator signatures and a trust chain from a known trusted block.
+
+## System Description
+
+The system involves a light client that:
+
+1. **Starts from a trusted checkpoint**: The client begins with a known trusted block at a specific height that it has previously verified.
+
+2. **Seeks to verify a target block**: The client wants to securely obtain and verify a block header at a higher target height.
+
+3. **Fetches blocks from a primary peer**: The client communicates with a peer node to obtain light blocks (headers with validator commit signatures), but this peer may be Byzantine/faulty.
+
+4. **Handles clock synchronization**: The client has a local clock that may drift from real time, and the specification should account for both assumed maximum drift and actual drift.
+
+5. **Operates under partial synchrony**: The protocol must work correctly even when clocks are not perfectly synchronized, within specified drift bounds.
+
+## Configuration Parameters
+
+The specification should be parameterized by:
+- The set of participating validator nodes
+- The starting trusted height and target height to verify
+- A trusting period (the time window during which validator sets can be trusted)
+- Clock drift assumptions (both the assumed bound and actual drift for analysis)
+- Whether the primary peer is correct or Byzantine
+- The fraction of validators that may be faulty (should be less than 1/3 for BFT security)
+
+## Key Correctness Properties
+
+The specification must verify:
+
+1. **Safety**: If the light client accepts a block as verified, it must be consistent with the actual blockchain (no accepting forged blocks).
+
+2. **Liveness**: Under reasonable conditions, the light client should eventually reach a verdict about the target block.
+
+3. **Trust chain validity**: Verification must follow a valid chain of trust from the trusted block, respecting validator set changes and the trusting period.
+
+4. **Byzantine fault tolerance**: The protocol should remain safe as long as fewer than 1/3 of validators in any relevant validator set are faulty.
+
+5. **Timeliness**: The client should not accept blocks whose timestamps fall outside acceptable bounds given clock drift assumptions.
+
+## Analysis Goals
+
+The specification should support analyzing scenarios where the primary peer is faulty/Byzantine to verify that safety properties hold even under adversarial conditions, and to understand the protocol's behavior at the boundary of its security assumptions.

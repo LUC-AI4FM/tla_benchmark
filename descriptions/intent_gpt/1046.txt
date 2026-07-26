@@ -1,0 +1,11 @@
+Specify a TLA+ model of a replicated, disk-backed consensus protocol that ensures a single input value can become chosen by a majority of disks despite concurrent proposers and failures. The model should describe processes (proposers/replicas) that propose inputs, read and write per-process blocks on a fixed set of disks, and progress through phases for preparing and accepting proposals. Disks store per-process disk blocks with ballot and metadata fields; processes can read blocks from disks and write blocks to subsets of disks. The protocol must allow a process to adopt a value based on majority information seen on disks and on reads performed by other processes, while preventing two different values from being chosen.
+
+Requirements:
+- Liveness-like progress: when a value has been output by any process, that value must be discoverable as already chosen by majority evidence on disks (a chosen value corresponds to some ballot with majority support).
+- Safety: at most one input value can be chosen system-wide; once a value is chosen, all process outputs must either be that value or remain undecided.
+- Invariants about ballots and inputs: ballot numbers must be monotonic where required; block ballot 0 must indicate "no input"; metadata ballots dominate ordinary ballots as appropriate.
+- Read/write quorum intersection: any two majority disk sets intersect so information needed to prevent conflicting choices is preserved.
+- Correct handling of incomplete reads: a proposer that cannot see a majority of relevant blocks must be prevented from deciding a conflicting input; if a proposer advances to accept a value it must either be provably backed by a max-ballot value in observed blocks or rely only on disks that indicate higher ballots preventing conflict.
+- Outputs are only produced in the final phase and only if chosen evidence exists.
+
+Include formal definitions for majority sets, the set of all observed input values, the notion of blocks read and written, and predicates characterizing when a value is considered chosen (based on a ballot and majority of disks). The model should be suitable for model checking and proving the stated invariants and safety property.

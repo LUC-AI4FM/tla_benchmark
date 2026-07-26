@@ -1,0 +1,31 @@
+# Specification Request: TLA+ Assignment Solver Constraint Ordering
+
+## System to Model
+
+I need a formal specification that models the behavior of an SMT-based assignment solver for TLA+ specifications, specifically focusing on how it handles the ordering of constraints when determining variable assignments in next-state relations.
+
+## Problem Description
+
+When processing TLA+ formulas that define state transitions, a solver must determine which equality constraints serve as "assignments" to primed variables versus which serve as "use-case constraints" (conditions that must hold). The solver must also determine a valid ordering for evaluating these constraints.
+
+The system should model scenarios where:
+1. Multiple equality constraints could potentially serve as assignments for the same variable
+2. Existential quantifiers group constraints together as units
+3. Some constraints reference primed variables before they have been assigned (use-before-assignment situations)
+4. The solver has freedom to choose among valid assignment candidates and orderings
+
+## Key Behaviors to Capture
+
+The specification should demonstrate:
+- How the solver selects which constraints become assignments when multiple candidates exist
+- How constraint ordering affects whether a valid assignment solution can be found
+- The difference between constraints that can be successfully reordered versus those that cannot
+- How existential quantifier blocks interact with assignment ordering (blocks must be reordered as atomic units)
+
+## Correctness Properties
+
+The specification should help verify:
+1. **Assignment completeness**: Every primed variable must receive exactly one assignment
+2. **Use-after-assignment**: Any constraint that references a primed variable's value must be evaluated after that variable's assignment
+3. **Determinism concerns**: Identify cases where arbitrary solver choices (in assignment selection or ordering) affect whether a valid solution exists
+4. **Left-to-right equivalence**: Characterize when SMT-based solving produces the same results as simple left-to-right processing

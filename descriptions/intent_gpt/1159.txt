@@ -1,0 +1,9 @@
+Specify a formal model of a replicated transaction commit service that uses a consensus subprotocol to decide for each participant whether to prepare or abort, and then produces a single global decision (commit or abort) for the whole transaction. The model should treat each participant as an independent resource manager that may locally decide to prepare or to abort. For each participant there is an independent instance of a consensus algorithm (one instance per participant) that must choose between the values "prepared" and "aborted". The consensus instances run on a set of acceptors and can be driven by leaders proposing ballots; leaders may fail or be concurrent and leaders are not explicitly elected. Messages are reliably sent (record the set of messages sent) but message delivery timing need not be modeled; actions should be enabled when the relevant messages exist.
+
+The system must guarantee these safety properties:
+- Every consensus instance chooses at most one value (consistency of Paxos per instance).
+- If any instance ever chooses "aborted", the global decision must be abort; otherwise, if every instance chooses "prepared", the global decision must be commit (agreement between per-instance choices and the final global outcome).
+- Once a resource manager reaches committed it cannot revert; once it reaches aborted it cannot revert; no resource manager may be committed if any resource manager is aborted (atomicity).
+- Leaders must only propose values that are consistent with previously chosen values for that consensus instance (Paxos validity).
+
+Model the acceptor state required for Paxos (ballots seen, accepted ballot and value) and the leader flows that implement phase-1 and phase-2 interactions abstractly enough to express safety but not rely on particular timing or leader selection. Do not require liveness (no guarantees of termination). Provide invariants expressing the above safety properties for verification.

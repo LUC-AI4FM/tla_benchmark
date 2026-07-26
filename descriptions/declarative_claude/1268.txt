@@ -1,0 +1,11 @@
+This TLA+ specification models a BufferedRandomAccessFile, a buffered wrapper around a random access file that caches data in memory to reduce disk operations.
+
+The system maintains two layers: an in-memory buffer layer and an underlying file. The buffer layer tracks whether data is dirty (modified but not written to disk), the logical file length, the current position (curr), the buffer's starting offset in the file (lo), the buffer contents, and the disk position. The underlying file has its own content and pointer.
+
+The specification defines five internal invariants from the Java implementation: Inv1 ensures length and disk position consistency; Inv2 requires the current position stays within buffer bounds; Inv3 guarantees buffered data matches the logical file content; Inv4 ensures non-buffered regions match disk content; Inv5 requires the dirty flag is set when buffer differs from disk.
+
+Key operations include FlushBuffer (writes dirty buffer to disk), Seek (repositions and potentially refills buffer), SetLength (truncates or extends file), Read1/Read (reads from buffer), and Write1/WriteAtMost (writes to buffer). The specification models that seeking outside buffer bounds requires flushing first, then refilling.
+
+The specification verifies refinement against an abstract RandomAccessFile module, ensuring the buffered implementation correctly simulates unbuffered behavior. It checks that each operation corresponds to its abstract counterpart and that invariant Inv2 can always be restored through flush-and-seek operations.
+
+Model checking uses two symbols, maximum offset four, and buffer size two, with symmetry reduction on symbols.

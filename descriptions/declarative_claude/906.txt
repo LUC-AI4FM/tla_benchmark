@@ -1,0 +1,7 @@
+This TLA+ module specifies a refinement mapping between two channel implementations: a high-level channel H carrying values from 1 to 12, and a low-level channel L carrying single bits. The specification demonstrates how the bit-level channel can implement the higher-level channel through serialization.
+
+The system uses two variables: h represents the high-level channel state, and l represents the low-level channel state. Both channels follow the same underlying Channel specification but with different data types. An auxiliary variable bitsSent (hidden through existential quantification) tracks accumulated bits during transmission.
+
+The key actions are SendBit, RcvBit, and Error. SendBit transmits individual bits on the low-level channel while accumulating them; after four bits are collected, they are converted to a natural number (via little-endian bit sequence conversion) and sent on the high-level channel. RcvBit receives bits from the low-level channel, triggering a high-level receive only when no partial transmission is pending. The Error action handles unexpected low-level channel behavior by transitioning the high-level channel to a designated error value.
+
+The temporal specification IR uses existential quantification over bitsSent to hide the implementation detail, expressing that some internal state exists making the refinement work. This demonstrates that the low-level bit channel correctly implements the high-level data channel through the serialization protocol.

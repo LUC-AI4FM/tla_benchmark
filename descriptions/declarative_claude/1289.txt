@@ -1,0 +1,19 @@
+# AgentRing Module Description
+
+This TLA+ specification models a load-balancing agent that circulates around a ring of N nodes, where each node holds some number of tasks. The agent attempts to equalize task distribution by moving tasks between nodes as it travels.
+
+## Constants and Variables
+
+The constant N specifies the number of nodes in the ring (at least 2). Three variables track system state: **Nodes** maps each node index to its current task load, **Agent** records the agent's location, the load it observed at the previous node, whether it's ready to move, and whether it carries a task (0 or 1), and **CanCreate** indicates whether new tasks may still be added to nodes.
+
+## Actions and Behavior
+
+The agent operates in two phases: **Move** advances it clockwise to the next node, and **LookAndAct** compares the current node's load against the previously visited node's load. If the current load exceeds the previous and the agent carries nothing, it picks up one task; if lower and the agent carries a task, it drops it; otherwise it simply observes. **CreateTasks** allows adding N tasks to any node while creation is enabled. **Stop** permanently disables task creation.
+
+## Temporal Specification
+
+The specification Prog combines the initial state, the next-state relation under stuttering, and weak fairness on Move, LookAndAct, and Stop actions.
+
+## Properties Checked
+
+**Limits** bounds total system load. **Test** and **Test2** explore whether balanced loads with creation stopped imply the agent eventually carries no task. **TestBogus** checks that creation eventually stops permanently.

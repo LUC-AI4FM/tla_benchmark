@@ -1,0 +1,49 @@
+# Specification Request: Fast Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the Fast Paxos consensus protocol, which is an optimization of classic Paxos that allows consensus to be reached in fewer message delays when there is no contention among proposers.
+
+## System Description
+
+The system consists of a set of acceptor replicas and a single designated coordinator. The goal is for the system to reach consensus on a single value from a set of proposed values. The protocol operates in two modes:
+
+1. **Fast rounds**: When there is no contention, acceptors can directly propose and vote for values without coordinator involvement, allowing consensus in fewer message rounds.
+
+2. **Classic rounds**: When collisions occur (multiple different values proposed in a fast round), the coordinator intervenes to resolve the conflict and drives consensus through the traditional Paxos mechanism.
+
+## Key Assumptions
+
+- There is a unique, pre-established coordinator (no leader election needed)
+- All agents can communicate with each other
+- Agents have stable storage surviving failures, so crash-recovery is equivalent to pausing
+- Ballots are partitioned into fast ballots and classic ballots
+
+## Functional Requirements
+
+1. **Fast round initiation**: The coordinator can start a fast round by announcing that acceptors may propose any value
+
+2. **Fast voting**: In a fast round, acceptors can vote for their own proposed values (subject to consistency with any previous votes they've cast)
+
+3. **Fast decision**: If a fast quorum of acceptors all vote for the same value in a fast round, that value is chosen
+
+4. **Collision recovery**: When a fast round results in different acceptors voting for different values, the coordinator initiates a classic round to resolve the collision, using these rules:
+   - If a majority within the fast quorum voted for one value, that value must be selected
+   - Otherwise, the coordinator may select any value that was proposed
+
+5. **Classic round execution**: Standard Paxos phase-2 voting and decision for classic ballots
+
+## Quorum Requirements
+
+- Fast quorums must be subsets of replicas
+- Any two fast quorums must intersect
+- Fast quorums must contain at least three-quarters of replicas
+- Any classic quorum must intersect with any two fast quorums (critical for consistency across round types)
+
+## Correctness Properties
+
+1. **Agreement (Safety)**: At most one value is ever decided—once a decision is made, no different value can be decided
+
+2. **Non-triviality (Validity)**: Any decided value must have been proposed by some acceptor in a fast round
+
+3. **Liveness**: Under fair scheduling, if fast or classic decision conditions become achievable, a decision will eventually be reached

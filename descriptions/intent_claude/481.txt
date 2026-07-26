@@ -1,0 +1,47 @@
+# Specification Request: Paxos Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Paxos distributed consensus algorithm. This is a fundamental protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures and asynchronous communication.
+
+## System Components
+
+The system consists of:
+- A set of **acceptors** that participate in the consensus protocol
+- A set of possible **values** that can be chosen
+- **Quorums**: subsets of acceptors with the property that any two quorums must overlap (share at least one acceptor)
+- **Ballots**: ordered round numbers used to coordinate voting
+- **Messages**: communication between participants (the specification should model message passing, where sent messages are never lost from the model but may simply never be received)
+
+## Protocol Requirements
+
+The algorithm operates in two phases:
+
+**Phase 1 (Prepare):**
+- A leader can initiate a new ballot by broadcasting a prepare request
+- When an acceptor receives a prepare request for a ballot higher than any it has seen, it must promise not to accept proposals from lower ballots and report any value it has previously accepted
+
+**Phase 2 (Accept):**
+- Once a leader has received promises from a quorum of acceptors for a ballot, it can propose a value
+- The value must be chosen carefully: if any acceptor in the quorum has previously accepted a value, the leader must propose the value associated with the highest-numbered ballot among those reported
+- Acceptors accept the proposal if they haven't promised to a higher ballot, recording their vote
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety):** If a value is chosen (accepted by a quorum in some ballot), then no different value can ever be chosen. This is the fundamental consensus property.
+
+2. **Validity:** Only proposed values can be chosen.
+
+3. **Type correctness:** All state variables and messages remain within their expected domains.
+
+4. **Vote consistency:** An acceptor's recorded highest vote must correspond to an actual vote it cast.
+
+5. **Safe value selection:** Any value proposed in a phase 2 message must be "safe" at that ballot—meaning it cannot conflict with any value that might have already been chosen.
+
+## Modeling Approach
+
+- The specification should abstract away explicit leader election and learner processes
+- Message passing can be modeled as an ever-growing set of sent messages (representing that messages may be arbitrarily delayed but not corrupted)
+- The specification should serve as a refinement of a more abstract voting-based consensus specification, demonstrating that the concrete message-passing protocol correctly implements the abstract consensus requirements

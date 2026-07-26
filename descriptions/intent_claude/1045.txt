@@ -1,0 +1,51 @@
+# Specification Request: Disk-Based Consensus Protocol
+
+## System Overview
+
+I need a formal specification for a fault-tolerant consensus protocol where multiple processes coordinate through shared disk storage rather than direct message passing. This is a variant of the Synod (Paxos-like) consensus algorithm adapted for a disk-based communication model.
+
+## System Description
+
+The system consists of:
+- A set of processes that can propose input values and must eventually agree on a single output value
+- A set of shared disks that serve as the communication medium between processes
+- Each process owns a unique, disjoint set of ballot numbers it can use
+
+## Functional Requirements
+
+### Process Behavior
+1. **Initialization and Recovery**: Processes must be able to start fresh or recover after failures by reading their own blocks from a majority of disks to reconstruct their state.
+
+2. **Ballot-Based Phases**: The protocol operates in numbered phases where processes:
+   - First gather information about previously proposed values by writing to and reading from disks
+   - Then attempt to commit a value by repeating the write/read pattern
+   - Finally produce an output once sufficient acknowledgment is achieved
+
+3. **Disk Operations**: Processes communicate by:
+   - Writing their current proposal state to individual disks
+   - Reading other processes' states from disks
+   - Detecting conflicts when another process has started a higher-numbered ballot
+
+4. **Conflict Resolution**: When a process discovers a higher ballot number during reads, it must abandon its current attempt and start a new ballot.
+
+5. **Failure Handling**: Processes may fail and restart at any time, losing their volatile state but with disks retaining their persistent data.
+
+## Quorum Requirements
+
+- Operations require responses from a **majority** of disks
+- Any two disk majorities must overlap (ensuring consistency)
+- This overlap property is essential for the protocol's correctness
+
+## Key Correctness Properties
+
+1. **Agreement**: All processes that produce an output must output the same value.
+
+2. **Validity**: The output value must be one of the input values originally proposed by some process.
+
+3. **Refinement**: The protocol must correctly implement the abstract Synod consensus specification—any behavior of this disk-based protocol must be a valid behavior of the higher-level consensus specification.
+
+## Additional Constraints
+
+- Ballot numbers must be positive integers
+- Each process's ballot numbers must be disjoint from all other processes' ballot numbers
+- The majority predicate must satisfy the quorum intersection property

@@ -1,0 +1,52 @@
+# Specification Request: Concurrent Hash Table with Open Addressing and External Storage Eviction
+
+## System Overview
+
+I need a formal specification for a concurrent hash table that uses open addressing with linear probing, designed to handle fingerprint storage. The system must support multiple writer threads inserting fingerprints concurrently, with the ability to evict data to external (disk) storage when the in-memory table becomes full.
+
+## Functional Requirements
+
+### Core Hash Table Operations
+
+1. **Concurrent Insertion**: Multiple writer threads must be able to insert fingerprints into a fixed-size hash table simultaneously. When a fingerprint's primary slot is occupied, the system should probe alternate positions up to a configurable limit.
+
+2. **Lookup with Probing**: The system must support checking whether a fingerprint exists, searching through the probing sequence and also checking external storage if the fingerprint may have been evicted.
+
+3. **Open Addressing with Linear Probing**: Use a hash function to compute a primary index, with a bounded number of alternate positions to try when collisions occur.
+
+### Eviction Mechanism
+
+4. **Triggered Eviction**: When a writer thread exhausts all probing positions without finding space, it should trigger an eviction process to move data to external storage.
+
+5. **Coordinated Eviction**: Only one thread should perform eviction at a time. Other threads must wait for eviction to complete before resuming their operations. This requires a synchronization barrier.
+
+6. **In-Place Sorting**: Before writing to external storage, the eviction process must sort the table contents using an in-place sorting algorithm (insertion sort) that correctly handles the circular/wrap-around nature of the probing sequences.
+
+7. **Incremental External Writes**: Evicted fingerprints should be merged with existing external storage while maintaining sorted order. Fingerprints being written externally should be marked (negated) to indicate their transitional state.
+
+### Concurrency Control
+
+8. **Atomic Compare-and-Swap**: Individual slot updates must use atomic compare-and-swap operations to handle concurrent access safely.
+
+9. **Eviction Flag**: A shared flag must coordinate when eviction is occurring, with threads incrementing a wait counter and blocking until eviction completes.
+
+## Key Correctness Properties
+
+1. **No Lost Insertions**: Every fingerprint that a writer attempts to insert must eventually be findable—either in the in-memory table or in external storage.
+
+2. **No Duplicates**: A fingerprint should not be inserted if it already exists in the table or external storage.
+
+3. **Termination**: When all fingerprints have been inserted, all writer threads should terminate (no deadlock).
+
+4. **Sorting Correctness**: The eviction sort must correctly order fingerprints even when probing sequences wrap around the circular table boundary.
+
+5. **External Storage Consistency**: The external storage must maintain sorted order and correctly merge with newly evicted data.
+
+6. **Mutual Exclusion During Eviction**: Only one thread performs eviction while all others wait, and normal operations resume correctly after eviction completes.
+
+## Parameters
+
+- Table capacity (number of slots)
+- Set of fingerprints to be inserted
+- Number of writer threads (and optionally reader threads)
+- Maximum probing limit before triggering eviction

@@ -1,0 +1,50 @@
+# Specification Request: TLA+ Value Comparison and Equality Semantics
+
+## System to be Modeled
+
+I need a formal specification of the **equality and comparison semantics for TLA+ values**, specifically focusing on how the TLA+ model checker should handle comparisons between values of different types or structures.
+
+## Goal
+
+Define the correct behavior for equality and inequality comparisons between:
+- Functions with different domains
+- Records with different field sets
+- Tuples of different lengths
+- Functions, records, and tuples compared against each other
+- Sets containing mixed-type elements (specifically in Cartesian products and sets of records)
+
+## Requirements
+
+### Core Comparison Rules
+
+1. **Functions with disjoint or partially overlapping domains**: Two functions should be considered unequal if their domains differ, regardless of the types of their range values. The comparison should complete without error.
+
+2. **Records with different field names**: Two records with different sets of field names should be considered unequal, and the comparison should succeed without raising type errors, even if some common fields have values of incompatible types.
+
+3. **Tuples of different lengths**: Tuples with different numbers of elements should be considered unequal, and the comparison should succeed without error.
+
+4. **Cross-type comparisons**: Comparing a function to a tuple, or other structurally different value types, should yield inequality without error.
+
+### Set Construction Rules
+
+1. **Cartesian products**: Constructing a Cartesian product of homogeneously-typed sets (e.g., integers crossed with booleans) should succeed.
+
+2. **Sets of records**: Constructing sets containing records with different field structures should succeed.
+
+3. **Mixed-type sets**: Constructing sets that directly mix incompatible types (like `{1, TRUE}`) within the same position should produce an error.
+
+### Error Conditions
+
+The system should raise a type comparison error **only** when:
+- Attempting to directly compare values of fundamentally incompatible types (e.g., comparing a boolean to an integer for ordering purposes)
+- Constructing sets that require element comparison between incompatible atomic types
+
+## Key Correctness Properties
+
+1. **Soundness**: All comparisons that should mathematically be decidable must complete without spurious errors.
+
+2. **Structural inequality**: Values with different structures (different domains, different fields, different lengths) are always unequal.
+
+3. **Type safety**: Direct comparisons between incompatible atomic types (within the same structural position) should be caught and reported as errors.
+
+4. **Consistency with TLA+ semantics**: Behavior must match the mathematical semantics described in "Specifying Systems" by Lamport.

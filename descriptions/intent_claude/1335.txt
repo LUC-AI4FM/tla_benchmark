@@ -1,0 +1,39 @@
+# Specification Request: Distributed Spanning Tree Construction via Echo Algorithm
+
+## System Overview
+
+I need a formal specification of the Echo algorithm for constructing a spanning tree in a distributed system. The algorithm operates on an undirected, connected graph where nodes communicate by passing messages to their neighbors. A single designated node initiates the process, and upon completion, a spanning tree rooted at that initiator should be established.
+
+## System Requirements
+
+### Input/Environment
+- A set of nodes forming an undirected graph
+- A neighborhood relation defining which nodes can directly communicate (no self-loops, symmetric connections)
+- The graph must be connected (all nodes reachable from any other node)
+- One distinguished node serves as the initiator/root
+
+### Behavior
+- The initiator begins by sending messages to all its neighbors
+- When a non-initiator node receives a message for the first time, it designates the sender as its parent and forwards messages to its remaining neighbors
+- Nodes track how many responses they've received from neighbors
+- Once a non-initiator has heard from all its neighbors, it sends an acknowledgment back to its parent, establishing a parent-child relationship
+- The algorithm terminates when all nodes have completed their message exchanges
+
+### Communication Model
+- Nodes communicate via asynchronous message passing
+- Two types of messages exist: exploration messages (propagating outward) and acknowledgment messages (confirming child relationships)
+- Messages are received from an inbox; the order of processing is nondeterministic
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Termination**: All nodes eventually complete the algorithm
+
+2. **Valid Parent Assignment**: Every non-initiator node has exactly one parent, which must be one of its neighbors; the initiator never has a parent
+
+3. **Consistent Parent-Child Relationships**: If a node considers another node its child, that child must consider the first node its parent, and vice versa (upon termination)
+
+4. **Spanning Tree Formation**: Upon termination, the parent relationships form a valid spanning tree rooted at the initiator—meaning the initiator is an ancestor of every other node, and the ancestor relation contains no cycles
+
+5. **Type Safety**: All data structures maintain proper types throughout execution (parents are valid nodes or unset, children sets contain only nodes, message counts stay bounded, messages come only from actual neighbors)

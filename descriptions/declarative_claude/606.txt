@@ -1,0 +1,9 @@
+This TLA+ module specifies a multi-raft region merge algorithm used in TiKV, a distributed key-value store. The system manages data divided into regions, where two regions (A and B) can merge when one becomes small enough.
+
+The specification models two regions replicated across a set of stores, with designated leaders for each region. Constants define the stores, regions, leaders, quorum size for flexibility in model checking, maximum client requests, and whether rollback occurs instead of merge completion.
+
+Variables track the message set for RPC communication, per-store Raft state (leader status, logs, commit and apply indices, match indices), region states (Normal, Merging, or TombStone), and client request count.
+
+The next-state relation includes standard Raft operations (AppendEntries sending and handling, commit index advancement, message processing), client requests adding normal logs to region B, and merge-specific actions. The merge protocol involves: proposing a PreMerge log on region B's leader, applying PreMerge to transition region B to Merging state, creating a Merge log on region A containing region B's entries, applying the Merge log in two steps (copying logs then marking B as TombStone), and optionally rolling back via a Rollback log.
+
+The specification checks type invariants, simplified Raft invariants (single leader per group, log consistency, apply-commit ordering), and merge-specific invariants ensuring that stores with identical apply indices have consistent region states and applied log counts, and that tombstoned regions agree on applied normal log counts.

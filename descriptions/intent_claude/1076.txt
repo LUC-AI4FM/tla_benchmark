@@ -1,0 +1,42 @@
+## Specification Request: Dijkstra-Scholten Termination Detection (EWD998) with Explicit Network
+
+### System to Model
+
+I need a formal specification of the **EWD998 termination detection algorithm** (Dijkstra, Feijen, and van Gasteren's token-based scheme for detecting termination in a distributed system), but with the communication infrastructure modeled explicitly as a network of message bags rather than using abstract counters.
+
+### System Description
+
+The system consists of N nodes arranged in a logical ring (numbered 0 to N-1). Each node can be either active or inactive, and active nodes may send payload messages to other nodes. The goal is to detect when the entire distributed computation has terminated—meaning all nodes are inactive and no messages are in transit.
+
+The algorithm uses a single token that circulates around the ring. Each node also maintains a color (white or black) and a counter tracking messages sent minus messages received. The token accumulates information as it travels, and when it returns to the initiator node (node 0) under certain conditions, global termination can be safely declared.
+
+### Key Requirements
+
+**Message-based communication model:**
+- Instead of abstract "pending message" counters, the specification should model an explicit network where each node has a bag (multiset) of incoming messages
+- There are two message types: payload messages representing application work, and a single token message used for the termination detection protocol
+- The pending count at each node should be derivable from the count of payload messages in that node's bag
+
+**Token properties:**
+- Exactly one token must exist in the system at all times
+- The token carries a cumulative counter and a color
+- The token's position should be derivable from which node's message bag contains it
+
+**Node behaviors:**
+- Active nodes may send payload messages to any other node
+- Receiving a payload message activates the recipient and colors it black
+- Nodes may spontaneously deactivate
+- Nodes holding the token may pass it along the ring (with protocol-specific updates)
+- Node 0 may initiate a new detection probe when holding a returned token
+
+### Correctness Properties
+
+1. **Safety (Stable Termination):** If the algorithm declares termination, then all nodes are truly inactive and no payload messages remain in transit
+
+2. **Refinement:** The message-based implementation must correctly implement the abstract EWD998 algorithm—the explicit network representation must faithfully simulate the original specification's pending counters and token state
+
+3. **Type Safety:** The network must always be well-formed (valid message bags containing only properly-typed messages, with exactly one token present in the entire system)
+
+### Purpose
+
+This specification bridges the gap between the abstract termination detection algorithm and a more realistic implementation model with explicit message passing, proving that the concrete network-based version correctly refines the original abstract specification.

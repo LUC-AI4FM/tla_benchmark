@@ -1,0 +1,48 @@
+# Specification Request: Distributed Database Consistency Levels
+
+## System Overview
+
+I need a formal specification for a globally distributed database system that offers multiple consistency levels to clients. The system consists of multiple geographic regions, where some regions can accept writes and all regions can serve reads. Data written to one region is asynchronously replicated to other regions.
+
+## System Requirements
+
+### Topology
+- The system spans multiple regions, with a configurable subset designated as write-enabled regions
+- Multiple clients exist in each region and interact with their local region
+- Each client performs a bounded number of read and write operations
+
+### Core Behavior
+- **Writes**: Clients in write-enabled regions can write new values to their local region's data store
+- **Reads**: Any client can read the current value from their local region
+- **Replication**: The system continuously and asynchronously propagates data from write regions to all other regions, merging histories in a consistent order
+
+### Consistency Levels
+
+The system must support five distinct consistency levels, selectable at configuration time:
+
+1. **Strong (Linearizability)**: All reads and writes appear to occur in a single global order. A read always returns the most recently written value across all regions.
+
+2. **Bounded Staleness**: Reads may lag behind writes, but the staleness is bounded by a configurable version count K. Reads within any single region are monotonic, and clients always read their own writes.
+
+3. **Session**: Within a single client session, reads are monotonically increasing, and clients always see their own writes. Different clients may observe different orderings.
+
+4. **Consistent Prefix**: Writes are observed in the order they were performed within each region. Reads never see out-of-order writes—if write A happened before write B, no client sees B without having seen A.
+
+5. **Eventual**: The weakest guarantee—reads return some value that was written at some point, but no ordering guarantees are provided. All replicas eventually converge to the same state.
+
+## Correctness Properties
+
+### Safety Properties
+- All values read must be values that were actually written (or the initial value)
+- For strong consistency: total ordering of all operations across the system
+- For bounded staleness: regional values never diverge by more than K versions
+- For session consistency: per-client monotonic reads and read-your-writes guarantees
+- For consistent prefix: per-region write ordering is preserved in reads
+
+### Liveness Properties
+- All regions eventually converge to the same data state
+- Client operations should eventually complete (fairness for both clients and the replication mechanism)
+
+## Modeling Scope
+
+The specification should focus on the consistency guarantees observable by clients, abstracting away internal protocol details. It should capture the client-facing behavior and verify that each consistency level provides its advertised guarantees while permitting the flexibility that weaker levels allow.

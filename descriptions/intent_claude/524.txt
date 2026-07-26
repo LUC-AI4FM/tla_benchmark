@@ -1,0 +1,45 @@
+# Specification Request: Alternating Bit Protocol with Lossy Channels
+
+## System Overview
+
+I need a formal specification of the **Alternating Bit Protocol** for reliable data transmission between two endpoints (a sender and a receiver) over unreliable communication channels that may lose messages.
+
+## System Description
+
+The system consists of two parties:
+- **Sender (A)**: Holds data to transmit and sends messages to the receiver
+- **Receiver (B)**: Receives data and sends acknowledgments back to the sender
+
+Communication occurs over two unidirectional channels:
+- A channel from sender to receiver carrying data messages
+- A channel from receiver to sender carrying acknowledgments
+
+Both channels are **unreliable** and may lose messages at any time (but do not corrupt, reorder, or duplicate them).
+
+## Protocol Behavior
+
+The protocol should use a 1-bit sequence number (alternating between 0 and 1) to achieve reliable delivery:
+
+1. The sender repeatedly transmits its current message (data plus sequence bit) until it receives a matching acknowledgment
+2. The receiver sends acknowledgments containing the sequence bit of the last correctly received message
+3. When the sender receives an acknowledgment matching its current sequence bit, it knows the message was delivered and can move to the next message (flipping the bit)
+4. When the receiver gets a message with a different sequence bit than expected, it accepts the new data and updates its state
+
+New data values to transmit are provided externally and queued for transmission when the sender and receiver are synchronized.
+
+## Fairness Requirements
+
+- The sending processes should execute infinitely often (weak fairness)
+- The receiving processes must eventually process available messages (strong fairness) to ensure progress despite message loss
+
+## Key Correctness Properties
+
+The specification should support verification of:
+
+1. **Safety**: The receiver's view of the data should only change to values that were actually sent
+2. **Agreement**: When both parties are synchronized (have matching state), they agree on the current data value
+3. **Liveness**: Despite arbitrary message loss, if new data is queued for transmission, it will eventually be delivered to the receiver (assuming fair scheduling)
+
+## Environment
+
+The set of possible data values should be configurable as a model parameter to allow verification with different data domains.

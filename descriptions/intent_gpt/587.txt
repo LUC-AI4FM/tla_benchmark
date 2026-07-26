@@ -1,0 +1,12 @@
+Specify a formal TLA+ model of a distributed optimistic transaction protocol with multi-key transactions, prewrite/commit phases, and explicit rollbacks for aborted or stale prewrites. The model should describe clients that start transactions, read keys under snapshot isolation, prewrite primary and secondary keys (possibly concurrently), and commit by committing the primary (which may trigger committing secondaries) or aborting. The system must allow locks per key and multi-version write histories per key (including committed writes and logical rollback records). It must permit cleanup of stale locks and collapsing of preliminary rollback records so that repeated rollback attempts do not violate invariants. Timestamps for transaction start and commit must be monotonic and unique across transactions.
+
+Require the specification to enforce these correctness properties:
+- Type invariants for all state components (clients, keys, timestamps, locks, write logs).
+- Write-order and version consistency: committed writes on a key are totally ordered, commits have commit timestamps greater than their start timestamps, and writes for the same transaction do not overlap.
+- Lock invariants: at most one lock per key; if a transaction is ready to commit and its primary exists, all secondaries must have corresponding locks.
+- Commit/abort consistency: a committed transaction must have its primary write visible and locks cleaned appropriately; an aborted transaction must not have a committed primary write with its commit timestamp.
+- No transaction may both produce committed writes and live rollback records for the same start timestamp.
+- Uniqueness of start timestamps within each key’s write log.
+- Snapshot isolation: reads must see a monotonically nondecreasing read timestamp per key, and the model must preserve a per-key snapshot-isolation predicate (no committed write with commit_ts <= a prior read_ts).
+
+Do not prescribe implementation details; allow nondeterministic interleavings, concurrent prewrites, and independent cleanup actions. Include assertions that collapsing and logical deletion of rollbacks preserve the listed invariants.

@@ -1,0 +1,54 @@
+# Specification Request: TLA+ to PlusCal Source Location Mapping
+
+## System Overview
+
+I need a formal specification for a **source location mapping system** that translates highlighted regions in generated TLA+ code back to corresponding regions in the original PlusCal source code. This is used in tooling where a user selects or highlights a portion of TLA+ specification text, and the system must determine which region(s) of the original PlusCal algorithm correspond to that selection.
+
+## Context and Purpose
+
+When PlusCal code is translated to TLA+, there is a structural mapping between the original algorithm and its translation. This system takes a mapping specification (created during translation) and a user-selected region in the TLA+ output, then computes which region(s) in the PlusCal source should be highlighted to show the user the corresponding original code.
+
+## Core Requirements
+
+### Mapping Specification Structure
+
+The system must work with a mapping specification that contains:
+
+1. **Token markers** - identifying significant regions in the TLA+ text (as opposed to whitespace), with an indication of whether each token is part of an expression
+2. **Hierarchical region delimiters** - paired begin/end markers defining nested syntactic units (expressions, statements) in the PlusCal code, with associated locations
+3. **Break markers** - indicating discontinuities where successive PlusCal regions are not adjacent in the source (e.g., code split between a macro and a procedure)
+
+### Well-formedness Constraints
+
+The mapping specification must satisfy:
+- Properly nested/balanced region delimiters
+- Tokens ordered left-to-right according to their positions
+- At least one token between each matching pair of delimiters
+- Expression tokens must be immediately surrounded by region delimiters
+- Break markers appear only between a closing and opening delimiter at the same nesting level
+
+### Mapping Algorithm Requirements
+
+Given a user-selected region in TLA+ text, the system must:
+
+1. **Identify relevant tokens** - Determine which tokens in the mapping intersect with or are closest to the selected region. If the selection falls entirely in whitespace, use proximity to find the nearest token(s).
+
+2. **Determine appropriate nesting level** - Find the minimal nesting depth that encompasses the selected tokens, with special handling when all selected tokens are expression tokens.
+
+3. **Find bounding delimiters** - Locate the innermost begin/end delimiter pair at the appropriate depth that contains the selected tokens.
+
+4. **Handle discontinuities** - When breaks exist within the bounded region, produce multiple output regions rather than one continuous region.
+
+5. **Produce output regions** - Return one or more PlusCal source regions corresponding to the selection.
+
+## Key Correctness Properties
+
+1. **Completeness**: Every valid TLA+ region selection must map to at least one PlusCal region.
+
+2. **Structural consistency**: The computed delimiter pairs must respect the hierarchical nesting of the mapping specification.
+
+3. **Token coverage**: The output region(s) must encompass all PlusCal locations corresponding to the tokens identified as relevant to the selection.
+
+4. **Break handling**: Discontinuities marked in the mapping must result in separate, non-contiguous output regions rather than incorrectly joining unrelated code sections.
+
+5. **Distance-based fallback**: When a selection doesn't intersect any tokens, the nearest token (by a reasonable distance metric) determines the mapping.

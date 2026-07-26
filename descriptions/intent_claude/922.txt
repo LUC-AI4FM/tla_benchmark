@@ -1,0 +1,42 @@
+# Specification Request: Buffered FIFO Queue with Handshake Channels
+
+## System Overview
+
+I need a formal specification for a buffered FIFO (First-In-First-Out) queue that connects a sender to a receiver through two asynchronous handshake channels. The system should model message passing where a sender transmits messages into the buffer, and a receiver retrieves messages from the buffer, with the buffer mediating between them.
+
+## System Architecture
+
+The system consists of three main components:
+
+1. **Input Channel**: An asynchronous handshake channel connecting the external sender to the buffer
+2. **Internal Buffer**: A queue that stores messages in FIFO order
+3. **Output Channel**: An asynchronous handshake channel connecting the buffer to the external receiver
+
+## Handshake Channel Behavior
+
+Each channel should implement a simple two-phase handshake protocol:
+- A channel carries a data value along with ready and acknowledge signals (each being a single bit)
+- A send operation is enabled when ready equals acknowledge, and it updates the value while toggling the ready signal
+- A receive operation is enabled when ready differs from acknowledge, and it toggles the acknowledge signal to complete the handshake
+
+## Required Operations
+
+The system must support four operations:
+1. **Sender transmits**: The external sender places a message on the input channel
+2. **Buffer receives**: The buffer accepts a message from the input channel and enqueues it
+3. **Buffer sends**: The buffer dequeues a message and places it on the output channel (only when the buffer is non-empty)
+4. **Receiver accepts**: The external receiver completes reception of a message from the output channel
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: The channels always maintain valid structure (data from the message set, signals are binary), and the internal buffer is always a sequence of valid messages
+
+2. **FIFO Ordering**: Messages must exit the buffer in the same order they entered—the buffer operates strictly as a queue
+
+3. **Handshake Protocol Integrity**: Channel operations respect the two-phase handshake discipline, ensuring proper synchronization between sender/buffer and buffer/receiver
+
+## Parameters
+
+The specification should be parameterized by the set of possible messages that can be transmitted through the system.

@@ -1,0 +1,15 @@
+This TLA+ module specifies the **two-phase handshake protocol**, a fundamental hardware protocol enabling alternating communication between a Producer and Consumer process, with the Producer acting first.
+
+**Variables:** The specification uses three variables: `p` and `c` are single-bit signals (values 0 or 1) representing the Producer's and Consumer's control wires respectively, while `x` represents arbitrary data state parameterized by the constants.
+
+**Constants:** `XInit` specifies initial conditions on `x`, and `XAct` defines actions that can modify `x`, parameterized by which process (0 for Producer, 1 for Consumer) is acting.
+
+**Initial State:** Both control signals start at 0, and the data state satisfies `XInit`.
+
+**Actions:** The `ProducerStep` executes when signals are equal (`p = c`), performing a Producer action on `x` and toggling `p`. The `ConsumerStep` executes when signals differ (`p ≠ c`), performing a Consumer action and toggling `c`. This creates strict alternation: Producer acts first, then Consumer, then Producer again.
+
+**Temporal Specification:** The spec allows stuttering steps that leave all variables unchanged.
+
+**Invariant:** `Inv` states both `p` and `c` remain in {0,1}.
+
+**Refinement:** The module proves this specification implements the Alternate specification through a refinement mapping where `vBar = (p + c) % 2`. The theorem `Implementation` formally establishes that TwoPhase refines Alternate's safety properties.

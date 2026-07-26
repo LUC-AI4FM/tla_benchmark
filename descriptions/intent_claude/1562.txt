@@ -1,0 +1,51 @@
+# Specification Request: Non-Blocking Atomic Commitment with Failure Detectors
+
+## System Overview
+
+I need a formal specification of a **non-blocking atomic commitment (NBAC) protocol** for distributed systems that uses failure detectors. This protocol allows a group of processes to reach agreement on whether to commit or abort a transaction, even in the presence of process failures.
+
+## System Description
+
+The system consists of a fixed number of participating processes that must collectively decide on a transaction outcome. Each process begins with an initial vote (either YES or NO) indicating its willingness to commit. Processes communicate by broadcasting their votes and receiving votes from others. The system incorporates a failure detector that can indicate whether failures have been suspected in the system.
+
+### Process Behavior
+
+- Each process starts with an initial vote (YES or NO)
+- Processes broadcast their votes to all other participants
+- Processes collect votes from others before making a decision
+- A process may crash at any point, potentially after sending its vote to only some participants
+- The failure detector provides information about suspected failures
+
+### Decision Rules
+
+- A process should **commit** only if it has received YES votes from all participants and has no reason to suspect failures
+- A process should **abort** if:
+  - It receives any NO vote, OR
+  - The failure detector suspects that some process has failed
+- Crashed processes stop participating and make no decision
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+### Safety Properties
+
+1. **Agreement**: No two correct (non-crashed) processes may decide differently—it is impossible for one process to commit while another aborts.
+
+2. **Abort-Validity**: If any process votes NO, then no process may commit. (A commit decision is only valid if all participants voted YES.)
+
+3. **Commit-Validity**: If all processes vote YES and no process is suspected of failure, then no correct process should abort.
+
+### Liveness Properties
+
+4. **Termination**: If no process crashes and no process is ever suspected by the failure detector, then all processes eventually reach a decision (either commit or abort).
+
+5. **All-Commit** (under restricted conditions): When all processes vote YES and the system is failure-free, all processes should eventually commit.
+
+## Modeling Considerations
+
+- The model should be parameterized by the number of processes
+- It should support different initial configurations (all YES votes, all NO votes, or mixed)
+- Message delivery is asynchronous—messages may be received in any order
+- Faulty processes may send messages to some but not all participants before crashing
+- The failure detector is assumed to be perfect: it eventually suspects all crashed processes and never falsely suspects correct processes

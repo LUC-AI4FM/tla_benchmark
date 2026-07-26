@@ -1,0 +1,11 @@
+Specify a model of a test-driver that systematically runs external simulations for a parametrized distributed algorithm and records successful runs. The model should represent a finite set of independent numeric configuration parameters (each parameter has a small discrete domain of possible values). The system must non-deterministically pick one complete configuration (combination of parameter values), invoke an external simulation run for that configuration, and record whether the invocation completed successfully. The invocation may be abstracted as an atomic operation that either returns success or failure; the model should allow modeling both outcomes but treat successful completion as the progress case.
+
+The model must guarantee:
+- Exactly one configuration is selected and submitted for execution per run of the driver.
+- The selected configuration must be drawn from the Cartesian product of the declared domains (no invalid or partial configurations).
+- If the external simulation reports success, the system records the configuration and reports success; thereafter no further invocations occur.
+- If the external simulation reports failure, the system may retry with another configuration or terminate, but must not report success for an unexecuted or failed configuration.
+- No concurrent invocations of the external simulation are allowed; executions are sequential and atomic.
+- Deadlock freedom: the driver must always be able to progress to a terminal state (success or explicit stop).
+
+State safety properties to check: validity of recorded configuration (belongs to the declared domains) and absence of spurious success reports. State liveness properties to check: eventual termination (either success or stop) under fair scheduling, and that a successful external run leads to termination with the corresponding configuration recorded.

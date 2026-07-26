@@ -1,0 +1,11 @@
+Specify a model of a replicated state machine using the Raft consensus algorithm variant used by a distributed database. The model should describe a fixed set of servers that maintain an append-only log of client requests, where each log entry carries a term and a value. The system must permit leaders to append client entries to their local logs and replicate entries to other servers, while followers may accept appends or, when discovering a more up-to-date log on another server, roll back (truncate) their local log one entry at a time until they become consistent with the more up-to-date source.
+
+Model leader election progress in terms of terms and simple majority ("quorum") voting: a server may become leader for a new term only if a majority of servers are at least as up-to-date as that server (where up-to-date is determined first by last-entry term, then by log length). Leaders should increment the global term when they become leader.
+
+Specify safety properties that must never be violated:
+- Log matching: if two logs contain entries at the same index and term, then the entries’ values are identical on all servers.
+- Leader completeness: if a log entry is committed in a term, then no leader elected in a later term can overwrite that committed entry.
+- No rollback of committed entries: once an entry is considered committed (held by a quorum and its term equals the current term when committed), no server may later truncate that committed entry.
+- Quorum intersection: every quorum must overlap every other quorum.
+
+Specify liveness expectations informally (optional): leaders should be able to append client requests and eventually have them replicated to a quorum, assuming stable leadership and non-failing network. Do not prescribe implementation details such as message formats, retry timers, or concrete election protocols—model only state, term advancement, up-to-dateness comparison, append, rollback, and the constraints above.

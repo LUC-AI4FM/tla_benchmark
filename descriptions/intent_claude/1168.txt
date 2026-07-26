@@ -1,0 +1,61 @@
+# Specification Request: Container Orchestration Worker Node with Refinement
+
+## System Overview
+
+I need a formal specification for a **worker node in a container orchestration system** (similar to Docker Swarm). The system consists of manager nodes that maintain a store of task assignments, and worker nodes that run containers based on those assignments. This specification should model the detailed behavior of a single worker node, including the actual container lifecycle on that node.
+
+## Goals
+
+The primary goal is to create a **refinement specification** that models worker behavior at a lower level of abstraction than a simpler high-level worker specification. This detailed model should:
+
+1. Track the actual state of containers running on the worker (not just the task state recorded in the central store)
+2. Prove that this detailed implementation correctly refines the simpler abstract specification
+3. Enable compositional verification: instead of checking the entire system at once, verify separately that (a) the abstract worker satisfies the overall correctness property, and (b) the detailed worker refines the abstract one
+
+## System Behavior Requirements
+
+### Container Lifecycle
+- Containers can be in states: running, shutting down, completed successfully, or failed
+- Running containers may exit on their own (successfully or by crashing)
+- Containers being shut down will eventually reach a failed/stopped state
+- When the worker reboots, all active containers terminate
+
+### Worker-Manager Synchronization
+- Workers periodically synchronize with managers when connected
+- During sync, workers receive updated task assignments and report container status
+- If a task is removed from assignments or marked for shutdown, the worker should terminate its container
+- Once a container stops and its task is removed, the container record is cleaned up
+
+### Task Processing
+- Workers progress tasks through states: assigned → accepted → preparing → ready → starting → running
+- Starting a task causes a container to begin running
+- Workers can reject tasks before they reach the running state
+- Workers can only make progress while connected to a manager
+
+### Connection Management
+- Workers can connect to or disconnect from the cluster
+- If a worker is disconnected for an extended period, its tasks may be marked as orphaned by the managers
+- When reconnecting, workers sync their state and may need to shut down containers for tasks no longer assigned to them
+
+### Task Creation and Management (Environment)
+- New tasks are created with a desired state (ready or running)
+- Tasks can be for replicated services (assigned to slots) or global services (one per node)
+- Tasks are assigned to specific nodes when they reach the assigned state
+- Completed tasks are eventually removed by a cleanup process
+
+## Correctness Properties
+
+1. **Refinement**: The detailed worker specification must refine the abstract worker specification—every behavior of the detailed model must correspond to a valid behavior in the abstract model
+
+2. **Progress**: When possible, workers should eventually:
+   - Advance tasks toward their desired state
+   - Complete container shutdowns
+   - Reconnect when disconnected
+   - Synchronize with managers
+   - Process orphaned task states
+
+3. **Type Safety**: Container state mappings and task records must maintain well-formed structure throughout execution
+
+## Verification Approach
+
+The specification should support compositional reasoning: proving that the detailed worker refines the abstract worker, combined with a separate proof that the abstract worker (with the rest of the system) satisfies the overall liveness property "tasks eventually reach their desired state."

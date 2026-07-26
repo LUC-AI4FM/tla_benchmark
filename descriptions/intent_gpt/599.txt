@@ -1,0 +1,12 @@
+Specify a model of a distributed optimistic transactional storage system that implements multi-key transactions using per-transaction timestamps, prewrites (locks), and a primary/secondary lock scheme with rollback and cleanup. The model should present clients that start transactions with unique monotonically increasing start timestamps, read keys under snapshot isolation, prewrite (place locks and tentative versions) on a set of keys (one designated primary, others secondaries), and then commit by assigning a commit timestamp and making the primary write durable; secondary keys must be cleaned up or committed consistently with the primary. The system must allow concurrent clients, possible aborts or client crashes, and explicit cleanup of stale locks that can cause secondary keys to be either rolled back or committed depending on the primary’s final outcome.
+
+Require the specification to capture these correctness properties:
+- Type and well-formedness invariants for timestamps, client states, per-transaction metadata, per-key versions, locks, and read timestamps.
+- Write ordering: committed versions on each key must have strictly ordered commit/start timestamps and no overlapping writes.
+- Lock consistency: at most one lock per key, and when a transaction is ready to commit, if its primary lock exists then all its secondary locks must also exist.
+- Committed transaction consistency: committing a transaction must create the expected committed write for the primary (and corresponding secondary behavior), remove the primary lock, and ensure the tentative data exists where appropriate.
+- Abort/rollback consistency: an aborted transaction cannot have its primary key committed; a single transaction cannot both have committed writes and rollbacks for its start timestamp.
+- Uniqueness: for each key, write/rollback records must have unique associated start timestamps.
+- Snapshot isolation: once established, reads must observe a consistent snapshot and the mechanism must preserve snapshot-isolation semantics (no committed write with commit_ts ≤ a recorded read timestamp).
+
+Do not prescribe implementation details such as the exact ordering of internal steps; instead model atomic client operations (start, read, prewrite/lock, commit, abort, cleanup) and allow nondeterministic interleavings. Ensure the model includes explicit cleanup behavior that can detect stale locks and either rollback or finalize secondary keys based on whether the primary committed.

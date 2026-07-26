@@ -1,0 +1,13 @@
+Specify a model of a command-execution and file-IO utility for a Unix-like environment that exposes operations to run external programs, run programs with templated arguments, set or override environment variables for a run, and perform simple serialization/deserialization of text files. The model should treat program invocations as atomic operations that return a structured result containing at least: an integer exit code, the captured standard output string, and the captured standard error string.
+
+Requirements:
+- Argument handling: arguments containing spaces and quotes must be preserved and passed exactly to the invoked program; templated argument substitution must correctly insert arbitrary argument strings without re-parsing or stripping whitespace/quotes.
+- Error reporting: nonzero exit codes must be surfaced in the result; stderr must contain the program’s error messages when the program fails.
+- Environment handling: it must be possible to run a program using the caller’s environment, and to run it with a provided mapping of environment variables that overrides or augments the inherited environment. The model must show that environment variables set for a run appear in the program’s output as expected.
+- Composition: support launching programs that in turn invoke other tools on the classpath, and passing environment and classpath settings to those invocations.
+- File IO: support serializing a UTF-8 text payload to a filesystem path with options to create/truncate and then deserializing it back, returning the original payload and appropriate exit codes/errors.
+
+Correctness properties to guarantee:
+- Preservation: outputs reflect exact inputs for argument/template and environment behaviors (no accidental trimming or re-quoting).
+- Consistency: exit code, stdout, and stderr in the result accurately reflect the outcome of the execution or file operation.
+- Atomicity: each operation either completes successfully with expected outputs or fails with deterministic exit code and stderr; no partial state (e.g., partially written files) is observable by later operations.

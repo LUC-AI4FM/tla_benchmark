@@ -1,0 +1,57 @@
+# Specification Request: Consensus by Voting with Quorums
+
+## System Overview
+
+I need a formal specification of a distributed consensus algorithm based on ballot-based voting with quorum intersection. The system models how a set of acceptor processes can reach agreement on a single value through a voting mechanism that uses numbered ballots.
+
+## System Components
+
+The system consists of:
+- A fixed set of acceptor processes that participate in voting
+- A collection of quorums (subsets of acceptors) where any two quorums must overlap
+- A set of possible values that can be chosen
+- Ballots identified by natural numbers representing voting rounds
+
+## Required Behaviors
+
+Each acceptor should be able to perform two types of actions:
+
+1. **Promise to ignore old ballots**: An acceptor can commit to only participating in ballots at or above a certain number, effectively refusing to vote in earlier ballots.
+
+2. **Cast a vote**: An acceptor can vote for a value in a particular ballot, subject to safety conditions that ensure consistency.
+
+Voting must be constrained so that:
+- An acceptor votes at most once per ballot
+- An acceptor only votes for values that are "safe" at that ballot number
+- If other acceptors have already voted in the same ballot, the vote must be for the same value
+
+A value is considered "safe" at a ballot if either it's the first ballot, or there exists a quorum where all members have promised to participate in at least that ballot, and there's evidence that voting for this value won't conflict with any value that might have been chosen in earlier ballots.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement**: At most one value can ever be chosen. If any two values are chosen, they must be equal.
+
+2. **Type Safety**: All state variables remain within their expected domains throughout execution.
+
+3. **Voting Consistency**: 
+   - No acceptor votes for different values in the same ballot
+   - No two acceptors vote for different values in the same ballot
+   - Every vote cast is for a value that was safe at that ballot
+
+4. **Ballot Discipline**: Acceptors respect their promises—they don't vote in ballots they've promised to ignore.
+
+## Relationship to Consensus
+
+The specification should implement or refine a basic consensus specification where:
+- Initially, no value is chosen
+- The only allowed transition is from having no chosen value to having exactly one chosen value
+- Once a value is chosen, it remains chosen forever
+
+## Additional Requirements
+
+The specification should support formal verification, including:
+- Proof that the voting invariants are inductive (preserved by all transitions)
+- Proof that the safety property (at most one chosen value) follows from the invariants
+- Proof that the voting protocol correctly implements consensus

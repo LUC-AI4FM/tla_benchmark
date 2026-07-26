@@ -1,0 +1,9 @@
+This TLA+ module specifies an optimized variant of the Percolator distributed transaction protocol, focusing on commit timestamp calculation for snapshot isolation.
+
+The system models concurrent clients executing transactions over a set of keys. Each transaction has a designated primary key and secondary keys. Constants include KEY (the set of keys), CLIENT (the set of clients), and CLIENT_PRIMARY_KEY (mapping each client to its primary key).
+
+Variables track global timestamp allocation (next_ts), per-client state (client_state progressing through init, working, prewriting, committing, committed, or aborted), client timestamps (start_ts and commit_ts), client key assignments, and per-key storage including multi-version data, locks, write records, last read timestamps, and snapshot isolation status.
+
+The protocol proceeds through phases: Start assigns a start timestamp; Get allows reading keys, advancing state, or cleaning up stale locks; Prewrite acquires locks on pending keys while updating commit_ts based on last read timestamps; Commit writes the primary key's commit record; Abort halts the transaction leaving cleanup for others.
+
+The specification uses no fairness conditions. Safety invariants verify type correctness, write ordering consistency, lock uniqueness, proper committed and aborted states, rollback consistency (no transaction both commits and rolls back), unique write records per start timestamp, and snapshot isolation preservation. The key optimization tracks last read timestamps to compute commit timestamps that maintain snapshot isolation—commits cannot have timestamps at or below any read timestamp.

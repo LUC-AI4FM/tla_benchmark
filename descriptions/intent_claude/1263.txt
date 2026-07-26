@@ -1,0 +1,35 @@
+# Specification Request: TLA+ Counterexample Trace Exporter
+
+## System Overview
+
+I need a tool that automatically converts TLC model checker counterexamples into standalone, replayable TLA+ specification files. When TLC finds a violation during model checking, this system should capture that error trace and generate a new TLA+ module that can reproduce the exact sequence of states from the counterexample.
+
+## Goal
+
+The primary purpose is to aid debugging and analysis of specification errors. When a model checker finds a property violation, engineers often need to examine the trace in detail, share it with colleagues, or use it as a regression test. Having the counterexample as a self-contained, executable TLA+ module makes this much easier than working with raw TLC output.
+
+## Functional Requirements
+
+1. **Trace Extraction**: The system must extract the complete sequence of states from a TLC counterexample, preserving all variable values at each step.
+
+2. **Module Generation**: It must produce a syntactically valid TLA+ module that:
+   - Includes appropriate module dependencies based on what the original specification used
+   - Defines the trace as an explicit sequence of state records
+   - Provides an initial state predicate that matches the first state of the trace
+   - Provides a next-state relation that steps through the recorded trace states in order
+   - Handles termination gracefully by allowing stuttering when the trace is exhausted (to avoid spurious deadlock reports when re-checking)
+
+3. **File Output**: The generated module should be written to a specified file location in a standard text format.
+
+4. **Conditional Operation**: If no counterexample exists (the specification passed), or if output is explicitly suppressed, the system should do nothing.
+
+## Correctness Properties
+
+- The generated specification must be a valid TLA+ module that TLC can process
+- Running TLC on the generated module should reproduce the exact same sequence of states as the original counterexample
+- All variables from the original trace must be captured in the output
+- The trace replay must be deterministic—each state uniquely determines the next state according to the recorded sequence
+
+## Output Format
+
+The generated module should be human-readable and follow standard TLA+ conventions, making it easy for engineers to inspect, modify, or extend for further analysis.

@@ -1,0 +1,11 @@
+This TLA+ module implements a benchmarking harness that measures the performance of TLC model checker across multiple specifications. Rather than modeling an algorithm, it uses TLA+ and TLC as a scripting framework to orchestrate benchmark runs.
+
+The module defines four variables: `run` tracks the iteration number (1 or 2), `workers` represents the number of parallel workers (2, 4, or 8), `spec` identifies which specification to benchmark, and `proc` holds the result of external process execution including exit value and output streams.
+
+The system benchmarks nine specifications: Bloemen, EWD840, Ghostferry, Grid5k, MongoRepl, PaxosCommit, PaxosMadeSimple, SwarmKit, and Bookkeeper.
+
+The initial state nondeterministically selects a run number, worker count, and specification, with the process result initialized to a sentinel exit value of -42.
+
+The next-state relation includes five actions: `ExecTLC` launches TLC as an external Java process when the sentinel value is present, using community module operators to execute shell commands with specific JVM parameters and a 10-minute timeout. `Done` handles successful completion (exit code 0). `SafetyViolation` and `LivenessViolation` handle TLC exit codes 12 and 13 respectively. `Other` catches unexpected exit codes. Each action prints diagnostic information.
+
+The configuration disables deadlock checking, allowing terminal states after benchmark completion. No safety or liveness properties are verified; the module serves purely as an execution harness.

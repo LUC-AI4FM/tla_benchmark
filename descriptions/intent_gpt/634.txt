@@ -1,0 +1,15 @@
+Specify a TLA+ model of a light-client detector that compares headers from two peers (primary and secondary) to detect a Byzantine primary that serves a corrupted block at a target height. The model should represent a client that initially trusts a known block at a trusted height and attempts to verify/compare blocks up to a target height using responses from one primary and one secondary peer. Include a notion of a reference blockchain used as ground truth, and permit a configurable set of validators with a bound on the fraction that may be faulty.
+
+The detector must:
+- Fetch and compare headers at the target height; if they differ, initiate a search for the most recent common trusted height and then iteratively verify corresponding blocks from both peers moving upward from that common height until either an inconsistency (evidence) is found or the search exhausts available blocks.
+- Treat peers as possibly faulty or correct; fetching from a correct peer must produce blocks consistent with the reference blockchain; a faulty peer may produce arbitrary but signature-allowed blocks.
+- Model clock drift: the client has a local clock that may differ from the reference clock within a configured drift bound and may move forward or backward within that envelope; trusting-period checks depend on the clock.
+- Allow verification attempts to succeed or fail (e.g., due to trusting-period expiration or faulty peer behavior).
+
+Key correctness properties to assert:
+- Soundness: any reported evidence must point to a real divergence—there exists a common trusted height such that the conflicting block from the accused peer can be verified against that height while the two peers’ headers at the conflicting height differ.
+- Accuracy: if both peers are correct and the client verifies to the target while still in the trusting period, then both peers’ headers at the target equal the reference blockchain (no false evidence).
+- Liveness/Detection: if the primary serves a corrupted target header and the secondary is correct and verification is attempted within the trusting period according to the client’s clock, then the detector eventually terminates with evidence of misbehavior.
+- Robustness under clock drift: characterize how clock drift can affect detection (distinguish guarantees that hold when trusting-period checks use local-time assumptions versus external reference-time), and ensure the model can exhibit scenarios where drift causes verification to fail or succeed.
+
+Parameterize the model by validator set, faulty-ratio, trusted height, target height, trusting period, and clock drift bounds. Do not presuppose a specific implementation; specify only the allowed behaviors, nondeterministic message/fetch outcomes, verification successes/failures, and the invariants above.

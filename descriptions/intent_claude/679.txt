@@ -1,0 +1,53 @@
+# Specification Request: CSV File I/O Library for TLA+
+
+## Overview
+
+I need a utility library that enables TLA+ specifications to interact with CSV (Comma Separated Values) files during model checking. This library should provide operators for both reading from and writing to CSV files, allowing specifications to log data, export results, and interface with external tools.
+
+## Goals
+
+The primary purpose is to bridge TLA+ model checking with external data workflows by:
+- Logging values generated during model checking to persistent files
+- Exporting computation results for analysis by other tools
+- Creating test data files
+- Reading external data into specifications
+
+## Required Capabilities
+
+### Writing Data
+
+The library must support two approaches for writing CSV data:
+
+1. **Template-based writing**: Allow writing a sequence of values to a file using a format template with positional placeholders. This gives precise control over output formatting, including custom delimiters and value ordering.
+
+2. **Record-based writing**: Allow writing structured records (key-value mappings) directly to CSV files. This should support:
+   - Configurable field delimiters
+   - Optional automatic header row generation (column names derived from record field names)
+   - Intelligent header handling: only write headers when the file is empty, then append data rows for subsequent writes
+
+### Reading Data
+
+The library must support reading CSV files back into TLA+ data structures:
+- Parse a CSV file given column names and a delimiter
+- Return the data as a sequence of records, where each record maps column names to values
+- All parsed values should be strings (callers handle any necessary type conversion)
+
+### File Inspection
+
+Provide a way to query the number of records in a CSV file. This is useful for:
+- Determining whether a file is empty (to decide whether to write headers)
+- Tracking output progress
+- Non-existent files should report zero records rather than causing errors
+
+## Design Constraints
+
+- All operators should be usable within TLA+ expressions
+- The actual file I/O should be performed by the model checker's runtime (Java implementation)
+- File paths should be specified as absolute paths
+- The library should gracefully handle missing files for read operations
+
+## Use Cases
+
+1. **Logging state exploration**: Write interesting states or transitions to a CSV file during model checking for later analysis
+2. **Result export**: Export final computation results in a format consumable by spreadsheets or data analysis tools
+3. **Data-driven specifications**: Read test scenarios or configuration from CSV files into the specification

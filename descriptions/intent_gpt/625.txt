@@ -1,0 +1,14 @@
+Model a light-client–oriented blockchain head-trusting system (in the style of Tendermint) that exposes the properties a light client needs to safely verify and follow a chain of block headers without modeling full node protocols. The model should represent a sequence of block headers with timestamps, per-block validator sets and the set of validators that committed the previous block. It must permit a fixed universe of potential validator identities, some of which are faulty (the faulty set is monotone non-decreasing). Include a global reference clock that advances with time.
+
+Specify rules for valid initial chains: strictly increasing timestamps, each block’s previous-commit set must be a subset of the previous block’s validator set and must represent more than two-thirds of that validator set; validator-set transitions are available on each header; bound the proportion of faulty validators in each block by a given exclusive ratio.
+
+Specify what light-block evidence is acceptable to the client: a header paired with a commit set may be authenticated either by honest signatures (consistent with the stored header) or by signatures coming only from faulty processes (to model adversarially produced fabrications), and headers must be considered fresh only while within a trusting period relative to the reference clock.
+
+Require correctness properties for the light-client view:
+- Safety: if two light-validated headers exist at the same height that are both accepted by the client, then they must be identical (no equivocation at accepted heights).
+- Liveness (progress): as long as honest validators remain sufficiently numerous (faulty fraction below the bound) and time advances, the client can eventually accept headers up to some increasing height.
+- Freshness: a header accepted as valid must be within the trusting period at the time of acceptance.
+- Two-thirds quorum invariants: any commit accepted as valid must contain strictly more than two-thirds of that block’s validator set.
+Also express that faulty nodes may produce counterfeit headers/commits but cannot violate the two-thirds honest-commit requirement when the faulty fraction bound holds.
+
+Parameterize the model by the set of all potential nodes, a maximal modeled height, the trusting period, and the maximum faulty-ratio bound; state all properties in temporal logic so they can be model-checked.

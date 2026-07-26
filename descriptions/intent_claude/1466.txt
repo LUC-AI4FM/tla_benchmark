@@ -1,0 +1,35 @@
+# Specification Request: Multi-Worker State Counter Verification
+
+## System Overview
+
+I need a formal specification to verify that a model checker's internal state-tracking mechanisms work correctly when running with multiple parallel workers. Specifically, the system should confirm that per-worker counters can be aggregated to produce accurate global statistics about model checking execution.
+
+## System Description
+
+The system under consideration is a simple state-space exploration where:
+
+1. A model checker explores states by repeatedly choosing values from a bounded domain
+2. Multiple worker threads operate in parallel, each maintaining their own local counters
+3. Each worker increments its counter every time it processes a state transition
+4. At the end of model checking, all worker counters should be retrievable and aggregatable
+
+## Behavioral Requirements
+
+The specification should model:
+
+- An initial state with default values
+- Transitions that non-deterministically select from a finite set of possible next values
+- A counting mechanism that tracks how many transitions each worker processes
+- The ability to store and retrieve values that persist across the checking process, both those that are modified during execution and those that remain constant
+
+## Correctness Properties
+
+The key property to verify is a **postcondition** that holds after state-space exploration completes:
+
+1. **Worker data completeness**: The aggregation mechanism must return data for exactly the expected set of tracked registers
+2. **Worker count consistency**: The number of per-worker values returned must equal the configured number of parallel workers
+3. **Count accuracy**: The sum of all per-worker transition counters must equal the total number of distinct states discovered during model checking
+
+## Purpose
+
+This specification serves as a test harness to ensure that hyperproperty-style checks (properties that reason about the model checking process itself rather than just individual traces) function correctly even when work is distributed across multiple parallel workers. The goal is to verify that users can reliably aggregate statistics from parallel execution to reason about global properties of the state space exploration.

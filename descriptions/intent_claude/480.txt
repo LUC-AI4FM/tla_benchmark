@@ -1,0 +1,45 @@
+# Specification Request: Paxos Consensus Algorithm
+
+## System to Model
+
+I need a formal specification of the Paxos distributed consensus algorithm. This is a message-passing protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures and asynchronous communication.
+
+## System Description
+
+The system consists of:
+- A set of acceptor processes that participate in the consensus protocol
+- A set of possible values that can be proposed for consensus
+- Quorums (subsets of acceptors) with the critical property that any two quorums must overlap (share at least one acceptor)
+- A message-passing communication model where messages are never corrupted but may be delayed or lost
+
+The protocol operates in two phases:
+1. **Prepare phase**: A proposal is initiated for a particular ballot (round number). Acceptors respond with promises not to accept older proposals and report any values they may have previously accepted.
+2. **Accept phase**: If enough acceptors respond to the prepare phase, a value is proposed for acceptance. Acceptors vote on the proposed value if they haven't made conflicting promises.
+
+A value is considered chosen when a quorum of acceptors has voted for it in the same ballot.
+
+## Key Requirements
+
+1. **Ballot-based voting**: Proposals are organized into numbered ballots, and acceptors track the highest ballot they have participated in.
+
+2. **Promise mechanism**: When an acceptor responds to a prepare request, it promises not to accept proposals from lower-numbered ballots.
+
+3. **Safe value selection**: When proposing a value in the accept phase, the proposer must choose a value that is "safe" - either any value can be chosen (if no acceptor has voted yet) or the value from the highest-numbered ballot among responding acceptors must be used.
+
+4. **Quorum intersection**: Any two quorums must share at least one member, ensuring that information about previous votes is preserved across phases.
+
+## Correctness Properties
+
+1. **Agreement (Safety)**: If two different values are both chosen, they must be the same value. In other words, at most one value can ever be chosen by the protocol.
+
+2. **Validity**: Only proposed values can be chosen.
+
+3. **Type correctness**: All state variables and messages conform to their expected types and structures.
+
+4. **Vote consistency**: An acceptor's recorded vote must correspond to actual voting messages it has sent.
+
+5. **Refinement**: The protocol should correctly implement an abstract voting specification, where the safety of chosen values depends on quorum intersection properties.
+
+## Scope
+
+This specification should focus on the safety properties of the algorithm without explicit modeling of leader election or learner processes. Message loss can be implicit (modeled as messages that are never delivered) rather than explicit, since the safety property only constrains what *may* happen, not what *must* happen.

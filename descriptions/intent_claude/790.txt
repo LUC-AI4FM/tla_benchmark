@@ -1,0 +1,52 @@
+# Specification Request: Key-Value Store with Snapshot Isolation
+
+## System Overview
+
+I need a formal specification of a transactional key-value store that implements snapshot isolation as its concurrency control mechanism. The system should allow multiple transactions to operate concurrently while ensuring data consistency.
+
+## Functional Requirements
+
+The key-value store must support the following operations:
+
+1. **Begin Transaction**: Start a new transaction that operates on a consistent snapshot of the current store state.
+
+2. **Add Entry**: Insert a new key-value pair into the store (only valid if the key doesn't already exist in the transaction's view).
+
+3. **Update Entry**: Modify the value associated with an existing key.
+
+4. **Remove Entry**: Delete a key-value pair from the store.
+
+5. **Commit Transaction**: Attempt to merge all changes made during the transaction into the main store.
+
+6. **Rollback Transaction**: Abort the transaction and discard all pending changes.
+
+## Snapshot Isolation Semantics
+
+The core isolation guarantee is snapshot isolation:
+
+- When a transaction begins, it receives a point-in-time snapshot of the entire store. All reads within that transaction see this consistent snapshot.
+
+- Each transaction's modifications are isolated from other concurrent transactions until commit.
+
+- **Write-write conflict detection**: If two concurrent transactions both write to the same key, only one can successfully commit. The first transaction to commit succeeds; any later transaction that attempts to commit after writing to an overlapping key must be rejected.
+
+- Transactions that write to completely disjoint sets of keys should both be able to commit successfully.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: All state components maintain their expected types throughout execution.
+
+2. **Transaction Lifecycle Consistency**: 
+   - Active transactions must correctly track which writes from other committed transactions they have "missed" (i.e., writes that occurred after their snapshot was taken).
+   - When a transaction is not active, all its associated metadata (snapshot, write log, missed writes) must be properly cleaned up.
+
+3. **Conflict Detection Integrity**: A transaction can only commit if none of the keys it wrote were also written by another transaction that committed after the snapshot was taken.
+
+## Parameters
+
+The specification should be parameterized by:
+- A set of possible keys
+- A set of possible values
+- A set of transaction identifiers

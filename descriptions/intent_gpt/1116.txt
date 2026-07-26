@@ -1,0 +1,9 @@
+Specify a formal model of the TCP connection state machine (as used for a single TCP connection between two peers) that captures connection establishment, data-termination handshake, and abnormal reset behavior. The model must represent two endpoints that exchange discrete control messages (SYN, SYN+ACK, ACK, FIN, ACK-of-FIN, RST) over an unreliable FIFO-like channel per direction, allowing messages to be in flight and to be delivered, consumed, or cause state transitions. Represent endpoint control blocks (existence of a TCB) and the standard TCP finite states: CLOSED, LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSING, CLOSE-WAIT, LAST-ACK, TIME-WAIT. The model should allow user-initiated operations (active open, passive open, send that triggers a SYN, and close) and spontaneous network-triggered events (receipt of the above messages), as well as sending RSTs according to the protocol's intent.
+
+Required correctness properties:
+- Safety: if neither direction has in-flight messages and one endpoint is ESTABLISHED, the other must also be ESTABLISHED.
+- Progress/liveness: an endpoint that begins an active open should eventually reach one of the terminal/steady states appropriate for establishment (ESTABLISHED or a state denoting failure such as CLOSED or LISTEN), assuming fair scheduling of user actions and network deliveries.
+- Proper termination: after orderly close sequences, both endpoints should eventually delete their TCBs and reach CLOSED (TIME-WAIT must eventually transition to CLOSED for endpoints that enter it).
+- RST semantics: receipt of RST should move an endpoint to LISTEN or CLOSED as appropriate; peers may send RSTs from states that justify abortive close and transition to TIME-WAIT as per the RFC rationale.
+
+Abstract away sequence numbers and payload data; model only control-message semantics, TCB existence, state transitions, and in-flight message queues.

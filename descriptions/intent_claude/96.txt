@@ -1,0 +1,31 @@
+# Specification Request: Quorum-Based Consensus Protocol
+
+## System Overview
+
+I need a formal specification of a simple leader-election-based consensus protocol where nodes vote to elect leaders, and elected leaders can decide on values. The system should model the core mechanism by which distributed nodes reach agreement through voting and quorum intersection.
+
+## System Description
+
+The system consists of a fixed set of nodes that can participate in leader election and value decision. The protocol operates as follows:
+
+1. **Vote Solicitation**: Any node can request votes from other nodes in the system.
+
+2. **Voting**: A node may cast a vote for another node that has requested it, but each node can only vote once total (across all candidates). Once a node has voted, it cannot vote again.
+
+3. **Vote Collection**: Nodes collect votes that have been cast for them.
+
+4. **Leader Election**: A node becomes a leader when it has collected votes from a quorum of nodes. Quorums are defined such that any two quorums must overlap (majority quorums work for this).
+
+5. **Decision**: Once a node is a leader, it may decide on a value. Each leader should only decide once.
+
+## Key Requirements
+
+- Nodes must be constrained to vote at most once to prevent a single node from helping elect multiple leaders with non-overlapping vote sets.
+- Quorums must be defined with the intersection property: any two quorums share at least one node.
+- The protocol should allow concurrent vote requests and voting activities.
+
+## Correctness Property
+
+**Consensus Safety**: If any two nodes have decided on values, those values must be the same. The system must never reach a state where two different values have been decided, regardless of which nodes decided them.
+
+This property should hold even if multiple leaders are elected, because the voting constraint (vote once) combined with quorum intersection ensures that any two leaders must have received a vote from at least one common node—and that node could only have voted once.

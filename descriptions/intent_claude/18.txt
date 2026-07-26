@@ -1,0 +1,27 @@
+Specification Request: Distributed Termination Detection on a Ring
+
+**System Overview:**
+I need a formal specification of Safra's algorithm for detecting termination in a distributed system where processes are arranged in a ring topology. This is the algorithm described in EWD 998.
+
+**System Description:**
+The system consists of a fixed number of nodes arranged in a logical ring. Each node can be either active (performing computation) or inactive (passive). Active nodes may send messages to any other node in the system. When a node receives a message, it becomes active. Active nodes may also spontaneously become inactive at any time.
+
+The goal is to detect when the entire distributed computation has terminated—meaning all nodes are inactive and there are no messages still in transit between nodes.
+
+**Detection Mechanism:**
+A token circulates around the ring to detect termination. The token carries information that helps determine whether termination has occurred, including an accumulated count related to message activity and a color that tracks whether any "suspicious" activity has occurred that might invalidate the current detection round.
+
+Nodes also have colors that get marked when they receive messages, indicating that the node's state changed in a way that could affect termination detection. When a node passes the token, it contributes its local message count information and may taint the token's color based on its own color.
+
+When the token returns to the initiating node, that node examines the accumulated information to determine if termination can be safely declared. If the round was inconclusive (due to colors indicating interference or message counts not balancing), a new detection round begins.
+
+**Key Correctness Properties:**
+
+1. **Safety (No false positives):** If the algorithm declares that termination has been detected, then the system must actually have terminated—all nodes must be inactive and no messages may be in flight.
+
+2. **Liveness (Eventual detection):** If the system genuinely terminates (all nodes become permanently inactive and all messages are eventually delivered), then the algorithm must eventually detect this termination.
+
+**Additional Requirements:**
+- The specification should cleanly separate the detection mechanism (token passing) from the environment behavior (message sending, receiving, and node deactivation)
+- The detection mechanism should have fair execution—it cannot be starved indefinitely
+- The algorithm should refine a more abstract specification of termination detection that simply relates the detection signal to actual termination

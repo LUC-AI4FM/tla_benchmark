@@ -1,0 +1,13 @@
+This TLA+ module specifies a real-time write-through cache system, extending a base write-through cache model with real-time timing constraints.
+
+The system models N processors (numbered 0 to N-1) interacting with a shared memory through a cache. Each processor can perform read and write operations, with cache misses and evictions handled through a memory queue.
+
+The module introduces timing constants: Delta bounds memory queue operations, Epsilon bounds processor cache operations, and Rho represents an overall timing constraint. A key assumption requires that the combined timing of all operations satisfies a specific inequality relating these bounds to the number of processors and queue length.
+
+The variable lastP tracks which processor most recently performed a read-miss or write operation. A round-robin scheduling mechanism uses position calculations to determine which processor can act next—a processor may only perform RTRdMiss or RTDoWr if no processor earlier in the rotation has such actions enabled.
+
+The next-state relation RTNext allows either scheduled read-miss/write operations (updating lastP) or other cache operations like requests, responses, reads, evictions, and memory queue operations (preserving lastP).
+
+The temporal specification RTSpec combines the state machine behavior with real-time bounds: memory operations must complete within Delta time units, and processor operations within Epsilon time units.
+
+The module claims to implement a real-time memory specification (RTMemory), asserting that RTSpec implies the corresponding RTM!RTSpec property.

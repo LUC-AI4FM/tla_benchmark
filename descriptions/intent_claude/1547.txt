@@ -1,0 +1,49 @@
+# Specification Request: Buffered Random-Access File System
+
+## System Overview
+
+I need a formal specification for a **buffered random-access file** system—a caching layer that sits on top of a basic random-access file to improve I/O performance. The system maintains an in-memory buffer that caches a portion of the underlying file, allowing reads and writes to operate on the buffer instead of directly accessing the disk for every operation.
+
+## Core Functionality
+
+The system must support the following operations:
+
+1. **Seek**: Move the current file position to any valid offset
+2. **Read**: Read data starting from the current position, advancing the position accordingly
+3. **Write**: Write data starting from the current position, advancing the position and potentially extending the file
+4. **Flush**: Write any buffered modifications back to the underlying file
+5. **Set Length**: Truncate or extend the file to a specified size
+
+The buffer has a fixed size and caches a contiguous region of the file. When operations move outside the buffered region, the system must flush any dirty data and refill the buffer from the new location.
+
+## Key Correctness Properties
+
+### Internal Consistency Invariants
+
+The specification must guarantee that the buffered system maintains consistent internal state:
+
+1. The tracked logical file length must always equal the actual length of the logical file content (combining disk content with buffered modifications)
+2. The current position must always fall within the valid buffer range (after any necessary buffer repositioning)
+3. All bytes within the buffered region must accurately reflect the logical file content
+4. All bytes outside the buffered region must match the underlying disk content
+5. If any buffered byte differs from what's on disk, the buffer must be marked as dirty
+
+### Behavioral Refinement
+
+The buffered implementation must **refine** (behave consistently with) a simple unbuffered random-access file. Specifically:
+
+- Each buffered operation must produce the same observable effect on the logical file content and position as the corresponding operation on a simple random-access file
+- Flush operations should be transparent—they synchronize internal state without affecting the logical view
+- The logical file content (combining disk state with buffer modifications) must always be well-defined
+
+### Recovery Guarantee
+
+It must always be possible to restore the internal buffer invariants. Specifically, if the position has moved outside the valid buffer range:
+- When the buffer is dirty, flushing must be enabled and must clear the dirty flag
+- When the buffer is clean, repositioning the buffer to cover the current position must be possible and must restore all internal invariants
+
+## Constraints
+
+- The buffer has a fixed capacity (a system parameter)
+- File offsets and lengths are bounded by a maximum value
+- Undefined regions of the file (e.g., gaps created by seeking past the end before writing) contain arbitrary/unspecified bytes

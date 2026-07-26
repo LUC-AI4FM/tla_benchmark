@@ -1,0 +1,45 @@
+# Specification Request: Real-Time Action Bounds
+
+## System Overview
+
+I need a formal specification for reasoning about real-time constraints on system actions. The specification should provide a general framework for expressing and verifying that actions in a system occur within specified time bounds.
+
+## Core Requirements
+
+### 1. Continuous Time Model
+
+The system must model the passage of real, continuous time. Time should:
+- Be represented as a real number that only increases
+- Progress fairly (time cannot stop forever at any particular value)
+- Advance independently of other system state when no actions occur
+
+### 2. Real-Time Bounded Actions
+
+The specification must provide a mechanism to express that a particular action in a system is bounded by both minimum and maximum time constraints:
+
+- **Maximum bound (deadline)**: Once an action becomes possible (enabled), it must occur within a specified maximum time E, unless it becomes disabled first
+- **Minimum bound (delay)**: The action cannot occur until at least a specified minimum time D has elapsed since it became enabled
+
+### 3. Timer Behavior
+
+The timing mechanism should work as follows:
+- A conceptual timer tracks how long an action has been continuously enabled
+- The timer resets to zero whenever the action occurs or becomes disabled
+- The timer accumulates elapsed time while the action remains enabled but doesn't occur
+
+## Key Correctness Properties
+
+1. **Deadline Satisfaction**: The elapsed time since an action became enabled never exceeds the maximum bound E (as long as the action remains enabled)
+
+2. **Minimum Delay Enforcement**: An action can only occur after at least time D has passed since it became continuously enabled
+
+3. **Time Progress Fairness**: Time must eventually advance beyond any finite value; the system cannot Zeno (take infinitely many steps in finite time while blocking time progress)
+
+## Intended Use
+
+This framework should be composable with other TLA+ specifications, allowing a system designer to:
+- Import these real-time primitives
+- Apply timing bounds to specific actions in their system
+- Verify that their system satisfies real-time requirements
+
+The specification should work for any action A that modifies variables v, parameterized by the minimum delay D and maximum deadline E.

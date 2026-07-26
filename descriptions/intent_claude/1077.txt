@@ -1,0 +1,40 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification for Safra's algorithm for distributed termination detection, as described in EWD 998. The system consists of a fixed number of nodes arranged in a logical ring topology, where the goal is to detect when all nodes in a distributed computation have terminated and no messages are in transit.
+
+## System Description
+
+The system models a distributed computation where:
+
+- There are N nodes (N ≥ 1) arranged in a ring
+- Each node can be either active (performing computation) or inactive (terminated)
+- Active nodes may send payload messages to any other node
+- Receiving a payload message reactivates an inactive node
+- Any node may spontaneously become inactive (terminate locally)
+- A distinguished initiator node is responsible for starting and completing the detection protocol
+
+The termination detection mechanism uses a token that circulates around the ring. The token carries information that helps determine whether global termination has occurred. Each node also maintains local bookkeeping information to track message activity and contamination state.
+
+## Key Behaviors
+
+1. **Payload messaging**: Active nodes can send messages to other nodes, and receiving such a message reactivates the recipient
+2. **Local termination**: Any node may become inactive at any time
+3. **Token passing**: Inactive non-initiator nodes pass the token to their predecessor in the ring, accumulating information as the token travels
+4. **Detection initiation**: The initiator node examines the returned token and either announces termination or restarts the detection round if conditions are inconclusive
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Safety**: Termination is never falsely detected. The algorithm must not announce global termination while any node is still active or while any payload messages remain in transit.
+
+2. **Liveness**: If all nodes eventually become permanently inactive and all messages are eventually delivered, the algorithm will eventually detect termination.
+
+## Additional Requirements
+
+- The network should be modeled to allow message reordering (not requiring FIFO delivery)
+- Messages may be arbitrarily delayed but not lost
+- The specification should support fair execution of all node actions
+- The model should be parameterized by the number of nodes

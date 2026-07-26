@@ -1,0 +1,7 @@
+This module is a regression test for the Apalache model checker, specifically targeting correct handling of oracles in set-minus operations. It models a simple lossy message-transmission system with three components: a sender, a transmission medium, and a receiver, each represented as a set of integer values.
+
+The single constant `Values` is initialized (via `CInit`) to the integer range `0..6`, and the three variables `sender`, `receiver`, and `medium` are all sets of integers. Initially, `sender` holds all values in `Values`, while `receiver` and `medium` are empty.
+
+Three actions define the next-state relation. `Snd` non-deterministically picks a message from `sender`, removes it, and places it into `medium`. `Drop` non-deterministically removes a message from `medium` without delivering it, modeling lossy transmission. `Rcv` non-deterministically picks a message from `medium` and adds it to `receiver` without removing it from `medium`, reflecting that multiple copies may be in transit and making the state space larger. The overall `Next` relation is the disjunction of these three actions.
+
+The invariant `Inv` asserts that at least one of the three sets is non-empty. Because messages can be dropped and the medium is not cleared on receive, it is possible for all of `sender`, `medium`, and `receiver` to become empty simultaneously, meaning the invariant is reachable in violation within `2*N` steps for `N` messages. The module carries no fairness conditions or liveness properties.

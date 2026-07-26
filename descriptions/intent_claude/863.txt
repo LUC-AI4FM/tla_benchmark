@@ -1,0 +1,58 @@
+# Specification Request: Software-Defined Perimeter with Single Packet Authorization
+
+## System Overview
+
+I need a formal specification for a **Software-Defined Perimeter (SDP)** security architecture that implements **Single Packet Authorization (SPA)** to protect hidden services from unauthorized access. The system should model the improved SDP protocol that addresses vulnerabilities in service hiding.
+
+## System Components
+
+The specification should model the following entities:
+
+1. **Legitimate Client**: An authorized user who authenticates via SPA before accessing protected services
+2. **SDP Controller**: The authentication server that validates SPA requests and authorizes access
+3. **Firewall**: A default-deny gateway that only permits traffic after receiving authorization from the controller
+4. **Protected Server**: A hidden service that should only be accessible to authenticated clients
+5. **Attacker**: A malicious entity attempting to gain unauthorized access through various attack vectors
+
+## Functional Requirements
+
+### Authentication Flow
+- Clients must send a cryptographically signed single-packet authorization message before attempting data access
+- The SPA message must include encrypted client identity, timestamps for replay protection, and the intended destination service information
+- The controller must validate the HMAC signature, check credentials against an identity store, and verify the timestamp hasn't been used before
+- Upon successful authentication, the controller instructs the firewall to open a precise access rule for the specific client-to-server connection
+
+### Enhanced SPA Protocol
+- The authentication packet and the data connection attempt should be synchronized/coupled to prevent race condition exploits
+- Access rules should be specific to the exact connection tuple (source IP, source port, destination IP, destination port) rather than allowing broad access
+- Rules should be time-limited and aged out after use
+
+### Network Scenarios
+- The model should handle scenarios where the attacker and legitimate user share the same public IP (NAT scenario)
+- The model should account for packet sniffing capabilities by the attacker on both control and data planes
+
+## Threat Model
+
+The attacker should be capable of:
+- Sniffing SPA authentication messages on the network
+- Sniffing data plane traffic (TCP handshakes)
+- Attempting replay attacks using captured authentication messages
+- Attempting spoofed authentication with modified packets
+- Racing to exploit firewall rules opened for legitimate users
+- Probing for hidden services
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Service Hiding**: An attacker cannot successfully establish a connection to the protected server without valid credentials
+2. **Replay Attack Prevention**: Reused authentication messages must be detected and rejected
+3. **Spoofing Prevention**: Tampered or forged authentication messages must be detected and rejected
+4. **No Unauthorized Access**: If an attacker establishes a connection to the protected server, it must be traceable to a flaw (the system should detect/count such violations)
+5. **Legitimate Access Guarantee**: A legitimate user with valid credentials can successfully access the protected service
+
+## Additional Constraints
+
+- The cryptographic primitives (encryption, HMAC) can be modeled abstractly assuming they are secure (Dolev-Yao model)
+- The specification should track attack attempts and successful intrusions for analysis
+- TCP connection establishment should be modeled to capture timing-based attacks on firewall rules

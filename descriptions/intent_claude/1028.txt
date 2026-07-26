@@ -1,0 +1,39 @@
+# Specification Request: Leader Election on a Unidirectional Ring
+
+## System Description
+
+I need a formal specification of the Chang-Roberts algorithm for leader election in a distributed system where processes are arranged in a unidirectional ring topology.
+
+## System Setup
+
+- There are N processes (nodes) arranged in a ring, where each node can only send messages to its successor (the next node in one direction around the ring).
+- Each node has a unique numeric identifier.
+- Any subset of nodes may initiate the election process; these are called "initiators."
+- The goal is to elect exactly one leader from among the initiators—specifically, the initiator with the smallest identifier.
+
+## Algorithm Behavior
+
+The algorithm should work as follows:
+
+1. Initiator nodes begin by sending their own identifier around the ring.
+2. When a node receives an identifier message:
+   - If the node has already lost (is not competing), it simply forwards the message to its successor.
+   - If the node is still a candidate and receives an identifier smaller than its own, it recognizes that it has lost and forwards the message.
+   - If the node receives an identifier larger than its own, it discards the message (does not forward it).
+   - If the node receives its own identifier (meaning it traveled all the way around the ring), that node declares itself the winner.
+
+## Correctness Properties
+
+The specification must verify the following properties:
+
+### Safety
+- When any node declares itself the winner, it must have been an initiator.
+- When a winner is declared, all other nodes must be in a "lost" state.
+- The winning node must have the smallest identifier among all initiators.
+
+### Liveness
+- If there is at least one initiator (candidate), eventually some node will be elected as the winner.
+
+## Fairness Requirements
+
+The system should assume fair execution—every node that can make progress will eventually do so.

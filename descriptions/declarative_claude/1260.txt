@@ -1,0 +1,11 @@
+This TLA+ module provides a utility library for tracking and verifying state coverage during model checking. It is not a standalone specification of a system but rather a helper module for instrumenting other specifications.
+
+The module implements a mechanism to track how many times labeled expressions evaluate to true across all TLC worker threads during state exploration. It uses TLC's built-in functions to maintain per-worker counters stored under a named slot.
+
+The `_Track` operator records occurrences of a named boolean expression. When the expression is true, it increments the counter for that name; when false, it initializes the counter to zero if not already present.
+
+The `_Merge` operator combines count records from different sources by summing values for each name. The `_Counts` operator aggregates tracking data across all TLC worker threads by folding the merge operation over each worker's recorded counts.
+
+The `_CheckName` operator serves as an assertion: given a name, it verifies that the tracked expression was true at least once during model checking. If the count is zero or the name was never tracked, it prints the counts and returns false, causing verification to fail.
+
+The `_PrintCounts` operator simply outputs the aggregated counts for debugging purposes.

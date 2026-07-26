@@ -1,0 +1,7 @@
+This TLA+ module tests the behavior of TLC's built-in operators for tracking and aggregating state information across multiple model-checker worker threads.
+
+The specification models a simple system with two variables, x and y, both initialized to zero. In each step, x and y are each assigned a value from 1 to 10 independently, creating 100 possible successor states from the initial state. The specification also maintains a counter stored in TLC's internal register at key 23 (aliased as R), incrementing it with each state transition. A second register at key 42 is initialized but not modified during state exploration.
+
+The key aspect being tested is the TLCGet("all") operator, which retrieves values from all worker threads simultaneously. The postcondition verifies several properties after model checking completes: the domain of aggregated values contains exactly the two keys used (R and 42), the length of the value tuple at key R equals the number of configured workers, and the sum of per-worker counters equals the total number of distinct states explored.
+
+This module serves as a test that TLC's hyperproperty features—specifically cross-worker value aggregation—function correctly in multi-threaded execution. The postcondition validates that users can meaningfully aggregate statistics collected independently by parallel workers, with the sum of individual worker counts matching TLC's reported distinct state count.

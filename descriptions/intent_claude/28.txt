@@ -1,0 +1,35 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the Two-Phase Commit (2PC) protocol for distributed transaction processing. The system consists of a single transaction manager (coordinator) and a set of resource managers (participants) that must collectively agree on whether to commit or abort a distributed transaction.
+
+## System Description
+
+The protocol should model how a coordinator orchestrates multiple participants to reach a consistent decision about a transaction. Participants can independently decide to prepare (vote to commit) or abort while they are still working. Once a participant has prepared, it must wait for the coordinator's decision. The coordinator collects preparation confirmations and, only when all participants have prepared, may commit the transaction. The coordinator may also choose to abort at any time before committing.
+
+Communication happens via message passing. Participants send preparation notifications to the coordinator, and the coordinator broadcasts commit or abort decisions to all participants. For simplicity, the specification should focus on safety properties only—modeling what *may* happen rather than what *must* eventually happen.
+
+## Key Requirements
+
+1. **Participant behavior**: Each participant starts in a working state and may either prepare (signaling readiness to commit) or unilaterally abort. After receiving the coordinator's decision, participants transition to their final committed or aborted state.
+
+2. **Coordinator behavior**: The coordinator tracks which participants have prepared. It may commit only after receiving preparation confirmations from *all* participants. It may abort at any time before deciding.
+
+3. **Message model**: Messages are never lost (for safety analysis, non-receipt is equivalent to ignoring a message). Messages accumulate and can be received multiple times without changing behavior.
+
+## Correctness Properties
+
+The specification must guarantee these safety properties:
+
+1. **Consistency**: No two participants reach different final decisions—if any participant commits, no participant may abort, and vice versa.
+
+2. **Commit validity**: A commit can only occur if every participant was prepared to commit.
+
+3. **No premature commitment**: The coordinator cannot decide to commit until all participants have confirmed they are prepared.
+
+4. **Implementation correctness**: The protocol must correctly implement a simpler abstract specification of transaction commit, where the only requirement is that all resource managers reach the same commit/abort decision and commits only happen when all were willing.
+
+## Parameters
+
+The specification should be parameterized by the set of resource managers participating in the transaction.

@@ -1,0 +1,55 @@
+# Specification Request: Blockchain Light Client Verification with Byzantine Faults
+
+## System Overview
+
+I need a formal specification for a **blockchain light client protocol** that can verify block headers without downloading the full blockchain. The light client should be able to securely synchronize from a previously trusted block height to a target block height by fetching and verifying "light blocks" (block headers with validator signatures).
+
+## Core Functionality
+
+The system should model:
+
+1. **Light client synchronization**: Starting from a known trusted block at a certain height, the client must verify a chain of blocks up to a specified target height.
+
+2. **Block fetching and verification**: The client fetches light blocks from a peer (primary node) and must verify that each block is properly signed by a sufficient fraction of validators.
+
+3. **Clock-based trust**: The protocol relies on time-based trust assumptions—blocks are only considered trustworthy within a defined "trusting period" relative to the client's local clock.
+
+## Environmental Assumptions
+
+The specification must account for:
+
+- **Clock drift**: The local clock may drift from real time by some bounded amount. Model both the assumed maximum drift and the actual drift (which may be smaller).
+
+- **Byzantine/faulty peers**: The primary peer providing blocks may be malicious and could provide invalid or misleading block data.
+
+- **Byzantine validators**: A fraction of the blockchain validators may be faulty. The protocol should remain secure as long as fewer than a specified threshold (e.g., 2/3) of validators are Byzantine.
+
+## Configuration Parameters
+
+The model should be parameterized by:
+- The set of participating nodes
+- The starting trusted height and target height
+- The trusting period duration
+- Bounds on clock drift (assumed vs. actual)
+- Whether the primary peer is honest or Byzantine
+- The maximum ratio of faulty validators
+
+## Key Correctness Properties
+
+The specification must verify:
+
+1. **Safety**: The light client should never accept an invalid or forged block as verified, assuming the fault assumptions hold.
+
+2. **Liveness**: Under favorable conditions, the light client should eventually reach the target height.
+
+3. **Trust chain integrity**: Each verified block must be properly connected to previously verified blocks through valid validator signatures.
+
+## Specific Scenario
+
+I want to analyze the case where:
+- A small network (5 nodes)
+- The primary peer is **faulty/Byzantine**
+- Up to 2/3 of validators may be faulty (boundary condition)
+- Moderate trusting period with realistic clock drift bounds
+
+This scenario tests the protocol's resilience when facing a malicious peer combined with a high (but still within threshold) fraction of Byzantine validators.

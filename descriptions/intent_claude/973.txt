@@ -1,0 +1,39 @@
+# Specification Request: Ring-Based Value Propagation System
+
+## System Overview
+
+I need a formal specification for a distributed system consisting of N processes arranged in a logical ring topology. Each process maintains local state and can read values from its predecessor in the ring (using modular arithmetic to wrap around).
+
+## System Behavior
+
+The system should model N concurrent processes, where each process:
+
+1. Performs some local initialization or setup steps involving its own data
+2. Reads a value from its neighboring process (the predecessor in the ring, wrapping around from process 0 to process N-1)
+3. Updates its own output based on what it read from its neighbor
+
+Each process operates independently and asynchronously, proceeding through its steps at its own pace. The system should support eventual termination when all processes complete their work.
+
+## Key Requirements
+
+- **Ring Structure**: Process i must read from process (i-1) mod N, creating a circular dependency pattern
+- **Non-deterministic Reading**: When a process reads from its neighbor, it may choose from a set of available values (not necessarily a single value)
+- **Parameterized Size**: The number of processes N should be a parameter, with N ≥ 1
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: All variables remain within their expected domains throughout execution - array indices stay in bounds, values remain in appropriate sets, and control state is always valid
+
+2. **Inductive Invariant**: There must exist a strengthened invariant that:
+   - Holds in all initial states
+   - Is preserved by every possible transition (including stuttering steps)
+   - Implies the type correctness property
+   - Can be formally verified using proof assistants
+
+3. **Progress Tracking**: At least one process must always be active (not yet terminated) until the entire system completes, ensuring the invariant captures meaningful liveness-related state
+
+## Verification Goals
+
+The specification should be structured to support machine-checked proofs that the invariants hold for all executions, using an inductive reasoning approach where the invariant is shown to be established initially and preserved by each atomic action in the system.

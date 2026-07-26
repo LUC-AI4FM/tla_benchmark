@@ -1,0 +1,42 @@
+# Specification Request: Write-Through Cache with Liveness Guarantees
+
+## System to Model
+
+A write-through caching memory system that sits between multiple processors and a main memory, ensuring that all writes are immediately propagated to main memory while providing caching for reads. The system must not only maintain safety properties but also guarantee progress (liveness).
+
+## Functional Requirements
+
+The cache system must support multiple concurrent processors, each capable of issuing memory requests:
+
+1. **Read operations**: A processor can request to read a value from a specific memory address. The cache may serve this from cached data or fetch from main memory.
+
+2. **Write operations**: A processor can request to write a value to a specific memory address. In write-through semantics, this write must be propagated to main memory (not just cached locally).
+
+3. **Request-response protocol**: Each processor interacts with the memory system through a standard interface where it submits a request, waits for processing, and receives a response.
+
+## Key Correctness Properties
+
+### Safety Properties
+
+The caching memory must behave indistinguishably from a simpler internal memory specification. Specifically, it must implement (refine) a basic linearizable memory where:
+- Each processor sees a consistent view of memory
+- Operations appear to take effect atomically
+- The external interface behavior matches what a direct memory implementation would produce
+
+### Liveness Properties
+
+The system must guarantee progress:
+
+1. **Request completion**: Every memory request that a processor issues must eventually receive a response. A processor should not remain indefinitely stuck waiting for a memory operation to complete.
+
+2. **Fair processing**: Internal cache operations (like servicing pending requests and delivering responses) must eventually occur when they are enabled—the system cannot indefinitely postpone processing a ready operation.
+
+## Verification Goal
+
+Demonstrate through model checking that the write-through cache specification, including its liveness conditions, correctly implements (refines) the live internal memory specification. This involves:
+
+1. Defining an appropriate refinement mapping from cache state to abstract memory state
+2. Verifying that safety properties are preserved under this mapping
+3. Verifying that the cache's fairness conditions imply the required liveness properties of the abstract specification
+
+The model checker should be configured with concrete substitutions for the memory interface operations to make the state space finite and explorable.

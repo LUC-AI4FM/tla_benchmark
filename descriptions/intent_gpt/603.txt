@@ -1,0 +1,12 @@
+Model a concurrent key-value store with optimistic per-key transaction attempts by multiple clients. The system has a fixed small set of keys and a small set of clients that may operate concurrently. Each client repeatedly attempts to perform a single-key update: it reads the current value and metadata for the key, decides on a new value, and then tries to commit the update using an optimistic compare-and-swap style protocol that may fail due to concurrent commits by other clients. If a commit fails, the client retries the transaction. Clients may also abort voluntarily or be preempted; aborted attempts leave the store unchanged. The model should include nondeterministic scheduling of client steps and of commit success/failure when there are conflicting concurrent attempts.
+
+Specify safety properties:
+- Serializability of successful commits per key: there must exist a sequential order of committed updates on each key that matches the observed key values.
+- Atomicity: a committed update must appear instantaneous; partial effects must never be visible.
+- No lost updates: every successful commit must overwrite the previous committed value and not be silently discarded.
+
+Specify liveness properties to check under fair scheduling:
+- Progress: if a client keeps retrying a transaction on a key and no other client continuously and infinitely preempts it, it eventually succeeds.
+- Absence of livelock: the system should not allow indefinite mutual interference that prevents all clients from making progress.
+
+Allow specification of symmetry among clients and multiple runs with different initial values for keys.

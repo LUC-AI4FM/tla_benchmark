@@ -1,0 +1,60 @@
+# Specification Request: External Process Execution and I/O Utilities for TLA+ Tooling
+
+## System Overview
+
+I need a formal specification for a utility library that enables TLA+ specifications to interact with the operating system by executing external processes and performing file I/O operations. This library should extend TLC's capabilities to invoke shell commands, capture their output, and serialize/deserialize data to files.
+
+## Functional Requirements
+
+### External Process Execution
+
+The system must provide the ability to:
+
+1. **Execute shell commands** with arbitrary arguments, properly preserving spaces, quotes, and special characters in the argument list without shell interpretation issues.
+
+2. **Capture process results** including:
+   - The exit code returned by the process
+   - Standard output (stdout) content
+   - Standard error (stderr) content
+
+3. **Support templated command execution** where command arguments can contain placeholders that are substituted with provided values at runtime.
+
+4. **Support environment variable handling**:
+   - Access environment variables from the parent process
+   - Pass custom environment variables to child processes
+   - Override or extend the environment for specific executions
+
+### File Serialization/Deserialization
+
+The system must support:
+
+1. **Writing data to files** with configurable options for:
+   - Output format (at minimum, plain text)
+   - Character encoding
+   - File open modes (create, overwrite, append, etc.)
+
+2. **Reading data from files** with matching format and encoding options
+
+3. **Proper handling of special characters** in serialized content, including escape sequences
+
+## Correctness Properties
+
+1. **Argument Integrity**: Command arguments containing spaces, quotes, or special characters must be passed to the external program exactly as specified, without corruption or misinterpretation.
+
+2. **Complete Output Capture**: All output written to stdout and stderr by the executed process must be captured completely and accurately.
+
+3. **Accurate Exit Status**: The exit value returned must exactly match the exit code set by the executed process.
+
+4. **Environment Isolation**: Custom environment variables passed to a process must be available to that process, and the mechanism must support both inheriting and overriding the parent environment.
+
+5. **Serialization Round-Trip**: Data serialized to a file and then deserialized must be identical to the original data.
+
+6. **Error Reporting**: Failed operations (non-zero exit codes, missing files, etc.) must be reported accurately through the result structure.
+
+## Use Cases to Support
+
+- Running external tools and checking their results within a specification
+- Launching nested TLC instances to verify sub-specifications
+- Reading configuration or test data from external files
+- Writing specification outputs for external consumption
+- Integration testing of TLA+ tooling infrastructure

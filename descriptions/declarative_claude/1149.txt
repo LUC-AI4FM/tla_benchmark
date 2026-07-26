@@ -1,0 +1,19 @@
+# EWD840 Module Description
+
+This TLA+ module specifies Dijkstra's EWD840 algorithm for detecting termination in a distributed system of N nodes arranged in a ring topology.
+
+## System Overview
+
+The algorithm detects when all nodes in a distributed system have become inactive. Nodes can be active or passive, and active nodes may send messages to activate other nodes. A token circulates from node 0 through node N-1 and back, collecting information about node activity.
+
+## Variables
+
+The specification tracks four variables: `active` maps each node to its activity status; `color` tracks each node's color (white or black, where black indicates the node sent a message "backwards"); `tpos` indicates the current token position; and `tcolor` holds the token's color.
+
+## Actions
+
+**InitiateProbe**: Node 0 starts a detection round by sending a white token to node N-1, painting itself white. **PassToken**: An inactive node (or one that is black or holds a black token) passes the token to its predecessor, potentially staining it black. **SendMsg**: An active node activates another node, turning black if the message goes against token flow. **Deactivate**: Any active node may spontaneously become inactive.
+
+## Fairness and Properties
+
+The specification includes weak fairness on system-controlled actions (token passing and probe initiation). The main safety property states that when termination is detected (white token at white, inactive node 0), all nodes must be inactive. The liveness property guarantees that actual termination is eventually detected. Dijkstra's inductive invariant characterizes the algorithm's correctness.

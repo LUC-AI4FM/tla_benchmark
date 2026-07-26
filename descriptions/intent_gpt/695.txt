@@ -1,0 +1,11 @@
+Specify a formal model of an environment-facing I/O adapter used by a model checker to interact with external processes, files, and environment data. The model should describe how the adapter accepts requests to run external commands (with or without an explicit environment), run template-formatted commands with parameters, and return a structured result that includes an integer exit code, standard output string, and standard error string. It should also allow serializing and deserializing arbitrary values to and from external storage locations, supporting options such as format and compression, and should model a primitive for reading environment variables as a mapping of names to string values.
+
+The model must capture non-determinism and potential failures of external interactions: commands may succeed or fail with arbitrary exit codes, outputs may be any strings, serialization/deserialization may succeed or fail, and deserialization may produce any value consistent with the assumed format. It must represent conversion utilities: converting decimal strings to integers and formatting natural numbers as zero-padded decimal strings of a given width, including edge cases (zero and widths smaller than the number length).
+
+Key correctness properties to guarantee:
+- Results from command execution always have the required structure (exit code integer, stdout string, stderr string).
+- Deserialization yields a value only when a corresponding serialized artifact could plausibly exist; model non-deterministic choice for produced values when underlying data is unspecified.
+- Serialization followed by deserialization (to the same destination with compatible options) may return the original value or a failure; the model must allow both but not assert spurious value production unrelated to plausible I/O.
+- Conversions from numeric strings to integers are total over valid decimal representations and must fail or be undefined for non-decimal inputs; zero-padding must preserve numeric value and produce strings of at least the specified width.
+
+Do not commit to any particular implementation strategy; the model should abstract external side effects as atomic operations with nondeterministic outcomes constrained by the types and structural invariants above.

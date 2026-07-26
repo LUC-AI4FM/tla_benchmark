@@ -1,0 +1,9 @@
+This TLA+ module specifies the Two-Phase Commit (2PC) protocol, a distributed transaction protocol ensuring atomic commitment across multiple resource managers.
+
+The system consists of a set of resource managers (RM) coordinated by a single transaction manager (TM). Four variables track the state: `rmState` maps each RM to its current state (working, prepared, committed, or aborted), `tmState` holds the TM's state (init, committed, or aborted), `tmPrepared` tracks which RMs have sent prepare messages, and `msgs` represents the message channel.
+
+Initially, all RMs are working, the TM is in init state, and no messages exist. The next-state relation allows several actions: RMs can prepare (sending a prepared message), choose to abort while still working, or receive commit/abort messages. The TM can receive prepared messages, commit (only after all RMs prepared), or abort at any time while in init state.
+
+The specification defines no fairness conditions—it uses only safety (stutter-allowed) semantics.
+
+The key safety property is Consistency: no RM can be committed while another is aborted. The module includes a comprehensive type invariant and a stronger inductive invariant relating TM state to RM states and messages. Three lemmas formally prove that the invariant holds initially, is preserved by transitions, and implies consistency, culminating in a theorem that the specification guarantees consistency always holds.

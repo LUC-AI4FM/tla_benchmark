@@ -1,0 +1,33 @@
+# Specification Request: Deadlock Detection Test Case
+
+## System Overview
+
+I need a formal specification for a simple state machine that serves as a test case for verifying that model checkers correctly identify potential deadlock conditions, even when some execution paths remain live indefinitely.
+
+## System Description
+
+The system maintains a single integer counter, starting at zero. The system can perform two types of transitions:
+
+1. **Transition Type A**: When the counter is even, increment it by 1 (making it odd)
+2. **Transition Type B**: When the counter is even, increment it by 2 (keeping it even)
+
+Both transitions share the same precondition (counter must be even), but they lead to fundamentally different system states in terms of liveness.
+
+## Key Behavioral Requirements
+
+- The counter must start at zero
+- Transitions should only be possible when the counter value is even
+- After Transition A executes, the counter becomes odd, which disables all further transitions
+- After Transition B executes, the counter remains even, allowing continued execution
+
+## Correctness Properties to Verify
+
+The critical property this specification must demonstrate is **deadlock reachability**:
+
+- There exists at least one reachable state from which no further transitions are possible (a deadlock state)
+- Specifically, any state where the counter is odd represents a deadlock
+- This deadlock is reachable via Transition A from any state where the counter is even
+
+## Purpose
+
+This specification is designed to test whether a model checker can detect that deadlock is *possible*, even though there also exists an infinite execution path (repeatedly taking Transition B) that never deadlocks. A correct analysis should report that the system can deadlock, not just that it can run forever.

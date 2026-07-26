@@ -1,0 +1,58 @@
+# Specification Request: Tendermint Blockchain Model for Light Client Verification
+
+## System Overview
+
+I need a formal specification of a simplified Tendermint blockchain model, designed specifically to support reasoning about light client protocols. The model should capture the essential structure of a proof-of-stake blockchain where validators sign blocks, and where a light client must be able to verify block headers without downloading the full chain.
+
+## Core Requirements
+
+### Blockchain Structure
+
+The system should model a blockchain as a sequence of block headers, where each header contains:
+- A height (position in the chain)
+- A timestamp
+- The set of validators who committed (signed) the previous block
+- The current validator set for this block
+- The validator set for the next block
+
+Each block must be properly signed by validators from the previous block's validator set, with commits requiring more than two-thirds of the voting power.
+
+### Validator Model
+
+- There is a fixed universe of potential validator nodes
+- Validators have uniform voting power (model varying power by replicating validators)
+- Some subset of validators may be faulty/Byzantine
+- The faulty set should be static or monotonically increasing (recovered nodes rejoin with new identities)
+- The ratio of faulty validators within any validator set must remain below a configurable threshold
+
+### Time Model
+
+- The system tracks a global reference clock
+- Each block has a timestamp that must strictly increase
+- Timestamps must not advance faster than the trusting period allows between consecutive blocks
+- A trusting period parameter defines how long validator sets remain trusted
+
+### Digital Signatures and Byzantine Behavior
+
+The model must capture what blocks can exist given digital signature constraints:
+- Correct validators only sign legitimate blocks matching the true chain
+- Faulty validators can sign arbitrary block headers (but only if all signers are faulty)
+- Any block presented must either match the real chain or be signed entirely by Byzantine nodes
+
+## Key Correctness Properties
+
+1. **Commit Validity**: Every block (except genesis) must have commits from more than two-thirds of the previous block's validators
+
+2. **Temporal Consistency**: Block timestamps must be strictly increasing and bounded by the trusting period
+
+3. **Fault Tolerance Bounds**: The proportion of faulty validators in any validator set must stay below the specified threshold
+
+4. **Trust Period Semantics**: The specification must support checking whether a given block header is still within its trusting period relative to the current time
+
+## Modeling Constraints
+
+- The blockchain should be initialized to a fixed maximum height (finite model for verification)
+- Time should be modeled as integers
+- The specification should support model checking tools, particularly Apalache
+
+This model will serve as the "reference chain" against which light client behavior can be verified.

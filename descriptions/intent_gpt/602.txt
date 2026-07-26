@@ -1,0 +1,12 @@
+Specify a formal model of a distributed optimistic transactional storage system that implements multi-key, multi-version transactions using a two-phase commit style prewrite/commit protocol (similar to Percolator). The model should describe clients that start transactions, read keys from a snapshot, prewrite intent locks and tentative versions on primary and secondary keys, and then commit by assigning a commit timestamp and publishing committed versions. The system must allow transactions to abort (or crash) at any point and must permit subsequent transactions to detect and clean up stale locks and tentative data.
+
+The specification must capture time (monotonically increasing timestamps for transaction start and commit), per-transaction primary and secondary key sets, per-key multi-versioned data, per-key lock state (distinguishing primary vs secondary locks), and per-key committed write histories. It must express operations for starting a transaction, reading under snapshot semantics, acquiring prewrite locks and placing tentative versions, committing the primary (and thereby finalizing the transaction), cleaning up/rolling back stale locks and promoting secondary tentative versions when their primary is committed.
+
+Key correctness properties to guarantee:
+- Type invariants for timestamps, client states, key histories, and locks.
+- Write consistency: committed versions per key are totally ordered and each committed version’s commit timestamp is greater than its start timestamp, with no overlapping writes.
+- Lock consistency: at most one lock per key; when a transaction moves to commit, if its primary lock exists then all corresponding secondary locks were prewritten.
+- Committed/Aborted consistency: committed transactions must have their primary tentatives converted to a single committed write and appropriate secondary outcomes (committed or cleaned up) as required; aborted transactions must not leave committed primary writes at their commit timestamp.
+- Snapshot isolation: reads observe a consistent snapshot so that no committed write can violate snapshot isolation with respect to already observed reads (i.e., committed versions with commit timestamps older than a client's read timestamp must not appear to retroactively break prior reads).
+
+Do not prescribe implementation details such as exact data structures, variable names, or step-by-step action code; instead specify the abstract state components and transitions, and the safety invariants above to be checked.

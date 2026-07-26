@@ -1,0 +1,16 @@
+Specify a formal model of a two-phase commit protocol between a single coordinator (transaction manager) and a fixed set of resource managers. The model should describe asynchronous message-passing between the coordinator and the resource managers, where messages may be delayed, duplicated, or reordered but not corrupted or lost. The system must capture the following behaviors and goals:
+
+- Resource managers decide to either prepare or abort locally; preparing means they are willing to commit but still await the coordinator’s decision. Aborting is final for that resource manager.
+- The coordinator collects prepare votes and, once it has prepared votes from all resource managers, issues a global commit; if any resource manager aborts, the coordinator issues a global abort.
+- Resource managers follow the coordinator’s final decision (commit or abort) when they receive it, and they must not commit unless they have previously prepared.
+- The model must allow concurrent and independent decisions by resource managers, and it must allow the coordinator to make decisions based only on messages received so far.
+
+State the safety properties to be guaranteed:
+- Agreement: No two resource managers may end up in conflicting final states (one committed and another aborted).
+- Validity: If every resource manager prepared, then the final decision must be commit; if any resource manager aborted, the final decision must be abort.
+- Consistency of local constraints: No resource manager may commit without having prepared first.
+
+Also state liveness requirements to be checked (under fair execution assumptions):
+- Eventual decision: If messages are eventually delivered and processes are fair, the coordinator will eventually reach and broadcast a final decision, and every non-faulty resource manager will eventually learn and adopt that decision.
+
+Do not prescribe a specific implementation; leave freedom to model processes, messages, and faults so proofs can verify the stated safety and liveness properties.

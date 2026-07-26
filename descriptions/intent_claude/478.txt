@@ -1,0 +1,46 @@
+# Specification Request: Asynchronous Non-Blocking Atomic Commitment with Failure Detectors
+
+## System Overview
+
+I need a formal specification of a distributed **non-blocking atomic commitment (NBAC)** protocol that operates in an asynchronous environment with crash failures and failure detectors. This protocol allows a set of distributed processes to reach agreement on whether to commit or abort a transaction, based on their individual votes.
+
+## System Description
+
+The system consists of a fixed number of processes that must collectively decide on a transaction outcome. Each process begins with an initial vote (either YES or NO) indicating whether it is willing to commit. Processes communicate by broadcasting their votes and collecting votes from others. The system includes a failure detector that may indicate suspected failures of other processes.
+
+### Process Behavior
+
+- Each process starts with a vote and may broadcast it to all other processes
+- Processes collect incoming votes from others asynchronously
+- Based on received votes and failure detector information, each process eventually decides to either COMMIT or ABORT
+- Processes may crash at any point, and crashed processes stop participating but may have already sent some messages
+- If a process's failure detector suspects any failure, it should abort rather than risk blocking
+
+### Decision Rules
+
+- A process commits only if it has received YES votes from all processes and has no suspicion of failures
+- A process aborts if it receives any NO vote or if its failure detector indicates a suspected failure
+- The protocol must be non-blocking: correct processes must eventually decide even if some processes crash
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+### Safety Properties
+
+1. **Agreement**: No two correct processes decide differently—it must never happen that one process commits while another aborts.
+
+2. **Abort-Validity**: If any process votes NO, then no process may commit. (A commit decision requires unanimous YES votes.)
+
+3. **Commit-Validity**: If all processes vote YES and no process is suspected by the failure detector, then no correct process aborts.
+
+### Liveness Property
+
+4. **Termination**: If no process crashes and no process is suspected by the failure detector, then every correct process eventually reaches a decision (either COMMIT or ABORT).
+
+## Additional Considerations
+
+- The model should be parameterized by the number of processes
+- The specification should handle the asynchrony of message delivery (messages sent may be received in any order and with arbitrary delay)
+- The failure detector abstraction should capture the property that it accurately detects crashes (no false suspicions of correct processes, and crashed processes are eventually suspected)
+- The model should support analysis under different initial voting scenarios (all YES, all NO, or mixed votes)

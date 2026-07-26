@@ -1,0 +1,10 @@
+Model a bounded ring buffer data structure accessed concurrently by multiple readers and multiple writers. The buffer has a fixed capacity of slots, each holding either a value or a distinguished NULL. Writers may reserve a slot, publish a value into a reserved slot to make it visible, and complete their write; readers may claim a slot that contains a value, consume that value, and complete their read. The model must support multiple writers and multiple readers operating concurrently on different slots, but must prevent data races on the same slot: at most one writer may be writing a given slot at a time, and a slot being written must not be read until the write is published. Likewise, a slot being read should not be concurrently reclaimed for writing until the read completes.
+
+Specify the buffer’s externally visible API: initialization, an operation for a writer to begin and end a write to a specific slot, and an operation for a reader to begin and end a read from a specific slot. Capture state that records which slots hold which values and which threads currently hold read or write claims on each slot.
+
+State the correctness properties the model must guarantee:
+- Safety: no two writers may concurrently claim the same slot; no writer and reader may concurrently hold conflicting claims on the same slot that would allow a reader to observe a partially written value.
+- Atomic visibility: once a writer has completed publishing a value, any subsequent reader that claims that slot must observe that full value (not NULL or a prior value).
+- Liveness assumptions as appropriate: progress of readers/writers when slots are available (or state clearly which progress guarantees are required versus only safety).
+
+Do not prescribe scheduling or low-level implementation details; leave scheduling nondeterministic so the model can be used to check that any interleaving of allowed operations preserves the properties.

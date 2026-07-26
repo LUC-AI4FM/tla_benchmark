@@ -1,0 +1,15 @@
+Specify a formal model of a bounded-size multi-producer, multi-consumer ring buffer (a disruptor-style queue) used for high-throughput multicast delivery. The model should capture multiple concurrent writers that claim sequence numbers and publish items into the ring buffer, and multiple concurrent readers that read items from the buffer. The system must enforce that producers do not overwrite slots that are still needed by any consumer, and that consumers only read slots that have been fully published.
+
+Model goals and functional requirements:
+- Sequence allocation: producers must obtain strictly increasing sequence numbers to identify slots. Sequence numbers are unbounded in intent but the model may be bounded for verification.
+- Buffer indexing: map sequence numbers to ring-buffer indices by modulo buffer size; allow wrap-around across rounds while ensuring correctness across rounds.
+- Mutual safety constraints:
+  - No data races on any buffer slot: a slot being written or published must not be concurrently read in a way that yields torn or inconsistent data.
+  - Producers must not advance into buffer slots that some consumer might still need (i.e., cannot overtake the minimum read cursor by more than the buffer size).
+  - Consumers must not read a sequence until it is published and fully written.
+- Liveness and delivery semantics:
+  - Multicast delivery: every published sequence must eventually be observed (read) by every consumer; each consumer should see every published sequence in order without gaps.
+  - Progress: if producers continue to publish, consumers making progress must eventually catch up to read all sequences that have become available.
+- Bounded verification constraints: provide parameters for buffer size, sets of producers and consumers, and a bound on the number of published sequences to enable finite-state checking.
+
+Specify safety properties (invariants) and temporal liveness properties to verify: absence of data races, preservation of buffer integrity under wrap-around, correct publication semantics, and eventual multicast delivery of every published event to all consumers.

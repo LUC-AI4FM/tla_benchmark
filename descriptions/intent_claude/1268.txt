@@ -1,0 +1,34 @@
+Specification Request: Buffered Random Access File System
+
+**System to Model:**
+A buffered random-access file abstraction that wraps an underlying file with an in-memory buffer to improve I/O performance. This is the kind of buffering layer commonly found in file system implementations or database storage engines.
+
+**Overview:**
+The system should model a file access mechanism that maintains a fixed-size buffer in memory to cache a portion of the file's contents. The buffer acts as a sliding window over the file, reducing the number of actual disk operations needed during sequential or localized read/write patterns.
+
+**Core Operations to Support:**
+- **Seek:** Move the current position to any valid offset in the file. If the new position falls outside the currently buffered region, the buffer must be flushed (if modified) and refilled from the appropriate file location.
+- **Read:** Read data starting from the current position, returning bytes from the buffer when possible.
+- **Write:** Write data at the current position, modifying the buffer and marking it as dirty.
+- **Flush:** Write any modified buffer contents back to the underlying file.
+- **Set Length:** Truncate or extend the file to a specified length, with appropriate handling of the buffer contents and current position.
+
+**Key Correctness Properties:**
+
+1. **Refinement of Simple File Semantics:** The buffered implementation must behave identically to a simple unbuffered random-access file from the client's perspective. Any sequence of operations should produce the same logical file contents and maintain the same position semantics as direct file operations.
+
+2. **Buffer Consistency Invariants:**
+   - The current position must always be within the buffer's valid range (between the buffer's starting offset and one buffer-size ahead).
+   - The logical file length must accurately reflect what would be seen if all buffered changes were written to disk.
+   - All positions covered by the buffer must have buffer contents matching the logical file contents.
+   - All positions outside the buffer must have disk contents matching the logical file contents.
+   - If any buffered byte differs from what's on disk, the buffer must be marked as dirty.
+
+3. **Dirty Buffer Management:** It must always be possible to restore the buffer invariants by flushing (if dirty) and then seeking to re-establish proper buffer alignment.
+
+4. **Operation Correctness:** Each individual operation (seek, read, write, flush, set-length) must correctly implement its corresponding abstract file operation, potentially writing partial data in bounded chunks while maintaining all invariants.
+
+**Constraints:**
+- The buffer has a fixed size.
+- File offsets and lengths are bounded by a maximum value.
+- The specification should use 0-indexed addressing to match typical implementation languages.

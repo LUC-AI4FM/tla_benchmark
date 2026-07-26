@@ -1,0 +1,42 @@
+# Specification Request: Distributed Transaction Commit Using Paxos
+
+## System Overview
+
+I need a formal specification of a distributed transaction commit protocol that uses Paxos consensus to achieve fault-tolerant agreement. The system coordinates multiple resource managers (participants) to atomically commit or abort a distributed transaction, even in the presence of failures.
+
+## System Requirements
+
+### Components and Behavior
+
+The system should model:
+
+1. **Resource Managers**: Multiple participants that each manage a portion of the transaction. Each resource manager must be able to vote on whether it can commit its part of the transaction (prepared) or must abort.
+
+2. **Paxos-based Decision**: Instead of relying on a single transaction coordinator (which would be a single point of failure), the commit/abort decision should be reached through the Paxos consensus algorithm, providing fault tolerance.
+
+3. **Transaction Outcomes**: The system must eventually reach a decision to either commit or abort the entire transaction.
+
+### Key Behaviors
+
+- Resource managers independently decide whether they can prepare (agree to commit if asked) or must abort
+- The consensus mechanism collects votes and determines the final outcome
+- A transaction commits only if all resource managers vote to prepare
+- A transaction aborts if any resource manager votes to abort or fails to prepare
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+1. **Consistency**: All resource managers that reach a decision must reach the same decision (all commit or all abort).
+
+2. **Commit Validity**: A transaction can only commit if every resource manager voted to prepare.
+
+3. **Abort Validity**: If any resource manager decides to abort (or cannot prepare), the transaction must abort.
+
+4. **Non-triviality**: If all resource managers prepare and there are no failures, the transaction should be able to commit.
+
+5. **Stability**: Once a commit or abort decision is made, it cannot be changed.
+
+## Refinement Requirement
+
+The protocol should be proven to correctly implement a simple transaction commit specification. Specifically, the Paxos-based commit protocol must refine the basic safety properties of transaction commit—any behavior of this protocol should correspond to a valid behavior of a basic transaction commit protocol.

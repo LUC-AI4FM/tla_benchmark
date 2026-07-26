@@ -1,0 +1,47 @@
+# Specification Request: Non-Blocking Atomic Commitment Protocol
+
+## System Overview
+
+I need a formal specification of a **non-blocking atomic commitment protocol** for distributed transactions. This protocol coordinates a set of participants and a coordinator to reach a unanimous decision (commit or abort) on a transaction, with the critical property that the protocol remains non-blocking even when failures occur.
+
+## System Description
+
+The system consists of:
+- A **coordinator** that collects votes and broadcasts a decision
+- Multiple **participants** that vote on whether to commit or abort, and ultimately decide
+
+The protocol should work as follows:
+1. Each participant votes "yes" or "no" on the transaction
+2. The coordinator collects votes and determines a global decision (commit only if all vote yes, otherwise abort)
+3. The coordinator broadcasts the decision to all participants
+4. Participants receive the decision and finalize it
+
+## Non-Blocking Requirement
+
+The key enhancement over a simple blocking protocol is that participants must be able to reach a decision even if the coordinator fails. This is achieved through a **reliable broadcast mechanism**:
+
+- When a participant receives a decision (from the coordinator or another participant), it must forward that decision to all other participants before finalizing its own decision
+- This ensures that if any participant learns the decision, all non-faulty participants will eventually learn it too
+- If the coordinator fails before anyone receives a decision, participants should be able to safely abort via timeout
+
+## Fault Model
+
+- Both the coordinator and participants may fail (crash)
+- Failed processes stop executing and do not recover
+- Messages from failed processes that were already "in flight" (forwarded) may still be delivered
+
+## Correctness Properties Required
+
+1. **Agreement**: All non-faulty participants that reach a decision must decide the same value
+
+2. **Validity**: 
+   - If all participants vote "yes" and there are no failures, the decision must be commit
+   - If any participant votes "no", the decision must be abort
+
+3. **Termination/Non-Blocking**: Every non-faulty participant eventually reaches a decision, even if the coordinator or other participants fail
+
+4. **Integrity**: A participant decides at most once
+
+## Fairness Assumptions
+
+The specification should assume weak fairness for participant and coordinator actions—if an action is continuously enabled, it will eventually be taken.

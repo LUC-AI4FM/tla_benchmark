@@ -1,0 +1,39 @@
+# Specification Request: Distributed Termination Detection
+
+## System Overview
+
+I need a formal specification of Dijkstra's EWD998 algorithm for detecting termination in a distributed system. This is a classic algorithm where multiple nodes in a ring topology need to collectively determine when the entire distributed computation has finished.
+
+## System Description
+
+The system consists of a fixed number of nodes (processes) arranged in a logical ring. Each node can be either active (performing computation) or inactive. Nodes can send messages to each other, which may cause inactive nodes to become active again. The challenge is to detect when all nodes have become inactive and no messages are in transit—meaning the distributed computation has truly terminated.
+
+A special token circulates around the ring to collect information about the global state. The token carries metadata that helps distinguish between genuine termination and situations where the system only appears quiet due to in-flight messages.
+
+## Functional Requirements
+
+1. **Node Activity**: Nodes can transition between active and inactive states. An inactive node becomes active upon receiving a message.
+
+2. **Message Passing**: Active nodes can send messages to other nodes. The system must track pending (in-transit) messages.
+
+3. **Token Circulation**: A token travels around the ring, visiting each node in sequence. The token collects information needed to determine if termination has occurred.
+
+4. **Color Mechanism**: Nodes and the token use colors to track whether potentially interfering events have occurred since the token last passed.
+
+5. **Counter Mechanism**: Nodes maintain counters to track sent and received messages, allowing detection of in-flight messages.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Safety (No False Positives)**: The algorithm must never declare termination when the system has not actually terminated—i.e., when some node is still active or messages are still in transit.
+
+2. **Liveness (Termination Detection)**: If the underlying computation does terminate (all nodes become inactive and no messages remain pending), the algorithm must eventually detect this and reach a stable terminal configuration.
+
+## Parameters
+
+- The number of nodes in the ring should be configurable (e.g., 5 nodes for testing).
+
+## Verification Goals
+
+The specification should support verification that the algorithm correctly detects termination—specifically that the system can reach a quiescent state where all nodes are inactive, all counters are balanced, the token has completed its round with appropriate color, and this state is properly recognized as termination.

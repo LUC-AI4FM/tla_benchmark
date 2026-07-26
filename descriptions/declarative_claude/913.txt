@@ -1,0 +1,11 @@
+This TLA+ module specifies an internal memory system that handles read and write requests from multiple processors.
+
+The system models a shared memory accessed by a set of processors. It extends a MemoryInterface module that presumably defines processor identifiers, addresses, values, memory requests, and communication primitives.
+
+The specification uses four variables: `mem` represents the memory as a function from addresses to values; `ctl` tracks each processor's control state; `buf` holds each processor's current request or response value; and `memInt` (from the interface) represents the external memory interface state.
+
+Each processor cycles through three control states. In the "rdy" state, a processor can execute a `Req` action to send a memory request, storing it in its buffer and transitioning to "busy". In the "busy" state, the `Do` action performs the actual memory operation—writes update memory and clear the buffer, while reads load the memory value into the buffer—then transitions to "done". In the "done" state, `Rsp` sends the response back through the interface and returns to "rdy".
+
+The next-state relation allows any processor to take any enabled action. The temporal specification combines the initial condition with the next-state relation under a stuttering-allowing form.
+
+The module asserts a type invariant as a theorem, stating that all variables maintain their expected types throughout execution.

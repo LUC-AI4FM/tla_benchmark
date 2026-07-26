@@ -1,0 +1,9 @@
+This TLA+ module specifies Peterson's N-process mutual exclusion algorithm, a generalization of the classic two-process Peterson algorithm to handle an arbitrary number of concurrent processes.
+
+The system models N processes (numbered 0 through N-1) competing to enter a critical section. Two global variables coordinate access: `level` tracks each process's current competition level (ranging from -1 when not competing to N-2 when about to enter the critical section), and `last_to_enter` records which process most recently entered each level.
+
+Each process cycles through a non-critical section, an entry protocol, the critical section, and an exit protocol. The entry protocol implements a filter mechanism: a process must pass through N-1 levels before entering the critical section. At each level, a process announces its presence, marks itself as the last to enter that level, then waits if another process is at or above the same level and this process was the last to arrive. The waiting condition ensures that at most N-k processes can be at level k or higher, guaranteeing that exactly one process reaches the critical section.
+
+The specification includes weak fairness for all process actions except the non-critical section, ensuring processes eventually progress when enabled. The non-critical section is marked with a minus sign, exempting it from fairness requirements, which models that processes may remain indefinitely outside the critical section.
+
+No explicit safety or liveness properties are declared in the module for model checking.

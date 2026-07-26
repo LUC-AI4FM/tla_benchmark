@@ -1,0 +1,53 @@
+# Specification Request: Internal Memory System with Multiple Processors
+
+## System Overview
+
+I need a formal specification for a shared memory system that handles read and write requests from multiple processors. The system should model how processors interact with a central memory through a request-response protocol.
+
+## System Description
+
+The system consists of:
+- A shared memory that maps addresses to values
+- Multiple processors that can issue memory operations
+- A communication interface between processors and the memory system
+
+Each processor should be able to:
+1. Submit read or write requests to memory
+2. Have its request processed by the memory system
+3. Receive a response (the value read, or acknowledgment of write completion)
+
+## Behavioral Requirements
+
+### Request Handling
+- A processor can only submit a new request when it is not currently waiting for a previous request to complete
+- Write requests must specify an address and a value to write
+- Read requests must specify an address to read from
+
+### Memory Operations
+- Write operations must update the memory at the specified address with the provided value
+- Read operations must retrieve the current value stored at the specified address
+- Only one operation should be processed at a time for each processor's pending request
+
+### Response Delivery
+- After a write completes, the processor should be notified and become ready for new requests
+- After a read completes, the processor should receive the value that was read from memory
+- Responses must be delivered through the external memory interface
+
+## Correctness Properties
+
+### Type Safety
+The specification must guarantee that:
+- Memory always remains a valid mapping from addresses to values
+- Each processor is always in a well-defined state (ready, busy processing, or done)
+- Processor buffers contain only valid request structures, response values, or are empty as appropriate
+
+### Protocol Integrity
+- Processors must cycle through states correctly: ready → busy → done → ready
+- Requests and responses must flow through the proper communication interface
+
+## Interface Requirements
+
+The system should integrate with an existing memory interface module that defines:
+- The set of valid processors, addresses, and values
+- The structure of memory requests
+- Send and Reply operations for processor-memory communication

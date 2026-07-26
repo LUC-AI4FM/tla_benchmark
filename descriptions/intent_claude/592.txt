@@ -1,0 +1,42 @@
+# Specification Request: Concurrent Distributed Transaction Protocol
+
+## System Overview
+
+I need a formal specification of a distributed transaction protocol inspired by Google's Percolator system, which provides snapshot isolation for concurrent transactions over a key-value store.
+
+## System Description
+
+The system should model:
+
+1. **A distributed key-value store** with multiple keys that can be read and written by concurrent transactions.
+
+2. **Multiple concurrent clients** that each execute transactions. Each client/transaction has a designated "primary key" that plays a special role in the commit protocol (used as the synchronization point for determining transaction outcome).
+
+3. **The Percolator two-phase commit protocol**, which uses:
+   - Timestamps for snapshot isolation (start timestamp and commit timestamp)
+   - Locks written during the prewrite phase
+   - A primary key whose lock status determines whether the transaction committed or aborted
+   - Asynchronous cleanup of locks after commit decisions
+
+## Key Behaviors to Model
+
+- Clients should be able to start transactions, read keys, and write to multiple keys atomically
+- The protocol should handle the prewrite phase (acquiring locks) and commit phase (making writes visible)
+- Concurrent transactions should be able to detect conflicts through locks
+- Transactions should be able to roll back or roll forward incomplete transactions from other clients
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Snapshot Isolation**: Each transaction sees a consistent snapshot of the database as of its start time, and concurrent transactions that write to overlapping keys cannot both commit.
+
+2. **Atomicity**: Either all writes of a transaction become visible, or none do.
+
+3. **No Lost Updates**: Concurrent writes to the same key are properly serialized.
+
+4. **Progress**: The system should not deadlock; transactions can eventually commit or abort.
+
+## Scope for Verification
+
+For practical model checking, the specification should be parameterized to work with a small instance: approximately 2 keys and 2 concurrent clients, each with a different primary key.

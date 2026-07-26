@@ -1,0 +1,36 @@
+# Specification Request: Termination Detection Algorithm with Optimization Variants
+
+## System to be Modeled
+
+I need a formal specification of the EWD998 termination detection algorithm for distributed systems, extended to support experimental evaluation of several optimization variants. The base algorithm uses a token-passing ring to detect when all nodes in a distributed computation have become inactive and no messages are in transit.
+
+## System Description
+
+The system consists of a fixed number of nodes arranged in a logical ring. Each node can be active or inactive, can send messages to other nodes, and participates in a token-passing protocol to detect global termination. Nodes are "colored" to track whether they have sent messages that might reactivate other nodes since the token last passed.
+
+## Optimization Variants to Evaluate
+
+The specification should support toggling combinations of the following optimizations via feature flags:
+
+1. **Early token passing when node is tainted**: Allow an active node to pass the token if that node has been marked as having potentially invalidated the current detection round.
+
+2. **Early token passing when token is tainted**: Allow an active node to pass the token if the token itself indicates the current round is already inconclusive.
+
+3. **Short-circuit on tainted node**: When a node would invalidate the round, send the token directly back to the initiator rather than continuing around the ring.
+
+4. **Short-circuit on tainted token**: When the token is already marked as invalid, send it directly back to the initiator to restart detection sooner.
+
+## Requirements
+
+- The system should start from a realistic initial state where all nodes are active and unmarked
+- The environment (application workload) should be modeled as nodes spontaneously becoming inactive or sending/receiving messages
+- The algorithm must correctly detect termination: it should only declare termination when all nodes are truly inactive and no messages are in flight
+
+## Evaluation Goals
+
+The specification should support collecting performance metrics during simulation:
+- The number of steps between actual termination and its detection
+- The number of times the detection protocol is initiated
+- Counts of each type of action (token passing, message sending/receiving, deactivation)
+
+These metrics should be recorded to compare the efficiency of different optimization combinations, measuring how quickly termination is detected and how many protocol rounds are needed on average.

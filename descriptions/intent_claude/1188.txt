@@ -1,0 +1,41 @@
+# Specification Request: TLA+ Function and Domain Operator Semantics Verification
+
+## Goal
+
+Create a test harness that verifies the correct behavior of TLA+'s function-related operators, specifically the `DOMAIN` operator and function set constructs (`[A -> B]`). This is essentially a conformance test suite for a TLA+ model checker's implementation of these core language features.
+
+## System Description
+
+This is not a distributed system or algorithm specification, but rather a **validation suite** for TLA+ language semantics. The specification should exercise and verify the model checker's handling of:
+
+1. **The DOMAIN operator** - extracting the domain from various function definitions
+2. **Function set membership** - determining whether a given function belongs to a set of functions `[A -> B]`
+3. **Function set cardinality** - correctly computing the size of finite function sets
+4. **Multi-argument function domains** - handling functions with tuple domains
+
+## Requirements
+
+The test suite must verify the following semantic properties:
+
+### Domain Extraction
+- The domain of a function defined over an infinite set (like integers) correctly includes elements of that set
+- The domain of a function defined over a finite set has the expected cardinality
+- The domain of a record equals the set of its field names
+- Functions defined with multiple index variables have a Cartesian product as their domain
+
+### Function Set Membership
+- A tuple/sequence is in `[1..n -> S]` if and only if it has exactly n elements and all values are in S
+- Domain mismatch (wrong number of elements, wrong index set) must exclude a function from the function set
+- Range violations (values outside the codomain) must exclude a function from the function set
+- Records with string keys are not members of function sets with integer domains
+
+### Function Set Cardinality
+- The cardinality of `[A -> B]` equals `|B|^|A|` for finite sets
+- Filtered function sets have appropriately reduced cardinality
+
+### Expression Normalization
+- Equivalent expressions in set definitions (like `{1+1, 2}`) should be properly deduplicated
+
+## Correctness Properties
+
+Each test case must either pass (confirming expected behavior) or fail with an assertion error. The specification should be structured so that running the model checker will execute all tests and report any semantic violations. All tests passing indicates the model checker correctly implements function and domain semantics according to TLA+ language rules.

@@ -1,0 +1,42 @@
+# Specification Request: Multi-Paxos Consensus Protocol
+
+## System to Model
+
+I need a formal specification of the **Multi-Paxos distributed consensus protocol**. This is the multi-slot extension of the classic Paxos algorithm, where a distributed system must reach agreement on a sequence of values across multiple independent slots (or instances), with each slot representing a position in a replicated log.
+
+## System Components
+
+The system consists of three types of participants:
+- **Proposers**: Nodes that can propose values and coordinate consensus rounds
+- **Acceptors**: Nodes that vote on proposals and maintain the durable state needed for safety
+- **Learners**: Nodes that learn which values have been chosen
+
+The protocol operates using a quorum-based approach, where decisions require agreement from a quorum (majority) of acceptors.
+
+## Required Behavior
+
+The protocol must support:
+
+1. **Ballot-based leadership**: Proposers operate in numbered ballots (rounds), with higher ballots taking precedence over lower ones
+
+2. **Two-phase voting per slot**: For each slot, the protocol follows the standard Paxos phases:
+   - A prepare/promise phase where proposers establish leadership for a ballot
+   - An accept/accepted phase where values are proposed and voted on
+
+3. **Multi-slot operation**: Multiple consensus instances (slots) can operate concurrently, with each slot independently reaching agreement on a value
+
+4. **Value propagation**: Acceptors must carry forward any previously accepted values when responding to new ballot requests, ensuring that once a value might be chosen, all future decisions preserve it
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Non-triviality**: Any value learned in a slot must have been previously proposed for that slot. The system cannot fabricate values.
+
+2. **Consistency (Agreement)**: For each slot, at most one value can be learned. Different learners cannot learn different values for the same slot.
+
+3. **Stability**: Once a value is learned for a slot, it remains learned forever. Decisions are irrevocable.
+
+## Verification Goals
+
+The specification should be verifiable as a correct implementation of multi-slot consensus, demonstrating that the Multi-Paxos protocol properly refines an abstract consensus specification where values are simply proposed and chosen without exposing the underlying ballot mechanism.

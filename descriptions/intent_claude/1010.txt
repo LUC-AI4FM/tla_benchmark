@@ -1,0 +1,56 @@
+# Specification Request: B-Tree Key-Value Store
+
+## System Overview
+
+I need a formal specification for a B-tree data structure that implements a key-value store. The B-tree should support insertion, lookup, and update operations on key-value pairs, with automatic node splitting to maintain the tree's balance properties.
+
+## Functional Requirements
+
+### Operations
+
+1. **Get**: Retrieve the value associated with a given key. If the key doesn't exist, return a designated "missing" indicator.
+
+2. **Insert**: Add a new key-value pair to the tree. If the key already exists, this should be treated as an error. When a leaf node reaches maximum capacity, the tree must split nodes as needed to accommodate the new entry.
+
+3. **Update**: Modify the value associated with an existing key. If the key doesn't exist, return an error.
+
+Note: Delete operations are out of scope for this specification.
+
+### Tree Structure
+
+- The tree has a configurable maximum occupancy per node
+- Internal nodes contain keys that guide searches and pointers to child nodes
+- Leaf nodes contain the actual key-value pairs
+- When nodes overflow during insertion, they must split, potentially propagating splits up to the root
+- When the root splits, a new root is created, increasing the tree's height
+
+## Correctness Properties
+
+### Structural Invariants
+
+1. **Internal nodes must have valid children**: Every internal (non-leaf) node must have a valid "last child" pointer (the rightmost child).
+
+2. **Key ordering preserved**: For any internal node, all keys in a child subtree must be less than the corresponding separator key in the parent.
+
+3. **Leaf structure**: Leaf nodes should not have child pointers.
+
+4. **Key uniqueness across leaves**: Any given key may appear in at most one leaf node.
+
+5. **Resource availability**: There must always be free nodes available in the node pool for splits (this constrains the maximum tree size).
+
+### Behavioral Correctness
+
+The B-tree implementation must correctly implement an abstract key-value dictionary. Specifically:
+
+- The tree should refine a simple key-value store specification
+- When the system is in a ready state (not mid-operation), the mapping from keys to values derived from all leaf nodes should match what a simple dictionary would contain after the same sequence of operations
+- Get operations should return exactly the value stored for a key, or indicate the key is missing
+- Successful inserts should add new mappings; successful updates should modify existing ones
+
+## Parameters
+
+The specification should be parameterized by:
+- The set of possible values
+- The maximum key value (keys are natural numbers)
+- The maximum number of nodes in the tree
+- The maximum number of keys per node (occupancy limit)

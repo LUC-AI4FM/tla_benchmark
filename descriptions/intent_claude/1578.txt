@@ -1,0 +1,42 @@
+# Specification Request: Lock-Free Double-Ended Queue (Deque)
+
+## System Overview
+
+I need a formal specification of a **lock-free double-ended queue (deque)** data structure that supports concurrent access by multiple processes. The deque should allow elements to be pushed and popped from both the left and right ends simultaneously by different threads without using locks.
+
+## Operations Required
+
+The system must support four concurrent operations:
+- **Push Left**: Add an element to the left end of the deque
+- **Push Right**: Add an element to the right end of the deque
+- **Pop Left**: Remove and return an element from the left end
+- **Pop Right**: Remove and return an element from the right end
+
+Each operation should return a status indicating success ("okay"), that the deque is empty ("empty" for pops), or that memory is exhausted ("full" for pushes).
+
+## Synchronization Mechanism
+
+The implementation should use **double compare-and-swap (DCAS)** as its atomic synchronization primitive. DCAS atomically checks two memory locations against expected values and, if both match, updates both locations to new values.
+
+## Memory Model
+
+- The deque is implemented using a linked structure with nodes allocated from a finite pool of addresses
+- Each node contains pointers to neighboring nodes and a stored value
+- There is a distinguished sentinel/dummy node used to represent the empty state
+- Memory allocation comes from a free list; when exhausted, push operations fail gracefully
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Linearizability / Queue Semantics**: Every value that is successfully popped must have been previously pushed and not yet popped. The system should behave as a correct deque despite concurrent interleaving of operations.
+
+2. **No Lost Values**: A value pushed to the deque cannot disappear without being explicitly popped.
+
+3. **No Duplicate Returns**: The same pushed value instance cannot be returned by multiple pop operations.
+
+4. **Proper Empty Detection**: Pop operations only return "empty" when the deque is actually empty.
+
+## Testing Approach
+
+The specification should include a test harness where multiple processes continuously perform random push and pop operations (choosing randomly between left and right ends) to explore the concurrent state space and verify the correctness properties hold under all interleavings.

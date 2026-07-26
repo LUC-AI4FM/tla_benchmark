@@ -1,0 +1,16 @@
+Specify a model of the Two‑Phase Commit coordination protocol between a single transaction coordinator and a finite set of resource managers. The model should capture the following system and requirements without prescribing a particular implementation:
+
+- Participants: one coordinator (transaction manager) that decides to commit or abort a transaction, and multiple resource managers that can independently decide to prepare or abort their local work, and that receive the coordinator’s global decision.
+- Messages: a resource manager can send a “Prepared” notification to the coordinator; the coordinator can broadcast a “Commit” or “Abort” decision. Messages delivered may be observed but need not be removed; message loss need not be modeled explicitly.
+- Allowed behaviors:
+  - A resource manager may move from working to prepared, producing a Prepared message.
+  - A resource manager may independently decide to abort locally.
+  - The coordinator may collect Prepared notifications from resource managers, and when all have prepared, it may decide to commit and broadcast Commit.
+  - The coordinator may at any time decide to abort and broadcast Abort.
+  - Resource managers, upon observing a Commit or Abort message, must transition to the corresponding final state.
+- Safety properties to guarantee:
+  - Consistency: no two participants may end up in conflicting final decisions (i.e., no resource manager becomes committed if any participant — coordinator or any resource manager — is aborted).
+  - Agreement: if the coordinator commits, then every resource manager eventually can be in committed state only if it had previously prepared; conversely, no resource manager should be committed unless the coordinator has committed.
+  - Type invariants and state-space well‑formedness: all states and messages remain within the defined finite domains.
+
+Do not specify liveness (fairness) requirements; focus on safety invariants that encode agreement and atomicity of commit/abort decisions.

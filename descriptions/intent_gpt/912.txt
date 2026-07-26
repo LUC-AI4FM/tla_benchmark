@@ -1,0 +1,9 @@
+Model a simple concurrent request/response memory-interaction protocol for a fixed set of clients (processes) that communicate with a shared memory. The model should capture clients issuing memory requests, the memory performing reads and writes, and clients receiving responses. Specify the allowed states, transitions, and the invariant properties the system must maintain; do not prescribe an implementation.
+
+Requirements:
+- Processes can be in one of three control states: ready to issue a request, busy while a request is outstanding, or done waiting to be acknowledged. While ready or done, a process' local buffer may hold either no value or a data value; while busy, the buffer must encode a well-formed memory request (an address, an operation kind — read or write — and, for writes, a value).
+- A request transition moves a ready process to busy and initializes its buffer with a valid memory request.
+- A memory transition executes a busy process' request: for a read, it returns the value currently stored at the requested address into the process' buffer and moves the process to done without changing memory; for a write, it updates the memory at the requested address with the provided value and moves the process to done with its buffer cleared to a valid “no value” or value encoding.
+- A response transition moves a done process back to ready without changing memory or other processes' buffers.
+- The model must ensure type safety: memory is always a mapping from addresses to values; process buffers are always in the appropriate domain according to the process control state; request fields (address, operation, value) are always in their expected sets.
+- Prove that these type and buffer-consistency invariants hold globally for all reachable states (i.e., are inductive and preserved by every transition), and therefore always true under the system’s specification.

@@ -1,0 +1,33 @@
+# Specification Request: Lamport's Mutual Exclusion Algorithm
+
+I need a formal specification of Lamport's distributed mutual exclusion algorithm, which allows multiple processes to coordinate access to a shared critical section without a central coordinator.
+
+## System Overview
+
+The system consists of multiple distributed processes that communicate via message passing. Each process may request access to a critical section, and the algorithm must ensure safe coordination using only asynchronous message exchange between processes.
+
+## Core Requirements
+
+1. **Logical Timestamps**: Each process maintains a logical clock, and all requests and messages are timestamped according to Lamport's logical clock rules. Clocks must be updated appropriately when sending and receiving messages.
+
+2. **Request Protocol**: When a process wants to enter the critical section, it must broadcast a timestamped request to all other processes and add the request to its own queue.
+
+3. **Reply Protocol**: When a process receives a request from another process, it must send a reply (acknowledgment) back to the requester.
+
+4. **Entry Conditions**: A process may enter the critical section only when:
+   - Its own request is at the front of its local queue (ordered by timestamp, with ties broken by process ID)
+   - It has received replies from all other processes with timestamps greater than its request's timestamp
+
+5. **Release Protocol**: Upon exiting the critical section, a process must remove its request from the queue and notify other processes.
+
+## Correctness Properties
+
+1. **Mutual Exclusion (Safety)**: At most one process may be in the critical section at any given time.
+
+2. **Deadlock Freedom (Liveness)**: If a process requests the critical section and no process remains in the critical section forever, the requesting process will eventually enter.
+
+3. **Fairness**: Requests should be granted in timestamp order—earlier requests (by logical time) are served first.
+
+## Model Checking Considerations
+
+For verification purposes, the specification should support bounding the natural numbers used (for timestamps and counters) to enable finite-state model checking while preserving the essential behavior of the algorithm.

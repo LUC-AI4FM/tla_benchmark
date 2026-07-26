@@ -1,0 +1,37 @@
+# Specification Request: Online Database Migration with Concurrent Writes
+
+## System Overview
+
+I need a formal specification for an online database migration system that copies data from a source database to a target database while the source remains operational and accepting writes. The system must ensure that when the migration completes, the target database is an exact replica of the source.
+
+## System Components
+
+The migration system consists of four concurrent processes:
+
+1. **Data Copier**: Iterates through existing rows in the source database and copies them to the target database, processing rows sequentially by primary key up to a known maximum.
+
+2. **Change Stream Processor**: Continuously reads change events (inserts, updates, deletes) from the source database's transaction log and applies them to the target database. It must handle the case where a change may have already been superseded by the data copier.
+
+3. **Application/Writer**: Represents external clients that continue to perform insert, update, and delete operations on the source database during the migration. Each modification is atomically recorded in the transaction log.
+
+4. **Migration Coordinator**: Orchestrates the overall migration by waiting for the data copy phase to complete, then initiating a cutover that stops new writes, waits for in-flight writes to finish, captures the final log position, and signals the change stream processor to catch up and terminate.
+
+## Operational Requirements
+
+- The data copier must read and write each row atomically (the value read from source must be the value written to target without interleaving modifications).
+- The change stream processor should apply changes conditionally—only updating the target if the target's current value matches the expected "before" value in the change event. This prevents overwriting newer data with older changes.
+- The application must stop writing once a read-only mode is activated during cutover.
+- The change stream processor must continue running until it has processed all events up to the log position captured at cutover time.
+- The coordinator must sequence the cutover correctly: first stop writes, then capture the log position, then signal the change processor to stop at that position.
+
+## Key Correctness Property
+
+**Final Consistency**: When all processes have terminated, the target database must be identical to the source database. Every row that exists in the source must exist with the same value in the target, and vice versa.
+
+## Modeling Simplifications Allowed
+
+- The database can be modeled as a single table with a small fixed capacity.
+- Rows are indexed by primary key (natural numbers), with a special marker indicating non-existent rows.
+- Inserts and deletes can be modeled as updates to/from the non-existence marker.
+- The transaction log can be bounded to a finite maximum size for verification purposes.
+- The set of possible record values can be finite.

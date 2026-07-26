@@ -1,0 +1,41 @@
+# Specification Request: TLC Counterexample Trace Exporter
+
+## System Overview
+
+I need a utility that automatically exports TLC model checker counterexamples into a reusable, executable TLA+ module format. When TLC finds a property violation and produces a counterexample trace, this tool should capture that trace and generate a standalone module that can replay or constrain future model checking runs to follow the exact same execution path.
+
+## Goals
+
+The primary goal is to make counterexample traces reproducible and analyzable. When debugging a specification, it's valuable to be able to:
+
+1. Capture a counterexample trace found by TLC
+2. Generate a new TLA+ module that encodes this specific trace
+3. Use the generated module to constrain subsequent model checking runs to follow the same action sequence
+
+## Functional Requirements
+
+The system must:
+
+1. **Extract trace information**: Read the counterexample data structure that TLC produces when it finds a violation, including the sequence of actions taken and any parameters passed to those actions.
+
+2. **Determine module dependencies**: Identify which TLA+ modules are referenced by the actions in the trace, so the generated module can properly extend them.
+
+3. **Generate action constraints**: Create a mechanism that, given a step number in the trace, specifies exactly which action (with which parameters) should be taken at that step.
+
+4. **Produce valid TLA+ output**: Write a syntactically correct TLA+ module to a specified file that includes:
+   - Proper module header and extension of required modules
+   - The total length of the trace
+   - A constraint operator that can be used to force TLC to follow this specific trace
+
+5. **Handle edge cases gracefully**: If there is no counterexample (empty trace) or output is explicitly suppressed, the system should complete without error and without producing output.
+
+## Output Format Requirements
+
+The generated module should be self-contained and usable as an action constraint in subsequent TLC runs. It should encode the trace as a mapping from step indices to specific action invocations, preserving any parameters that were part of each action call.
+
+## Correctness Properties
+
+- The generated module must be syntactically valid TLA+
+- The action constraint must exactly reproduce the original counterexample trace when applied
+- All necessary module dependencies must be included via EXTENDS
+- File writing must complete successfully (indicated by exit status)

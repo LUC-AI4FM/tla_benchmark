@@ -1,0 +1,38 @@
+# Specification Request: Distributed Spanning Tree Construction via Echo Algorithm
+
+## System Overview
+
+I need a formal specification of the Echo algorithm for constructing a spanning tree in a distributed system. The algorithm operates on an undirected, connected graph where nodes communicate by passing messages to their neighbors. A single designated node initiates the process, and upon completion, every node in the network should know its parent in the resulting spanning tree rooted at that initiator.
+
+## System Requirements
+
+### Network Model
+- The system consists of a finite set of nodes connected by an undirected graph
+- One node is designated as the initiator (the future root of the spanning tree)
+- The graph must be connected (every node is reachable from every other node)
+- There are no self-loops (a node is not its own neighbor)
+- Communication happens via asynchronous message passing between neighboring nodes
+
+### Algorithm Behavior
+- The initiator begins by sending a message to all its neighbors
+- When a non-initiator node receives its first message, it designates the sender as its parent and forwards messages to all other neighbors
+- Each node must receive exactly one message from each neighbor before it can complete
+- Once a non-initiator has heard from all neighbors, it sends an acknowledgment back to its parent indicating a child relationship
+- The initiator completes when it has received responses from all its neighbors
+
+### Message Types
+- The algorithm uses two types of messages: an exploration message (sent outward to discover the tree) and a confirmation message (sent back to acknowledge parent-child relationships)
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+1. **Termination**: All nodes eventually complete the algorithm
+
+2. **Valid Parent Assignment**: Every non-initiator node ends up with exactly one parent, and that parent must be one of its neighbors in the original graph
+
+3. **Initiator Has No Parent**: The initiator node never assigns itself a parent
+
+4. **Consistent Parent-Child Relationships**: If a node considers another node its child, then that child must consider it as the parent, and vice versa upon completion
+
+5. **Spanning Tree Formation**: Upon termination, the parent relationships form a valid spanning tree rooted at the initiator—meaning the initiator is an ancestor of every other node, and the ancestor relation contains no cycles

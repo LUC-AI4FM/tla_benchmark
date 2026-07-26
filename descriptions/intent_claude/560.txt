@@ -1,0 +1,50 @@
+# Specification Request: Paxos Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Paxos Commit** algorithm, which is a fault-tolerant distributed transaction commit protocol. This protocol combines the transaction commit problem (deciding whether a distributed transaction should commit or abort) with the Paxos consensus algorithm to achieve fault tolerance.
+
+## System Description
+
+The system consists of three types of participants:
+
+1. **Resource Managers (RMs)**: Participants in a distributed transaction that each manage some resource and must vote on whether to commit or abort.
+
+2. **Acceptors**: A set of processes that participate in Paxos consensus instances. Any two majorities of acceptors must overlap (the quorum intersection property).
+
+3. **Leaders**: Processes that coordinate the protocol. Multiple processes may believe themselves to be the leader simultaneously (unreliable leader election).
+
+## Required Behavior
+
+The protocol should work as follows:
+
+- Each resource manager can independently decide to **prepare** (vote yes to commit) or **abort** (vote no).
+- For each resource manager, there is a separate instance of Paxos consensus that decides that RM's vote.
+- Resource managers can directly submit their votes for ballot zero, but if progress stalls, leaders can initiate higher-numbered ballots to drive consensus.
+- The final transaction decision is:
+  - **Commit** if all RMs have "prepared" chosen by their respective consensus instances
+  - **Abort** if any RM has "aborted" chosen by its consensus instance
+- Once a decision is reached, resource managers should learn the outcome and transition to the appropriate final state.
+
+## Modeling Simplifications
+
+The specification should focus on **safety properties only** (not liveness). The following simplifications are acceptable:
+
+- Model the message space as a set of all messages ever sent (no message loss or explicit delivery)
+- Enable actions based on message availability rather than explicit receipt
+- Do not model leader election—allow any leader actions when preconditions are met
+- Ignore explicit "prepare request" messages; RMs spontaneously prepare
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: The system never reaches a state where one resource manager has committed while another has aborted.
+
+2. **Validity**: 
+   - Commit can only happen if all resource managers actually prepared
+   - Abort is always a valid outcome
+
+3. **Paxos Safety**: Each consensus instance must satisfy the standard Paxos invariants—once a value is chosen, no different value can be chosen in that instance.
+
+4. **Type Correctness**: All state variables remain within their expected domains throughout execution.

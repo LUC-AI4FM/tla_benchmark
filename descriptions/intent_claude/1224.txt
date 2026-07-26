@@ -1,0 +1,40 @@
+# Specification Request: TLA+ Function Application Semantics Test Suite
+
+## Goal
+
+Create a test harness that validates the correct implementation of function application and modification semantics in TLA+. This specification should serve as a conformance test suite to verify that a TLA+ model checker correctly evaluates various forms of function construction, indexing, and update operations.
+
+## System Description
+
+The system is a static test framework (with trivial state that never changes) designed to exercise and verify the semantics of:
+
+1. **Basic function application** - accessing elements of functions defined over finite and infinite domains
+2. **Tuple/sequence indexing** - accessing elements by position
+3. **Record field access** - accessing values by field name
+4. **Nested function application** - functions that return functions, with chained access
+5. **Function modification with EXCEPT** - creating modified copies of functions with specific values overridden
+6. **Self-referential updates** - using the previous value at a position when computing the new value
+7. **Multiple simultaneous updates** - applying several modifications in a single EXCEPT expression
+8. **Multi-argument functions** - functions defined over Cartesian products of domains, with both tuple-style and individual-argument access syntax
+
+## Key Correctness Properties
+
+The test suite must verify:
+
+1. Functions defined over finite sets correctly return computed values when indexed
+2. Sequences/tuples use 1-based indexing and return the correct positional element
+3. Records correctly map string field names to their associated values
+4. Functions over infinite domains (like natural numbers) correctly compute values on demand
+5. When multiple EXCEPT clauses modify the same index, the last modification takes precedence
+6. EXCEPT modifications only affect the specified indices; other indices retain original values
+7. Nested EXCEPT syntax (modifying a position within a nested function) works correctly
+8. The self-reference operator in EXCEPT expressions refers to the value at that position *before* other modifications in the same expression (with sequential application of multiple updates to the same position)
+9. Multi-argument functions can be accessed equivalently using tuple syntax or comma-separated arguments
+10. EXCEPT on multi-argument functions correctly handles tuple-based indices
+
+## Requirements
+
+- Each test case should clearly pass or fail with an identifiable test number
+- All tests passing should be reported as successful completion
+- Any test failure should immediately halt with an assertion identifying which test failed
+- The specification should be executable by a TLA+ model checker to validate these semantic rules

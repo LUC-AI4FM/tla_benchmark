@@ -1,0 +1,53 @@
+# Specification Request: Model Checker with Non-Strict BFS Exploration
+
+## System to Model
+
+I need a formal specification of a **model checker algorithm** that explores a finite state graph using breadth-first search (BFS). The specification should capture how a model checker like TLC discovers safety violations and constructs counterexample traces.
+
+## Functional Requirements
+
+### Core Exploration Behavior
+
+1. **Graph Exploration**: The system must explore a given directed state graph starting from a set of initial states, visiting all reachable states.
+
+2. **BFS with Configurable Strictness**: The exploration should support both:
+   - **Strict BFS** (single-worker mode): States are explored in exact level order
+   - **Non-strict BFS** (multi-worker mode): States may be dequeued from a window of the first K elements in the queue, modeling the relaxed ordering that occurs with concurrent workers
+
+3. **State Constraint Support**: The algorithm must support a configurable state constraint predicate. States that fail the constraint at their BFS level should not be explored or added to the frontier.
+
+4. **Violation Detection**: The system must detect when any explored state belongs to a designated set of "violation states" (representing safety property violations) and halt exploration upon finding one.
+
+5. **Deadlock Detection**: If a state has no outgoing transitions (other than self-loops), this should be treated as a deadlock and reported as a violation.
+
+### Counterexample Generation
+
+6. **Trace Reconstruction**: When a violation is found, the system must reconstruct and output a counterexample trace—a path from an initial state to the violating state.
+
+7. **Shortest Counterexample (Strict BFS)**: When operating in strict BFS mode (K=1), the counterexample must be a shortest path to the violation.
+
+## Key Correctness Properties
+
+### Safety Properties
+
+- All initial states must be checked before exploring successors
+- Every explored state must be marked as visited before processing its successors (no state explored twice)
+- If exploration completes without finding a violation, the frontier queue must be empty
+
+### Liveness Properties
+
+- **Termination**: The algorithm must eventually terminate (either by finding a violation or exhausting all reachable states)
+- **Counterexample Validity**: If violation states exist and are reachable, the algorithm must eventually produce a valid counterexample that:
+  - Starts from an initial state
+  - Ends at a violation state
+  - Consists of a valid path through the state graph
+  - Is a shortest such path when using strict BFS (K=1)
+
+## Parameters
+
+The specification should be parameterized by:
+- The state graph (states, initial states, and transition relation)
+- The set of violation states
+- The worker count K (window size for non-strict BFS)
+- The state constraint predicate
+- The set of known valid counterexamples (for verification purposes)

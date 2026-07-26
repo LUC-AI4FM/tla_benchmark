@@ -1,0 +1,13 @@
+This TLA+ module specifies a high-level model of a Tendermint blockchain designed specifically for reasoning about light client behavior. The specification captures a blockchain where validators have uniform voting power of one.
+
+The module defines three constants: AllNodes (the set of potential validators, both correct and faulty), ULTIMATE_HEIGHT (a modeling bound on maximum blockchain height), and TRUSTING_PERIOD (the time window during which validators remain trusted).
+
+Three variables track the system state: refClock (a global reference time), blockchain (a sequence of block headers from genesis to ultimate height), and Faulty (the set of faulty nodes, assumed non-decreasing).
+
+Block headers contain height, timestamp, the previous block's commit set, the current validator set, and the next validator set. Light blocks pair headers with commit sets.
+
+The initialization predicate InitToHeight constructs the entire blockchain at once, requiring that each block's commit has more than two-thirds support from the previous validator set, timestamps increase monotonically within trusting period bounds, and faulty validators remain below a configurable threshold in each validator set.
+
+The specification includes predicates for checking whether headers fall within the trusting period, whether validator sets achieve two-thirds agreement, and whether light blocks could legitimately exist given digital signature constraints (either matching the true blockchain or forged entirely by faulty nodes).
+
+The single defined action, AdvanceTime, allows the reference clock to advance non-deterministically while leaving the blockchain and faulty set unchanged.

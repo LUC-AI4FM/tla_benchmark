@@ -1,0 +1,61 @@
+# Specification Request: Distributed Termination Detection Algorithm (EWD998)
+
+## System Overview
+
+I need a formal specification of Dijkstra's EWD998 distributed termination detection algorithm. This algorithm solves the problem of determining when a distributed computation has finished across a ring network of processes, where processes can send messages to each other asynchronously.
+
+## System Description
+
+The system consists of a fixed number of nodes arranged in a logical ring topology. Each node represents a process in a distributed computation that can:
+
+- Be either **active** (performing work, able to send messages) or **inactive** (idle, waiting)
+- Send payload messages to other nodes, which may reactivate inactive receivers
+- Transition from active to inactive when it finishes its local work
+- Be reactivated when it receives a message from another node
+
+A special **token** circulates around the ring to detect when the entire distributed computation has terminated. The challenge is that termination detection is non-trivial because:
+1. Messages are asynchronous and may be in transit when the token passes
+2. An inactive node can become active again if it receives a message
+3. The token itself takes time to circulate
+
+## Algorithm Mechanism
+
+Each node maintains a **counter** tracking the difference between messages it has sent and messages it has received. Nodes are also marked with a **color** (conceptually "white" or "black") that indicates whether they have been active since the token last passed.
+
+The token carries:
+- A **color** that becomes tainted if it encounters any tainted node
+- An accumulated **sum** of all counters from nodes it has visited
+
+When a node passes the token to its neighbor, it adds its counter to the token's sum and may taint the token based on its own color.
+
+## Termination Detection Condition
+
+The algorithm must detect termination when:
+1. All nodes are inactive (actual termination has occurred)
+2. No messages are in flight between any nodes
+3. The token has completed a full round and can verify this state
+
+## Key Correctness Properties
+
+### Safety Property
+**No false positives**: The algorithm must never declare termination detected while any node is still active or while any messages remain in transit. If termination is declared, the system must genuinely be terminated.
+
+### Liveness Property
+**Eventual detection**: If the distributed computation actually terminates (all nodes become permanently inactive and all messages are delivered), the algorithm must eventually detect this termination.
+
+## Communication Model
+
+- Nodes communicate via asynchronous message-passing channels
+- Messages may experience arbitrary (but finite) delays
+- Message ordering between any pair of nodes should be FIFO
+- The token is passed as a special message around the ring
+
+## Requirements Summary
+
+1. Model the ring network with configurable number of nodes
+2. Model node states (active/inactive) and color (tainted/untainted)
+3. Model asynchronous message channels between nodes
+4. Model the circulating token with its color and counter accumulator
+5. Specify when termination detection is correctly declared
+6. Prove that detection only occurs when actual termination has happened
+7. Prove that detection eventually occurs if termination is reached

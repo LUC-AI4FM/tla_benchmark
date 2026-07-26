@@ -1,0 +1,47 @@
+# Specification Request: Blockchain Light Client Verification with Clock Drift
+
+## System Overview
+
+I need a formal specification for a blockchain light client protocol that verifies block headers without downloading the full blockchain. The light client should be able to securely synchronize from a previously trusted block height to a target block height by fetching and verifying intermediate light blocks.
+
+## System Requirements
+
+### Core Functionality
+
+The system should model:
+
+1. **A light client** that starts with a trusted block at a known height and attempts to verify blocks up to a target height
+2. **A blockchain network** with a set of validator nodes (in this case, 4 nodes)
+3. **A primary node** that provides light blocks to the client, which may or may not be behaving correctly
+4. **Clock management** with realistic drift between the light client's local clock and the reference (real) clock
+
+### Trust and Timing Parameters
+
+The specification must account for:
+
+- A **trusting period** during which previously verified blocks remain valid for trust decisions
+- **Clock drift assumptions**: the light client assumes some maximum drift between its local clock and real time, but the actual drift may differ (potentially be larger)
+- A **Byzantine fault threshold** where the protocol should remain secure as long as fewer than one-third of validators are faulty
+
+### Verification Process
+
+The light client should:
+
+- Fetch light blocks from the primary node
+- Verify blocks by checking validator signatures and ensuring continuity of trust
+- Track which blocks have been fetched and their verification status
+- Progress from the trusted height toward the target height
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client should not accept invalid or maliciously constructed blocks when operating within its assumptions (correct primary, actual drift within assumed bounds, honest validator majority)
+
+2. **Liveness**: The light client should eventually reach a terminal state (either successfully verified the target or detected a problem)
+
+3. **Trust chain integrity**: Every verified block should be properly connected to the initial trusted block through a valid chain of trust
+
+## Monitoring Requirements
+
+The specification should track state transitions to enable verification of temporal properties, including the previous values of key state components like the most recently verified block, current block under consideration, local clock, and verification verdicts.

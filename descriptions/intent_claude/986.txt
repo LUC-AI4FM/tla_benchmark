@@ -1,0 +1,56 @@
+# Specification Request: Distributed Leader Election with Graph Pruning (Yo-Yo Algorithm)
+
+## System Overview
+
+I need a formal specification of the Yo-Yo distributed leader election algorithm with pruning, operating on an undirected connected graph of nodes. Each node has a unique integer identity, and the goal is to elect the node with the minimum identity as the leader.
+
+## System Description
+
+The algorithm operates in rounds, where each round consists of two phases:
+
+1. **Down phase**: Information flows from source nodes (nodes with no incoming edges) toward sink nodes (nodes with no outgoing edges). Each node propagates the minimum value it has seen to its outgoing neighbors.
+
+2. **Up phase**: Responses flow back from sinks toward sources. Nodes report whether they received the minimum value, allowing edge directions to be reversed when a node determines it cannot be the leader.
+
+The key innovation is a **pruning mechanism** during the up phase that progressively eliminates nodes and edges to ensure termination:
+
+- **Sink pruning**: A sink node with only one incoming neighbor provides no useful information and removes itself from the graph after responding.
+- **Path consolidation**: When a node receives the same minimum value from multiple neighbors (indicating redundant paths from the same source), it keeps only one path and prunes the others.
+
+Nodes start with edge orientations determined by comparing identities with neighbors (edges point from smaller to larger identity). The algorithm proceeds until only one source remains with no neighbors, at which point it declares itself the leader.
+
+## Requirements
+
+### Functional Requirements
+
+1. The graph must be undirected and connected initially
+2. Nodes communicate by exchanging messages with neighbors
+3. Edge directions can change during execution based on the minimum values observed
+4. Nodes can become inactive and edges can be removed through pruning
+5. The algorithm must be fully distributed—no central coordinator
+
+### Message Types
+
+- **Down messages**: Carry the sender's identity and the minimum value seen
+- **Up messages**: Carry a yes/no response and a flag indicating whether the sender is pruning the link
+
+## Correctness Properties
+
+### Safety Properties
+
+1. **Type correctness**: All variables maintain valid values throughout execution
+2. **Graph consistency**: The relationship between incoming and outgoing neighbor sets remains coherent, accounting for in-flight messages that reverse or prune edges
+
+### Liveness Properties
+
+1. **Termination**: The algorithm must eventually terminate with exactly one leader
+2. **Correct leader**: Upon termination, the node with the minimum identity must be the leader
+3. **Complete shutdown**: All non-leader nodes must be inactive and all mailboxes must be empty at termination
+
+### Termination Detection
+
+The algorithm should terminate precisely when the correct final state is reached—the leader should be able to detect that it has won (it becomes an isolated node with no neighbors), and the system should have no enabled actions exactly when termination conditions are met.
+
+## Fairness Requirements
+
+The specification should assume weak fairness on all actions, ensuring that any continuously enabled action is eventually taken. This prevents scenarios where the algorithm stalls despite having work to do.

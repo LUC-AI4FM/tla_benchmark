@@ -1,0 +1,31 @@
+# Specification Request: Coverage Tracking for Specification Branches
+
+## System Overview
+
+I need a utility for tracking whether specific branches or conditions in a TLA+ specification are actually reachable during model checking. This is essentially a coverage analysis tool that helps verify that important paths through the specification are explored.
+
+## Goal
+
+When writing specifications, I often have conditional logic where I want to confirm that both the "true" and "false" branches are actually possible to reach. If a branch is never taken during model checking, it might indicate either dead code in my specification or an overly constrained model. I need a way to instrument my specification to track this and report on it.
+
+## Requirements
+
+### Branch Tracking
+- Provide a mechanism to mark boolean expressions as "tracked" with a given name
+- Each time a tracked expression is evaluated, record whether it evaluated to true
+- The tracking should work correctly even when TLC uses multiple worker threads
+
+### Coverage Counting
+- Maintain counts of how many times each named branch evaluated to true
+- Aggregate results across all worker threads used during model checking
+
+### Coverage Verification
+- Provide a way to assert that a named branch was reached at least once (i.e., evaluated to true at least once during the entire model checking run)
+- If a branch was never taken, the check should fail and report the current coverage counts for debugging
+
+### Reporting
+- Allow printing the accumulated coverage counts so users can see which branches were exercised and how often
+
+## Key Correctness Property
+
+The main property this system helps verify is **reachability of specification branches**: for any tracked condition, we want assurance that it was satisfiable in at least one explored state. A branch that is never taken across all explored states suggests the specification may not be exercising all intended behaviors.

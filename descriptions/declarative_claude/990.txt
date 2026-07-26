@@ -1,0 +1,11 @@
+This TLA+ module specifies a **Non-Blocking Atomic Commitment Protocol (ACP-NB)**, extending a simpler blocking version (ACP_SB) to achieve non-blocking behavior through reliable broadcast.
+
+The protocol models distributed transaction commitment where participants vote on whether to commit or abort, coordinated by a central coordinator. The non-blocking property is achieved by having participants forward decision messages to all other participants before delivering them locally—ensuring progress even if the coordinator fails.
+
+**Variables** include participant state (vote, alive status, decision, faulty flag, whether vote was sent, and a forwarding array tracking messages sent to each participant) and coordinator state (inherited from ACP_SB).
+
+**Key actions** include: participants sending votes, aborting based on their vote or timeouts, receiving pre-decisions from the coordinator or other participants, forwarding pre-decisions to all other participants, and finally deciding only after forwarding is complete. The timeout-based abort handles scenarios where the coordinator dies before broadcasting and no alive participant has received or forwarded a decision.
+
+**The temporal specification** combines initial conditions, a next-state relation allowing participant and coordinator actions (including failures), and weak fairness conditions ensuring enabled participant and coordinator actions eventually occur.
+
+**Properties checked** include type invariants and several liveness properties (marked as invalid/expected to fail): that all participants eventually commit, all eventually abort, or all commit when everyone votes yes.

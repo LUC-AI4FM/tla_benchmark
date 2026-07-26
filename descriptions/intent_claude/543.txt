@@ -1,0 +1,36 @@
+# Specification Request: Concurrent Counter Increment with Mutual Exclusion
+
+## System Overview
+
+I need a formal specification for a concurrent system where multiple processes cooperate to increment a shared counter. Each process should contribute exactly one increment to a shared variable, and the processes must coordinate to avoid race conditions.
+
+## System Description
+
+The system consists of a fixed number of concurrent processes (e.g., 5) that all attempt to increment a single shared counter. Each process should read the current value, then write back an incremented value. Since this is a non-atomic read-modify-write operation, the processes need some form of coordination to ensure correctness.
+
+Each process also maintains its own local temporary variable to hold the value it reads before writing back the increment.
+
+## Functional Requirements
+
+1. **Shared Counter**: There should be a shared variable that starts at zero and is incremented by each process.
+
+2. **Process Behavior**: Each process should:
+   - Read the current value of the shared counter into a local variable
+   - Write back the incremented value to the shared counter
+   - Complete after performing its increment
+
+3. **Concurrency**: All processes execute concurrently and may interleave their operations.
+
+## Correctness Properties
+
+The specification must verify the following properties:
+
+1. **Final Correctness**: When all processes have completed execution, the shared counter must equal exactly the number of processes. This ensures no increments were lost due to race conditions.
+
+2. **Type Safety**: The shared counter must always remain within valid bounds (from zero up to the number of processes). Each process's local variable must either be uninitialized or contain a valid counter value.
+
+3. **Mutual Exclusion**: The critical section (the read and write operations on the shared counter) must enforce mutual exclusion—at most one process may be in its critical section at any time. No two distinct processes should simultaneously be between reading and completing their write.
+
+## Purpose
+
+This specification is meant to model and verify a concurrent increment algorithm that uses some synchronization mechanism to prevent lost updates. The mutual exclusion property is essential to ensuring the final correctness property holds despite concurrent execution.

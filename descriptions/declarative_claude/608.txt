@@ -1,0 +1,9 @@
+This TLA+ module specifies a resolved timestamp tracking mechanism for a distributed transactional system, modeling how a resolver computes safe timestamps relative to ongoing transactions across multiple keys in a region.
+
+The system tracks transactions on a set of keys (RM) through their lifecycle. Each key maintains state including whether it is prewritten or committed, prewrite and commit timestamps, a message log, and an applied offset. A resolver maintains minimum prewrite timestamps per key. The specification uses a global timestamp counter, a channel for forwarding messages, and two output queues for resolved timestamps and commit timestamps.
+
+Transactions proceed through prewrite, commit, or rollback phases. Prewrite marks a key with a start timestamp; commit finalizes with a later timestamp; rollback cancels. Both optimistic and pessimistic prewrite variants exist, differing in how they compute timestamps. The Apply action forwards messages from keys to the central channel. FetchTS periodically queries the timestamp oracle to trigger resolution attempts.
+
+The resolver handles channel messages: prewrite messages update minimum prewrite timestamps, commit messages clear them and record commit timestamps, and FetchTS messages trigger TryResolve, which computes a new resolved timestamp as the minimum of active prewrite timestamps and the fetched timestamp.
+
+Safety properties include CommitConsistency (commit timestamps exceed prewrite timestamps) and ResolvedConsistency (resolved timestamps are less than subsequent commit timestamps in the output queue). RTTypeOK ensures type correctness. A liveness property ResolveLiveness states that if no active prewrites exist and a FetchTS has been processed, eventually some resolved timestamp will be produced.

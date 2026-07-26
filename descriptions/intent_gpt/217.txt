@@ -1,0 +1,10 @@
+Specify a model of an unsigned fixed-width arithmetic checker that nondeterministically tests basic arithmetic operations on two nonnegative integers interpreted modulo 2^N (for a configurable bit width N). The system should repeatedly choose an operation code from {ADD, SUB, MUL, DIV, MOD} and two operands in the valid unsigned range [0, 2^N − 1], and produce a pair: a boolean flag indicating whether the operation failed (due to overflow or invalid arguments) and an unsigned result value (the machine result modulo 2^N when defined). The model must reflect the semantics expected from defensive arithmetic routines that detect overflow/divide-by-zero instead of wrapping silently:
+- Addition should report failure if the true integer sum exceeds 2^N − 1; otherwise it must return the exact sum.
+- Subtraction should report failure if the true integer difference is negative; otherwise it must return the exact difference.
+- Multiplication should report failure if the true integer product exceeds 2^N − 1; otherwise it must return the exact product.
+- Division and modulo should report failure on division by zero; otherwise they must return the mathematical quotient or remainder.
+
+State that operands are always within the unsigned range before the operation, and that results when not failing equal the mathematical result (not a wrapped value) and are in range. Specify safety properties to verify:
+- The checker never returns a success flag with a result that disagrees with the true mathematical result.
+- The checker flags every case where the mathematical result would be out of range or undefined (e.g., divide/mod by zero).
+Also request an invariant to detect deadlock-free progress of the testing loop (i.e., the system should always be able to pick the next test) and ask to parameterize the bit width N so proofs can be attempted for typical widths (e.g., 256).

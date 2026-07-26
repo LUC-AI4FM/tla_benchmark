@@ -1,0 +1,36 @@
+# Specification Request: Nondeterministic Branching with Guarded Continuation
+
+## System Overview
+
+I need a formal specification of a concurrent system where multiple identical processes each execute a sequence of nondeterministic choices, followed by a guarded decision point. The purpose is to verify that certain arithmetic invariants hold regardless of which execution path each process takes.
+
+## System Description
+
+The system consists of two concurrent processes that operate independently (no shared state or synchronization between them). Each process maintains three local counter variables, all initially zero.
+
+Each process executes the following behavior:
+
+1. **First choice point**: The process nondeterministically selects exactly one of three possible initialization paths:
+   - Path A: Increment the first counter through a two-step sequence (set to 1, then add 1, resulting in 2)
+   - Path B: Increment the second counter through a two-step sequence (set to 1, then add 1, resulting in 2)
+   - Path C: Set the third counter directly to a large value (100)
+
+2. **Second choice point**: Based on the outcome of the first choice, the process must take one of two guarded actions on the third counter:
+   - If the first counter is zero, add 1 to the third counter
+   - If the first counter equals 2, add 3 to the third counter
+   
+   Exactly one of these guards must be satisfiable when this point is reached.
+
+## Correctness Properties
+
+The specification must verify that upon completion, each process satisfies the following invariants:
+
+1. **Path consistency**: Either the sum of the first two counters equals 2 (indicating path A or B was taken and completed), OR the third counter equals 101 while the first two counters remain zero (indicating path C was taken).
+
+2. **Counter relationship**: If the third counter is less than 100, then it must equal the first counter plus 1.
+
+## Additional Requirements
+
+- All processes must eventually terminate (liveness)
+- The system should not deadlock
+- The multi-step paths (A and B) should be interruptible between their two steps, modeling atomic vs. non-atomic operations

@@ -1,0 +1,11 @@
+This module provides a model-checking wrapper for a Nano cryptocurrency specification. It addresses the challenge of making the underlying Nano.tla specification amenable to finite model checking by TLC.
+
+The specification models a distributed ledger system where nodes own accounts through private-public key pairs. Constants define the hash domain, cryptographic keys, network nodes, an initial genesis balance, and sentinel values for absent blocks and hashes. The module assumes key pairs and node ownership are properly sized bijections.
+
+Four variables track state: hashFunction maps hashes to blocks (serving as a finite hash table), lastHash tracks the most recent hash, distributedLedger represents the blockchain state across nodes, and received tracks message receipt.
+
+The key mechanism involves CalculateHashImpl, which assigns hashes to blocks from a finite pool rather than computing cryptographic hashes. When a block needs hashing, it finds an unused hash slot and updates the mapping. The specification uses a VIEW that excludes hash-related variables from state comparison, focusing only on the ledger and received messages.
+
+The next-state relation delegates to the underlying Nano specification's transitions while hashes remain available; once depleted, the system stutters gracefully. This handles the inherent state explosion in blockchain verification where action ordering creates super-exponential growth.
+
+Safety properties include a type invariant ensuring proper hash function typing and the underlying Nano specification's type and safety invariants.

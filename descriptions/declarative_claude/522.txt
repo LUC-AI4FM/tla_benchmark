@@ -1,0 +1,9 @@
+This TLA+ module specifies the Alternating Bit Protocol, a reliable data transmission protocol operating over lossy channels between a sender (A) and receiver (B).
+
+The system uses four variables: AVar and BVar hold message records containing data and a one-bit sequence number, while AtoB and BtoA represent unbounded FIFO channels carrying messages and acknowledgments respectively. Initially, both endpoints agree on the same message with bit value 1, and both channels are empty.
+
+Five concurrent processes model the protocol behavior. ASend continuously appends the current message to the AtoB channel. ARecv waits for acknowledgments; when the received bit matches the current bit, it selects new data and flips the bit. BSend continuously sends acknowledgment bits. BRecv waits for messages; when the received bit differs from the stored bit, it accepts the new message. A LoseMsgs process can nondeterministically remove any message from either channel, modeling unreliable transmission.
+
+The temporal specification requires that sending actions (ASend, BSend) execute infinitely often when enabled (weak fairness), while receiving actions (ARecv, BRecv) must eventually execute whenever they remain continuously enabled (strong fairness). The message-loss process has no fairness constraint, permitting but not requiring losses.
+
+No explicit safety or liveness properties are declared in the module for model checking beyond the specification itself.

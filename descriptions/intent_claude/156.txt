@@ -1,0 +1,40 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction management. This protocol coordinates a transaction across multiple resource managers (participants) with a central transaction manager (coordinator) to ensure all participants either commit or abort the transaction atomically.
+
+## System Description
+
+The system consists of:
+- A **transaction manager (TM)** that coordinates the commit decision
+- Multiple **resource managers (RMs)** that participate in the transaction
+- A **message-passing mechanism** for communication between the TM and RMs
+
+## Protocol Behavior
+
+The protocol should model the standard two-phase commit process:
+
+1. **Phase 1 (Voting/Prepare Phase)**: Resource managers independently decide whether they can commit and send their votes to the transaction manager. The TM collects these prepared messages.
+
+2. **Phase 2 (Decision/Commit Phase)**: Once the transaction manager has received prepared messages from all resource managers, it can decide to commit. Alternatively, if any resource manager cannot commit, the transaction must abort.
+
+## Key Requirements
+
+- Resource managers should be able to transition through appropriate states (working, prepared, committed, aborted)
+- The transaction manager tracks which resource managers have sent prepared messages
+- The transaction manager can broadcast commit or abort decisions
+- Resource managers respond to commit/abort messages from the transaction manager
+- Resource managers may unilaterally abort before preparing
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency**: All resource managers that reach a final decision must reach the *same* decision—either all commit or all abort. No state should be reachable where one RM has committed while another has aborted.
+
+2. **Validity**: A commit can only occur if all resource managers were prepared to commit.
+
+## Additional Notes
+
+The specification should work with a small, fixed set of resource managers (e.g., three participants) for model checking purposes. The model should be suitable for verification using standard TLA+ model checkers.

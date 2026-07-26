@@ -1,0 +1,40 @@
+# Specification Request: Leader Election in a Ring Network
+
+## System Overview
+
+I need a formal specification of a leader election algorithm for processes arranged in a unidirectional ring topology. The algorithm should allow any subset of processes to spontaneously decide to participate in the election, and through message passing around the ring, exactly one process should be elected as the leader.
+
+## System Description
+
+The system consists of a fixed number of processes arranged in a ring, where each process can only send messages to its successor (the next process in the ring). Each process has a unique identifier. The algorithm should work as follows:
+
+- Any process may decide to initiate an election by injecting its identifier into the ring
+- When a process receives an identifier, it compares it to its own and decides whether to forward it, drop it, or recognize itself as the leader
+- The comparison logic should ensure that the process with the highest (or lowest, depending on convention) identifier among all initiators will eventually be elected
+- A process knows it has won the election when it receives its own identifier back after it has traveled around the entire ring
+
+## Requirements
+
+1. **Ring Communication**: Messages flow in one direction only—each process sends to exactly one neighbor and receives from exactly one neighbor
+
+2. **Unique Identifiers**: Each process has a distinct identifier that can be compared with others
+
+3. **Voluntary Participation**: Not all processes need to initiate the election; any non-empty subset may choose to participate as initiators
+
+4. **Message-Based Coordination**: Processes communicate only by passing identifier values around the ring
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Safety - Unique Leader**: At most one process can be elected as leader
+
+2. **Liveness - Leader Elected**: If at least one process initiates the election, eventually some process will be elected as leader
+
+3. **Correctness of Winner**: The elected leader should be the process with the maximum (or minimum) identifier among all processes that initiated the election
+
+## Parameters
+
+The specification should be parameterized by:
+- The number of processes in the ring
+- The assignment of unique identifiers to each position in the ring

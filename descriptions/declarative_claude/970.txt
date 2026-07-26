@@ -1,0 +1,9 @@
+This TLA+ module specifies a breadth-first search model checker algorithm that explores a directed state graph to find violations (error states) and construct counterexample traces.
+
+The system models TLC-style model checking with configurable parallelism. The constant `StateGraph` defines the graph structure with states, initial states, and transitions. `ViolationStates` identifies error states to detect. `K` controls the BFS window size: when K equals one, strict BFS is performed; larger values model TLC's degraded BFS with multiple workers where any of the first K queued states may be dequeued. `Constraint` is a predicate that can prune states at given BFS levels. `Counterexamples` provides known counterexample sequences for verification.
+
+The variables include `S` (a FIFO queue of unexplored states, initialized nondeterministically to any permutation of constrained initial states), `C` (the set of explored states), `state` (the current state being processed), `successors` (unexplored successors of the current state), `T` (predecessor-successor pairs for trace reconstruction), `L` (mapping from states to their BFS levels), and `counterexample` (the error trace being built).
+
+The algorithm first checks initial states for violations, then iteratively dequeues states, explores their successors, marks them visited, and checks for violations or deadlocks. Upon finding a violation, it reconstructs the counterexample path back to an initial state using the recorded predecessor information.
+
+The specification includes weak fairness on all actions. The `Termination` property asserts eventual completion. The `Live` property verifies that when violations exist, the algorithm eventually produces a valid counterexample from the known set, with minimal length guaranteed only for strict BFS. A refinement mapping to `MCReachability` establishes that this queue-based algorithm refines a set-based nondeterministic exploration.

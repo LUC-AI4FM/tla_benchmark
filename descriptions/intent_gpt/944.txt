@@ -1,0 +1,19 @@
+Specify a formal model of a simple concurrent internal memory interface with a fixed set of clients (processes) that request reads and writes to a shared memory. The model should capture the following components and behavior (without prescribing an implementation):
+
+- A finite set of processes that repeatedly issue memory requests, wait for the memory controller to process them, and then receive responses before issuing the next request.
+- A shared memory mapping from a finite set of addresses to values.
+- Per-process request buffers that can be either empty, contain a pending memory request (address, operation type, and write value if any), or contain a value returned by a read.
+- A per-process control state that indicates whether the process is ready to issue a request, has a request in flight, or has completed and is waiting to be acknowledged.
+
+Transitions to model:
+- A process in the ready state may issue a request: its control becomes busy and its buffer receives a well-formed request.
+- The memory controller may perform a step for a process with a pending request: for a write, the memory is updated at the requested address; for a read, the process’s buffer is set to the value currently stored at the requested address. The process moves to the done state.
+- A process in the done state may be acknowledged and return to ready; its buffer becomes empty or remains a valid value slot.
+
+Requirements and safety properties to guarantee:
+- Type safety: every system state must preserve typing invariants — memory is always a total mapping from addresses to values, every buffer has only allowed contents according to the process’s control state, and buffer fields are only accessed when the buffer contains a pending request.
+- Memory correctness: writes update exactly the specified address with the specified value; reads return the memory value at the requested address at the time of the memory step.
+- Invariance: these properties must hold initially and be preserved by every transition (i.e., prove that they are inductive invariants).
+- No illegal accesses: the model must preclude operations that read or write using an invalid address or use undefined buffer fields.
+
+Also specify auxiliary consistency conditions that relate per-process control states to allowed buffer contents so that verification of the main invariants is straightforward.

@@ -1,0 +1,11 @@
+This module provides a model-checking configuration for verifying an inner sequential memory system specification, extending the base `InnerSequential` module.
+
+The system models a multiprocessor memory architecture where multiple processors (Proc) can issue memory operations through registers (Reg) to memory addresses (Adr) holding values (Val). Each processor maintains a register file and an operation queue for pending memory requests.
+
+The configuration uses a minimal instantiation: two processors, one register, one address, two possible values, and a special `Done` constant handled as a model value. The `MaxQLen` constant bounds operation queue lengths to 2 entries.
+
+The state constraint limits exploration by ensuring no processor's operation queue exceeds `MaxQLen`, making model checking tractable.
+
+The module specifies one liveness property, `AlwaysResponds`, which asserts that any memory operation initiated by a processor (indicated by a non-"Free" register state) will eventually complete (returning the register to "Free" status). This captures the fundamental responsiveness guarantee that every request generates a response.
+
+The configuration directs TLC to verify `AlwaysResponds` as a temporal property and check `DataInvariant` (defined in the parent module) as a safety invariant, under the `Spec` specification with the state space constraint applied.

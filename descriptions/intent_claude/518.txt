@@ -1,0 +1,42 @@
+# Specification Request: Alternating Bit Protocol
+
+## System Overview
+
+I need a formal specification of the Alternating Bit Protocol, a classic reliable data transfer protocol that operates over an unreliable communication channel. The protocol should ensure correct message delivery despite the possibility of message loss.
+
+## System Components
+
+The system consists of:
+
+1. **A Sender** - Transmits data messages to a receiver and waits for acknowledgments
+2. **A Receiver** - Receives data messages and sends acknowledgments back to the sender
+3. **Two Communication Channels** - One for data messages (sender to receiver) and one for acknowledgments (receiver to sender), both of which are unreliable and may lose messages
+
+## Protocol Behavior
+
+The sender should:
+- Attach a single-bit sequence number (alternating between 0 and 1) to each data message
+- Repeatedly transmit the current message until it receives a matching acknowledgment
+- Upon receiving a valid acknowledgment (matching the current sequence bit), move on to the next data item and flip the sequence bit
+
+The receiver should:
+- Accept incoming messages and check the sequence bit
+- If the sequence bit differs from the last successfully received message, accept the new data
+- Send acknowledgments containing the sequence bit of the most recently accepted message
+
+The communication channels should:
+- Model unreliable delivery where any message in transit may be lost at any time
+- Messages are not corrupted or reordered, only lost
+
+## Correctness Properties
+
+The specification should allow verification of **safety properties**, specifically:
+
+- The receiver's accepted data should always be consistent with what the sender has sent
+- The sender and receiver should remain synchronized with respect to the alternating bit
+
+**Note:** This specification focuses on safety properties only and does not need to address liveness requirements (such as guaranteeing eventual delivery).
+
+## Parameters
+
+The specification should be parameterized by the set of possible data values that can be transmitted.

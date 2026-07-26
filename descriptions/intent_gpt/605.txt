@@ -1,0 +1,11 @@
+Model a distributed replicated state machine using the Raft consensus algorithm. The model should describe a fixed set of servers that communicate via unreliable asynchronous RPCs (vote requests/responses and append-entries requests/responses) and may experience message delay, duplication, loss, and server restarts. The system must support leader election, log replication of client-submitted commands, and commit semantics that ensure a single sequence of commands is eventually chosen and applied consistently.
+
+Specify the system’s allowed behaviors (timeouts that trigger elections, sending and handling of RequestVote and AppendEntries RPCs, leader transition on winning a majority, appending entries on leaders, followers accepting or rejecting based on log matching, retry/backoff for failed replication) without prescribing how internal mechanisms are implemented. Capture persistent state that survives restarts (term numbers, voted-for, and local log) and volatile state that may be lost. Model quorums as any set with majority overlap.
+
+State the key safety properties to prove:
+- At most one leader per term (no two different leaders elected in the same term).
+- Log safety: once a log entry is committed (decided by a quorum), no other leader can commit a different value at that log index; committed entries are never overwritten.
+- Leader append-only invariant: a leader only extends logs with entries from its term in a way that preserves previously committed prefixes.
+- Election-commit monotonicity: committed indices do not decrease.
+
+Also state liveness desiderata informally: under eventual message delivery and a stable leader, client commands are eventually replicated and committed.

@@ -1,0 +1,9 @@
+This TLA+ module specifies an abstract consensus protocol inspired by the Synod algorithm, modeling how a set of processes agrees on a single value.
+
+The system consists of N processes that each propose an input value and may eventually produce an output. The CONSTANTS are N (the number of processes) and Inputs (the set of possible values). The VARIABLES are input (each process's current proposed value) and output (each process's decided value, initially a distinguished non-input sentinel).
+
+The specification uses an inner module with two hidden variables: chosen (the single agreed-upon value, once selected) and allInput (the accumulated set of all proposed values). Initially, each process has some input from Inputs, outputs are unset, and no value is chosen.
+
+Two actions define process behavior. IChoose allows a process without an output to either select a value from allInput as the global choice (if none exists yet) or adopt the existing chosen value. IFail allows a process to reset its output and change its input, modeling crash-recovery where the new input joins allInput.
+
+The outer specification existentially quantifies over the hidden variables, exposing only input and output. This abstraction captures consensus: once a value is chosen, all subsequent outputs must match it, ensuring agreement. The specification uses stuttering-closed next-state semantics without explicit liveness conditions.

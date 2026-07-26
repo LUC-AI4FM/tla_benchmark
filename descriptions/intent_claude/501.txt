@@ -1,0 +1,44 @@
+# Specification Request: Multi-Paxos Consensus Protocol
+
+## System to Model
+
+I need a formal specification of the **Multi-Paxos distributed consensus protocol**. This is the extended version of Paxos that handles consensus across multiple "slots" (a sequence of independent consensus instances), which is the foundation for replicated state machines and distributed logs.
+
+## System Description
+
+The system consists of a set of replicas that communicate by message passing to agree on values for multiple slots. Each slot represents an independent consensus decision, but the protocol shares leadership across slots for efficiency.
+
+The protocol should model:
+
+- **Replicas** that can act in both proposer and acceptor roles
+- **Ballots** (proposal numbers) used to order competing proposals
+- **Slots** representing the sequence of consensus instances
+- **Message-based communication** between replicas for the prepare and accept phases
+
+## Required Behavior
+
+The protocol must support:
+
+1. **Prepare phase**: A replica can initiate a new ballot by sending prepare requests and collecting responses that include previously accepted values across all slots
+2. **Accept phase**: After winning a prepare phase, a replica can propose values for specific slots and gather acceptance
+3. **Learning**: When sufficient acceptances are received for a slot, the value becomes learned/chosen
+4. **Proposal tracking**: The system should track which values have been proposed for each slot
+
+## Correctness Properties
+
+The specification must guarantee the following properties that define correct consensus:
+
+1. **Nontriviality**: Any learned value for a slot must have been previously proposed for that slot (no "made up" values)
+
+2. **Consistency**: At most one value can be learned for each slot (agreement)
+
+3. **Stability**: Once a value is learned for a slot, it remains learned forever (decisions are irrevocable)
+
+The specification should refine a simpler abstract consensus specification for multiple slots, demonstrating that the Multi-Paxos protocol correctly implements distributed consensus.
+
+## Verification Approach
+
+The model should support verification with:
+- Symmetry reduction across replicas, values, and slots for efficiency
+- Both invariant checking (for nontriviality and consistency) and full temporal property checking (for stability and refinement)
+- Small configurations for complete refinement checking and larger configurations for faster invariant-based verification

@@ -1,0 +1,47 @@
+# Specification Request: Light Client Attack Detector
+
+## System Overview
+
+I need a formal specification of an **attack detection module for a blockchain light client**. This system is part of a light client that connects to multiple peer nodes (a primary and a secondary) to verify blockchain headers. The detector's job is to identify when one of the peers has provided fraudulent or conflicting block headers, and to produce cryptographic evidence of misbehavior when detected.
+
+## System Context and Assumptions
+
+The detector operates under the following conditions:
+
+- The light client communicates with exactly two peers: one designated as "primary" and one as "secondary"
+- The light client has already completed an initial verification process with the primary peer, producing a chain of trusted light blocks from a socially-trusted starting height up to a target height
+- The light client has its own local clock that may drift from the true reference time within a bounded envelope (the clock can both advance and retreat within this drift bound)
+- Validators in the blockchain may be faulty up to a specified ratio (the Tendermint security model assumes less than 1/3 faulty)
+- Either peer may be correct or faulty (Byzantine), parameterized for analysis
+
+## Required Behavior
+
+The detector must:
+
+1. **Compare headers**: Fetch the block at the target height from the secondary peer and compare it to what the primary provided
+2. **If headers match**: Conclude that no evidence of attack exists (for the secondary)
+3. **If headers differ**: Initiate an evidence creation procedure that:
+   - Walks through the verified chain to find a common trusted height where both peers agree
+   - Progressively verifies blocks from the secondary peer
+   - Identifies the precise point where the chains diverge
+   - Produces evidence consisting of the conflicting block and the common height from which it can be verified
+4. **Cross-verify**: If evidence is found against the secondary, switch roles and attempt to create evidence against the primary using the secondary's blocks as reference
+5. **Handle failures**: Detect when a peer fails verification (possibly due to trusting period expiration) and mark it as faulty
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Accuracy**: If the detector concludes "no evidence" and we are within the trusting period, then both the primary and secondary have provided the correct block at the target height (matching the reference blockchain)
+
+2. **Evidence soundness**: Any evidence produced must be verifiable—specifically, the conflicting block must validate against the light block at the common height, and the headers at the conflict height must genuinely differ between peers
+
+3. **No false accusations**: If both peers are correct, no evidence should ever be generated
+
+4. **Precision** (with local clock considerations): If the primary provided a corrupted target block, the secondary is correct, and we are *definitely* within the trusting period according to the local clock, then evidence must be found upon termination
+
+5. **Fault attribution**: Evidence is only found when at least one peer is actually faulty
+
+## Clock Drift Considerations
+
+The specification must account for the realistic scenario where the local clock drifts from true time. There is a "gray zone" where the system might fail to detect an attack if the local clock believes the trusting period has expired even though it hasn't according to reference time. The properties should distinguish between what can be guaranteed under ideal clock assumptions versus what holds given realistic clock drift.

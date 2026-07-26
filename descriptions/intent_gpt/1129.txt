@@ -1,0 +1,14 @@
+Specify a model of the Two-Phase Commit (2PC) distributed commit protocol between one coordinator and a set of resource managers. The model should describe the possible behaviors, not an implementation, and be suitable for formal verification of safety properties.
+
+Model the system components and actions:
+- A coordinator that starts in an initial undecided state and can decide to either commit or abort the transaction. The coordinator can collect “prepared” indications from resource managers and will only move to commit after it has received prepared from every resource manager; it may also decide to abort at any time.
+- Multiple resource managers, each of which initially is working. A resource manager may choose to prepare (indicating readiness to commit), or may choose to abort. When it prepares, it sends a prepared indication to the coordinator. Resource managers respond to coordinator decisions by transitioning to committed or aborted states upon receiving a commit or abort decision.
+- Communication is by asynchronous messages: resource managers send prepared messages to the coordinator; the coordinator broadcasts a commit or abort decision to all resource managers. Messages, once sent, persist in the model (receipt is modeled by presence of the message).
+
+Specify the required invariants and correctness properties:
+- Safety: No resource manager may be in the committed state while any other resource manager is in the aborted state (atomicity).
+- Consistency of coordinator and participants: Once the coordinator has decided commit, it remains committed; once aborted, it remains aborted. Resource managers must not transition back from committed or aborted to other states.
+- Validity constraints: The coordinator may only commit if every resource manager has indicated prepared; if any resource manager has aborted, the coordinator must not commit.
+- Type and state invariants: All component states and messages should remain within their defined domains.
+
+Omit liveness guarantees (e.g., eventual decision or delivery), but allow nondeterministic choices for spontaneous aborts and for message reception. The model should enable model checking of the safety invariants above for arbitrary finite sets of resource managers.

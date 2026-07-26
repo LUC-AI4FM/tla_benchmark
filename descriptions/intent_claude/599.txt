@@ -1,0 +1,35 @@
+Please write a formal TLA+ specification for a distributed transactional key-value store that uses an optimized two-phase commit protocol with timestamp ordering.
+
+## System Description
+
+The system should model multiple concurrent clients executing transactions against a shared set of keys. Each transaction operates on a designated primary key and potentially multiple secondary keys. The protocol uses a timestamp-based approach where:
+
+1. **Transaction Lifecycle**: Each client goes through phases of starting (acquiring a timestamp), reading keys, prewriting (acquiring locks and placing data), and committing (making changes visible).
+
+2. **Optimistic Concurrency Control**: Transactions acquire locks during a prewrite phase. Unlike strict two-phase commit where the primary is locked first, this optimized version allows locking primary and secondary keys concurrently.
+
+3. **Commit Timestamp Optimization**: The commit timestamp should be computed dynamically based on read timestamps observed during prewriting—specifically, it must be at least as large as the last read timestamp of any key being written, then incremented before final commit. This ensures readers see consistent snapshots.
+
+4. **Lock Cleanup**: Stale locks from failed or slow transactions must be cleaned up by other transactions that encounter them. When cleaning up a secondary key's lock, the system must check whether the primary was committed (in which case the secondary should also be committed) or rolled back (in which case the secondary should be rolled back).
+
+5. **Multi-Version Data**: Each key maintains versioned data, locks, and a write history that includes both committed writes and rollback markers.
+
+6. **Read Tracking**: The system tracks the maximum read timestamp for each key to enforce snapshot isolation.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Write Consistency**: Committed writes on any key must have non-overlapping timestamp ranges, and every write's commit timestamp must be strictly greater than its start timestamp.
+
+2. **Lock Consistency**: At most one lock may exist per key at any time. When a transaction is ready to commit with its primary lock held, all its secondary locks must also be held.
+
+3. **Commit Consistency**: Once a transaction commits, its primary key must have the write record and no stale locks. Secondary keys must either be fully committed or still hold their prewrite lock (pending async commit).
+
+4. **Abort Consistency**: An aborted transaction must not have any committed primary key writes.
+
+5. **Rollback Consistency**: A transaction cannot have both committed writes and rollback records across its keys.
+
+6. **Unique Writes**: Each start timestamp should appear at most once in the write history of any key.
+
+7. **Snapshot Isolation**: No write should commit with a timestamp less than or equal to any read that already observed a snapshot at that key—readers must see a consistent point-in-time view.

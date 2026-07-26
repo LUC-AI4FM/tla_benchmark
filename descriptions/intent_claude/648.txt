@@ -1,0 +1,52 @@
+# Specification Request: Light Client Block Verification Protocol
+
+## System Overview
+
+I need a formal specification for a blockchain light client verification protocol. The system models how a light client fetches and verifies block headers from a blockchain network, ensuring it can safely synchronize from a trusted starting point to a target block height without downloading the entire blockchain.
+
+## System Description
+
+The protocol involves a light client that:
+
+1. **Starts from a trusted state**: The client begins with a verified block at a known trusted height and needs to reach a specific target height.
+
+2. **Fetches block headers**: The client requests light blocks (block headers with validator information) from primary nodes in the network.
+
+3. **Verifies blocks incrementally**: The client must verify each fetched block against previously verified blocks, potentially fetching intermediate blocks if direct verification fails.
+
+4. **Handles time-sensitive trust**: Block verification depends on a trusting period—validators can only be trusted for a limited time window, after which their signatures become unreliable for verification purposes.
+
+5. **Accounts for clock drift**: The client's local clock may drift from real time, and the protocol must remain safe despite bounded clock inaccuracies.
+
+## Key Requirements
+
+### Network Model
+- The network consists of multiple validator nodes, some of which may be faulty (Byzantine)
+- The fraction of faulty validators must remain below a critical threshold (less than one-third)
+- The primary node serving the light client may or may not be correct
+
+### Temporal Constraints
+- There is a defined trusting period during which validator sets can be trusted
+- The local clock has both an assumed maximum drift and an actual drift bound
+- Verification decisions must account for potential timing discrepancies
+
+### Correctness Properties
+
+The specification must guarantee:
+
+1. **Safety**: The light client never accepts a block that contradicts the actual blockchain state, provided the Byzantine fault assumptions hold.
+
+2. **Liveness**: If the primary node is correct and timing assumptions hold, the light client eventually reaches the target height.
+
+3. **Sound Verification**: Each verified block properly chains back to the initial trusted block through valid validator set transitions.
+
+4. **Time-Bounded Trust**: The client correctly rejects verification attempts that fall outside the trusting period window.
+
+## Parameters to Configure
+
+- Set of participating nodes
+- Initial trusted height and target height
+- Length of the trusting period
+- Assumed and actual clock drift bounds
+- Whether the primary node behaves correctly
+- The ratio of potentially faulty validators

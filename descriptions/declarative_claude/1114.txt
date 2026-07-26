@@ -1,0 +1,11 @@
+This TLA+ module specifies a model-checking configuration for a TCP connection establishment protocol between two peers.
+
+The specification models the TCP three-way handshake mechanism between exactly two peers, A and B. It extends a base TCP module that defines the core protocol behavior.
+
+The system uses three variables inherited from the base module: `tcb` tracks whether each peer has a transmission control block, `connstate` records each peer's connection state (such as LISTEN, SYN-SENT, etc.), and `network` represents message queues between peers containing TCP control segments like SYN.
+
+The initial state configuration (`MCInit`) sets up an asymmetric scenario where one peer has already initiated an active open (in SYN-SENT state with a SYN message sent) while the other peer waits in the LISTEN state for incoming connections.
+
+The specification includes constraints to make model checking tractable. `NoRetransmission` prevents consecutive duplicate messages in network queues, avoiding infinite state spaces from unbounded retransmissions. `SingleActiveOpen` disallows additional connection attempts after the initial setup, since explicit-state model checkers cannot handle infinitely many connections.
+
+The model checks a type invariant (`TypeOK`), a safety invariant (`Inv`), and a liveness property (`Prop`), all defined in the base TCP module. Symmetry reduction between peers A and B is defined but disabled, likely because it can interfere with liveness checking.

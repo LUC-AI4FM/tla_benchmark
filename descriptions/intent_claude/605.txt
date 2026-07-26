@@ -1,0 +1,45 @@
+# Specification Request: Raft Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Raft distributed consensus algorithm. Raft is designed to manage a replicated log across a cluster of servers, ensuring that all servers agree on the same sequence of commands even in the presence of failures.
+
+## System Description
+
+The system consists of a fixed set of servers that communicate via message passing over an unreliable network. The network may drop, duplicate, or delay messages arbitrarily. Servers may crash and restart at any time, but must preserve certain critical state (current term, vote record, and log) across restarts.
+
+### Server Roles
+
+Each server operates in one of three roles:
+- **Follower**: Passive participants that respond to requests from leaders and candidates
+- **Candidate**: Servers actively seeking election as leader
+- **Leader**: The single server (per term) responsible for managing log replication
+
+### Core Mechanisms
+
+**Leader Election**: When a server believes there is no active leader (timeout), it may start an election by incrementing its term and soliciting votes from other servers. A server grants its vote to at most one candidate per term, and only if the candidate's log is at least as up-to-date as the voter's log. A candidate becomes leader upon receiving votes from a majority (quorum) of servers.
+
+**Log Replication**: The leader accepts client requests, appends them to its log, and replicates entries to followers. Followers accept entries if their log matches the leader's at the preceding position. On conflict, followers truncate their log to match the leader.
+
+**Commitment**: A log entry is considered committed when it has been replicated to a majority of servers. The leader tracks replication progress and advances its commit index only for entries from its current term.
+
+**Term Management**: Terms act as logical clocks. Any server receiving a message with a higher term immediately updates its term and reverts to follower state. Servers reject messages from older terms.
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Election Safety**: At most one leader may be elected in any given term.
+
+2. **Leader Completeness**: If a log entry is committed in a given term, that entry must be present in the logs of all leaders for all subsequent terms.
+
+3. **Log Matching**: If two logs contain an entry with the same index and term, then the logs are identical in all entries up through that index.
+
+4. **State Machine Safety**: If a server has applied a log entry at a given index to its state machine, no other server will ever apply a different entry for that index.
+
+## Environmental Assumptions
+
+- The network is asynchronous and unreliable (messages may be lost, duplicated, reordered, or delayed)
+- Servers may fail by crashing and may recover with durable state intact
+- Quorums (majorities) are sufficient for progress; any two quorums overlap
+- Client requests represent arbitrary values to be added to the replicated log

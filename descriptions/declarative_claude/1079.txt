@@ -1,0 +1,24 @@
+# Overview of EWD998_optsSC Module
+
+This TLA+ module is not a traditional system specification but rather a **test harness or simulation controller** for the EWD998 termination detection algorithm. It orchestrates multiple nested TLC model-checking runs to collect statistics across different configurations.
+
+## Purpose
+
+The module systematically explores combinations of algorithm variants and network sizes by spawning child TLC processes. It performs a parameter sweep over:
+
+- **Features**: A set of five optional algorithm variants labeled "pt1" through "pt5"
+- **Nodes**: Three specific network sizes (7, 29, and 43 nodes)
+
+## Mechanism
+
+The core behavior resides in an ASSUME block that iterates over all subsets of features and all node counts. For each combination, it:
+
+1. Invokes TLC as an external process via IOEnvExec, passing configuration through environment variables
+2. Runs the actual EWD998_opts specification in simulation mode with automatic worker allocation
+3. Records results to a timestamped CSV file initialized with column headers for metrics including termination time, probe initiation, token passing, and message statistics
+
+## Output Handling
+
+The module interprets TLC exit codes to report success, assumption violations, safety violations, liveness violations, or other errors, printing progress information for each configuration tested.
+
+The configuration file is intentionally empty since no state-space exploration occurs in this orchestration module itself.

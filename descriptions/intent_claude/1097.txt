@@ -1,0 +1,51 @@
+# Specification Request: Distributed Mutual Exclusion Using Logical Clocks
+
+## System Overview
+
+I need a formal specification of Lamport's distributed mutual exclusion algorithm, as described in his 1978 paper "Time, Clocks and the Ordering of Events in a Distributed System." This algorithm allows multiple processes in a distributed system to coordinate access to a shared critical section without relying on a central coordinator.
+
+## System Description
+
+The system consists of a fixed number of processes that communicate by passing messages over a network. Each process maintains a logical clock, and processes can request entry to a critical section, which must be accessed by at most one process at a time.
+
+### Communication Model
+
+- Processes communicate through point-to-point message channels
+- Each channel is FIFO (messages between any pair of processes are received in the order sent)
+- Messages may include: requests to enter the critical section, acknowledgments, and release notifications
+
+### Process Behavior
+
+Each process should be able to:
+1. Request entry to the critical section by broadcasting a timestamped request to all other processes
+2. Receive requests from other processes, update its logical clock accordingly, and send acknowledgments
+3. Enter the critical section when it has sufficient evidence that its request has priority
+4. Exit the critical section and notify all other processes that it has released its claim
+
+### Priority Determination
+
+When multiple processes have pending requests, priority should be determined by:
+1. The logical clock timestamp associated with each request (lower timestamp = higher priority)
+2. Process identifier as a tiebreaker when timestamps are equal (lower ID = higher priority)
+
+A process may enter the critical section only when:
+- It has received acknowledgments from all other processes
+- It believes its own request has higher priority than any other pending request it knows about
+
+## Correctness Requirements
+
+### Safety Properties
+
+1. **Mutual Exclusion**: At most one process may be in the critical section at any time
+2. **Type Safety**: All local state and messages conform to their expected types
+3. **Bounded Channels**: Message queues should remain bounded (no unbounded accumulation of messages)
+
+### Model Checking Considerations
+
+The specification should support finite-state model checking by allowing:
+- A configurable maximum clock value to bound the state space
+- Parameterization by the number of processes
+
+## Goal
+
+The specification should clearly model the distributed coordination mechanism and allow verification that the algorithm correctly ensures mutual exclusion despite the lack of shared memory or a global clock.

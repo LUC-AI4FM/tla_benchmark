@@ -1,0 +1,43 @@
+# Specification Request: Write-Through Cache System with Memory Queue
+
+## System Overview
+
+I need a formal specification of a write-through cache system for a shared-memory multiprocessor. The system consists of multiple processors, each with its own local cache, communicating with a shared main memory through a bounded queue of memory operations.
+
+## System Description
+
+The system should model:
+
+1. **Multiple processors** that can issue read and write requests to memory addresses
+2. **Per-processor caches** where each processor maintains its own local cache that maps addresses to values (or indicates the absence of a cached value)
+3. **A shared memory** that serves as the authoritative store for all data
+4. **A bounded memory queue** that buffers pending memory operations (both reads and writes) between the processors and main memory
+
+## Behavioral Requirements
+
+### Processor Operations
+- Processors should be able to issue read and write requests
+- For **reads**: If the requested address is cached locally, the processor can complete the read immediately from cache. If not cached (a "miss"), the request must be queued for memory access.
+- For **writes**: The processor updates all relevant caches immediately (write-through policy) and queues the write to be committed to main memory. This is a write-through design where writes propagate to other caches that hold the same address.
+
+### Memory Queue Processing
+- The memory queue should process operations in FIFO order
+- Write operations from the queue update main memory
+- Read operations from the queue fetch the current value (accounting for any pending writes ahead in the queue) and populate the requesting processor's cache
+
+### Cache Eviction
+- Cache entries may be evicted at any time, but not while a pending read operation for that address is in flight for that processor
+
+### Queue Bound
+- The memory queue has a fixed maximum length, and operations cannot be added when the queue is full
+
+## Correctness Properties
+
+### Type Safety
+The specification must maintain proper typing: memory maps addresses to values, processor control states follow the expected protocol phases, caches map addresses to values or "not present," and the queue contains well-formed processor-request pairs.
+
+### Cache Coherence
+**Critical invariant**: If two processors both have a value cached for the same address (neither is absent), those cached values must be identical. The system must never allow different processors to observe different values for the same address in their caches.
+
+### Memory Specification Refinement
+The overall system must correctly implement the expected semantics of a shared memory system—the caching and queuing mechanisms should be transparent to the abstract memory interface that processors observe.

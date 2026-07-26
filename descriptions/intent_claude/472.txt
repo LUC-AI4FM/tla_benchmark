@@ -1,0 +1,45 @@
+# Specification Request: Paxos Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Paxos distributed consensus algorithm. This is a fundamental protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures and asynchronous communication.
+
+## System Components
+
+The system consists of:
+- A set of **acceptors** that participate in the protocol
+- A set of **quorums**, where any two quorums must overlap (ensuring intersection)
+- A set of possible **values** that can be proposed for consensus
+- A set of **ballot numbers** (rounds) used to order proposals
+
+## Protocol Requirements
+
+The algorithm operates in two phases:
+
+**Phase 1 (Prepare):**
+- A proposer initiates a ballot by broadcasting a prepare request
+- An acceptor responds to a prepare request only if the ballot number is higher than any it has previously seen, promising not to accept proposals from earlier ballots
+- When responding, an acceptor reports the highest-numbered ballot in which it previously voted (if any) and the value it voted for
+
+**Phase 2 (Accept):**
+- After receiving responses from a quorum of acceptors, the proposer sends an accept request with a value that is "safe" to propose
+- The value must be chosen based on the quorum's responses: if any acceptor reported a prior vote, the proposer must use the value from the highest-numbered reported ballot; otherwise, it may propose any value
+- An acceptor votes for a value in a ballot only if it hasn't promised to participate in a higher ballot
+
+## Communication Model
+
+Model the system using asynchronous message passing. Messages may be arbitrarily delayed but are not corrupted. For safety analysis, message loss need not be explicitly modeled—an undelivered message is equivalent to a lost one.
+
+## Key Correctness Properties
+
+1. **Agreement (Safety):** If any value is chosen (accepted by a quorum in some ballot), then no different value can ever be chosen in any ballot.
+
+2. **Validity:** Only proposed values can be chosen.
+
+3. **Type Safety:** All protocol state and messages conform to their expected structure.
+
+4. **Consistency of Votes:** If a value is safe to propose at a ballot (determined by quorum responses), it must not conflict with any value that could have been or will be chosen in earlier ballots.
+
+## Refinement Relationship
+
+The specification should demonstrate that this message-passing protocol correctly implements an abstract voting specification where the key invariant is: if a value is chosen, it was shown to be safe based on the voting history.

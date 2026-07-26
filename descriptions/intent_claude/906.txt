@@ -1,0 +1,35 @@
+# Specification Request: Channel Refinement via Bit-Serial Encoding
+
+## System Overview
+
+I need a formal specification that demonstrates how a communication channel carrying multi-bit data values can be correctly implemented using a lower-level channel that only transmits individual bits. This is a refinement proof showing that a bit-serial communication protocol correctly implements a higher-level abstract channel.
+
+## System Description
+
+The system involves two communication channels operating at different levels of abstraction:
+
+1. **High-level channel**: Transmits data values from a numeric range (e.g., integers 1 through 12)
+2. **Low-level channel**: Transmits only single bits (0 or 1)
+
+The implementation must encode each high-level data value as a sequence of bits, transmit them one at a time over the low-level channel, and reconstruct the original value at the receiver. The encoding should use a fixed number of bits (4 bits to represent values up to 12) with little-endian bit ordering.
+
+## Behavioral Requirements
+
+- When sending a high-level value, the system must break it into bits and send them sequentially over the low-level channel
+- The high-level send operation should only be considered complete after all constituent bits have been transmitted
+- When receiving, the high-level receive should only occur once all bits of a complete value have been received
+- The system must properly synchronize bit-level and value-level operations
+
+## Error Handling
+
+The specification should detect and flag any behavior on the low-level channel that doesn't correspond to valid send or receive operations. If the low-level channel transitions in an unexpected way, the high-level channel should enter a distinguished error state.
+
+## Correctness Property
+
+The key correctness property is **refinement**: the externally observable behavior of the high-level channel, when driven by the bit-serial implementation over the low-level channel, must exactly match the behavior permitted by the abstract channel specification for multi-bit data. The internal bit-buffering state should be hidden (existentially quantified) so that only the channel states are visible for the refinement check.
+
+## Assumptions
+
+- Both channels follow a standard asynchronous handshake protocol with ready/acknowledge signaling
+- The low-level channel operates correctly according to its specification
+- Bit transmission order and reconstruction arithmetic must be consistent

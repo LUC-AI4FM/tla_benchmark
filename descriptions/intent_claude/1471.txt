@@ -1,0 +1,44 @@
+# Specification Request: TLC Model Checker Runtime Statistics Verification
+
+## System to be Modeled
+
+A test harness that verifies the TLC model checker correctly exposes and updates its internal runtime statistics and configuration metadata during simulation mode execution.
+
+## Goal
+
+Create a specification that exercises and validates TLC's introspection capabilities—specifically its ability to report configuration settings, execution statistics, and version/revision information while running in simulation or trace generation mode.
+
+## Requirements
+
+### Configuration Verification
+- The system must verify that TLC is running in simulation or generate mode (not exhaustive model checking)
+- The configured trace depth must be set to a specific expected value
+- Deadlock checking should be disabled
+- A single worker thread should be in use
+- Random seed and ARIL (A Random Integer List) configuration values should be accessible as strings
+
+### Runtime Statistics Tracking
+- The specification must verify that duration tracking is active (non-negative elapsed time)
+- Trace count statistics must be accurately reported: zero traces at initialization, exactly one trace during execution
+- The count of generated states must match the current execution depth (state counter value)
+
+### Specification Metadata Access
+- The system should be able to introspect which initial state predicates and actions are defined in the specification
+- Location information (line/column numbers, module name) for these definitions should be accessible
+- Coverage statistics (distinct and generated state counts) should be available for each action
+
+### Version Information Verification
+- TLC revision metadata must be accessible, including: version tag, commit count, timestamp, date string, and calendar versioning string
+- The calendar version must not be empty
+- Development builds should have a commit count of zero
+- Release builds should have commit counts and timestamps exceeding known baseline values (ensuring the build is reasonably recent)
+
+### Controlled Termination
+- The simulation must terminate gracefully after executing a predetermined number of steps (matching the configured depth minus one)
+
+## Correctness Properties
+
+1. All introspection queries return well-typed values matching their expected domains
+2. Statistics counters are consistent with the actual execution progress
+3. Configuration values reflect the actual runtime settings
+4. The simulation terminates exactly when expected based on the depth configuration

@@ -1,0 +1,39 @@
+# Specification Request: Transaction Commit Protocol
+
+## System Overview
+
+I need a formal specification of a transaction commit protocol for a distributed system where multiple resource managers (participants) must agree on whether to commit or abort a transaction. This models the fundamental decision-making aspect of protocols like Two-Phase Commit.
+
+## System Description
+
+The system consists of a fixed set of resource managers, each of which independently decides whether it can participate in committing a transaction. Each resource manager progresses through states as the protocol executes, starting in a working state and eventually reaching either a committed or aborted final state.
+
+Resource managers can:
+1. Indicate they are prepared to commit (moving from working to prepared)
+2. Decide to commit the transaction (if conditions allow)
+3. Decide to abort the transaction
+
+## Key Requirements
+
+### State Constraints
+- Each resource manager must be in exactly one valid protocol state at any time (working, prepared, committed, or aborted)
+
+### Commit Conditions
+- A resource manager may only commit if all resource managers have indicated they are prepared to commit
+- No resource manager should commit if any participant might still abort
+
+### Abort Conditions
+- A resource manager may abort if no other resource manager has already committed
+- Abort should remain possible as a fallback when unanimous preparation hasn't occurred
+
+## Correctness Properties
+
+The specification must guarantee **transaction consistency**, which requires:
+
+1. **No conflicting decisions**: It must be impossible for one resource manager to be in a committed state while another is in an aborted state. All participants that reach a final decision must reach the *same* decision.
+
+2. **Type safety**: Resource managers must always be in valid, well-defined states.
+
+## Goal
+
+Prove that the protocol maintains transaction consistency as an invariant—that is, the safety property holds in all reachable states of the system, not just initially. The proof should demonstrate that both the initial state satisfies the invariant and that every possible transition preserves it.

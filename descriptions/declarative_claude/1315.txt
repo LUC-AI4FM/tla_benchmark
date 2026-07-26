@@ -1,0 +1,9 @@
+This specification models a distributed bakery algorithm for mutual exclusion among a finite set of nodes communicating via message-passing channels. The algorithm is a variant allowing arbitrarily large ticket numbers rather than just the minimal valid choice.
+
+**Constants and Variables:** The constants define the set of `Nodes`, communication `EdgeIds`, and a mapping from edge identifiers to source-destination pairs. Variables include `num` (each node's ticket number), `rnum` (each node's view of other nodes' ticket numbers), `acks` (acknowledgments received), `net` (FIFO message channels between nodes), and `pc` (program counter). Auxiliary variables (`numBar`, `tempBar`, `mustRdBar`, `pcBar`) track refinement state for proving correspondence with a higher-level protocol (ProtoBakery).
+
+**Algorithm:** Each node cycles through non-critical section, entering (broadcasting a chosen ticket number), waiting for acknowledgments and priority confirmation, critical section, and exiting (broadcasting zero). Message handler processes receive write messages (updating remote number views and replying with acks) or ack messages (recording acknowledgments). A `msgStop` flag coordinates message delivery during certain phases.
+
+**Fairness:** Weak fairness is required for node actions when not in the non-critical section and for message handlers.
+
+**Properties:** The specification checks `TypeOK` and `TypeOKBar` as invariants ensuring proper variable typing, `Mutex` as a safety property guaranteeing no two nodes occupy the critical section simultaneously, and `StarvationFree` as a liveness property ensuring every entering node eventually reaches the critical section. A state constraint bounds ticket numbers for model checking.

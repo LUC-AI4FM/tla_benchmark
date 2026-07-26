@@ -1,0 +1,10 @@
+Specify a TLA+ model of a distributed leader election algorithm that runs on any undirected, simple, connected graph of a fixed number of nodes. The model should describe indistinguishable asynchronous nodes that communicate by sending and receiving messages over edges; edges have no buffers beyond the recipients' mailboxes and messages are not duplicated or reordered. The system must implement repeated two-phase (down/up) rounds in which nodes exchange identifiers to progressively orient and prune edges until exactly one node becomes the leader and all other nodes become inactive.
+
+The specification must capture arbitrary initial connected topologies (no self-loops) and require that every node initially considers all incident links active. During each round, nodes exchange "down" messages that propagate minimal identifier information along incoming links, then send "up" replies that either confirm or reject links and may prune edges or reverse their direction. The algorithm must maintain that message ownership and mailbox constraints prevent multiple concurrent messages from the same neighbor and must allow nondeterministic choices where the protocol permits it.
+
+Key correctness properties to verify:
+- Safety: the algorithm preserves a consistent relation between incoming and outgoing views of each edge (neighborhood invariant) accounting for pending reversal or pruning operations; no two nodes may simultaneously consider themselves leader in a terminal configuration.
+- Termination and convergence: from any connected graph, the system eventually reaches a quiescent state where exactly one node (the one with minimum identifier) is designated leader, all other nodes are inactive, and all mailboxes are empty.
+- Liveness: termination is reachable from every initial state; the only deadlock states are the final leader state.
+
+Do not fix specific scheduling fairness beyond weak fairness for actions required to make progress; allow nondeterministic message delivery ordering consistent with mailbox semantics.

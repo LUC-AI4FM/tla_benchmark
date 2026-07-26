@@ -1,0 +1,37 @@
+# OpenAddressing Module Description
+
+This TLA+ specification models a concurrent open-addressing hash table with linear probing, designed for fingerprint storage with external disk-based overflow. The algorithm corresponds to the OffHeapDiskFPSet implementation in the TLC model checker.
+
+## System Overview
+
+The specification models multiple writer processes inserting fingerprints into a fixed-size hash table. When the table becomes full, an eviction mechanism sorts the table and flushes entries to external storage, maintaining a sorted sequence for later lookup.
+
+## Constants
+
+- **K**: Table capacity (positive integer)
+- **fps**: Set of fingerprints to insert (positive integers)
+- **empty**: Sentinel value for unoccupied slots
+- **Writer/Reader**: Sets of writer and reader processes
+- **L**: Probing limit for alternate positions (constrained by 2L ≤ K)
+
+## Variables
+
+- **table**: The hash table as a sequence of length K
+- **external/newexternal**: Sorted sequences representing disk storage
+- **evict**: Boolean flag indicating eviction in progress
+- **waitCnt**: Counter for processes waiting during eviction
+- **history**: Auxiliary variable tracking successfully inserted fingerprints
+
+## Key Behaviors
+
+Writers attempt insertion using linear probing across L positions. A compare-and-swap (CAS) macro ensures atomic updates. When all probe positions are occupied, a writer triggers eviction by setting the evict flag, waiting for other threads to pause, then calling the Evict procedure.
+
+The Evict procedure performs insertion sort on the table (handling wrap-around via a custom comparison function), then flushes sorted entries to external storage while marking copied entries as negative values.
+
+## Fairness
+
+Writer processes have weak fairness, ensuring they eventually make progress if continuously enabled.
+
+## Properties
+
+The specification includes an auxiliary history variable to verify that inserted fingerprints can be found either in the table or external storage, ensuring no fingerprint loss.

@@ -1,0 +1,18 @@
+Specify a model of a small leader-election protocol for a fixed set of deterministic servers that communicate by sending typed messages (RequestVote, Vote, AppendEntries). The model should abstract only message-passing and local term counters; it should not include logs or client requests. Servers maintain a monotonically nondecreasing integer term, may send RequestVote messages to seek higher terms, reply with Vote messages, and, once obtaining votes from a majority (quorum), may act as leader by sending AppendEntries messages for their current term.
+
+The specification must capture the following behavior and requirements:
+
+- Servers can increment their local term to become candidates and broadcast a RequestVote message carrying the new term.
+- A server may cast a Vote message for a candidate only in response to a RequestVote message whose term is strictly greater than the voter’s current term; when observing such a higher-term message, the voter updates its local term to that message’s term and emits a Vote.
+- A server may declare itself leader for term t only if it has received (or has recorded the presence of) votes from every member of at least one explicit quorum (majority) for term t; upon becoming leader it emits an AppendEntries message stamped with its term.
+- Message sets should be finite, typed, and contain only the three message kinds with their associated fields (sender, optionally destination, and term).
+
+State the safety properties required:
+
+- Term monotonicity: each server’s term never decreases and all messages’ term fields are bounded within the declared term range.
+- Vote consistency: a given server cannot cast two different votes for the same term (i.e., for two different candidates in the same term).
+- Leader uniqueness per term: at most one distinct server may be considered leader in the same term (no two different servers can both have quorums of votes for the same term).
+- AppendEntries uniqueness per term: all AppendEntries messages carrying the same term must originate from the same server (leaders are unique per term).
+- Type-correctness of state and messages.
+
+Specify initial conditions (all servers start at term zero and no messages in flight), an asynchronous interleaving of the allowed actions above (including the option to do nothing), and a liveness-agnostic safety specification (no need to prove eventual leadership or liveness). Include invariants that enforce the type constraints and the per-server proof obligation that a server will not accept or emit messages with a term higher than its current term without first updating its term accordingly.

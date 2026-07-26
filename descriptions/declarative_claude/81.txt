@@ -1,0 +1,9 @@
+This TLA+ module serves as a regression test for a bug in the Apalache model checker related to unsound Skolemization of existentially quantified expressions within LET-IN constructs.
+
+The specification models a simple two-variable system. The variable `S` is a set of integers, and `tx_fail` is a boolean flag. Initially, `S` contains the elements 1 and 2, and `tx_fail` is set to TRUE.
+
+The next-state relation defines a local expression `fail` using LET-IN, which evaluates whether there exists some element in `S` that is not equal to 1. Since `S` contains 2, this existential claim is true, so `fail` should always evaluate to TRUE. The action then updates `tx_fail` to this value while leaving `S` unchanged.
+
+The module specifies an invariant stating that `tx_fail` must always remain TRUE. Under correct semantics, this invariant holds because the existential quantification over `S` always finds a witness (the value 2) satisfying the condition.
+
+The bug being tested involves incorrect Skolemization during negation of the existential expression, where the solver might incorrectly choose 1 as the witness, causing the invariant to spuriously fail. This test case verifies that the model checker handles such expressions soundly.

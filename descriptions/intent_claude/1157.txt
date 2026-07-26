@@ -1,0 +1,39 @@
+# Specification Request: Raft Consensus Log Replication for MongoDB
+
+## System Overview
+
+I need a formal specification of the core log replication mechanism used in MongoDB's variant of the Raft consensus algorithm. The system models a distributed cluster of servers that must maintain consistent replicated logs despite failures and leadership changes.
+
+## System Description
+
+The system consists of a fixed set of servers that replicate a log of client operations. At any time, at most one server acts as the leader, while others are followers. The specification should model:
+
+1. **Leader Election**: A server can become leader if it has a sufficiently up-to-date log (compared by term first, then by length) and receives support from a majority (quorum) of servers. When a new leader is elected, the global term advances.
+
+2. **Log Replication**: The leader accepts client write requests and appends new entries (tagged with the current term) to its log. Followers replicate entries from other servers with longer logs, but only when their existing log is consistent with the source (the terms must match at the follower's current log length).
+
+3. **Rollback**: When a server discovers its log has diverged from another server's log (detected by having an older term for its last entry while the logs disagree), it must roll back entries one at a time.
+
+## Quorum-Based Decisions
+
+All critical decisions—leader election and determining whether an entry is committed—require agreement from a quorum (strict majority) of servers. The key property of quorums is that any two quorums must overlap.
+
+## Commitment Rule
+
+An entry is considered committed only when:
+- A quorum of servers has replicated that entry, AND
+- The entry's term matches the current global term
+
+This second condition is critical: entries from previous terms cannot be directly committed; they can only become committed indirectly after a new entry from the current term is committed.
+
+## Key Safety Property
+
+**No Committed Entry Is Ever Rolled Back**: Once an entry satisfies the commitment criteria, it must never be subject to rollback on any server. This is the fundamental safety guarantee that ensures durability and consistency of acknowledged writes.
+
+## Requirements Summary
+
+- Model server states (follower/leader), logs with term-tagged entries, and a global term
+- Leader can only be a server whose log is at least as up-to-date as a majority
+- Log entries propagate from longer to shorter logs when consistent
+- Divergent logs trigger rollback of the trailing entries
+- Verify that the commitment rule prevents any committed entry from being rolled back

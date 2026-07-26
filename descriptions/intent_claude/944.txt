@@ -1,0 +1,39 @@
+# Specification Request: Internal Memory System
+
+## System Overview
+
+I need a formal specification for an internal memory system that models how multiple processors interact with shared memory through a request-response protocol. This represents a simplified memory subsystem where processors can read from and write to memory addresses.
+
+## System Description
+
+The system consists of:
+- A set of processors that can issue memory operations
+- A shared memory that maps addresses to values
+- A communication mechanism between processors and the memory subsystem
+
+Each processor interacts with memory through a three-phase protocol:
+1. **Request phase**: A processor submits a memory operation (either a read or write request specifying an address and, for writes, a value)
+2. **Processing phase**: The memory subsystem processes the request—for writes, it updates the memory; for reads, it retrieves the value at the specified address
+3. **Response phase**: The processor receives acknowledgment (and for reads, the retrieved value)
+
+Each processor has an associated state indicating where it is in this protocol (ready to make a request, busy waiting for processing, or done waiting for response pickup).
+
+## Functional Requirements
+
+1. Processors must follow the request-response protocol in order—they cannot issue a new request until the previous one completes
+2. Write operations must update memory at the specified address with the specified value
+3. Read operations must return the value currently stored at the specified address
+4. The memory must maintain a consistent mapping from all addresses to values at all times
+
+## Correctness Properties
+
+The specification must guarantee **type correctness**: all components of the system remain well-typed throughout execution. Specifically:
+
+1. Memory always maps every valid address to a valid value
+2. The processor state indicators always hold valid protocol states
+3. The communication buffers contain appropriately-typed data depending on the protocol phase:
+   - When ready for a new request: either a value (from a previous read) or empty
+   - When a request is pending: a valid memory request structure
+   - When processing is complete: either a value (for reads) or empty (for writes)
+
+This type invariant must hold in all reachable states starting from proper initialization, not just in the initial state.

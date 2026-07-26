@@ -1,0 +1,37 @@
+# Specification Request: TLA+ Model Checker Fingerprinting Test for Set Equivalence
+
+## System to be Modeled
+
+A test harness for verifying that a TLA+ model checker correctly identifies equivalent set representations as identical states during state-space exploration.
+
+## Goal
+
+The specification should verify that the model checker's fingerprinting mechanism (used to detect previously-visited states) correctly recognizes that different syntactic representations of the same mathematical set produce the same fingerprint. This is critical for ensuring the model checker doesn't explore redundant states that are semantically identical.
+
+## Requirements
+
+### State Components
+The system should track several state variables holding different types of set-based values:
+- A simple set of integers
+- A set of strings
+- A set of records (functions with a fixed domain of field names)
+- A set of functions (mappings between sets)
+
+### Behaviors to Test
+The system should initialize these variables with specific set values, then allow transitions that reassign them using various alternative representations that are mathematically equivalent, including:
+
+- Sets with duplicate elements listed (which should collapse to the same set)
+- Sets constructed via integer ranges versus enumeration
+- Sets built through set comprehension with filtering
+- Sets built through set comprehension with mapping
+- Sets constructed by taking the domain of a record
+- Function sets with elements listed in different orders
+- Function sets with duplicate elements in domain/range specifications
+
+### Key Correctness Properties
+
+1. **State Uniqueness**: Despite all the different syntactic ways of constructing the values, the model checker should discover only a single distinct state. Every transition should lead back to a state identical to the initial state.
+
+2. **Value Invariance**: All variables should always equal their canonical values, regardless of which alternative construction was used to assign them.
+
+The specification serves as a regression test to ensure the model checker's fingerprinting correctly handles set normalization—that `{1, 2, 3}` and `{3, 3, 2, 1}` and `1..3` all hash to the same fingerprint.

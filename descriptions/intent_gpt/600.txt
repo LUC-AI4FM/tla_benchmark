@@ -1,0 +1,12 @@
+Specify a formal model of a concurrent transactional key-value store that supports optimistic commit with timestamp ordering and multiple clients issuing transactions concurrently. The model should include a fixed set of keys and a fixed set of clients; multiple clients may target the same primary key, making some clients symmetric from the system’s point of view. Transactions consist of read and write sets and must acquire timestamps and/or version numbers used to validate and order commits.
+
+The model must capture nonblocking execution of transactions by clients (they may proceed independently), optimistic validation at commit time, and a commit protocol that assigns commit timestamps and resolves conflicts deterministically so that at most one conflicting write sequence is accepted. It must model transient states during validation and commit so that races and concurrent commits are possible.
+
+Key correctness properties to verify:
+- Serializability: the effect of committed transactions must be equivalent to some serial order consistent with commit timestamps.
+- Atomicity: each transaction either commits all its writes or none (no partial commits visible).
+- No lost updates: if a transaction commits a write to a key, subsequent reads after the commit reflect that write unless overwritten by a later committed transaction.
+- Progress: a client that repeatedly retries its transaction in the absence of continuous conflicting commits will eventually commit (liveness under fairness).
+- Symmetry preservation: behavior and verification should respect client symmetry when clients are identical except for identity.
+
+Do not prescribe the internal algorithmic details (e.g., exact message passing, locks) beyond optimistic timestamp-based validation and commit ordering; leave those choices for the specification to refine.

@@ -1,0 +1,41 @@
+# Specification Request: Non-Blocking Atomic Commit with Failure Detection
+
+## System Overview
+
+I need a formal specification for a **Non-Blocking Atomic Commit (NBAC)** protocol that operates in a distributed system where processes can fail and failures can be detected by other participants.
+
+## Problem Description
+
+Design a consensus-based atomic commit protocol for a distributed system with N participants. Each participant initially votes either "Yes" (willing to commit) or "No" (must abort). The protocol must reach a global decision (commit or abort) despite the possibility of process failures during execution.
+
+## Functional Requirements
+
+1. **Voting Phase**: Each process must be able to cast a vote indicating whether it can commit the transaction (Yes) or must abort (No).
+
+2. **Message Exchange**: Processes communicate by broadcasting their votes. Each process tracks how many Yes votes and No votes it has received from other participants.
+
+3. **Failure Handling**: The protocol must incorporate failure detection. When a process detects that some participant has failed, this information influences the commit decision—specifically, detected failures should lead to an abort decision even if all received votes were Yes.
+
+4. **Decision Making**: Based on received votes and failure detection information, each process must eventually decide to either commit or abort.
+
+## Correctness Properties
+
+The specification must guarantee the following safety and liveness properties:
+
+1. **Agreement**: All processes that reach a decision must decide on the same value (all commit or all abort).
+
+2. **Validity (Commit Condition)**: The system may only decide to commit if all participants voted Yes AND no failures were detected.
+
+3. **Validity (Abort Condition)**: If any participant voted No, or if any failure is detected, the decision must be abort.
+
+4. **Termination/Non-Blocking**: In the absence of further failures, all correct processes eventually reach a decision. The protocol should not block indefinitely waiting for failed processes.
+
+5. **Integrity**: Each process decides at most once.
+
+## System Parameters
+
+- **N**: The total number of participating processes in the system (a positive integer constant).
+
+## Additional Context
+
+This is a variant of the classic atomic commit problem enhanced with a failure detector mechanism. The "non-blocking" property distinguishes it from simpler protocols like Two-Phase Commit, which can block if the coordinator fails.

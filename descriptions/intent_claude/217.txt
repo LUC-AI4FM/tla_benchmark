@@ -1,0 +1,44 @@
+# Specification Request: Safe Integer Arithmetic with Overflow Detection
+
+## System Overview
+
+I need a formal specification that models **safe arithmetic operations for fixed-width unsigned integers**, similar to the SafeMath library used in Ethereum/Solidity smart contracts. The system should perform basic arithmetic while detecting and reporting overflow, underflow, and division-by-zero conditions rather than silently producing incorrect results.
+
+## Context and Motivation
+
+In systems with fixed-width integers (such as 256-bit unsigned integers used in blockchain smart contracts), arithmetic operations can overflow or underflow, wrapping around silently. This has historically led to serious vulnerabilities. The specification should model arithmetic operations that explicitly detect these error conditions.
+
+## Functional Requirements
+
+The system should support the following arithmetic operations on unsigned integers within a fixed bit width (e.g., 256 bits):
+
+1. **Addition** - with overflow detection when the result exceeds the maximum representable value
+2. **Subtraction** - with underflow detection when the result would be negative
+3. **Multiplication** - with overflow detection when the product exceeds the maximum value
+4. **Division** - with division-by-zero detection
+5. **Modulo** - with division-by-zero detection
+
+Each operation should:
+- Accept two non-negative integer operands within the valid range (0 to 2^256 - 1)
+- Return both a result and an error indicator
+- Report an error when the mathematically correct result cannot be represented, rather than returning a wrapped/incorrect value
+
+## Correctness Properties
+
+The specification must verify that each operation correctly identifies error conditions:
+
+1. **Addition correctness**: An error is reported if and only if the true mathematical sum exceeds the maximum unsigned value, and in that case the returned result does not equal the true sum.
+
+2. **Subtraction correctness**: An error is reported if and only if the true mathematical difference is negative, and in that case the returned result does not equal the true difference.
+
+3. **Multiplication correctness**: An error is reported if and only if the true mathematical product exceeds the maximum unsigned value.
+
+4. **Division correctness**: An error is reported if and only if division by zero is attempted.
+
+5. **Modulo correctness**: An error is reported if and only if the divisor is zero.
+
+## Expected Behavior
+
+- The model should exercise the arithmetic operations with arbitrary valid operands
+- The system is expected to reach a terminal state after testing (deadlock is acceptable)
+- No invariant violations should occur—the safe math operations must correctly detect all overflow/underflow conditions

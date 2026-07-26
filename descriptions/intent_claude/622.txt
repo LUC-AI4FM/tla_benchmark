@@ -1,0 +1,35 @@
+# Specification Request: Trace-Guided Execution for Tendermint Accountability Model
+
+## System Overview
+
+I need a formal specification that enables guided trace replay for an existing Tendermint consensus accountability model. This is a testing/debugging utility that constrains model checking to follow a specific predetermined sequence of actions.
+
+## Goal
+
+The purpose is to accelerate model checking when investigating specific counterexamples or scenarios. Instead of exploring the full state space, the system should execute only the exact sequence of actions provided as input, effectively "replaying" a known or suspected trace through the model.
+
+## Requirements
+
+### Functional Requirements
+
+1. **Trace Input**: The system must accept an external sequence of action names representing the desired execution order (excluding the initial setup step).
+
+2. **Constrained Execution**: At each step after initialization, the system must execute only the specific action indicated by the current position in the trace sequence, pruning all other possible transitions.
+
+3. **Sequential Progression**: The system must advance through the trace one action at a time, consuming actions from the front of the sequence.
+
+4. **Termination Behavior**: Once the entire trace has been replayed (the sequence is exhausted), the system should deadlock—no further transitions should be possible.
+
+5. **Integration**: The constrained execution must still respect the underlying Tendermint accountability model's semantics. The trace replay should only restrict *which* action fires, not modify *how* actions behave.
+
+### Correctness Properties
+
+1. **Trace Fidelity**: The sequence of actions actually executed must exactly match the provided trace in order.
+
+2. **Completeness**: If the trace represents a valid execution path in the original model, the replay should successfully execute all actions in the trace.
+
+3. **Deterministic Deadlock**: After the final action in the trace executes, no further state transitions should be enabled.
+
+## Use Case
+
+This specification supports debugging workflows where a model checker runs slowly on the full state space, but the user has a hypothesis about a specific counterexample path. By constraining exploration to that single path, verification of whether the path is valid (and leads to a property violation) becomes tractable.

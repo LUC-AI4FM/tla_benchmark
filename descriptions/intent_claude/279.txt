@@ -1,0 +1,40 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction management. This is a classic consensus protocol used to ensure that a distributed transaction either commits on all participating nodes or aborts on all of them.
+
+## System Components
+
+The system consists of:
+
+1. **A Transaction Manager (TM)**: A single coordinator that orchestrates the commit/abort decision
+2. **Multiple Resource Managers (RMs)**: Participants that hold resources involved in the transaction and must agree on the final outcome
+
+## Protocol Behavior
+
+### Phase 1: Voting/Preparation
+- Each resource manager starts in a working state and can independently choose to either:
+  - **Prepare**: Signal readiness to commit by sending a "prepared" message to the transaction manager
+  - **Abort**: Unilaterally decide to abort (before preparing)
+
+### Phase 2: Decision and Completion
+- The transaction manager, starting in an initial state, can:
+  - **Commit**: Only after receiving "prepared" messages from *all* resource managers, broadcast a commit decision
+  - **Abort**: At any point while still in the initial state, decide to abort and broadcast an abort decision
+- Resource managers receive the final decision and transition to either committed or aborted state accordingly
+
+## Communication Model
+
+The protocol uses asynchronous message passing with the following message types:
+- "Prepared" messages from individual resource managers to the transaction manager
+- A global "Commit" message broadcast from the transaction manager
+- A global "Abort" message broadcast from the transaction manager
+
+## Key Correctness Property
+
+**Transaction Consistency**: No two resource managers may reach conflicting final decisions. Specifically, it must never be the case that one resource manager has committed while another has aborted. All participants must agree on the transaction outcome.
+
+## Additional Context
+
+The specification should model the protocol in a way suitable for verification using decidable logic fragments (specifically, uninterpreted first-order logic), meaning it should avoid complex set operations where possible and represent collections through predicate-style encodings.

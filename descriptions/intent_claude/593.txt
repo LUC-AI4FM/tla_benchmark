@@ -1,0 +1,56 @@
+# Specification Request: Distributed Transaction Protocol with Optimistic and Pessimistic Concurrency Control
+
+## System Overview
+
+I need a formal specification of a distributed transaction system that supports both **optimistic** and **pessimistic** concurrency control modes. The system coordinates transactions across multiple clients accessing a shared key-value store, using a two-phase commit protocol with timestamp-based ordering.
+
+## System Description
+
+The system consists of:
+- **Clients** that initiate and drive transactions, divided into two categories: optimistic clients and pessimistic clients
+- **A key-value store** supporting multi-version concurrency control (MVCC)
+- **A global timestamp oracle** providing monotonically increasing timestamps
+
+Each client transaction operates on a predefined set of keys, with one designated as the primary key. The primary key plays a special role in commit coordination.
+
+## Transaction Protocols
+
+### Optimistic Transactions
+Optimistic clients should:
+1. Obtain a start timestamp and read all required keys at that snapshot
+2. Prewrite all keys to be modified (acquiring locks)
+3. Obtain a commit timestamp and commit, starting with the primary key
+
+### Pessimistic Transactions
+Pessimistic clients should:
+1. Obtain a start timestamp and a "for update" timestamp
+2. Acquire pessimistic locks on all keys before modification, reading values during lock acquisition
+3. Convert pessimistic locks to prewrite locks
+4. Obtain a commit timestamp and commit
+
+## Key Behaviors Required
+
+- **Lock management**: Keys can hold at most one lock at a time; locks track their type, owning transaction, and primary key reference
+- **Write conflict detection**: Transactions must detect when another transaction has committed a conflicting write
+- **Deadlock/stale lock resolution**: When a transaction encounters a lock held by another transaction, it must be able to check the status of that transaction and clean up if the holder has failed or rolled back
+- **Rollback handling**: Rolled-back transactions must leave markers to prevent zombie writes from succeeding later
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Snapshot Isolation**: Every value a client reads must be consistent with the snapshot at its designated read timestamp (start timestamp for optimistic, for-update timestamp for pessimistic)
+
+2. **Commit Consistency**: A transaction must never be observed as both committed and aborted
+
+3. **No Lost Updates**: If a transaction successfully commits, its writes must be durable and visible to later transactions
+
+4. **Lock Safety**: At most one lock can exist on any key at any time
+
+5. **Proper Timestamp Ordering**: Commit timestamps must respect the constraints established during the transaction (e.g., minimum commit timestamp requirements from concurrent readers)
+
+## Additional Considerations
+
+- Message delivery may be unreliable (messages can be lost or delayed, but safety must still hold)
+- Multiple clients may have overlapping key sets, creating contention
+- The system must handle partial failures where a client crashes mid-transaction, leaving locks that other transactions must eventually clean up

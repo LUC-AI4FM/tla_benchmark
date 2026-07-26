@@ -1,0 +1,21 @@
+Specify a TLA+ model of a non‑blocking atomic commitment protocol for one coordinator and a set of participants that communicate by unreliable asynchronous point‑to‑point messages and by a simple broadcast primitive (a broadcast is modeled as sending the same message individually to each participant, any of which may be lost if the sender or a recipient fails). The model should represent crashes (stop failures) of the coordinator and participants; a crashed process stays crashed. Failures may be detected by other processes (modeled abstractly, not by real timeouts), and message loss may occur due to crashes during send.
+
+The protocol to be modeled is the classic two‑phase style atomic commitment where:
+- The coordinator first requests votes from all participants.
+- Each live participant that receives a request replies with a vote (yes or no).
+- The coordinator collects votes (unless some participant crashes or its vote is not delivered) and decides: commit iff all collected votes are yes, otherwise abort.
+- The coordinator broadcasts its decision to participants using the simple broadcast primitive; participants that receive the decision adopt it.
+- Participants may also decide locally to abort if they observe failures that prevent safe commit (e.g., coordinator crashed before sending request or a participant voted no).
+
+Specify initial conditions and legal state space (who is alive, votes, undecided/commit/abort decisions). State the allowed transitions abstractly (sending requests, sending votes, coordinator making decision, broadcasting decision, process crashes) but do not prescribe implementation sequencing.
+
+Require and formalize safety properties:
+- Agreement: no two non‑faulty participants decide differently; once a participant decides, its decision does not change.
+- Validity: commit can occur only if every participant’s vote was yes.
+- Abort justification: an abort decision must be explainable by at least one no vote or by some crash (participant or coordinator).
+
+Require liveness properties under appropriate fairness and fault assumptions:
+- If no failures occur thereafter, all live participants eventually decide.
+- If the coordinator and all participants remain non‑faulty and messages eventually get through, the protocol terminates with every participant deciding (commit or abort) consistent with validity.
+
+Also include auxiliary invariants to aid reasoning (e.g., stability of faults and votes) but do not tie the specification to a particular implementation or variable naming.

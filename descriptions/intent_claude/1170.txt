@@ -1,0 +1,42 @@
+# Specification Request: TLC Benchmark Execution Harness
+
+## System Overview
+
+I need a formal specification for a benchmark runner that executes the TLA+ model checker (TLC) across multiple specifications with varying configurations, collecting performance measurements.
+
+## Goal
+
+The system should systematically run TLC on a predefined set of TLA+ specifications, varying the number of worker threads and performing multiple runs per configuration. This enables performance benchmarking and comparison across different parallelization levels.
+
+## Functional Requirements
+
+1. **Benchmark Matrix**: The system must execute TLC across all combinations of:
+   - A collection of benchmark specifications (distributed systems models like consensus protocols, replication systems, etc.)
+   - Multiple worker thread counts (powers of 2, representing different parallelization levels)
+   - Multiple runs per configuration (for statistical validity)
+
+2. **Sequential Execution**: Each benchmark run should execute TLC as an external process with specific JVM configurations including:
+   - Memory limits and garbage collection settings
+   - A timeout per run (to bound execution time)
+   - Output captured to log files with naming that identifies the run parameters
+
+3. **Result Classification**: After each TLC execution completes, the system must classify the outcome as:
+   - Successful completion
+   - Safety property violation detected
+   - Liveness property violation detected
+   - Other/unexpected termination
+
+4. **Logging**: The system should report progress, indicating when each benchmark starts and how it concluded.
+
+## Key Properties
+
+1. **Completeness**: Every combination in the benchmark matrix should eventually be executed.
+
+2. **Termination Awareness**: The system should recognize and appropriately handle all TLC exit conditions rather than hanging on unexpected results.
+
+3. **No Deadlock Requirement Relaxed**: The system should be allowed to reach a final state where all benchmarks have completed (deadlock checking should be disabled).
+
+## Constraints
+
+- Benchmarks should run with a single TLC worker at the harness level to ensure sequential execution of the benchmark suite itself (avoiding interference between benchmark runs).
+- Each individual benchmark run has its own configurable worker count for the TLC instance being measured.

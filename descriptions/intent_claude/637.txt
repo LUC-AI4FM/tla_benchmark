@@ -1,0 +1,57 @@
+# Specification Request: Tendermint Blockchain Model for Light Client Verification
+
+## System Overview
+
+I need a formal specification of a simplified Tendermint-style blockchain designed to support light client verification. The model should capture the essential structure of a proof-of-stake blockchain where validators sign blocks, and where a light client needs to verify block headers without downloading the full chain.
+
+## Core Concepts to Model
+
+The specification should model:
+
+1. **Blockchain structure**: A sequence of block headers, where each header contains:
+   - A height (block number)
+   - A timestamp
+   - The set of validators who committed the previous block
+   - The current validator set for this block
+   - The validator set for the next block
+
+2. **Validators**: A fixed universe of nodes that can participate as validators, partitioned into correct and faulty (Byzantine) nodes. Faulty nodes should be modeled as a non-decreasing set (once faulty, always faulty).
+
+3. **Time**: A global reference clock representing the current time, along with a trusting period during which validators are considered trustworthy.
+
+4. **Light blocks**: Block headers paired with commit signatures, representing what a light client might receive.
+
+## Key Requirements
+
+1. **Validator voting**: Each validator has equal voting power (unit weight). To model different voting powers, multiple validator identities should be used.
+
+2. **Commit validity**: A block commit must contain signatures from validators holding more than two-thirds of the voting power of the previous block's validator set.
+
+3. **Fault tolerance bounds**: The specification should be parameterized by a maximum ratio of faulty validators allowed in each validator set (e.g., less than one-third).
+
+4. **Timestamp constraints**:
+   - Timestamps must increase monotonically across blocks
+   - Consecutive blocks must have timestamps within the trusting period of each other
+   - The reference clock must be at least as large as the latest block's timestamp
+
+5. **Digital signature modeling**: Light blocks should reflect what Byzantine nodes can forge—they can only produce fraudulent blocks if the commits consist entirely of faulty validators.
+
+## Correctness Properties
+
+The specification should support reasoning about:
+
+1. **Trusting period validity**: Whether a given block header is still within its trusting period relative to the current time.
+
+2. **Two-thirds majority**: Whether a set of committing validators constitutes a valid supermajority of a validator set.
+
+3. **Fault ratio bounds**: Whether the faulty validators in any validator set remain below the specified threshold.
+
+## Initialization
+
+The blockchain should be initialized to a fixed maximum height in the initial state, with:
+- Genesis block at height 1 with a predetermined validator set and timestamp
+- All subsequent blocks satisfying the commit, timestamp, and fault-tolerance constraints
+
+## Actions
+
+The specification should include time advancement, allowing the reference clock to move forward non-deterministically.

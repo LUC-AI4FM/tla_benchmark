@@ -1,0 +1,52 @@
+# Specification Request: Distributed Termination Detection for Diffusing Computations
+
+## System Overview
+
+I need a formal specification of the Dijkstra-Scholten termination detection algorithm for distributed computations over an arbitrary network topology.
+
+## System Description
+
+The system consists of a network of processes that perform some distributed computation. The network topology is described by a directed graph where edges indicate which processes can send computational messages to which other processes. One distinguished process, called the **leader**, initiates the computation.
+
+### Computation Model
+
+- Each process is either **idle** or **busy** (actively computing)
+- Initially, only the leader is busy; all other processes are idle
+- A busy process may send computational messages to other processes (along outgoing edges)
+- When a process receives a computational message, it becomes busy
+- A busy process may spontaneously become idle at any time
+- The leader can send messages but cannot receive computational messages (no incoming edges)
+
+### Termination Detection Goal
+
+The leader must be informed when the distributed computation has **terminated**, meaning:
+1. All processes are idle
+2. No computational messages are in transit
+
+## Algorithm Requirements
+
+The algorithm should work on **arbitrary network topologies** by dynamically constructing an overlay tree structure. Key mechanisms include:
+
+1. **Acknowledgments**: When a process receives a computational message, it must eventually send an acknowledgment (control message) back to the sender
+
+2. **Dynamic Parent Assignment**: When a previously "neutral" process receives a message, the sender becomes its parent in the overlay tree
+
+3. **Neutrality**: A process is considered neutral when it is idle, has acknowledged all messages it received, and has received acknowledgments for all messages it sent
+
+4. **Controlled Acknowledgment**: A process can only send its final acknowledgment to its parent (becoming neutral and leaving the overlay tree) when it is idle and has received all acknowledgments for messages it has sent
+
+5. **Asynchronous Communication**: Messages may be delivered in any order, but no messages are lost
+
+## Correctness Properties
+
+### Safety Property
+The leader must detect termination **only if** termination has actually occurred. When the leader becomes neutral, all other processes must also be neutral.
+
+### Liveness Property
+If the computation actually terminates (all processes idle, no messages in transit), the leader must **eventually** detect this.
+
+### Structural Invariant
+The set of non-neutral processes must always form a tree rooted at the leader (or be empty).
+
+### Message Consistency
+The counts of sent messages, received messages, in-transit messages, and acknowledgments must remain consistent throughout execution.

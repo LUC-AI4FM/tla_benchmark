@@ -1,0 +1,45 @@
+# Specification Request: Fair Readers-Writers Problem
+
+## System Overview
+
+I need a formal specification of a solution to the classic readers-writers synchronization problem that ensures fair access to a shared resource. The system should manage concurrent access where multiple readers can access the resource simultaneously, but writers require exclusive access.
+
+## System Description
+
+The system consists of a fixed number of actors (processes) that can request either read or write access to a shared resource. The key challenge is coordinating access so that:
+
+- Multiple readers may access the resource at the same time
+- A writer must have exclusive access (no other readers or writers)
+- All requests are served fairly in the order they arrive
+
+## Functional Requirements
+
+1. **Request Handling**: Any actor should be able to request read access or write access to the resource at any time (unless they already have a pending request of the same type).
+
+2. **Queue-Based Fairness**: Requests must be processed in FIFO order to prevent starvation. When the resource becomes available, the next request in the queue should be granted.
+
+3. **Concurrent Reading**: When a read request is at the front of the queue and no writer holds the resource, the reader should be granted access (potentially joining other active readers).
+
+4. **Exclusive Writing**: A write request at the front of the queue should only be granted when no readers or writers currently hold the resource.
+
+5. **Release**: Any actor currently holding access (reading or writing) should eventually be able to release it.
+
+## Correctness Properties
+
+### Safety Requirements
+
+1. **Mutual Exclusion for Writers**: At most one writer may hold the resource at any time.
+
+2. **Reader-Writer Exclusion**: Readers and writers must never hold the resource simultaneously.
+
+### Liveness Requirements
+
+1. **Read Access**: Every actor must eventually be able to gain read access (infinitely often).
+
+2. **Write Access**: Every actor must eventually be able to gain write access (infinitely often).
+
+3. **Release Guarantee**: Every actor that gains access must eventually release it.
+
+## Fairness Assumptions
+
+The specification should assume weak fairness on all actions: requesting access, granting access from the queue, and releasing the resource. This ensures that enabled actions will eventually occur.

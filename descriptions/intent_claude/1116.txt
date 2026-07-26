@@ -1,0 +1,35 @@
+# Specification Request: TCP Connection State Machine
+
+## System Overview
+
+I need a formal specification of the TCP (Transmission Control Protocol) connection state machine as described in RFC 9293. The model should capture how two network peers establish, maintain, and terminate TCP connections through the exchange of control segments.
+
+## System Description
+
+The system consists of exactly two communicating peers, each maintaining their own connection state. The peers communicate by sending control messages (SYN, ACK, FIN, RST, and combinations thereof) through a network channel. Each peer processes both user-initiated commands (like requests to open or close a connection) and incoming network messages from the other peer.
+
+The connection lifecycle includes:
+- **Connection establishment**: Either through passive opening (waiting for incoming connections) or active opening (initiating a connection), including the three-way handshake
+- **Established connection**: The stable state where data transfer occurs
+- **Connection termination**: Graceful shutdown through FIN exchange, with proper acknowledgment handling
+- **Reset handling**: Abrupt connection termination via RST segments
+
+Each peer must track whether it has an active transmission control block (connection context) and its current protocol state.
+
+## Key Requirements
+
+1. **State transitions must follow RFC 9293**: Peers transition through the defined states (CLOSED, LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSING, CLOSE-WAIT, LAST-ACK, TIME-WAIT) according to the protocol specification.
+
+2. **Message ordering**: The network should preserve message ordering between peers (FIFO channel).
+
+3. **Bidirectional communication**: Both peers can independently initiate opens, closes, and respond to incoming segments.
+
+4. **Simultaneous operations**: The model should handle simultaneous connection attempts and simultaneous close scenarios.
+
+## Correctness Properties
+
+1. **State consistency**: When no messages are in flight, if one peer is in the ESTABLISHED state, the other peer must also be in the ESTABLISHED state. The peers should have a consistent view of the connection when the network quiesces.
+
+2. **Liveness**: A peer that has initiated a connection (entered the SYN-SENT state) should eventually reach either the ESTABLISHED state (successful connection), return to LISTEN, or return to CLOSED (connection failed/aborted).
+
+3. **Fair progress**: The system should make progress on processing network messages and should not remain stuck indefinitely in transient states.

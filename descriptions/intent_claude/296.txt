@@ -1,0 +1,45 @@
+# Specification Request: Lamport's Bakery Algorithm for Mutual Exclusion
+
+## System Overview
+
+I need a formal specification of Lamport's Bakery Algorithm, a classic solution to the mutual exclusion problem for N concurrent processes. The algorithm is inspired by a bakery where customers take numbered tickets and are served in order of their ticket numbers.
+
+## System Description
+
+The system consists of N processes that repeatedly cycle through three phases:
+1. A **non-critical section** where the process performs local work
+2. A **doorway/entry protocol** where the process attempts to gain permission to enter the critical section
+3. A **critical section** where the process has exclusive access to a shared resource
+
+Each process obtains a "ticket number" by observing the numbers of other processes and choosing a number greater than all observed values. When multiple processes want to enter the critical section, they compare their ticket numbers—the process with the smallest number (using process ID as a tiebreaker) gets priority.
+
+The entry protocol involves:
+- Signaling intent to choose a number (raising a flag)
+- Scanning other processes to find the maximum current ticket number
+- Choosing a ticket number larger than the observed maximum
+- Lowering the flag
+- Waiting until no other process with a smaller ticket (or same ticket but lower ID) is trying to enter or is in the critical section
+
+## Key Requirements
+
+1. **Atomicity constraints**: The algorithm should model realistic concurrent execution where reading and writing shared variables are atomic operations, but the overall entry protocol is not atomic.
+
+2. **Non-determinism**: The specification should allow for stuttering and non-deterministic behavior in certain operations (such as the exact ticket number chosen, as long as it exceeds the maximum observed).
+
+3. **Fairness**: Each process should be treated fairly—when a process is actively trying to enter its critical section, it should eventually make progress.
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+### Safety Properties
+1. **Mutual Exclusion**: At most one process may be in its critical section at any given time.
+2. **Type Correctness**: All variables remain within their expected domains throughout execution.
+
+### Liveness Properties
+1. **Deadlock Freedom**: If any process is trying to enter the critical section, then eventually some process will enter the critical section.
+2. **Starvation Freedom**: Every process that begins trying to enter the critical section will eventually succeed in entering it.
+
+## Additional Notes
+
+The specification should support verification via model checking for small numbers of processes, and the invariants should be structured to support inductive invariant proofs for establishing mutual exclusion. The comparison between processes should use lexicographic ordering on (ticket number, process ID) pairs to break ties deterministically.

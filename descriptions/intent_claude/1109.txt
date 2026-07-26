@@ -1,0 +1,36 @@
+# Specification Request: Distributed Spanning Tree Construction
+
+## System Overview
+
+I need a formal specification for a distributed algorithm that constructs a spanning tree across a network of processes. The algorithm should start from a designated root process and build a tree structure where every reachable process eventually identifies a parent, connecting it back to the root.
+
+## System Description
+
+The system consists of:
+- A fixed set of processes connected by a neighbor relation (representing network topology)
+- One distinguished root process that initiates the spanning tree construction
+- Communication via message passing between neighboring processes
+
+## Behavioral Requirements
+
+1. **Tree Construction from Root**: The root process initiates the algorithm by sending messages to its neighbors. When a process that hasn't yet joined the tree receives a message from a neighbor that is already part of the tree, it can adopt that neighbor as its parent.
+
+2. **Message Propagation**: Any process that is part of the tree (either the root, or a process that has selected a parent) can send messages to its neighbors to invite them to join the tree.
+
+3. **Parent Selection**: A non-root process without a parent may adopt a neighbor as its parent upon receiving a message from that neighbor, provided the neighbor is already part of the tree.
+
+4. **Reporting**: Processes should be able to report or acknowledge that they have successfully joined the tree.
+
+## Correctness Properties
+
+1. **Type Safety**: Parent assignments must respect the network topology—a process can only select a neighbor as its parent.
+
+2. **Termination**: Eventually, every process in the network (except the root) should have selected a parent that is a valid neighbor.
+
+3. **Stability**: Once a process has selected a parent, that choice must never change. The parent relationship is permanent once established.
+
+4. **Message Integrity**: Only processes that are already part of the tree should be sources of messages that can trigger parent adoption—uninitiated processes should not have outgoing messages in the system.
+
+## Fairness Requirements
+
+The specification should include weak fairness to ensure the algorithm makes progress and eventually terminates, rather than stuttering indefinitely.

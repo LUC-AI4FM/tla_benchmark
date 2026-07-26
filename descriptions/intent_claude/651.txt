@@ -1,0 +1,56 @@
+# Specification Request: Blockchain Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification for a **blockchain light client** that can securely synchronize with a blockchain by verifying block headers without downloading the full chain. The light client should be able to skip ahead from a known trusted block height to a target height while maintaining security guarantees, even in the presence of potentially faulty or malicious validators.
+
+## System Description
+
+The system involves:
+
+1. **A light client** that starts with a trusted block at some initial height and attempts to verify blocks up to a target height
+2. **A blockchain** maintained by validators, some of whom may be faulty/Byzantine
+3. **A primary node** that provides block headers to the light client (which may itself be correct or faulty)
+4. **Clock synchronization** between the light client's local clock and real time, with bounded drift
+
+The light client should fetch and verify "light blocks" (block headers with validator signatures) and use a bisection-style algorithm to efficiently verify the chain of trust from the trusted height to the target height.
+
+## Key Requirements
+
+### Functional Requirements
+- The light client must be able to verify blocks starting from a trusted block at an initial height
+- It should efficiently reach a target height using header skipping (not requiring every intermediate block)
+- The protocol must handle clock drift between the light client and the blockchain
+- There must be a trusting period within which block verification remains valid
+
+### Fault Tolerance
+- The system must tolerate up to (but strictly less than) 1/3 of validators being Byzantine/faulty
+- The specification should model scenarios where the primary node providing blocks may be faulty
+- The model should distinguish between assumed clock drift bounds and actual clock drift
+
+### Configuration Parameters
+- Number of participating nodes (e.g., 4 nodes)
+- Trusted starting height and target height for synchronization
+- Trusting period duration
+- Clock drift assumptions (both assumed bounds and actual drift)
+- Ratio of faulty validators
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client should never accept an invalid or forged block as verified
+2. **Liveness**: Under reasonable assumptions, the light client should eventually reach the target height or detect an attack
+3. **Trust chain integrity**: Every verified block must be properly connected to the initially trusted block through valid verification steps
+4. **Timing constraints**: Verification decisions must respect the trusting period and account for clock drift
+
+## Modeling Scope
+
+The specification should track:
+- The light client's verification state and progress
+- Which blocks have been fetched and their verification status
+- The relationship between local time and real time
+- The actual blockchain state for comparison
+- Historical state for monitoring protocol progression
+
+This specification is intended to verify the security of light client protocols used in proof-of-stake blockchains where clients need efficient verification without full chain download.

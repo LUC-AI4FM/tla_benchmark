@@ -1,0 +1,52 @@
+# Specification Request: External Transaction History Model
+
+## System Overview
+
+I need a formal specification for modeling the externally observable history of client interactions with a distributed transaction system. The key characteristic of this system is that clients receive responses to their transactions *before* those transactions have been committed—a pattern common in optimistic concurrency or speculative execution architectures.
+
+## System Description
+
+The system should model a transaction processing environment where:
+
+1. **Transaction Types**: There are two kinds of transactions:
+   - Read-write transactions that modify state (append to a shared data structure) and return observations
+   - Read-only transactions that simply observe current state
+
+2. **Transaction Lifecycle**: Transactions go through distinct phases:
+   - A client submits a request
+   - The client receives a response (including what was observed and a transaction identifier)
+   - Later, the client learns the final transaction status (committed or invalid)
+
+3. **Branching/Views**: The system operates across potentially multiple views or branches (as in leader-based replication), with transactions identified by a combination of view and sequence number.
+
+4. **Observable History**: There is a single global history capturing the sequence of externally visible events as observed by clients according to a global clock.
+
+## Requirements
+
+### Event Types to Model
+- Transaction requests (both read-write and read-only)
+- Transaction responses (including the observed state and assigned transaction ID)
+- Transaction status notifications (committed or invalid)
+
+### Key Constraints
+
+1. **History Monotonicity**: The observable history must be append-only—events once recorded cannot be removed or modified.
+
+2. **Well-Formed Events**: Each event in the history must be properly structured according to its type:
+   - Requests contain the transaction content
+   - Responses include the transaction content, what was observed, and the assigned transaction ID
+   - Status notifications include the transaction ID and final status
+
+3. **Transaction Identification**: Each transaction must be uniquely identifiable by a view/sequence number pair, where both components are positive integers.
+
+## Properties to Verify
+
+The specification should support reasoning about:
+- Which transactions ultimately committed versus were invalidated
+- The relationship between when responses were received and when commit status was learned
+- The observations made by read-only transactions relative to committed state
+- The highest committed sequence number at any point in the history
+
+## Purpose
+
+This specification will serve as a foundation for verifying consistency properties in systems where optimistic responses precede commitment, enabling analysis of what guarantees clients can rely on despite the speculative nature of initial responses.

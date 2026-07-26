@@ -1,0 +1,11 @@
+This TLA+ module serves as a minimal working example demonstrating a bug in the Apalache model checker related to constant initialization and constraint propagation.
+
+The specification declares two integer constants, `t_min` and `t_max`, representing bounds of some range. The `ConstInit` predicate defines how these constants should be initialized, stating that both must be integers (drawn from the infinite set of all integers).
+
+An assumption declares that `t_min` must be less than or equal to `t_max`, establishing a fundamental constraint on the constants' relationship.
+
+The system behavior is trivial: `Init` and `Next` are both simply `TRUE`, meaning the specification places no constraints on state variables (of which there are none) and permits any transition.
+
+The invariant `Inv` checks the same condition as the assumption: that `t_min` is at most `t_max`.
+
+The module demonstrates that when Apalache runs with the `--cinit=ConstInit` option, the constraints from the `ASSUME` statement do not properly propagate to restrict the constant values. This causes Apalache to report an error when checking the invariant, even though logically the assumption should guarantee the invariant holds. The specification contains no state variables, no meaningful state transitions, and no fairness conditions.

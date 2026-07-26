@@ -1,0 +1,43 @@
+# Specification Request: Asynchronous Spanning Tree Construction
+
+## System Overview
+
+I need a formal specification of a distributed algorithm that constructs a spanning tree over a network of processes. The algorithm should work asynchronously, where a designated root process initiates the tree construction, and the tree grows outward through message passing along network links.
+
+## System Description
+
+The system consists of a fixed set of processes connected by a network of bidirectional or directed communication links. One process is designated as the root of the spanning tree. The goal is for every process in the network to eventually select one of its neighbors as its parent, forming a tree rooted at the designated root process.
+
+The algorithm operates as follows:
+- The root process can immediately begin sending messages to its neighbors
+- When a non-root process receives a message from a neighbor and hasn't yet joined the tree, it selects the sender as its parent
+- Once a process has joined the tree (either as root or by selecting a parent), it can propagate messages to its own neighbors
+- Processes can report or acknowledge their participation in the tree
+
+Communication is asynchronous—messages may be sent at any time by eligible processes, and there is no global synchronization.
+
+## Key Requirements
+
+1. **Tree Formation**: Every reachable process must eventually select exactly one parent, and that parent must be a valid neighbor in the network topology.
+
+2. **Root Handling**: The root process is special—it never selects a parent but serves as the origin of tree construction.
+
+3. **Message Validity**: Messages should only be sent along actual network links, and only by processes that have already joined the tree.
+
+4. **Parent Stability**: Once a process selects a parent, that selection must never change.
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Type Safety**: Parent assignments must always reference valid neighbors, messages must correspond to actual network links, and all state variables must remain well-typed.
+
+2. **Termination**: The algorithm must eventually complete—every non-root process must eventually have a parent that is a valid neighbor.
+
+3. **Immutability of Parent Selection**: Parent assignments are permanent; once made, they cannot be modified.
+
+4. **Message Integrity**: Non-root processes that haven't joined the tree should not have outgoing messages in transit (they cannot send before joining).
+
+## Fairness
+
+The specification should assume weak fairness, ensuring that if progress is continuously possible, it will eventually occur.

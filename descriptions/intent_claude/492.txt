@@ -1,0 +1,40 @@
+# Specification Request: Client-Side Message Sequencer
+
+## System Overview
+
+I need a formal specification for a client-side sequencing protocol that reorders two types of messages—**responses** and **events**—received from a server over an unreliable network. The client must reconstruct the correct total ordering of these messages despite receiving them out of order, duplicated, or with some messages dropped.
+
+## System Description
+
+The system consists of:
+
+1. **A server** that sends two kinds of messages to a client:
+   - **Responses**: Messages with a sequence number and an index that increases monotonically with each response sent
+   - **Events**: Messages that reference the current response index at the time they were sent, along with the previous event boundary
+
+2. **A client** that receives these messages and must reconstruct their proper ordering by:
+   - Accepting messages that arrive in the expected order
+   - Buffering messages that arrive out of order until their predecessors have been processed
+   - Eventually outputting a correctly ordered sequence of all accepted messages
+
+3. **An unreliable network** that may:
+   - Deliver messages out of order
+   - Duplicate messages
+   - Drop messages entirely
+
+## Key Requirements
+
+- The server assigns ordering metadata to each message before sending, allowing the client to determine the correct sequence
+- Events are interleaved with responses and must be placed correctly relative to the response stream
+- The client tracks its progress through both the response sequence and event sequence independently
+- Out-of-order messages are held in pending queues until they can be processed in the correct order
+
+## Correctness Properties
+
+The specification must guarantee that the reconstructed message sequence maintains proper ordering invariants:
+
+1. **Response-to-Response ordering**: When two consecutive responses appear in the output, the later one must have a strictly greater index
+2. **Event-to-Response ordering**: When an event follows a response, the event's index must be at least as large as the preceding response's index
+3. **Response-to-Event ordering**: When a response follows an event, the response's index must be strictly greater than the event's recorded index
+
+These properties ensure that the client's output faithfully reflects the server's intended interleaving of responses and events, despite network-induced disorder.

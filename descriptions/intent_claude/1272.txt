@@ -1,0 +1,43 @@
+# Specification Request: Bounded Counter with Toggle and Trace Aliasing
+
+## System Description
+
+I need a formal specification for a simple bounded counter system that cycles through a fixed range of values while toggling a boolean flag on each step. The primary purpose of this specification is to demonstrate and test **trace aliasing** capabilities in TLA+ model checking—specifically, the ability to transform, augment, and reformat the output of error traces during verification.
+
+## Core Behavior
+
+The system should model:
+
+1. **A counter** that increments from an initial value up to a maximum bound, then wraps back to the starting value
+2. **A boolean toggle** that flips between true and false on every transition
+3. The counter should cycle continuously: incrementing while below the bound, then resetting when it reaches the bound
+
+## Correctness Properties to Verify
+
+The specification should include properties that are expected to **fail**, in order to generate error traces that demonstrate the aliasing feature:
+
+1. **An invariant** asserting the counter stays strictly below its maximum value (this should be violated when the counter reaches the bound)
+2. **A liveness property** asserting the counter eventually exceeds the bound (this should fail because the system wraps around instead)
+
+## Trace Aliasing Requirements
+
+The key feature to demonstrate is customizing how states appear in error traces. The alias mechanism should support:
+
+- **Reordering variables** in the trace output
+- **Renaming variables** (displaying under different names)
+- **Computing derived values** such as the difference between current and next state values, or whether the system is stuttering
+- **Adding trace expressions** like checking whether actions are enabled
+- **Including animation/visualization strings** that format state information for readability
+- **Accessing model checker metadata** such as the current trace level and action information
+- **Conditional formatting** based on the model checking mode (simulation vs. breadth-first search) and specification features being checked
+
+## Post-Verification Conditions
+
+After model checking completes, the system should verify that the generated counterexample has the expected structure, confirming that:
+- The aliased state representations contain all the derived fields
+- Action metadata (names and source locations) is properly captured
+- The counterexample structure matches expectations for different checking modes (invariant violations, liveness violations with lasso-shaped traces, stuttering behaviors)
+
+## Goal
+
+This specification serves as a test harness for the TLA+ model checker's trace aliasing and counterexample inspection features, ensuring that error traces can be transformed into more informative or application-specific formats for debugging and visualization purposes.

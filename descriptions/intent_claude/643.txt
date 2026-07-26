@@ -1,0 +1,59 @@
+# Specification Request: Light Client Block Verification Protocol
+
+## System Overview
+
+I need a formal specification for a **blockchain light client verification protocol** that allows a client to securely synchronize with a blockchain without downloading and validating every block. The light client should be able to verify blockchain headers by fetching them from a potentially untrusted primary node, while accounting for real-world timing constraints and the possibility of Byzantine (faulty) behavior.
+
+## System Requirements
+
+### Core Functionality
+
+The light client must:
+1. Start from a **trusted block** at a known height and verify blocks up to a specified **target height**
+2. Fetch light blocks (headers with validator signatures) from a primary node
+3. Verify the authenticity and validity of fetched blocks using validator set information
+4. Track verification progress and maintain state about which blocks have been verified
+
+### Network Model
+
+- The system operates with a fixed set of **nodes** (e.g., 4 nodes)
+- A **primary node** serves block data to the light client, which may or may not be correct/honest
+- Some fraction of validators may be **faulty/Byzantine** (e.g., less than 1/3 of total voting power)
+
+### Timing Model
+
+The specification must account for:
+- A **trusting period** during which verified blocks remain trustworthy
+- **Clock drift** between the light client's local clock and real time
+- Both assumed maximum clock drift and actual clock drift (which may differ)
+- A reference clock representing real/global time and a local clock at the client
+
+### Verification State
+
+The light client should track:
+- Currently verified blocks and their status
+- The latest successfully verified block
+- Progress toward the target height
+- History of previous verification states for monitoring purposes
+
+## Correctness Properties
+
+### Safety
+- The light client must never accept a block that contradicts the actual blockchain when the primary is honest and Byzantine assumptions hold
+- Verification decisions must be consistent with the trusting period constraints
+
+### Liveness
+- When conditions permit (honest primary, timing constraints satisfied), the light client should eventually reach the target height
+
+### Byzantine Fault Tolerance
+- The protocol must remain safe as long as fewer than 1/3 of validators are faulty
+- When the primary is faulty, the light client should detect inconsistencies or at minimum not accept invalid blocks as verified
+
+## Parameters to Configure
+
+- Total number of participating nodes
+- Initial trusted height and target height for synchronization
+- Duration of the trusting period
+- Assumed and actual clock drift bounds
+- Whether the primary node behaves correctly
+- The fraction of validators that may be faulty

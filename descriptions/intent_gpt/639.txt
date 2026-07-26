@@ -1,0 +1,17 @@
+Specify a formal model of a Tendermint lite client that verifies a target block header given a single initially trusted header. Model the light client as a state machine that repeatedly fetches candidate headers from a full node, stores them, and uses votes/commits to decide whether a candidate can be accepted as a new trusted header. The model should allow a possibly faulty primary full node and a set of validators, and it should represent time so that headers can expire relative to a trusting period.
+
+Requirements:
+- The client must start with a single socially trusted header and attempt to verify a header at some target height by exploring intermediate heights according to a scheduler that may jump forward or backward subject to reasonable constraints.
+- Fetching a header may yield either the canonical block from the blockchain (if the primary is correct) or an arbitrary block allowed by a faulty primary; commits are sets of validators.
+- A candidate header is considered successfully verified relative to a trusted header only if it satisfies temporal constraints (not from the future, still within trusting periods), height ordering, and quorum rules based on validator sets and commits (e.g., >2/3 of a validator set or >1/3 of next validators as appropriate).
+- The client must record each candidate’s status (verified, unverified, failed), maintain the latest verified header, and allow retries/scheduling of other heights until success or unrecoverable failure.
+- The model must capture clock advancement and trusting-period expiry.
+
+Key correctness properties to check:
+- Safety: Any header the client marks as verified was actually produced by consensus on the blockchain (i.e., headers and commits match the reference chain) unless the trusted header has exited the trusting period.
+- Chain-of-trust: When the client reports success, there exists a chain of verified headers linking the initial trusted header to the target such that each verification step satisfies the verification predicate (or earlier headers have expired).
+- No false positives: If the client terminates successfully while the initial trusted header is still within its trusting period and the primary is correct, then the result is success and no stored header is marked failed.
+- Liveness under assumptions: If the primary is correct and a non-expired header exists that was legitimately committed, the client should eventually mark it trusted (termination or progress toward target).
+- Precision: If the client terminates with failure, then either the trusted header expired or some fetched header or its commits were inconsistent with the blockchain.
+
+Do not prescribe algorithmic internals beyond these behaviors; allow the scheduler, fetching, and verification outcomes to be nondeterministic within the stated constraints so that model checking can explore correct and faulty scenarios.

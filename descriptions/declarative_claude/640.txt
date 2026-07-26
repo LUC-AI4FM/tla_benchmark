@@ -1,0 +1,9 @@
+This TLA+ module specifies the verification algorithm of a Tendermint light client, which attempts to verify a target block header by building a chain of trust from an initially trusted block.
+
+The specification models a light client interacting with a blockchain through a primary node that may be correct or faulty. Key constants define the trusted and target heights, the trusting period during which validators are trusted, clock drift parameters, whether the primary is correct, and the maximum ratio of faulty validators.
+
+The state includes the local clock, the client's control state (working, finished success, or finished failure), the next height to verify, fetched light blocks and their verification statuses, and the latest verified block. A separate blockchain instance maintains the reference chain and global clock.
+
+The light client initializes with a trusted block and iteratively fetches and verifies blocks toward the target height. The main loop fetches blocks either from a correct primary (copying from the reference chain) or from a faulty primary (constrained by digital signature rules). Verification yields success, insufficient trust, or failure, determining whether to advance, try intermediate heights, or terminate. Clocks advance with possible drift between local and reference times.
+
+Safety properties include type correctness, that verified headers match the blockchain, that no faulty blocks enable false proofs, and that successful termination reaches the target with verified status. The specification checks various invariants about stored headers forming valid trust chains and precision properties relating failures to actual faults or expiration.

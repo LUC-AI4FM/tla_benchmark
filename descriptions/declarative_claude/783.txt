@@ -1,0 +1,9 @@
+This TLA+ module specifies a replicated log system where multiple nodes share a common transaction log and independently execute transactions from it.
+
+The system models a set of nodes that maintain a shared append-only log of transactions. Each node tracks how many transactions it has executed from the log. The constants are Node (the set of participating nodes) and Transaction (the set of possible transactions). The variables are log (a sequence of transactions) and executed (a function mapping each node to the number of transactions it has executed).
+
+Two actions define the system behavior. WriteTx allows a node to append a transaction to the log, but only if that node has executed all existing log entries; the writing node also increments its executed counter. ExecuteTx allows any node that has fallen behind to catch up by incrementing its executed counter without modifying the log.
+
+The type invariant TypeOK ensures log is a transaction sequence and executed maps nodes to natural numbers. The Safety property guarantees no node's executed count exceeds the log length.
+
+The specification explores various fairness conditions. ExecFairSpec adds weak fairness on ExecuteTx for all nodes, while WriteFairSpec adds weak fairness on WriteTx. Both include additional temporal conditions. The Convergence property states that eventually all nodes will have executed all log entries. The module also identifies insufficient fairness conditions that fail to guarantee convergence and effectively false specifications that are unsatisfiable.

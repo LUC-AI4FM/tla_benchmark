@@ -1,0 +1,11 @@
+Specify a model of a concurrent key‑value database that supports client transactions using snapshot isolation. The model should describe transactions that (1) begin by taking an instantaneous read snapshot of the shared key‑value store, (2) perform a sequence of reads from that snapshot and local writes that update only the transaction’s local snapshot, and (3) attempt an atomic commit that applies the transaction’s writes to the global store only if doing so does not conflict with intervening writes that the transaction missed. The system must allow multiple transactions to be active concurrently, track which keys each active transaction has not observed (i.e., writes that became visible after its snapshot), and ensure that commits propagate written keys to other currently active transactions’ “missed” sets so those transactions can detect write–write and certain write–read conflicts.
+
+Model the concurrency of transactions, nondeterministic choices of read‑sets and write‑sets, and the possibility that a transaction aborts (or fails to apply) if conflicts are detected on commit. Specify liveness so every transaction can progress through start, read, update, and commit steps and eventual termination (assuming no permanent conflict). State types and initial conditions: a global store initialized to a sentinel value for all keys, a finite set of transaction identifiers, and per-transaction local state for snapshot, read/write sets, and an operation log for verification.
+
+Require these correctness properties:
+- Snapshot Isolation: every transaction reads a consistent snapshot taken at its start; committed writes become visible atomically; no transaction sees partial effects of other transactions.
+- No lost updates for non‑conflicting transactions: if two transactions write disjoint key sets, both commits may succeed and their effects are preserved.
+- Safety of conflict detection: a commit that would overwrite keys missed by the transaction must be prevented from committing.
+- Type invariants: store, transaction‑set, and per‑transaction structures conform to their declared domains.
+
+Also provide an abstract operation log of reads and writes sufficient to assert higher‑level client‑centric properties such as serializability checks (expected to fail under write‑skew) and to validate snapshot isolation.

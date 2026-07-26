@@ -1,0 +1,43 @@
+# Specification Request: Byzantine Fault-Tolerant Consensus Protocol
+
+## System Overview
+
+I need a formal specification of a Byzantine fault-tolerant consensus protocol, specifically modeling the Tendermint consensus algorithm. The system should capture how a set of distributed processes reach agreement on a value despite some processes potentially being malicious (Byzantine).
+
+## System Requirements
+
+### Participants and Fault Model
+- The system consists of multiple processes, divided into correct (honest) processes and faulty (Byzantine) processes
+- The specification should be parameterized to allow configuration of the total number of processes and the fault threshold
+- For a concrete model checking scenario, I want to verify a configuration with 4 total processes where up to 2 may be faulty (Byzantine)
+
+### Protocol Structure
+- The consensus operates in rounds, with each round having a designated proposer
+- Within each round, processes move through distinct phases (propose, prevote, precommit)
+- Processes exchange messages during each phase and make decisions based on the messages received
+
+### State and Progress
+- Each process maintains its current round and phase
+- Processes track "locked" values and rounds, representing commitments made in previous rounds
+- Processes also track "valid" values that have received sufficient support
+- The protocol should support multiple rounds to handle cases where consensus isn't reached in the first attempt
+
+### Values and Validity
+- There should be a set of valid values that can be legitimately proposed
+- The specification should also account for invalid values that Byzantine processes might introduce
+
+## Correctness Properties
+
+The specification must allow verification of:
+
+1. **Agreement (Safety)**: Correct processes should not decide on different values
+2. **Validity**: If a value is decided, it should be a valid value (not one only a Byzantine process would propose)
+3. **Evidence Collection**: The system should be able to collect evidence of Byzantine behavior when it occurs
+
+## Model Checking Configuration
+
+For practical verification, I need a bounded instance that can be checked with finite-state model checking tools:
+- Fixed small number of processes (4 total, with 2 correct and 2 faulty)
+- Bounded number of rounds (up to 2-3 rounds)
+- Small set of possible values
+- The proposer assignment across rounds should be treated as an arbitrary but fixed function to verify safety regardless of proposer scheduling

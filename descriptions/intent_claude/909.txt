@@ -1,0 +1,46 @@
+# Specification Request: Asynchronous FIFO Buffer System
+
+## System Overview
+
+I need a formal specification for a message-passing system consisting of three components connected in sequence: a sender, a bounded FIFO buffer, and a receiver. The components communicate through asynchronous handshake channels.
+
+## System Description
+
+The system should model:
+
+1. **A Sender** that can transmit messages of a given type through an asynchronous channel to a buffer.
+
+2. **A FIFO Buffer** that:
+   - Receives messages from the sender's channel
+   - Stores messages internally in first-in-first-out order
+   - Forwards messages to the receiver through a separate outgoing channel
+   - Can only send when it has messages queued
+
+3. **A Receiver** that accepts messages from the buffer's outgoing channel.
+
+## Communication Model
+
+The channels between components should use an asynchronous handshake protocol with:
+- A ready/acknowledge signaling mechanism
+- Data validity tied to the handshake state
+- The ability for sender and receiver to operate independently (asynchronously)
+
+The channels should start in a synchronized state where the sender and receiver sides agree on the initial handshake phase.
+
+## Key Requirements
+
+1. **Channel Integrity**: The communication channels must maintain their structural form as proper handshake channels throughout execution.
+
+2. **FIFO Ordering**: Messages must pass through the buffer in the order they were received.
+
+3. **Compositional Structure**: The specification should be built by composing the three components (sender, buffer, receiver), each specified as a separate behavioral constraint.
+
+4. **Internal State Hiding**: The buffer's internal queue should be treated as an implementation detail, hidden from the overall system specification through existential quantification.
+
+5. **Initial Synchronization**: Channels must begin in a state where the ready and acknowledge signals match, indicating an idle/synchronized condition.
+
+## Properties to Guarantee
+
+- The system maintains well-formed channel structures at all times
+- Message ordering is preserved end-to-end
+- The handshake protocol is respected on both channels

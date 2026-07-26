@@ -1,0 +1,19 @@
+Model a timestamp resolver for a distributed transactional storage system that tracks region-local tentative and committed timestamps, forwards region events to a resolver, and produces globally monotonic "resolved" timestamps used to advance safe read snapshots. The model should capture the following components and behavior without prescribing an implementation:
+
+- A set of regions that can execute transactions producing Prewrite, Commit, and Rollback events. Prewrite sets a tentative timestamp for a region; Commit sets a commit timestamp; Rollback cancels a tentative timestamp. Prewrites and their subsequent Commit/Rollback must not be allowed to progress until the preceding prewrite has been applied locally.
+
+- An asynchronous channel that carries region events and explicit FetchTS requests to a resolver. The channel preserves order; the resolver processes messages by advancing an internal notion of each region's minimum prepared timestamp and by emitting resolved timestamps or output commit timestamps to respective output queues.
+
+- A global timestamp generator can be sampled (FetchTS) to drive resolution, and multiple regions’ minimum prepared timestamps are combined (by min/max policies) to compute new resolved timestamps. The resolver may also emit commit timestamps directly on Commit messages.
+
+Specify correctness requirements:
+
+- Type and state invariants for region states, resolver state, channel and queues.
+
+- Commit consistency: for any region in committed state, either its tentative timestamp is strictly less than its commit timestamp, or both are zero (no tentative).
+
+- Resolved consistency: any resolved timestamp recorded with an associated output index must be strictly less than all output timestamps at and after that index, ensuring resolved timestamps never overtake emitted commit/output timestamps.
+
+- Liveness: when no region has a pending minimum prepared timestamp and a FetchTS request is present in the channel, the resolver eventually produces a nonzero resolved timestamp.
+
+Specify the system so it can be checked for safety invariants and liveness properties (temporal properties over steps) in TLA+. Do not prescribe exact variable names or algorithmic steps; describe only the required state, messages, and high-level transitions and properties.

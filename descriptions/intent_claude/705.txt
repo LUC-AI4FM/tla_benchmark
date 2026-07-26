@@ -1,0 +1,34 @@
+# Specification Request: Causal Ordering of Distributed System Events
+
+## System Overview
+
+I need a formal specification for a mechanism that determines causal ordering of events in a distributed system using vector clocks. The system should be able to take a log of events from multiple nodes, where each event is tagged with a vector clock, and produce a causally consistent ordering of those events.
+
+## Background
+
+In a distributed system, multiple nodes generate events independently. Each event carries a vector clock—a data structure that tracks logical time across all nodes the event-generating node knows about. Vector clocks enable reasoning about the causal relationships between events: whether one event definitely happened before another, or whether two events are concurrent (neither caused the other).
+
+## Requirements
+
+### Core Functionality
+
+1. **Causal Relationship Detection**: The system must be able to determine, given two vector clocks, whether:
+   - One event causally precedes another (happened-before relationship)
+   - Two events are concurrent (no causal relationship exists between them)
+
+2. **Log Reordering**: Given an arbitrary log of events with associated vector clocks, produce a reordering of that log that respects causal order. Specifically, if event A happened-before event B according to their vector clocks, then A must appear before B in the output.
+
+3. **Flexible Clock Extraction**: The solution should work with logs of varying structure—the mechanism for extracting the vector clock, originating node, and clock domain from a log entry should be configurable.
+
+### Handling Partial Knowledge
+
+Vector clocks may have different domains (sets of nodes they track) because nodes gradually learn about other nodes in the system. The specification must handle this by treating missing entries as zero when comparing clocks of different sizes.
+
+## Constraints
+
+- The specification assumes a complete log with no hidden events—all events that could affect causality are present in the log.
+- Vector clock values must be continuous without gaps (no missing increments in the logical time).
+
+## Correctness Properties
+
+The reordered log must satisfy the causal ordering property: for any two entries where one happened-before the other according to their vector clocks, the earlier event must appear first in the output sequence. Concurrent events may appear in any relative order.

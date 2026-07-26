@@ -1,0 +1,9 @@
+This TLA+ module specifies a configurable network abstraction that models message passing between servers under different delivery guarantees. It provides a reusable library for specifications that need to reason about distributed communication with varying reliability assumptions.
+
+The module defines four possible network guarantee modes through the constant `Guarantee`: `OrderedNoDup` provides point-to-point ordering without message duplication; `Ordered` provides point-to-point ordering but allows duplication; `ReorderedNoDup` allows message reordering but prevents duplicates; and `Reordered` allows both reordering and duplication.
+
+The constant `Servers` represents the set of network participants. The variable `messages` holds the current state of in-flight messages, with its representation varying by guarantee mode—a bag for reordering with duplication, a set for reordering without duplication, or per-server sequences for ordered delivery.
+
+The module exports operators for initializing the message state (`InitMessageVar`), querying pending messages (`Messages`, `MessagesTo`), adding messages (`WithMessage`), removing messages upon delivery (`WithoutMessage`), detecting new messages (`OneMoreMessage`), and modeling message loss (`DropMessages`, `DropMessage`).
+
+Each guarantee mode implements these operators differently: ordered modes use sequences to preserve FIFO ordering per destination, while reordered modes use sets or bags. This abstraction allows specifications to parameterize network behavior without changing application logic.

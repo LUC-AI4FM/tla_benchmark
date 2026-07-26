@@ -1,0 +1,53 @@
+# Specification Request: Raft Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Raft distributed consensus algorithm. Raft is designed to manage a replicated log across a cluster of servers, ensuring that all servers agree on the same sequence of commands even in the presence of failures and unreliable network communication.
+
+## System Components
+
+The system consists of:
+- A set of **servers** that participate in the consensus protocol
+- A set of **clients** that submit requests to the cluster
+- A **message-passing network** connecting all participants
+
+## Required Behaviors
+
+### Server Roles and Transitions
+Servers must operate in different roles (follower, candidate, leader) and transition between them based on elections. The specification should model:
+- Election timeouts that trigger servers to seek leadership
+- A voting protocol where servers request and grant votes
+- Leader election completion when a server receives sufficient votes
+- Server restarts/crashes at any point
+
+### Pre-Vote Extension
+The specification should include an optional pre-vote phase where candidates check if they could win an election before incrementing their term, helping prevent disruption from partitioned servers.
+
+### Log Replication
+Leaders must replicate log entries to followers, and the system should model:
+- Appending new entries to follower logs
+- Advancing commit indices when entries are sufficiently replicated
+- Applying committed entries to state machines
+
+### Client Interaction
+Clients should be able to:
+- Open and close sessions with the cluster
+- Submit requests that get added to the replicated log
+
+### Network Model
+The network should be modeled as unreliable, allowing:
+- Message delivery
+- Message duplication
+- Message loss/dropping
+
+## Key Correctness Properties
+
+### Log Consistency (Primary Safety Property)
+The most critical invariant: if any two servers have committed entries at the same log index, those entries must be identical. This ensures that once a command is committed, all servers will eventually apply the same commands in the same order.
+
+### Liveness (Implicit)
+Under reasonable conditions (eventual leader election, network stability), the system should make progress—clients' requests should eventually be committed and applied.
+
+## Goal
+
+The specification should allow verification that Raft maintains its safety guarantees under all possible interleavings of server actions, client requests, and network failures, providing confidence that the algorithm correctly implements distributed consensus.

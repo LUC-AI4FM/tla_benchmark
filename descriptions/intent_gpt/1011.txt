@@ -1,0 +1,18 @@
+Specify a formal model of a single-node key-value store that supports four client-visible operations: get, insert, update, and delete. The model should describe the observable API behavior and the store's abstract state (which records which keys are present and their values), without committing to a particular implementation or scheduling mechanism.
+
+Requirements:
+- Keys come from a given finite set and values come from a given finite set. There is a distinguished sentinel value representing "missing" (key absent).
+- Operations are atomic from the perspective of a client: each operation consists of a request transition that begins the operation and a matching response transition that completes it and returns a result.
+- get(key) returns the stored value for key if present, otherwise returns the sentinel "missing"/nil.
+- insert(key, value) succeeds and stores the value only if the key is currently absent; it returns an "ok" result on success and "error" if the key already exists.
+- update(key, value) succeeds and replaces the stored value only if the key is currently present; it returns "ok" on success and "error" if the key does not exist.
+- delete(key) removes the key if present and always returns "ok" (deleting a non-existent key is allowed and results in no error).
+- The model should allow interleaving of requests and responses, but must ensure responses correspond to the most recently issued, not-yet-completed request (i.e., each request is paired with its response).
+- Safety properties to guarantee:
+  - State consistency: after any completed operation, the abstract mapping accurately reflects the effects described above for that operation and for all prior completed operations.
+  - Return-value correctness: every operation's response must be correct according to the pre-state at the time its response is generated (e.g., insert returns "ok" iff the key was absent at the time of response and the mapping is updated accordingly).
+- Liveness properties to guarantee:
+  - Progress for operations: any issued request must eventually receive a matching response (fairness for operation handling).
+  - Optionally, eventual service: if new requests continue to be issued, the system continues to make progress (no permanent stalling).
+- The specification should be parametrized by the key and value universes and the sentinel values; it should not assume fixed sizes or particular values.
+- Provide invariants and temporal properties corresponding to the safety and liveness requirements above so they can be model-checked and used for proof.

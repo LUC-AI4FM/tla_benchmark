@@ -1,0 +1,41 @@
+# Specification Request: Alternating Bit Protocol
+
+## System Overview
+
+I need a formal specification of the **Alternating Bit Protocol**, a classic reliable data transmission protocol that ensures messages are delivered correctly over an unreliable channel that may lose or duplicate messages.
+
+## System Description
+
+The system consists of two parties—a sender and a receiver—communicating over two unidirectional channels:
+- One channel carries data messages (with sequence bits) from sender to receiver
+- One channel carries acknowledgment bits from receiver to sender
+
+The sender attaches a single alternating bit (0 or 1) to each message. The receiver acknowledges received messages by echoing back the bit. Both parties alternate their bits upon successful transmission/reception, enabling detection of lost or duplicated messages.
+
+## Requirements
+
+The protocol should model:
+- A sender that transmits data messages tagged with a sequence bit
+- A receiver that accepts messages and sends acknowledgments
+- Two communication channels that can hold multiple messages in transit
+- The ability for messages to be lost or duplicated in the channels
+
+The data being transmitted should be parameterizable (e.g., a set of possible data values like names or identifiers).
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: The sender and receiver states must contain valid messages (data plus bit), and the channels must contain appropriate sequences (messages in one direction, bits in the other).
+
+2. **Agreement Invariant**: When there is a pending acknowledgment in the channel that matches the sender's current bit, the sender and receiver must agree on the current message. This captures the core safety property that the receiver has correctly received what the sender intended.
+
+3. **Channel Structure Property**: The channels should exhibit a "two-values" property—at any point, a channel contains at most two distinct values, and these values appear in contiguous groups. This reflects the alternating nature of the protocol where only adjacent sequence numbers can be in flight.
+
+## Model Checking Constraints
+
+For practical verification, the channel lengths should be bounded (e.g., at most 3 messages in each direction) while still being long enough to expose potential protocol errors.
+
+## Goal
+
+Verify that this implementation of the alternating bit protocol correctly achieves reliable message delivery and maintains its key invariants despite unreliable channels.

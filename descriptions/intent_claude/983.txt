@@ -1,0 +1,39 @@
+# Specification Request: Yo-Yo Algorithm for Leader Election with Pruning
+
+## System Overview
+
+I need a formal specification of the Yo-Yo algorithm, a distributed leader election protocol that operates on an arbitrary connected network of nodes. The algorithm should determine a single leader (typically the node with the minimum identifier) through a process of iterative pruning, where non-leader candidates are progressively eliminated.
+
+## System Description
+
+The system consists of a fixed set of nodes connected by edges forming an arbitrary undirected graph topology. Each node has a unique identifier. The algorithm operates in two alternating phases that give it its "Yo-Yo" name:
+
+1. **Downward (Yo) phase**: Information flows from nodes toward their neighbors with smaller identifiers, building a directed acyclic structure where edges point toward potential leader candidates.
+
+2. **Upward (Yo) phase**: Responses propagate back up the structure, carrying information that allows nodes to determine whether they should remain active candidates or be pruned from consideration.
+
+## Functional Requirements
+
+- Nodes must be able to orient their edges based on comparing their identifiers with neighbors
+- The algorithm must support nodes transitioning between "source" (leaf in the directed structure), "sink" (potential leader candidate), and "internal" roles
+- Nodes that determine they cannot be leaders must be pruned (deactivated) from future rounds
+- Communication occurs via message passing between neighboring nodes
+- The algorithm must handle arbitrary connected graph topologies
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Leader Election (Safety)**: Eventually, exactly one node remains active, and this node has the minimum identifier among all nodes in the network.
+
+2. **Termination (Liveness)**: The algorithm must eventually terminate with a single leader elected—it cannot run forever or deadlock.
+
+3. **Consistency**: At no point should the algorithm eliminate the node with the minimum identifier from candidacy.
+
+4. **Progress**: In each complete Yo-Yo round, at least one non-minimum node must be pruned (unless only the leader remains).
+
+## Configuration
+
+The specification should be parameterized by:
+- The set of node identifiers
+- The edge connectivity (which pairs of nodes can communicate)

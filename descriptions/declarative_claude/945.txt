@@ -1,0 +1,19 @@
+# InternalMemory Module Description
+
+This TLA+ module specifies an internal memory system that processes read and write requests from multiple processors. It extends a `MemoryInterface` module that presumably defines the communication interface, addresses, values, and processor identifiers.
+
+## Variables
+
+The specification uses four variables: `mem` represents the memory as a function mapping addresses to values; `ctl` tracks each processor's control state; `buf` holds pending requests or response values for each processor; and `memInt` (from the interface) handles communication.
+
+## System Behavior
+
+Each processor cycles through three phases. In the **Req** action, a ready processor receives a memory request from the interface, stores it in its buffer, and transitions to busy. In the **Do** action, a busy processor executes the operation: writes update memory and clear the buffer, while reads load the addressed value into the buffer; the processor then moves to done. In the **Rsp** action, a done processor sends the buffered response back through the interface and returns to ready.
+
+## Specification Structure
+
+The initial state predicate `IInit` establishes arbitrary initial memory contents, all processors ready, empty buffers, and valid interface state. The next-state relation `INext` allows any processor to perform any enabled action. The temporal specification `ISpec` combines initialization with stuttering-allowed transitions.
+
+## Properties
+
+The module states a theorem that the type invariant—ensuring variables maintain proper domains—holds throughout all behaviors satisfying the specification.

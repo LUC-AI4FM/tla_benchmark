@@ -1,0 +1,33 @@
+# Specification Request: Dijkstra's Mutual Exclusion Algorithm
+
+## System to Model
+
+I need a formal specification of Dijkstra's original mutual exclusion algorithm, as published in his 1965 paper "Solution of a Problem in Concurrent Programming Control." This is a classic algorithm that allows multiple concurrent processes to coordinate access to a shared critical section without using special hardware instructions.
+
+## System Description
+
+The system consists of an arbitrary set of concurrent processes, each running in an infinite loop. Each process alternates between:
+1. Attempting to enter a critical section (the "entry protocol")
+2. Executing in the critical section
+3. Leaving the critical section (the "exit protocol")
+4. Executing in a non-critical section where it may remain indefinitely
+
+The processes coordinate using only shared boolean flags (two per process) and a single shared integer variable that can hold any process identifier. The algorithm uses a contention-based approach where processes check each other's status and compete for access.
+
+## Key Requirements
+
+The entry protocol involves multiple phases where a process signals its intent, checks whether it currently holds priority, and verifies that no other process is simultaneously attempting to enter. If conflicts are detected, the process must restart portions of the protocol.
+
+A process may remain in its non-critical section forever—the algorithm must not require processes to continuously participate.
+
+## Correctness Properties
+
+**Safety (Mutual Exclusion):** At most one process may be in its critical section at any time. No two distinct processes can simultaneously occupy the critical section.
+
+**Liveness (Deadlock Freedom):** Under fair scheduling, if any process is attempting to enter its critical section, then eventually some process (not necessarily the same one) will succeed in entering its critical section.
+
+**Non-requirement (Starvation Freedom):** Note that this algorithm does NOT guarantee starvation freedom—individual processes may wait indefinitely while others repeatedly enter the critical section. The specification should be able to demonstrate this limitation via counterexample.
+
+## Fairness Assumptions
+
+The deadlock freedom property requires weak fairness: each process must eventually take a step if it is continuously enabled, except when in the non-critical section (where a process is permitted to remain forever).

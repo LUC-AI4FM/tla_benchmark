@@ -1,0 +1,39 @@
+# Specification Request: Ring Buffer Data Structure
+
+## System Overview
+
+I need a formal specification for a ring buffer (circular buffer) data structure that supports concurrent access from multiple reader and writer threads. The ring buffer should serve as a foundational building block for higher-level concurrent protocols like the LMAX Disruptor pattern.
+
+## Functional Requirements
+
+The ring buffer must support the following operations:
+
+1. **Writing data**: Writer threads should be able to store values into slots in the buffer
+2. **Completing writes**: Writers must be able to signal when they have finished writing to a slot
+3. **Beginning reads**: Reader threads should be able to start reading from buffer slots
+4. **Completing reads**: Readers must be able to signal when they have finished reading from a slot
+
+The buffer has a fixed size and should track:
+- The data values stored in each slot
+- Which threads are currently reading from each slot
+- Which threads are currently writing to each slot
+
+## Design Constraints
+
+- The ring buffer module should be a **reusable helper component** rather than a complete standalone protocol
+- It should define the state structure and individual operations, but **not prescribe the overall system behavior** (no next-state relation)
+- The responsibility for composing these operations into a correct protocol belongs to higher-level specifications that use this buffer
+- The buffer should support configurable parameters for size, the set of reader threads, writer threads, and the domain of storable values
+- A null/empty value should be representable to indicate uninitialized or cleared slots
+
+## Correctness Properties
+
+The key safety property that any protocol using this ring buffer must maintain is:
+
+**No Data Races**: At no point should a slot be simultaneously accessed by conflicting operations. Specifically, there should never be concurrent writes to the same slot, nor should reads and writes to the same slot overlap in a way that could cause data corruption.
+
+Note: Ensuring this property is the responsibility of the protocol that orchestrates access to the ring buffer, not the ring buffer module itself. The ring buffer provides the primitive operations and the invariant definition, but correct usage must be enforced by the containing system.
+
+## Intended Usage
+
+This specification is meant to be instantiated by higher-level protocol specifications (such as single-producer/multi-consumer or multi-producer/multi-consumer disruptor implementations) that will define the coordination logic ensuring safe concurrent access to the buffer.

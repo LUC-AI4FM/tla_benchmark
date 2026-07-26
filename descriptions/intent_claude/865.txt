@@ -1,0 +1,53 @@
+# Specification Request: Software-Defined Perimeter (SDP) Architecture with Attack Resistance
+
+## System Overview
+
+I need a formal specification of a Software-Defined Perimeter (SDP) security architecture, also known as a "Zero Trust" network model. The system should model the Single Packet Authorization (SPA) protocol used to authenticate clients before granting access to protected services, along with the network components that enforce access control.
+
+## Components to Model
+
+The specification should include:
+
+1. **Legitimate Client**: An authorized user who possesses valid credentials (identity, secret key) and wishes to access a protected service
+2. **SDP Controller**: The authentication server that validates SPA requests and instructs the firewall to permit authorized access
+3. **Firewall**: A network gateway that enforces access control rules, denying all traffic by default and only permitting flows authorized by the controller
+4. **Protected Server**: The target service that clients wish to access
+5. **Attacker**: A malicious actor who can eavesdrop on network traffic and attempt various attacks
+
+## Protocol Flow
+
+The system should model this sequence:
+1. A client sends a single encrypted/authenticated packet (SPA) to the controller containing their identity, a timestamp, and encrypted information about which service they want to access
+2. The controller validates the packet using HMAC verification and checks against replay attacks
+3. Upon successful authentication, the controller instructs the firewall to temporarily permit the client's connection to the requested service
+4. The client establishes a TCP connection to the protected server through the firewall
+
+## Attack Scenarios to Model
+
+The specification must model an attacker capable of:
+- **Eavesdropping**: Capturing SPA authentication messages and data plane traffic
+- **Replay Attacks**: Re-sending previously captured valid SPA messages
+- **Spoofing Attacks**: Crafting fake SPA messages with guessed or manipulated credentials
+- **Unauthorized Access Attempts**: Trying to connect to protected services without proper authorization
+- **NAT Environment Attacks**: Operating from the same network as a legitimate user (sharing a public IP)
+
+## Key Correctness Properties
+
+The specification must verify:
+
+1. **Replay Attack Resistance**: The controller must detect and reject replayed SPA messages using timestamp/sequence number validation
+
+2. **Spoofing Attack Resistance**: The controller must reject SPA messages with invalid HMACs (wrong credentials)
+
+3. **Default-Deny Enforcement**: The firewall must block all connection attempts that lack corresponding successful authentication
+
+4. **Unauthorized Access Prevention**: An attacker must not be able to establish a connection to the protected server without valid credentials, even after observing legitimate traffic
+
+5. **Legitimate Access Guarantee**: A legitimate user with valid credentials should successfully complete authentication and access the protected service
+
+## Environmental Assumptions
+
+- The attacker cannot break the underlying cryptographic primitives (follows the Dolev-Yao model)
+- The attacker may share a network segment with legitimate users (NAT scenario)
+- All network channels are potentially observable by the attacker
+- Firewall rules may age out over time

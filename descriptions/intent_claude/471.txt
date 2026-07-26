@@ -1,0 +1,35 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification of Dijkstra's algorithm (EWD 840) for detecting termination in a distributed system where nodes are arranged in a ring topology.
+
+## System Description
+
+The system consists of a fixed number of nodes arranged in a logical ring. Each node can be either active (performing computation) or passive (idle). Active nodes may send messages to other nodes, which can activate previously passive nodes. Any active node may become passive at any time. The goal is to detect when all nodes have become passive and will remain so—i.e., when the distributed computation has terminated.
+
+## Termination Detection Mechanism
+
+The algorithm uses a token that circulates around the ring in one direction. The token-passing mechanism must be able to detect global termination despite the fact that:
+- Nodes may reactivate each other by sending messages
+- Messages sent "backward" around the ring (against the token's direction) could cause the token to miss ongoing activity
+
+The detection mechanism uses colors (for both nodes and the token) to track whether activity may have been missed during a round of token passing. When a node sends a message backward around the ring, it must record this fact so the current detection round can be invalidated.
+
+## Environment Behavior
+
+The underlying distributed computation (which the detection algorithm monitors) can:
+- Have any active node send a message to activate any other node
+- Have any active node spontaneously become passive
+
+## Key Correctness Properties
+
+The specification should support verifying:
+
+1. **Safety**: The algorithm must never incorrectly conclude that termination has occurred while any node is still active or could become active.
+
+2. **Liveness**: If all nodes eventually become passive and stay passive (true termination), the algorithm must eventually detect this fact.
+
+## Initial Conditions
+
+The system should start with the token colored black (indicating an inconclusive state), while all other aspects of the system state may be arbitrary—this models the algorithm being overlaid on an already-running distributed computation.

@@ -1,0 +1,36 @@
+# Specification Request: Distributed Termination Detection Algorithm
+
+## System Overview
+
+I need a formal specification of the Dijkstra-Scholten algorithm for detecting termination of a diffusing computation in a distributed system. The computation is initiated by a single designated root node and spreads through the network as nodes send messages to activate other nodes.
+
+## System Description
+
+The system consists of a fixed set of nodes that can be either active (performing computation) or inactive. The computation begins with a single initiator node that is initially active; all other nodes start inactive. Active nodes may:
+
+- Send messages to other nodes, potentially activating them
+- Spontaneously become inactive (finish their local computation)
+
+When an inactive node receives a message, it becomes active again. The challenge is to detect when the entire distributed computation has terminated—meaning all nodes are inactive and no messages are in transit.
+
+## Algorithm Requirements
+
+The algorithm must maintain a dynamic spanning tree rooted at the initiator that tracks the "diffusion" of the computation:
+
+1. When a node first becomes active by receiving a message, it joins the tree with the message sender as its parent
+2. If an already-active node receives a message, it must acknowledge that message back to the sender
+3. Each node tracks how many unacknowledged "child" relationships it has (messages sent minus acknowledgments received)
+4. An inactive node with no pending children may detach from the tree by sending an acknowledgment to its parent
+5. When the root node is inactive, has no children, and detaches, it may declare that the computation has globally terminated
+
+Note that nodes may be reactivated after detaching and can rejoin the tree under a different parent.
+
+## Correctness Properties
+
+**Safety:** Termination must only be declared when the system has truly quiesced—that is, when all nodes are inactive and there are no messages of any kind (base messages or acknowledgments) pending in the network.
+
+**Liveness:** If the system ever reaches a quiescent state, termination must eventually be detected. (The algorithm should make progress under fair scheduling.)
+
+## Additional Considerations
+
+The specification should model asynchronous message passing where messages can be arbitrarily delayed but are not lost. For practical model checking, it should be possible to bound the number of pending messages in the network.

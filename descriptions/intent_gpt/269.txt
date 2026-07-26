@@ -1,0 +1,9 @@
+Specify a system that models a simple request/acknowledgement protocol for a single-account withdrawal service interacting with clients. The model should capture clients sending withdrawal requests (each request specifies a positive amount from a bounded set) and the service processing those requests one at a time. When processing a request, the service either (1) approves it if the current account balance is at least the requested amount, subtracting the amount from the balance, recording a successful withdrawal event in an audit log, and emitting a success acknowledgement; or (2) rejects it if funds are insufficient, leaving the balance unchanged, recording a shortage event in the audit log that records the shortfall, and emitting a failure acknowledgement. Requests are consumed when processed and acknowledgements are produced instead.
+
+Model should allow arbitrary interleavings of request arrivals and processing decisions, but guarantee these safety properties:
+- The balance never becomes negative.
+- Every emitted success acknowledgement corresponds to a recorded withdrawal event of equal amount and a matching decrement of the balance.
+- Every emitted failure acknowledgement corresponds to a recorded shortage event whose shortfall equals the requested amount minus the then-available balance.
+- No request is lost silently: each request that is consumed is either acknowledged success or failure, and the audit log records the corresponding event.
+
+Also specify simple fairness for processing so that requests present in the system can eventually be processed. Include an initial state with a finite positive starting balance, empty request set, and empty audit log.

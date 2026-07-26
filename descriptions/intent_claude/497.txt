@@ -1,0 +1,46 @@
+# Specification Request: SWIM Failure Detection Protocol
+
+## System Overview
+
+I need a formal specification of a distributed failure detection protocol based on SWIM (Scalable Weakly-consistent Infection-style Process Group Membership). The system consists of a cluster of members that must detect when peers have failed and propagate membership information throughout the group.
+
+## Core Requirements
+
+### Member States and Lifecycle
+- Each member maintains a logical clock called an "incarnation number" that only that member can increment
+- Members can be in one of three states: **Alive**, **Suspect**, or **Dead**
+- Within any single incarnation, a member can only transition through states in one direction: Alive → Suspect → Dead
+- A member cannot revisit the same state within the same incarnation
+- To return to the Alive state after being suspected or declared dead, a member must increment its incarnation number (essentially "refuting" its failed status)
+
+### Failure Detection Mechanism
+- Members periodically probe other members to check if they are responsive
+- If a probe receives an acknowledgment, the probed member is considered alive
+- If a probe fails (no response), the probed member becomes suspected
+- Suspected members may eventually be declared dead if they don't refute the suspicion
+
+### State Propagation via Gossip
+- Membership state changes are propagated to other members using a gossip protocol
+- When a member learns of a state change, it queues the update for dissemination to peers
+- Members merge received gossip updates with their local view based on incarnation numbers and state precedence
+
+### Update Conflict Resolution
+- A higher incarnation number always takes precedence
+- For equal incarnation numbers, states closer to Dead take precedence (Dead > Suspect > Alive)
+- Members can refute suspicion or death declarations by incrementing their incarnation and announcing they are alive
+
+### Network Model
+- Messages can be lost, duplicated, or delivered out of order
+- The protocol must handle members joining and leaving the cluster dynamically
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **State Monotonicity Within Incarnation**: For any given incarnation of a member, state transitions only progress forward (Alive → Suspect → Dead), never backward
+2. **No State Repetition**: A member cannot transition to the same state multiple times within a single incarnation
+3. **Bounded State Transitions**: Within any incarnation, there are at most three state transitions (one for each possible state)
+
+## Scope Notes
+
+The specification should model the core failure detection and gossip mechanisms but does not need to include indirect probing (asking peers to probe a suspected member on your behalf), which is an optimization for reducing false positives in production implementations.

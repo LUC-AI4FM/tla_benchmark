@@ -1,0 +1,23 @@
+# CCFRaft Specification Overview
+
+This TLA+ module specifies the consensus algorithm used in CCF (Confidential Consortium Framework), a modified version of the Raft protocol with extensions for reconfiguration, membership management, and cryptographic signatures.
+
+## System Model
+
+The specification models a distributed consensus system where servers transition between leadership states (None, Follower, PreVoteCandidate, Candidate, Leader) and membership states (Active, RetirementOrdered, RetirementSigned, RetirementCompleted, RetiredCommitted). It supports dynamic membership changes where nodes can join and retire from the network.
+
+## Key Variables
+
+Server state includes current term, leadership and membership states, vote records, and logs. Logs contain entries of different types: regular entries, signatures (which make preceding entries committable), reconfigurations, and retirement markers. The specification tracks configurations per server, allowing multiple pending reconfigurations.
+
+## Actions
+
+The next-state relation includes: timeouts triggering elections (with optional pre-vote phase), vote requests and responses, append entries for log replication, signature creation by leaders, committing entries when quorum acknowledges them, and reconfiguration operations for adding or retiring nodes.
+
+## Safety Properties
+
+Key invariants include type safety, log consistency across servers, signature validity, configuration consistency, and proper membership state transitions. The specification ensures committed entries are never lost and elections produce at most one leader per term.
+
+## Liveness and Fairness
+
+The specification includes fairness conditions ensuring leaders eventually send entries and create signatures, enabling progress properties like eventual commitment of client requests.

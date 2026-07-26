@@ -1,0 +1,10 @@
+Specify a system of bounded FIFO channels, one per endpoint, that models concurrent producers and consumers interacting with those channels. The system must support two primitive client operations on each channel: enqueueing a message (Write) and dequeueing a message (Read). Each channel has a fixed maximum capacity; attempts to enqueue when the channel is full must be disallowed. Dequeue operations must be disallowed when the channel is empty. The model should allow any endpoint to perform a Read or a Write in any step, and writes may choose any message from a fixed, finite message set.
+
+The specification must express initial conditions (every channel starts empty) and a step relation that permits interleaved operations on different endpoints. The correctness properties to guarantee are:
+
+- Safety (per-endpoint FIFO semantics): For each endpoint, the sequence of messages returned by dequeue operations must equal the sequence of messages previously enqueued to that endpoint in the same order (no reordering, duplication, or loss), except that attempted enqueues when full are prevented by the model.
+- Capacity bound: No channel may ever exceed the configured maximum length.
+- Liveness/Progress: If an endpoint's channel is nonempty, the model should allow a dequeue step for that endpoint eventually (no permanent blocking of reads by unrelated actions). If an endpoint's channel is not full, the model should allow an enqueue of any permitted message eventually (no permanent blocking of writes by unrelated actions).
+- Refinement: The per-endpoint observable behavior must refine a simple abstract FIFO queue specification (unbounded or appropriately bounded) so that each endpoint's channel is observationally equivalent to an abstract FIFO queue with the same allowed enqueue and dequeue behaviors.
+
+Do not commit to a particular implementation; instead specify the abstract state (a mapping from endpoints to sequences), the allowed transitions, and the invariants and temporal properties that capture the FIFO, capacity, and progress/refinement requirements.

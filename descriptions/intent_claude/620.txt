@@ -1,0 +1,56 @@
+# Specification Request: Tendermint Consensus Protocol Debugging and Fault Injection
+
+## System Overview
+
+I need a formal specification for debugging and testing a Byzantine fault-tolerant consensus protocol based on the Tendermint algorithm. The specification should extend an existing Tendermint accountability model with capabilities for controlled fault injection and reachability testing.
+
+## Goals
+
+The primary goal is to create a debugging harness that allows:
+
+1. **Controlled Byzantine fault injection**: The ability to introduce a configurable number of malicious messages from faulty processes at system initialization or during execution
+2. **Reachability analysis**: Properties that can verify the specification allows the protocol to make progress through its various phases
+3. **State space exploration**: Alternative initial states (with and without faults) to manage model checking complexity
+
+## System Requirements
+
+### Fault Injection Capabilities
+
+The specification must support:
+
+- Injecting a specified number of faulty proposal messages from Byzantine processes
+- Injecting a specified number of faulty prevote messages from Byzantine processes  
+- Injecting a specified number of faulty precommit messages from Byzantine processes
+- Distributing injected faults across protocol rounds in a controlled manner
+- Both pre-seeded faults (in initial states) and dynamic fault injection (during execution)
+
+### Initial State Variants
+
+The system should provide:
+
+1. **Clean initialization**: An initial state with no Byzantine messages, useful for baseline testing
+2. **Fault-seeded initialization**: An initial state pre-populated with a fixed number of faulty messages of each type
+
+### Dynamic Behavior
+
+Beyond normal protocol transitions, the system should allow:
+
+- Faulty processes to broadcast arbitrary proposals (with any value and valid-round) at any time
+- Faulty processes to broadcast arbitrary prevotes for any value at any time
+- Faulty processes to broadcast arbitrary precommits for any value at any time
+
+## Correctness Properties (Reachability Checks)
+
+The specification should include properties to verify that the protocol can reach various states, formulated as negations to find counterexamples:
+
+- Can any correct process enter the prevote phase?
+- Can any correct process enter the precommit phase?
+- Can valid (non-nil) precommits from correct processes exist?
+- Can any correct process advance beyond the first round?
+- Can any correct process reach a decision?
+
+These properties serve as sanity checks to confirm the specification is not vacuously satisfied due to unreachable states.
+
+## Context
+
+This debugging specification builds upon a Tendermint consensus model with accountability features. It assumes the existence of correct and faulty process sets, multiple rounds of voting, and the standard Tendermint message types (proposals, prevotes, precommits).

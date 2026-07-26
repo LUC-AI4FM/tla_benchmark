@@ -1,0 +1,49 @@
+# Specification Request: Blockchain Attacker Isolation Protocol
+
+## System Overview
+
+I need a formal specification for an **attacker isolation protocol** used in a blockchain light client system. When a light client detects that two peers have reported conflicting blocks at the same height (evidence of an attack), this protocol runs at a full node to identify which validators were responsible for the attack.
+
+## Context and Background
+
+The system operates within a proof-of-stake blockchain where:
+- A set of validators sign blocks, and each validator has voting power
+- Security relies on the assumption that less than 1/3 of voting power is controlled by Byzantine (faulty) validators
+- When this assumption is violated, conflicting blocks can be signed, creating a "fork"
+- A light client may receive evidence of such a fork by observing two valid but conflicting blocks at the same height
+
+## What the Protocol Must Do
+
+Given:
+- A reference blockchain maintained by a full node
+- A conflicting block received as evidence (which passed light client verification against a common trusted block)
+- A common height where both chains agree, and a conflict height where they diverge
+
+The protocol must analyze the evidence and identify the set of attacking validators. The protocol should classify the attack into one of three categories:
+
+1. **Lunatic Attack**: The conflicting block violates validity rules (different validator sets, timestamps, etc. for the same height). In this case, identify validators from the trusted block's next validator set who signed the invalid block.
+
+2. **Equivocation Attack**: Both blocks are valid but were produced in the same consensus round. Identify validators who signed both conflicting blocks.
+
+3. **Amnesia Attack**: Both blocks are valid but were produced in different rounds. Identify a set of faulty validators who must have violated the protocol by "forgetting" their previous votes.
+
+## Key Correctness Properties
+
+The specification must guarantee two critical properties:
+
+### 1. Detection Completeness
+When the protocol completes, the identified attackers must collectively hold **more than 1/3 of the voting power** of the validator set at the conflict height. This ensures we identify enough attackers to explain how the security threshold was breached.
+
+### 2. Detection Accuracy
+Every validator identified as an attacker must actually be faulty. The protocol must never falsely accuse a correct validator.
+
+## Assumptions
+
+- The Tendermint security model has been violated (Byzantine validators exist who signed conflicting blocks)
+- The conflicting block evidence has already been validated through light client verification procedures
+- More than 1/3 of the validators in the trusted block's next validator set are faulty (precondition for a fork to exist)
+- Correct validators never sign invalid blocks
+
+## Goal
+
+The specification should model the state machine for this isolation protocol and verify that both detection completeness and detection accuracy hold for all possible attack scenarios and evidence inputs.

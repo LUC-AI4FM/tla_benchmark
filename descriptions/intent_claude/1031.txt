@@ -1,0 +1,40 @@
+# Specification Request: Block DAG Structure for Consensus Protocols
+
+## System Overview
+
+I need a formal specification of the fundamental data structures and operations for a DAG-based (Directed Acyclic Graph) blockchain consensus protocol. This specification should capture how blocks are organized in a DAG structure where multiple blocks can exist at the same logical height, unlike traditional linear blockchains.
+
+## Core Concepts to Model
+
+The system should model a network of participating nodes that collectively build a DAG of blocks. Each block in the DAG is associated with:
+- The node that created it
+- A round number indicating when it was created
+
+The DAG has a special genesis block that serves as the common ancestor of all other blocks.
+
+## Leader-Based Structure
+
+The protocol uses a leader rotation mechanism where each round has a designated leader node. Leader blocks (blocks created by the round's leader in that round) play a special role in the protocol. The genesis block should be treated as a leader block.
+
+## Key Operations Required
+
+1. **Leader Identification**: Given any round, determine which node is the leader and identify leader blocks in the DAG.
+
+2. **Previous Leader Lookup**: Given the current DAG state and a round number, find the most recent leader block that appears before that round.
+
+3. **DAG Linearization**: Convert the partially-ordered DAG structure into a totally-ordered sequence of blocks. The linearization should:
+   - Process blocks by traversing from leader to leader
+   - Include all blocks reachable from a given leader vertex
+   - Produce a deterministic ordering for any given DAG state
+
+## Correctness Properties
+
+The specification must support reasoning about:
+
+1. **Agreement/Compatibility**: Two linearizations are compatible if one is a prefix of the other. This is essential for ensuring that nodes following the protocol will never produce conflicting transaction orderings.
+
+2. **Determinism**: The linearization of any given DAG subgraph must be deterministic—the same DAG always produces the same sequence.
+
+## Purpose
+
+This specification provides foundational definitions that can be used by higher-level consensus protocol specifications to verify safety properties (nodes agree on block ordering) and liveness properties (the protocol makes progress).

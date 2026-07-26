@@ -1,0 +1,19 @@
+Specify a formal model of a block-based directed acyclic graph (DAG) used to order and validate proposals in a multi-round, multi-node consensus-like protocol. The model should represent nodes producing blocks (or vertices) in discrete rounds; each block references prior blocks to form a DAG with a distinguished genesis block. The system must provide a deterministic way to identify the designated proposer (leader) for each round and to locate the most recent leader-produced block that is an ancestor of a given block or round.
+
+Model the following behaviors and interfaces (without prescribing internal algorithms):
+
+- Creation and composition: blocks are uniquely identified by (node, round) pairs, belong to finite sets of nodes and rounds, and can be connected by parent links to form a DAG rooted at the genesis block.
+- Leader selection: for each round there is a deterministic mapping from round to leader node.
+- Ancestor queries: given a DAG and a target block or round, the model must be able to compute the previous leader block (the latest block produced by the leader of some earlier round that is reachable along parent links).
+- Linearization: given a DAG and a target block, produce a total order (sequence) of a finite set of ancestor blocks satisfying that it is a permutation of those ancestors and respects causal dependencies implied by the DAG (i.e., parents precede children).
+- Basic utility operations: set-to-sequence conversion preserving uniqueness, and correctness of ordering operations used to construct linearizations.
+
+Specify invariants and correctness properties:
+
+- DAG acyclicity and well-formedness (all parent references point to existing blocks, genesis has no parents).
+- Uniqueness of one block per (node, round).
+- Previous-leader correctness: the computed previous leader block for a round is indeed produced by the designated leader of that round and is an ancestor reachable from the considered block/round; if none exists, indicate an explicit empty value.
+- Linearization correctness: the produced sequence contains exactly the intended set of blocks, has no duplicates, and respects the DAG partial order.
+- Determinism: given the same DAG and inputs, previous-leader and linearization operations return the same results.
+
+Include small concrete example DAGs and checks as properties to validate the functions (e.g., specific leader assignments and expected previous-leader or linearization outputs).

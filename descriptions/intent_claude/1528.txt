@@ -1,0 +1,30 @@
+# Specification Request: Spanning Tree Algorithm Testing Framework
+
+## System to Model
+
+I need a formal specification for testing a distributed spanning tree construction algorithm across all possible graph topologies of a given size. The system should model nodes in a network that collaboratively build a spanning tree rooted at a designated root node, but critically, it should verify correctness for *every possible edge configuration* among those nodes.
+
+## Functional Requirements
+
+The system operates on a fixed set of nodes with one designated root. Rather than testing on a single fixed graph, the specification should non-deterministically choose any valid undirected graph (any subset of possible edges between nodes) and then verify that the spanning tree algorithm works correctly on that graph.
+
+Each node maintains:
+- A parent pointer indicating its parent in the spanning tree
+- A distance value representing its distance from the root
+
+The algorithm should allow nodes to improve their distance estimates by adopting neighbors with better (shorter) distances as their parent. Initially, the root knows it has distance zero, while all other nodes start with a maximum/unknown distance. Over time, distance information propagates through the graph.
+
+## Correctness Properties
+
+The specification must verify the following properties hold for all possible graph topologies:
+
+1. **Safety**: When the algorithm terminates (no more updates possible), every node must be in one of three valid states:
+   - It is the root (distance zero, parent is itself)
+   - It is unreachable from the root (maximum distance, parent is itself, all neighbors are also unreachable)
+   - It is reachable (has a valid distance, its parent is a neighbor, and its distance is exactly one more than its parent's distance)
+
+2. **Liveness**: The algorithm must eventually reach a stable configuration satisfying the above conditions.
+
+## Testing Scope
+
+The specification should enable exhaustive testing over all possible undirected graphs on a small number of nodes. This provides confidence that the spanning tree algorithm is correct regardless of the underlying network topology, including disconnected graphs where some nodes cannot reach the root.

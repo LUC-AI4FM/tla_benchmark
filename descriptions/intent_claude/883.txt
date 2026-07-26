@@ -1,0 +1,50 @@
+# Specification Request: Serializable Shared Memory System
+
+## System Overview
+
+I need a formal specification for a shared memory system where multiple processes can issue read and write operations to a set of memory addresses. The system should model how these operations are processed and ensure they can be serialized in a way consistent with memory coherence.
+
+## System Description
+
+The system consists of:
+- Multiple processes that can issue memory operations
+- A set of memory addresses, each initialized with known values
+- A register-based interface where processes submit requests and receive responses
+
+Each process communicates with the memory system through registers: a process places a read or write request into a register, and the system eventually responds by completing the operation and freeing that register for reuse.
+
+## Functional Requirements
+
+1. **Request Issuance**: A process can issue a read or write request to any memory address by placing it in a free register.
+
+2. **Write Completion**: Write operations complete by acknowledging the write and freeing the register.
+
+3. **Read Completion**: Read operations complete by returning a value and freeing the register. The returned value must come from either:
+   - The initial memory state, or
+   - Some write operation to the same address
+
+4. **Operation Tracking**: The system must track all issued operations and maintain ordering constraints between them.
+
+5. **Register Exclusivity**: Each register can hold at most one pending operation at a time.
+
+## Correctness Properties
+
+### Primary Correctness Condition: Serializability
+
+There must always exist a total ordering of all operations such that:
+
+1. **Ordering Consistency**: Any ordering constraints the system has already established are respected in this total order.
+
+2. **Program Order**: Operations from the same process appear in the total order according to the sequence in which they were issued.
+
+3. **Read Coherence**: Each read operation returns a value consistent with the serialization—specifically, it reads from the most recent write to that address in the total order (or from initial memory if no such write precedes it). A read cannot "skip over" a write that should be visible to it.
+
+## Liveness Requirements
+
+1. Every pending read or write operation must eventually receive a response.
+
+2. The system must eventually establish ordering between any two distinct operations (the ordering relation must progress toward totality).
+
+## Goal
+
+The specification should serve as a reference model for verifying that concrete memory system implementations provide serializable behavior, where all operations appear to execute atomically in some global order that respects per-process sequencing and coherent read values.

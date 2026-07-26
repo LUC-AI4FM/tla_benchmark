@@ -1,0 +1,51 @@
+# Specification Request: Cloud Database Consistency Levels
+
+## System Overview
+
+I need a formal specification of a distributed database system that supports multiple consistency levels, similar to those offered by cloud database services like Azure Cosmos DB. The system consists of a central cloud database service and one or more clients that perform read and write operations.
+
+## System Requirements
+
+### Architecture
+- A single cloud database service that maintains an append-only log of values
+- Multiple clients that communicate with the database through FIFO message channels
+- Each client performs a series of read-then-write operations in a loop
+
+### Client Behavior
+- Clients repeatedly read a value from the database, then write an incremented version of that value back
+- Clients maintain a session token that tracks their position in the database's history
+- Clients record their read history for verification purposes
+
+### Consistency Levels
+The database must support five distinct consistency levels, configurable at specification time:
+
+1. **Eventual Consistency**: Reads may return any value that has ever been written to the database
+
+2. **Consistent Prefix**: Reads may return any value from the database history (no out-of-order reads, but may read stale data)
+
+3. **Session Consistency**: Reads within a session are guaranteed to see at least the data that was visible at the client's last interaction (no reading backwards within a session)
+
+4. **Bounded Staleness**: Reads are guaranteed to return a value that is at most K versions behind the latest write, where K is a configurable parameter
+
+5. **Strong Consistency**: Reads always return the most recently written value
+
+### Write Semantics
+- Writes append new values to the database
+- Write acknowledgments include the position in the database where the value was stored
+- Clients update their session token upon receiving write acknowledgments
+
+## Correctness Properties
+
+The specification must verify that the selected consistency level is correctly implemented:
+
+1. **Eventual/Consistent Prefix**: Any value read by a client must exist somewhere in the database's history
+
+2. **Session**: After a read completes, the value returned must be from a position at or after the client's current session marker
+
+3. **Bounded Staleness**: Values returned must be within K positions of the current database length
+
+4. **Strong**: The value returned must always be the latest value in the database
+
+## Constraints
+- The model should support parameterized numbers of clients and maximum operations per client
+- The specification should be amenable to model checking with small parameter values

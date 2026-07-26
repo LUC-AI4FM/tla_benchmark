@@ -1,0 +1,54 @@
+# Specification Request: Fast Paxos Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Fast Paxos consensus algorithm, which extends the classic Paxos protocol to allow faster agreement in the common case by enabling acceptors to vote directly on proposed values without waiting for a coordinator's explicit instruction.
+
+## System Components
+
+The system consists of:
+- **Acceptors**: Processes that vote on proposed values and remember their votes
+- **Coordinators**: Processes that orchestrate rounds of voting and resolve conflicts
+- **Proposers**: External entities that submit values to be agreed upon
+- **Learners**: External entities that discover which value has been chosen
+
+## Functional Requirements
+
+### Round Structure
+The protocol operates in numbered rounds, where each round is designated as either:
+- **Classic rounds**: Require coordinator involvement before acceptors vote
+- **Fast rounds**: Allow acceptors to vote directly on proposed values without waiting for coordinator direction
+
+### Core Protocol Phases
+1. **Phase 1a**: A coordinator initiates a round by requesting acceptors to participate
+2. **Phase 1b**: Acceptors respond with their current state (what they've previously voted for)
+3. **Phase 2a**: The coordinator selects a value based on responses and instructs acceptors to vote
+4. **Phase 2b**: Acceptors cast their votes for the specified value
+
+### Fast Round Optimization
+In fast rounds, acceptors may vote directly for a proposed value without explicit coordinator instruction, reducing message delays in the common case.
+
+### Collision Recovery
+When multiple values are voted for in a fast round (a "collision"), the system must recover through either:
+- **Coordinated recovery**: A coordinator determines the safe value to continue with
+- **Uncoordinated recovery**: Acceptors autonomously determine the safe value based on observed votes
+
+### Quorum Requirements
+The specification must enforce quorum intersection properties that are stronger for fast rounds than classic rounds, ensuring that any two quorums from any rounds have non-empty intersection, with additional three-way intersection requirements for fast round quorums.
+
+## Correctness Properties
+
+### Safety Properties
+1. **Nontriviality**: Any learned value must have been previously proposed
+2. **Consistency**: At most one value can ever be learned (agreement)
+
+### Progress Property
+Under stable conditions—specifically when a single coordinator is recognized as leader, a sufficient quorum of acceptors is operational, and at least one value has been proposed—the system must eventually learn some value.
+
+## Fault Model
+
+- Coordinators and acceptors may fail and recover
+- Messages may be lost (but a non-failed process retains its last sent message)
+- Leader election may behave arbitrarily (no guaranteed unique leader)
+- The system must maintain safety despite arbitrary failures and message loss
+- Progress is only guaranteed under stability assumptions

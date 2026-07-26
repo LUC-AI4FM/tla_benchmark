@@ -1,0 +1,53 @@
+# Specification Request: Proof Obligation Coloring System
+
+## System Overview
+
+I need a formal specification for a system that assigns visual colors to proof trees in a theorem prover interface. The purpose is to give users at-a-glance feedback about the verification status of theorems and their sub-proofs.
+
+## Domain Model
+
+### Proof Tree Structure
+
+The system operates on hierarchical proof trees where:
+- Each tree has a root (a theorem or proof step)
+- Non-leaf nodes contain sequences of child proof trees
+- Leaf nodes either have no proof, an omitted proof, or a completed leaf proof
+- Each leaf proof tree contains zero or more **proof obligations** that must be discharged
+- Special case: a leaf with a missing or omitted proof should be treated as having a single "dummy" obligation
+
+### Obligation States
+
+Each proof obligation has a state that depends on its type:
+- **Dummy obligations** (from missing/omitted proofs): state is simply "missing" or "omitted"
+- **Real obligations**: state is a tuple capturing the verification status from multiple independent provers
+
+The system should support a configurable set of provers, where each prover has its own set of possible statuses (e.g., one prover might have statuses like "untried", "proving", "proved", "failed", "stopped", while another might only have "none" or "trivial").
+
+## Color Assignment Mechanism
+
+The system provides a fixed number of logical colors (numbered 1 through N). Each logical color has an associated **color predicate**. A proof tree receives the color of the lowest-numbered predicate that evaluates to true for that tree; if no predicate matches, the tree is uncolored.
+
+### Color Predicates
+
+Each color predicate is defined by:
+1. A set of obligation states to match against
+2. A quantification mode: either "every" (all obligations must match) or "some" (at least one obligation must match)
+3. A leaf restriction flag: when enabled, the predicate only matches leaf proof trees
+
+A predicate evaluates to true for a proof tree when:
+- The quantification condition is satisfied (all or some obligations have states in the specified set), AND
+- Either the leaf restriction is disabled, OR the tree is a leaf
+
+## Key Requirements
+
+1. **State Enumeration**: The system must be able to enumerate all possible obligation states given a prover configuration, assigning each state a unique number for efficient representation.
+
+2. **Extensible Prover Configuration**: The number of provers and their respective status sets should be configurable, not hard-coded.
+
+3. **Composable State Sets**: It should be possible to define sets of obligation states through unions of component specifications (e.g., combining "all states where prover 1 succeeded" with "all states where prover 2 succeeded").
+
+## Correctness Properties
+
+1. **Complete Enumeration**: Every valid obligation state must receive exactly one number, and the enumeration must be a bijection between states and consecutive integers starting from zero.
+
+2. **Deterministic Coloring**: Given a proof tree and a sequence of color predicates, the assigned color (or lack thereof) must be uniquely determined.

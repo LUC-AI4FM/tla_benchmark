@@ -1,0 +1,16 @@
+Specify a formal TLA+ model of a bounded-memory B-tree used as a persistent key-value store that supports get, insert, and update operations. The model should represent a fixed finite pool of node objects that can be allocated and split but not deleted, and must support both leaf and internal nodes arranged under a single root. Keys come from a fixed finite domain and values from a fixed finite domain. The model must include node occupancy limits (maximum keys per node) and the usual B-tree invariants about keys, children, and ordering.
+
+The model must describe these behaviors without prescribing any particular algorithmic encoding details:
+
+- Get: locate the leaf that should contain a key and return its value if present, otherwise return a distinguished "missing" result.
+- Insert: find the target leaf; if the key already exists, report an error; otherwise insert the key/value pair, allocating and linking free nodes as needed, and perform node splits (including special handling when the root must split) so that occupancy limits are respected and the tree remains a valid B-tree.
+- Update: locate the leaf for a key and overwrite its value only if the key exists; otherwise report an error.
+
+Required correctness properties to verify:
+- Structural invariants: internal nodes have valid child pointers and a non-nil rightmost child; leaves have no rightmost child pointer; key ordering between parent pivot keys and child keys is preserved.
+- Uniqueness: each key appears in at most one leaf.
+- Resource safety: at least one free node remains available (or otherwise state explicit allocation assumptions), and splits allocate distinct free nodes.
+- Functional refinement: externally observable behavior of get/insert/update refines a simple key-value map abstraction that yields the same responses for operations in quiescent states.
+- Progress: the system must allow operations to start only when idle and must eventually return to quiescent state after completing an operation (no permanent deadlock during normal operation sequences, modulo bounded-resource constraints).
+
+Do not fix internal naming or control-state encodings; instead require the model to expose an abstract operation/state distinction so that refinement to a simple key-value specification can be stated and checked.

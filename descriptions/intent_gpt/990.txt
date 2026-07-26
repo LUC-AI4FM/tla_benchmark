@@ -1,0 +1,15 @@
+Model a nonblocking atomic commitment protocol for a distributed transaction coordinator and N participants. The model should describe the allowed behaviors of the coordinator and of each participant abstractly (not an implementation), and must capture the message dissemination, fault, and timing assumptions needed to guarantee safety and liveness.
+
+Requirements:
+
+- The coordinator collects votes (yes/no) from participants and decides commit only if every live participant voted yes; otherwise it can decide abort. The coordinator may be faulty (crash-stop) and may fail to deliver its decision to some participants.
+
+- Participants may crash (crash-stop) and recover is not required. Participants forward received decisions to other participants using a reliable forwarding mechanism so that a decision delivered anywhere can be propagated to all live participants without relying on the original sender. Forwarding should be reliable in the sense that an alive participant that has a decision can send it to an alive peer; messages are not lost between alive processes.
+
+- Nonblocking liveness: if a majority (or more generally, all live) participants are alive and the coordinator is dead or unreachable, the protocol must allow live participants to reach a decision (commit or abort) without waiting indefinitely for the coordinator, using forwarded decisions.
+
+- Safety (agreement): No two non-faulty participants decide differently (no conflicting commit/abort among alive participants). Also, the protocol must satisfy validity: if all participants voted yes and the coordinator is non-faulty, then non-faulty participants may only decide commit; if any vote is no, then commit must not be decided by any non-faulty participant.
+
+- Progress: Under fair scheduling and the reliable forwarding assumption, every live non-faulty participant eventually decides (either commit or abort). The model should express termination under the assumed liveness conditions (e.g., coordinator alive and broadcasts, or forwarding among live participants).
+
+Specify the system as an asynchronous, message-passing distributed protocol with explicit abstractions for votes, coordinator decision broadcasts, per-participant storage of received decisions, forwarding of decisions between participants, crash failures, and fairness assumptions sufficient to state and verify the above safety and liveness properties.

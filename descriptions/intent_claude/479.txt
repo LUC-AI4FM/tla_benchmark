@@ -1,0 +1,37 @@
+# Specification Request: Distributed Termination Detection on a Ring
+
+## System Overview
+
+I need a formal specification of Dijkstra's algorithm for detecting termination in a distributed system where processes are arranged in a ring topology (known as EWD 840).
+
+## System Description
+
+The system consists of a fixed number of processes (nodes) arranged in a logical ring, numbered 0 through N-1. Each process can be either active (performing computation) or passive (idle). Active processes may send messages to other processes, which activates the recipient if it was passive. Any active process may become passive at any time.
+
+The goal is to detect when the entire distributed computation has terminated—that is, when all processes have become passive and no messages are in transit.
+
+## Termination Detection Mechanism
+
+A token circulates around the ring in one direction (from node 0 to node N-1, then back to node 0). The algorithm uses coloring of both nodes and the token to track whether any "backward" communication has occurred that might invalidate a termination conclusion.
+
+Key behaviors:
+- When a process sends a message to a process with a higher number (against the token's direction of travel), the sender must record this fact by changing its color
+- As the token passes through each node, it may pick up the node's color information
+- A designated initiator node can start new detection rounds and can conclude termination when certain conditions are met
+
+## Environment Assumptions
+
+The underlying computation is non-deterministic:
+- Any active process may spontaneously become passive
+- Any active process may send a message to any other process, activating the recipient
+- The initial state of process activity and colors is arbitrary (the algorithm must work regardless of when it is "started")
+
+## Correctness Requirements
+
+The specification should support verification of:
+
+1. **Safety**: The algorithm must never incorrectly announce termination while any process is still active or could become active due to pending messages.
+
+2. **Liveness**: If all processes eventually become passive and remain passive (true termination occurs), the algorithm must eventually detect this fact.
+
+The specification should include a fairness condition ensuring the token-passing mechanism continues to operate as long as it is enabled.

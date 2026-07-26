@@ -1,0 +1,9 @@
+This TLA+ module specifies the Atomic Commitment Protocol using Simple Broadcast (ACP-SB), modeling a distributed protocol where a coordinator and multiple participants must agree on whether to commit or abort a transaction.
+
+The system consists of two variables: a coordinator record and a participant function mapping each participant to its state. Each participant maintains a vote (yes/no), alive status, decision state, faulty flag, and whether its vote has been sent. The coordinator tracks vote requests sent, votes received, broadcast status for each participant, its decision, and alive/faulty status.
+
+The protocol proceeds through several phases. The coordinator sends vote requests to participants, who respond with their votes. The coordinator collects votes, deciding to commit only if all votes are yes, otherwise abort. It then broadcasts the decision using simple broadcast—sending individually to each participant, which may be interrupted by failure. Participants can unilaterally abort if they voted no or detect coordinator failure before receiving a request. Both coordinator and participants may fail at any time.
+
+The next-state relation combines all coordinator and participant actions. Weak fairness applies to non-failure actions, ensuring progress when enabled.
+
+Safety properties specify: all deciding participants reach the same decision (AC1), commit requires all yes votes (AC2), abort requires a no vote or some fault (AC3_1), and decisions are irrevocable (AC4). The liveness property AC3_2 states that eventually all participants decide or some process is faulty. Notably, the specification explicitly states that AC5 (termination without requiring faults) does not hold due to simple broadcast's limitations.

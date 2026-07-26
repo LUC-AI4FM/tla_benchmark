@@ -1,0 +1,48 @@
+# Specification Request: Option Type Library for TLA+
+
+## Overview
+
+I need a reusable library module that provides **option types** (also known as Maybe types) for use in TLA+ specifications, specifically designed to work with the Apalache model checker's type system and variant support.
+
+## Goal
+
+The library should enable specifications to cleanly represent **partial computations** or **values that may or may not exist**. This is a fundamental pattern in formal modeling where operations might fail, lookups might not find a result, or data structures might have absent values.
+
+## Required Functionality
+
+### Core Option Construction
+- A way to wrap any value to indicate it is present/valid
+- A way to represent the absence of a value (empty/undefined)
+
+### Inspection Operations
+- Predicates to check whether an option contains a value or is empty
+
+### Value Extraction and Transformation
+- Case analysis: apply different logic depending on whether a value is present or absent
+- Transform the wrapped value using a function while preserving the option structure (functor map)
+- Chain operations that themselves return options, propagating absence automatically (monadic bind/flatMap)
+- Extract the wrapped value with a fallback default if empty
+
+### Conversion Operations
+- Convert an option to a single-element or empty sequence
+- Convert an option to a single-element or empty set
+- Non-deterministically select an element from a set, returning an empty option if the set is empty
+
+### Function Integration
+- Apply a function to an optional argument, returning an optional result
+- Extend a total function to behave as a partial function by specifying which inputs should map to "undefined"
+
+## Key Properties
+
+1. **Type Safety**: All operations must be properly typed for Apalache's type checker, using variant types to distinguish the two cases
+2. **Algebraic Correctness**: The map and flatMap operations should satisfy standard functor/monad-like behavior (transforming present values, propagating absence)
+3. **Determinism**: All operations except the set-selection operation should be deterministic
+4. **Composability**: Operations should compose naturally to enable chaining of partial computations
+
+## Use Cases
+
+This library supports specifications where:
+- Functions may fail to produce a result
+- Data structures have optional fields
+- Lookups in maps or sets may not find matches
+- Sequential operations need short-circuit behavior on failure

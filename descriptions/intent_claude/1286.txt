@@ -1,0 +1,31 @@
+# Specification Request: Procedure Call with Control Flow Bypass
+
+## System Overview
+
+I need a formal specification for a simple concurrent control flow system that demonstrates procedure calls combined with goto-style jumps that can skip over intermediate code sections.
+
+## Behavioral Requirements
+
+The system should model a single process with the following behavior:
+
+1. **Procedure mechanism**: There should be a callable procedure that increments a shared counter and then returns to its caller.
+
+2. **Main loop with procedure call**: The main execution flow should:
+   - Call the procedure
+   - Upon return from the procedure, jump directly to a later point in the code, bypassing any intermediate statements
+   - Decrement the counter
+   - Loop back to repeat the process indefinitely
+
+3. **Unreachable code**: The specification should include a code path that exists structurally but is never executed due to the control flow jump (specifically, an assignment that would set the counter to a fixed value, but which gets skipped).
+
+## Key Properties to Verify
+
+1. **Liveness**: The system should continuously cycle through its main loop—it should not terminate or deadlock.
+
+2. **Bounded behavior**: Due to the increment-then-decrement pattern (with the bypassed code never executing), the counter should remain bounded within a small range.
+
+3. **Control flow correctness**: The procedure call/return mechanism must correctly restore control to the intended continuation point (the jump target, not the textually next statement).
+
+## Purpose
+
+This specification tests the correct interaction between procedure calls with stack-based return addresses and explicit control flow transfers (gotos) that redirect execution after a procedure returns. The key subtlety is ensuring that when a procedure call is immediately followed by a goto, the return address is set to the goto's target rather than the next sequential instruction.

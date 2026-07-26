@@ -1,0 +1,45 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC)** distributed transaction protocol. This protocol coordinates a set of resource managers (participants) to ensure they all agree on whether to commit or abort a distributed transaction.
+
+## System Description
+
+The system consists of:
+- A **transaction manager** (coordinator) that orchestrates the commit decision
+- A finite set of **resource managers** (participants) that each hold part of the transaction's data
+- An asynchronous **message-passing** communication mechanism between the coordinator and participants
+
+## Protocol Behavior
+
+The protocol should work as follows:
+
+1. **Preparation Phase**: Each resource manager independently decides whether it can commit. If it can, it sends a "prepared" message to the coordinator. If it cannot (or chooses not to), it may abort locally without notifying anyone.
+
+2. **Decision Phase**: 
+   - The coordinator collects prepared messages from resource managers
+   - Once **all** resource managers have indicated they are prepared, the coordinator may decide to commit and broadcast a commit message
+   - At any point before committing, the coordinator may decide to abort and broadcast an abort message
+
+3. **Completion Phase**: Resource managers receive the coordinator's decision and transition to the appropriate final state (committed or aborted)
+
+## Key Requirements
+
+- Resource managers start in a working state and must prepare before they can commit
+- A resource manager may choose to abort locally while still working (before preparing)
+- The coordinator can only commit after receiving prepared messages from all participants
+- The coordinator can abort at any time before it has committed
+- Once a commit or abort decision is broadcast, resource managers should eventually reflect that decision
+
+## Correctness Properties
+
+The critical safety property that must be guaranteed is **Transaction Consistency**:
+
+> **No resource manager can be in a committed state while another resource manager is in an aborted state.**
+
+In other words, all participants must reach the same final decision—either all commit or all abort. The protocol must never allow a mixed outcome where some participants committed and others aborted.
+
+## Deliverables
+
+Provide a TLA+ specification that models this protocol and includes a machine-checked proof that the consistency property holds as an invariant of the system.

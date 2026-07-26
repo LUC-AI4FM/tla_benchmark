@@ -1,0 +1,62 @@
+# Specification Request: SVG Element Library for TLA+ Visualization
+
+## System Overview
+
+I need a library for constructing and serializing SVG (Scalable Vector Graphics) documents from within TLA+ specifications. The purpose is to enable visualization of TLA+ state by generating SVG images, which could be used for creating visual representations or animations of system states during model checking.
+
+## Core Requirements
+
+### SVG Element Representation
+
+The system must provide a way to represent SVG elements as structured data within TLA+. Each element should capture:
+- The element's tag name
+- A collection of attributes (key-value pairs)
+- Zero or more child elements (supporting hierarchical/nested structures)
+- Optional inner text content
+
+The representation should be flexible enough to accept attributes specified either as records or as functions, and children specified either as sequences or as functions.
+
+### SVG Primitive Constructors
+
+The library must provide convenient constructors for common SVG primitives:
+- **Line**: Create a line element given start coordinates, end coordinates, and styling attributes
+- **Circle**: Create a circle element given center coordinates, radius, and styling attributes
+- **Rectangle**: Create a rectangle element given position, dimensions, and styling attributes
+- **Text**: Create a text element given position, text content, and styling attributes
+- **Group**: Create a grouping element that can contain child elements with shared attributes
+
+### String Serialization
+
+The system must convert the structured SVG element representation into valid SVG/XML string format. This includes:
+- Proper XML tag syntax with opening and closing tags
+- Correct attribute formatting with proper quoting
+- Recursive serialization of nested child elements
+- Proper handling of inner text content
+- Attribute name translation: since TLA+ record field names cannot contain dashes, underscores in attribute names should be converted to dashes in the output (e.g., `stroke_dasharray` becomes `stroke-dasharray`)
+- Proper escaping of special characters in text content (e.g., angle brackets)
+
+### SVG Document Generation
+
+The library should support creating complete SVG documents with:
+- Proper SVG namespace declarations
+- Configurable viewBox parameters (x, y, width, height)
+- Additional document-level attributes (like width, height, id)
+- Containment of child elements
+
+### File Output
+
+The system must support serializing SVG documents to files, with the ability to specify:
+- A filename prefix
+- A frame number (to support generating sequences of images for animation)
+
+### Geometric Utilities
+
+Include helper functions for common visualization layouts, such as computing node positions arranged in a ring/circular pattern given center coordinates, radius, node index, and total node count.
+
+## Correctness Properties
+
+1. **Structural Fidelity**: The string output must be well-formed XML that accurately represents the structured element data
+2. **Attribute Preservation**: All specified attributes must appear in the output with correct values
+3. **Child Order Preservation**: Children must appear in the output in the same order they were specified
+4. **Idempotent Representation**: The same element structure must always produce the same string output
+5. **Successful File Operations**: File serialization operations should complete without errors

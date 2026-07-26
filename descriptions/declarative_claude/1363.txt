@@ -1,0 +1,7 @@
+This TLA+ module is a regression test specification designed to verify correct behavior of TLC's handling of nested function exceptions with lazy evaluation.
+
+The specification models a subtle corner case involving function manipulation. It defines a set S containing all functions from the singleton set {1} to {1, 2}, yielding two possible functions. A base function I maps each element of S to zero. Two specific records r1 and r2 are defined as functions mapping 1 to 1 and 1 to 2 respectively—these correspond to the two elements of S. A function fcn maps r1 to the value 10.
+
+The system uses two variables, x and y. In the initial state, x is constructed by updating I at position r1 with fcn, and y is constructed by further updating x at position r2 with value 99. The next-state relation simply stutters, leaving both variables unchanged.
+
+The invariant Inv prints diagnostic information showing the domain of y alongside S, then asserts that the domain of y does not equal S. This invariant is expected to fail in correct implementations, as the domain of y should equal S. The specification tests that TLC properly maintains the full domain when applying EXCEPT to lazy function values, catching a bug where the domain was incorrectly reduced.

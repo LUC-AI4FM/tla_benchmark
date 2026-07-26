@@ -1,0 +1,60 @@
+# Specification Request: Tendermint Blockchain Model for Light Client Verification
+
+## System Overview
+
+I need a formal specification of a simplified Tendermint-style blockchain, designed specifically to support reasoning about light client protocols. The model should capture the essential structure of a proof-of-stake blockchain where validators commit to blocks, and where there is a notion of trust that expires over time.
+
+## Core Requirements
+
+### Blockchain Structure
+
+The system should model a blockchain as a sequence of block headers. Each block header must contain:
+- A height (position in the chain)
+- A timestamp
+- The set of validators responsible for this block
+- The set of validators for the next block
+- A commit (the set of validators who signed off on the previous block)
+
+The model should support the concept of "light blocks," which pair a header with its associated commit signatures.
+
+### Validator Model
+
+- There is a fixed universe of nodes that can serve as validators
+- For simplicity, all validators have equal voting power (to model unequal power, the same validator can appear multiple times with different identities)
+- Nodes are partitioned into correct and faulty sets
+- Once a node becomes faulty, it remains faulty (no recovery under the same identity)
+
+### Consensus Rules
+
+The blockchain must satisfy standard BFT consensus properties:
+- Each block's commit must include signatures from more than two-thirds of the previous block's validator set
+- Only validators can produce valid commits
+- Timestamps must increase monotonically between consecutive blocks
+
+### Fault Tolerance
+
+- The proportion of faulty validators in any validator set must remain below a configurable threshold (typically less than one-third)
+- Faulty validators can potentially sign arbitrary headers, but only among themselves
+
+### Trusting Period
+
+A critical concept is the **trusting period**: a time window during which a block's validators are considered trustworthy. The specification must track:
+- A global reference clock representing current time
+- Whether any given block header is still within its trusting period
+- The constraint that consecutive blocks must be produced within the trusting period of each other
+
+## Modeling Constraints
+
+- The blockchain should be initialized to a fixed maximum height (a practical bound for model checking)
+- Time should advance non-deterministically
+- The genesis block should have a well-defined initial state (all nodes as validators, timestamp of 1, empty initial commit)
+
+## Key Properties to Verify
+
+The specification should enable verification of:
+1. The two-thirds voting requirement is maintained for all commits
+2. Faulty validator power never exceeds the safety threshold
+3. Time monotonicity is preserved
+4. The trusting period constraints are satisfied throughout the chain
+
+This model will serve as the "ground truth" blockchain against which light client behavior can be verified.

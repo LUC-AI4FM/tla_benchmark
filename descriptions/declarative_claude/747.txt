@@ -1,0 +1,9 @@
+This TLA+ specification models a checkpoint coordination protocol for a distributed replicated state machine built on Paxos consensus. The system coordinates which node in a cluster may take a checkpoint (snapshot) of the replicated log at any given time, ensuring mutual exclusion.
+
+The constants define the set of nodes and the majority threshold for quorum. Variables track node availability, network connectivity between node pairs, the current leader, each node's replicated log copy, execution progress counters, vote payloads for communication, checkpoint lease state, checkpoint-taking status, a global timeout counter, and the latest completed checkpoint.
+
+The specification models environmental actions including node failures and recoveries, and unidirectional network link failures and recoveries. Core protocol actions include leader election requiring quorum and up-to-date state, sending replicated requests that assign checkpoint leases to non-leader nodes, propagating log entries between nodes, processing replicated requests to update lease information and checkpoint eligibility, starting and finishing checkpoints, and triggering timeouts that invalidate old leases.
+
+Fairness conditions assume weak fairness for recovery actions and strong fairness for protocol operations like leader election, request processing, and checkpoint completion.
+
+The safety invariant ensures at most one node can take a checkpoint simultaneously, only non-leaders with valid non-timed-out leases may checkpoint, and replicated logs never conflict. The temporal invariant specifies liveness properties: eventually some node becomes eligible for checkpointing, eligible nodes eventually checkpoint or lose eligibility, and eventually a checkpoint completes.

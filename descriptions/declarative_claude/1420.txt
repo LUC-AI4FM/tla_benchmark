@@ -1,0 +1,11 @@
+This TLA+ module is a test harness designed to verify consistent behavior across multiple TLC model-checker workers when evaluating expressions containing randomness.
+
+The specification tests a specific TLC issue (GitHub issue 866) related to how parallel workers handle the `RandomElement` operator. It requires at least two workers to run and uses TLC's internal operators for inter-worker communication via shared registers.
+
+The single variable `x` serves as a simple counter. The `Init` action sets `x` to zero. The `Next` action increments `x` while each worker writes its evaluation of `X` (a singleton set containing a random element from 1 to 10000) to a shared register. The next-state relation continues executing until all workers have written their values.
+
+The definition `X` deliberately wraps `RandomElement` in a set to trigger TLC's value normalization code path, which is central to the bug being tested.
+
+The `PostCondition` is checked after model checking completes. It verifies that all workers evaluated `X` to the same value and that none retain the initial placeholder value. It also validates that TLC correctly reports the specification's structural metadata, including init predicates, actions, variables, and constraints.
+
+The state and action constraints bound `x` to natural numbers. The specification uses the standard stuttering-allowed temporal formula with no fairness conditions or explicit invariants during state exploration.

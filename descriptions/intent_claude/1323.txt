@@ -1,0 +1,38 @@
+# Specification Request: Distributed Termination Detection
+
+## System Overview
+
+I need a formal specification of Dijkstra's distributed termination detection algorithm (EWD 840) for a ring network of nodes. The system should model how a collection of distributed processes can collectively determine when all processes have become inactive and no messages are in transit.
+
+## System Description
+
+The system consists of a fixed number of nodes arranged in a logical ring. Each node can be either active (performing computation) or inactive. Active nodes may:
+- Send messages to any other node, which activates the recipient
+- Spontaneously become inactive (deactivate)
+
+Inactive nodes remain inactive unless they receive a message from another node.
+
+## Termination Detection Mechanism
+
+The algorithm uses a token that circulates around the ring to detect global termination. The token starts at a designated "root" node and travels around the ring in one direction. Both nodes and the token carry a color (white or black) to track whether any activity might have been missed during the current detection round.
+
+Key behaviors:
+- When a node sends a message to a node that the token has already passed in the current round (i.e., "backward" in the ring), the sending node marks itself to indicate potential interference
+- When passing the token, a node transfers information about whether interference occurred
+- The root node can initiate a new detection round when the current round is inconclusive
+- A round is considered successful only when the token completes a full circuit without detecting any interference
+
+## Correctness Properties
+
+### Safety
+**Detection Correctness**: When the algorithm reports that termination has been detected, it must actually be the case that all nodes are inactive. The algorithm must never falsely claim termination while any node is still active.
+
+### Liveness
+**Eventual Detection**: If all nodes eventually become and remain inactive (true termination occurs), then the algorithm must eventually detect this condition. The detection mechanism must make progress and not get stuck indefinitely.
+
+## Environmental Assumptions
+
+- The number of nodes is fixed and at least one
+- Message delivery is reliable (modeled implicitly through immediate activation)
+- The token-passing mechanism operates fairly and will eventually make progress when enabled
+- Nodes may activate, deactivate, and send messages at any time according to the application behavior

@@ -1,0 +1,43 @@
+# Specification Request: Concurrent Accumulation with Shared Procedure
+
+## System Overview
+
+I need a formal specification for a concurrent system where multiple processes each contribute a computed value to a shared accumulator. The system should model the interleaved execution of these processes and their use of a common subroutine.
+
+## System Description
+
+The system consists of three concurrent processes:
+- One distinguished "coordinator" process
+- Two worker processes (which may have nondeterministic initial state)
+
+Each process has its own initial data value and a local variable. Every process must invoke a shared summation procedure that:
+1. Takes an argument (computed from the process's data and local variable)
+2. Performs a multi-step computation involving a local variable within the procedure
+3. Adds the result to a global accumulator
+
+The summation procedure is **not atomic**—it consists of multiple steps that can interleave with other processes' executions of the same procedure.
+
+## Behavioral Requirements
+
+1. **Process execution**: Each process computes an argument from its assigned value plus a local variable, calls the shared procedure, then signals completion.
+
+2. **Nondeterminism**: The worker processes should have nondeterministic choice in their local variables, allowing exploration of multiple execution scenarios.
+
+3. **Synchronization**: The coordinator process must wait until all processes have completed their contributions before proceeding to a final step (which outputs the accumulated result).
+
+4. **Procedure semantics**: The shared procedure must correctly handle being called by multiple processes concurrently, with each invocation maintaining its own local state.
+
+## Correctness Properties
+
+1. **Termination**: Under fair scheduling, all processes must eventually complete their execution.
+
+2. **No deadlock**: The system should not deadlock; if processes cannot proceed, it should only be because they have all terminated.
+
+3. **Synchronization correctness**: The final output should only occur after all processes have finished contributing to the accumulator.
+
+## Verification Goals
+
+The specification should allow checking that:
+- The system always terminates
+- The concurrent procedure calls with their multi-step execution do not cause incorrect behavior
+- All possible interleavings and nondeterministic choices are explored to ensure robustness

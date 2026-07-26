@@ -1,0 +1,54 @@
+# Specification Request: Tendermint Blockchain Model for Light Client Verification
+
+## System Overview
+
+I need a formal specification of a Tendermint-style blockchain designed to support reasoning about light client protocols. The model should capture the essential structure of the blockchain from the perspective of a light client that needs to verify block headers without downloading full blocks.
+
+## Core Requirements
+
+### Blockchain Structure
+
+The system should model a blockchain where:
+- Each block has a height, timestamp, validator set, next validator set, and a commit (votes from the previous round)
+- Validators each have equal voting power (to model unequal power, multiple identities can represent the same logical validator)
+- Time progresses monotonically, and blocks have timestamps that increase over time
+- The blockchain is generated up to some maximum height for analysis purposes
+
+### Validator Sets and Commits
+
+- Each block specifies both its current validator set and the validator set for the next block
+- Commits must contain signatures from validators who were part of the previous block's validator set
+- A valid commit requires more than two-thirds of the voting power from the relevant validator set
+
+### Fault Model
+
+- Nodes can be either correct or faulty (Byzantine)
+- The set of faulty nodes is fixed or can only grow over time (no recovery to the same identity)
+- Faulty nodes can create arbitrary signed messages, but only using their own credentials
+
+### Trusting Period
+
+- The specification must incorporate a trusting period concept: validators from a block are only trusted for a limited time window after that block's timestamp
+- Within the trusting period, security guarantees hold; outside it, all bets are off
+
+## Key Correctness Properties
+
+### Security Assumption
+
+The core assumption that must be capturable: for any block whose trusting period has not yet expired, the correct validators must hold more than two-thirds of the total voting power in that block's next validator set. This ensures Byzantine validators cannot forge valid-looking blocks on their own during the trusting period.
+
+### Block Validity
+
+The model should distinguish between:
+1. Genuinely correct blocks that appear on the actual blockchain
+2. Blocks that could be forged by Byzantine validators alone (only valid if signed exclusively by faulty nodes)
+
+### Temporal Constraints
+
+- Block timestamps must be strictly increasing
+- Consecutive blocks must have timestamps within the trusting period of each other
+- The global clock must be at least as large as the most recent block's timestamp
+
+## Purpose
+
+This specification should serve as an environment model against which light client verification algorithms can be checked, allowing us to reason about what blocks a light client might encounter and whether it can safely distinguish legitimate blocks from Byzantine fabrications.

@@ -1,0 +1,59 @@
+# Specification Request: Block-Lattice Cryptocurrency Ledger Protocol
+
+## System Overview
+
+I need a formal specification of a distributed cryptocurrency protocol where each account maintains its own blockchain (a "block lattice" structure). Unlike traditional blockchains with a single chain, this system has one chain per account, with cross-chain references for transferring funds between accounts.
+
+## System Description
+
+The system consists of multiple nodes in a network, each maintaining a local copy of the distributed ledger. The ledger tracks account balances through a directed acyclic graph of blocks, where each account has its own chain of blocks.
+
+### Block Types
+
+The protocol should support the following block types:
+
+1. **Genesis Block**: Initializes the system with a fixed total supply of coins assigned to one account
+2. **Open Block**: Creates a new account by receiving funds from a send block (an account's first block)
+3. **Send Block**: Transfers funds from the signing account to a destination account
+4. **Receive Block**: Claims funds from a previously-created send block directed to this account
+5. **Change Block**: Updates the account's voting representative (for consensus purposes)
+
+### Cryptographic Requirements
+
+- All blocks must be cryptographically signed using Ed25519 signatures
+- Block identity is determined by Blake2b hash
+- Each node owns a private key and can only sign blocks for accounts corresponding to their public key
+- Signatures must be validated against the account's public key before accepting blocks
+
+### Block Processing Flow
+
+- Nodes create blocks and broadcast them to all other nodes
+- Received blocks are held pending until validated
+- Validation includes checking signatures, verifying referenced blocks exist, and confirming the operation is valid
+- Validated blocks are added to the node's local ledger
+
+## Key Correctness Properties
+
+### Cryptographic Integrity
+Every block in every node's ledger must have a valid signature from the account owner. No block should be accepted without proper cryptographic authorization.
+
+### Balance Conservation
+The total balance across all open accounts must never exceed the genesis balance. Funds cannot be created out of thin air—they can only be transferred between accounts or remain unspent.
+
+### Transfer Validity
+- Send blocks must not overdraw an account (new balance cannot be negative)
+- Receive/open blocks must reference valid, unreceived send blocks
+- Send blocks must be directed to the receiving account
+- Each send block can only be received once (no double-claiming)
+
+### Chain Integrity
+- Each non-genesis/non-open block must reference a valid previous block in the same account's chain
+- Account ownership is traced through the chain back to the genesis or open block
+
+## Modeling Considerations
+
+The specification should demonstrate how to abstractly model:
+- Cryptographic hash functions as a relation between data and hash values
+- Digital signatures and their verification
+- Distributed ledger state across multiple nodes
+- The tension between finite model checking and unbounded history-recording structures

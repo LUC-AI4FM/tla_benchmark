@@ -1,0 +1,37 @@
+Please formally specify a system that models the external observable history of a transactional distributed service, focusing on the correctness properties that must hold from a client's perspective.
+
+**System Overview:**
+The system processes two types of transactions: read-write transactions and read-only transactions. Clients submit transaction requests and receive responses. Each transaction is assigned a transaction ID (consisting of a view/term number and a sequence number). Transactions can eventually be marked as either committed or invalid. When a transaction executes, it observes a sequence of previously executed transactions.
+
+**Key Requirements:**
+
+1. **Request-Response Ordering:** Every transaction response must be preceded in the history by a corresponding request for that same transaction.
+
+2. **Transaction Identity:**
+   - Each transaction request must be unique
+   - Read-write transactions with the same transaction ID must refer to the same underlying transaction
+   - Each transaction must map to exactly one transaction ID
+   - Transactions sharing the same ID must observe the same set of prior transactions
+
+3. **Commit/Invalid Consistency:**
+   - A transaction cannot be both committed and invalid
+   - Within a term, if a transaction is committed, all transactions in that term with smaller sequence numbers must also be committed
+   - If a transaction is committed, any transaction with a greater-or-equal sequence number but strictly smaller term must be invalid
+   - Within a term, if a transaction is invalid, all transactions in that term with greater sequence numbers must also be invalid
+
+4. **Observation Constraints:**
+   - Responses can only observe transactions that were previously requested
+   - No transaction should be observed more than once within a single response's observation list
+   - Committed read-write transactions must observe all previously committed transactions (with respect to real-time ordering of responses and requests)
+
+5. **Serializability and Linearizability:**
+   - Committed read-write transactions must be serializable: their observation histories must be totally ordered (one must be a prefix of another)
+   - The system should provide linearizability for committed read-write transactions, combining serializability with real-time ordering constraints
+
+6. **Ordered Speculative Linearizability:**
+   - Committed transactions should be serializable with respect to transaction ID ordering
+   - Transaction ID ordering must be consistent with real-time ordering: if a response is received before another transaction is requested, the first transaction's ID must be strictly less than the second's
+   - The real-time window for ordering is from request to initial response (not when commit status is learned)
+
+**Correctness Properties to Verify:**
+The specification should allow checking that the history of external observations satisfies the consistency guarantees, particularly ordered speculative linearizability for committed read-write transactions, which is the primary consistency guarantee the system provides.

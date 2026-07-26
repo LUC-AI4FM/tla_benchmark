@@ -1,0 +1,39 @@
+# Specification Request: Paxos Consensus Algorithm
+
+## System Overview
+
+I need a formal specification of the Paxos distributed consensus algorithm. This is a fundamental protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures and asynchronous communication.
+
+## System Components
+
+The system consists of:
+- A fixed set of **acceptor** processes that participate in voting
+- A set of possible **values** that can be proposed for consensus
+- **Ballots** (round numbers) that order the voting attempts
+- **Quorums**: collections of acceptors where any two quorums must overlap (to ensure consistency)
+
+## Required Behavior
+
+The algorithm operates in phases using message passing:
+
+1. **Prepare Phase**: A coordinator can initiate a new ballot by requesting acceptors to participate. Acceptors respond with information about any previous votes they've cast.
+
+2. **Accept Phase**: Once a coordinator receives responses from a quorum of acceptors for a ballot, it can propose a value for that ballot. The value must be chosen safely—if any acceptor in the quorum previously voted, the proposal must use the value from the highest-numbered previous ballot among those votes. Acceptors can then vote for the proposed value if they haven't promised to participate in a higher ballot.
+
+The specification should model message passing abstractly as a set of sent messages (messages are never lost from this set, which captures safety without modeling retransmission).
+
+## Key Correctness Properties
+
+1. **Agreement (Safety)**: If a value is chosen (voted for by a quorum in some ballot), then no other value can ever be chosen. This must hold regardless of failures or message delays.
+
+2. **Type Safety**: All state variables and messages conform to their expected types throughout execution.
+
+3. **Vote Consistency**: Each acceptor's local state correctly reflects its voting history, and phase 1b messages accurately report previous votes.
+
+4. **Safe Value Selection**: Whenever a phase 2a (accept) message is sent for a ballot, the proposed value must be "safe" at that ballot—meaning it doesn't conflict with any value that could have been chosen in an earlier ballot.
+
+5. **Ballot Uniqueness**: At most one value can be proposed in any given ballot.
+
+## Refinement Relationship
+
+The specification should demonstrate that this message-passing algorithm correctly implements an abstract voting specification, where the key abstraction is that votes (recorded via phase 2b messages) satisfy the fundamental safety properties of consensus.

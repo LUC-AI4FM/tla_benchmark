@@ -1,0 +1,14 @@
+Specify a concurrent two-process program in which each process independently chooses one of three mutually exclusive initial actions, then performs an optional incremental step, and finally executes a conditional final update. The model should treat processes symmetrically and allow nondeterministic interleaving.
+
+Requirements:
+- Each process begins in an initial choice point where it nondeterministically does exactly one of:
+  - set its first local counter to 1 and then later increment that counter by 1 (so the two-step branch yields final value 2),
+  - set its second local counter to 1 and then later increment that counter by 1 (yielding final value 2),
+  - or immediately set a shared auxiliary variable to 100 and skip the incremental step for either counter.
+- After completing the branch-specific steps, each process executes a final action that updates a per-process component of the shared auxiliary variable by either +1 or +3 depending on the value of that process’s first counter (specifically, one update when that counter equals 0, the other when it equals 2). The final action must be enabled only when the appropriate guard on the first counter holds.
+- The system must allow both processes to interleave arbitrarily and run to completion independently; termination is when both processes have finished their final action.
+- Correctness properties to assert for each process at its final action:
+  - Either the sum of its two local counters equals 2, or the auxiliary component just set equals 101 and the sum of the two local counters equals 0.
+  - If the auxiliary component after the final action is less than 100, then that component must equal the process’s first counter plus 1.
+
+Model these as safety properties (assertions/ invariants checked at the moment of each process’s final action) and liveness property that both processes eventually finish. Do not commit to a particular internal encoding of process states or variables.

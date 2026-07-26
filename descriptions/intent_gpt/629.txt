@@ -1,0 +1,11 @@
+Specify a formal model of a Tendermint-style blockchain system intended for reasoning about a light client. The model should describe a sequence of block headers (a chain up to a bounded maximum height) where each header records its height, a timestamp, the set of validators for that block, the set of validators for the next block, and the set of validators who committed the previous block. The model must include a global reference clock and a (monotone) set of faulty nodes; faults may be arbitrary (Byzantine) and are static or non-decreasing across time.
+
+Require that:
+- Each block’s commit set is a subset of the previous block’s validator set and represents more than two-thirds of that validator set’s voting power.
+- Validator sets may change from block to block; the next-validator field of a header corresponds to the validator set for the following height.
+- Timestamps strictly increase with height and are bounded so that the time difference between adjacent blocks is less than a configurable trusting period; the reference clock must be consistent with block timestamps.
+- A notion of "being within trusting period" should be defined for headers relative to the reference clock.
+- A configurable ratio bound must hold for each header: the number (voting power) of faulty validators among that header’s validator set must be strictly below the given fraction (expressed as a pair a/b).
+- A predicate should capture whether a light client can accept a signed header given possible Byzantine signatures: either the header matches the chain view or it is signed only by faulty nodes (thus potentially unauthentic).
+
+Specify the initial conditions constructing a valid chain up to the maximum height satisfying the above constraints. Include a transition that advances the reference clock. State the key correctness properties to verify for the light client: preservation of the two‑thirds commit guarantee, invariants about faulty-majority bounds per header, and that headers inside the trusting period are eligible for light-client verification under the defined acceptance predicate.

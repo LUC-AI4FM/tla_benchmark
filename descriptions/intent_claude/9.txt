@@ -1,0 +1,44 @@
+# Specification Request: Lamport's Bakery Algorithm
+
+## System Overview
+
+I need a formal specification of Lamport's Bakery Algorithm, a classic solution to the mutual exclusion problem for N concurrent processes. The algorithm is inspired by the ticket-number system used in bakeries: each process that wants to enter its critical section takes a number, and processes enter in order of their numbers (with process ID as a tiebreaker).
+
+## System Requirements
+
+The system consists of N processes, each repeatedly cycling through:
+1. A non-critical section (where the process may remain indefinitely)
+2. A doorway/entry protocol to acquire a ticket number
+3. A waiting phase until it's the process's turn
+4. A critical section
+5. An exit protocol to release the ticket
+
+### Entry Protocol
+When a process wants to enter its critical section, it must:
+- Signal that it is in the process of choosing a number
+- Observe all other processes' current numbers and select a number strictly greater than any it observed
+- Clear the "choosing" signal
+- Wait for all other processes, ensuring that:
+  - No other process is currently choosing a number
+  - Either the other process has no number (not competing), or this process has priority based on lexicographic ordering of (number, process ID)
+
+### Exit Protocol
+When a process leaves its critical section, it resets its number to zero.
+
+### Atomicity Constraints
+The specification should model a version where individual reads and writes are atomic, but the protocol steps themselves are not—meaning that the act of choosing a number (reading others' values and writing one's own) is not a single atomic operation. The algorithm must remain correct despite this interleaving.
+
+## Correctness Properties
+
+### Safety: Mutual Exclusion
+At no point may two distinct processes be in their critical sections simultaneously.
+
+### Liveness: Deadlock Freedom
+If at least one process is trying to enter its critical section, then eventually some process will succeed in entering.
+
+### Liveness: Starvation Freedom
+Every process that begins trying to enter its critical section will eventually succeed in entering.
+
+## Additional Considerations
+
+The specification should support an arbitrary number of processes N (any natural number). The model should account for fair scheduling—processes that are trying to make progress should eventually be allowed to do so.

@@ -1,0 +1,30 @@
+# Specification Request: Temporal Logic Level Constraint Validator
+
+## System Overview
+
+I need a formal specification that serves as a test suite for validating the syntactic constraints on temporal operators in TLA+. The system should verify that the specification language correctly enforces the rules about where primed variables (representing next-state values) can and cannot appear in temporal formulas.
+
+## Background and Motivation
+
+TLA+ has strict rules about the "level" of expressions and where primed variables may legally appear. These rules exist to ensure that temporal formulas have well-defined semantics. Specifically, primed variables should not appear in certain temporal contexts that would create meaningless or ambiguous formulas (sometimes referred to as preventing "raw TLA" constructs).
+
+## Requirements
+
+The test suite should check that the following constraints are properly enforced:
+
+1. **Leads-to operator constraints**: When using the leads-to operator, primed variables should not appear as the antecedent or as a bare expression in the consequent.
+
+2. **Guarantees operator constraints**: Similar to leads-to, the guarantees (leads-to-always) operator should reject primed variables in positions where they would create ill-formed temporal assertions.
+
+3. **Eventually with actions**: There's a distinction between eventually applied to a proper action expression (with stuttering subscripts) versus eventually applied to a bare primed expression—the latter should be rejected.
+
+4. **Always with actions vs. bare primes**: The always operator applied to an action with proper subscript notation is valid, but always applied directly to a primed expression should be rejected.
+
+5. **Quantifier binding sets**: When temporal formulas contain quantifiers, the sets being quantified over should not contain primed variables, even if the body of the quantifier contains temporal operators.
+
+## Correctness Properties
+
+The validator must:
+- Accept all syntactically valid combinations of temporal operators with state-level expressions
+- Reject (flag as errors) any formula where primed variables appear in prohibited temporal contexts
+- Correctly distinguish between action-level expressions with proper subscript notation and bare primed expressions

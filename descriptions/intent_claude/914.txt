@@ -1,0 +1,42 @@
+# Specification Request: Joint Action Memory System
+
+## System Overview
+
+I need a formal specification for a shared memory system where multiple processes can read and write to memory, with the interaction between processes and memory modeled as a joint action (synchronous handshake) protocol.
+
+## System Description
+
+The system consists of two cooperating components:
+
+1. **Environment Component**: Represents the external processes that issue memory requests and receive responses. Each process alternates between being ready to send a new request and waiting to receive a response.
+
+2. **Memory Component**: Represents the memory subsystem that receives requests from processes, performs the requested operations (reads or writes), and sends back responses.
+
+The key architectural feature is that communication between processes and memory happens through **joint actions** — both sides must participate simultaneously in each message exchange. This models synchronous communication channels.
+
+## Behavioral Requirements
+
+- Multiple processes should be able to interact with the memory system concurrently
+- Each process must follow a strict request-response protocol: it sends a request, then waits for a response before sending another request
+- The memory component must handle read and write operations appropriately
+- Reads should return the current value stored at the requested address
+- Writes should update the memory and acknowledge completion
+
+## Communication Model
+
+The interaction uses a shared interface where:
+- Sending a request and receiving that request happen as a single atomic joint action
+- Similarly, sending a response and receiving it occur together
+- This synchronous handshake ensures that no messages are lost or duplicated
+
+## Correctness Properties
+
+The specification should guarantee:
+
+1. **Alternation**: Each process strictly alternates between requesting and receiving responses
+2. **Memory Consistency**: Read operations return values that were previously written (or initial values)
+3. **No Message Loss**: Every request eventually gets a response through the joint action mechanism
+
+## Composition
+
+The overall system should be the composition of the environment and memory components, with their internal state variables hidden, exposing only the shared memory interface as the observable behavior.

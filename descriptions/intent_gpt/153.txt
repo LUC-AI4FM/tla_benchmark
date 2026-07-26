@@ -1,0 +1,9 @@
+Specify a formal model of a two-phase commit protocol coordinating a single transaction manager and a fixed set of resource managers. The model should expose the states and messages necessary for the standard two-phase commit interaction: RMs can locally decide to prepare or abort, they respond to prepare requests with a Prepared acknowledgement, and the transaction manager collects Prepared acknowledgements and decides to Commit or Abort. The model must include asynchronous message delivery (messages can be buffered and delivered nondeterministically) and allow any RM to fail-stop by moving to an irrevocable aborted state; failures do not magically recover resource state or messages unless explicitly modeled.
+
+Require the following correctness properties be expressible and verifiable:
+- Safety: No RM may enter the Committed state unless the TM has made and broadcast a Commit decision; no RM may be both Committed and Aborted.
+- Agreement: All non-failed RMs that decide Commit must eventually agree on the same decision (either all Commit or none Commit), and the TM’s decision must reflect the votes it observed (it may Commit only if it received Prepared from every non-failed RM).
+- Integrity of decisions: Once the TM decides Commit (or Abort) and sends that decision, that decision cannot later be contradicted or undone.
+- Liveness assumptions and conditional guarantees: Under eventual message delivery and no further failures, if all RMs vote Prepared, the TM eventually decides Commit and all non-failed RMs eventually reach Commit; under arbitrary failures the protocol must not violate safety.
+
+Model should treat the set of RMs as a parameter and enumerate states and message kinds abstractly so safety and agreement properties can be checked independently of particular implementation choices.

@@ -1,0 +1,10 @@
+Specify a concurrent request-processing service with a finite set of clients (processes), a finite set of registers that each client can use to submit operations, and a shared memory that maps addresses to values. The service must accept client requests to read or write memory through per-client, per-register submission: a client can place at most one outstanding request per register, and new requests may be issued only into registers that are currently free. Each submitted request records the operation (read or write), the target address, and for writes the value to be stored.
+
+Model the life cycle of a request: it is enqueued on a per-client FIFO queue when issued, then eventually processed by the service, which for reads must produce the value returned and mark the register free, and for writes must update memory and mark the register free. When a request completes, its queue entry is marked done and later removed from the head of the queue; removing a completed write must update shared memory to the write’s value, while removing a completed read must not change memory. The model should allow internal, asynchronous processing and eventual queue-head removal, and must ensure fairness so every issued request is eventually processed and removed.
+
+Key correctness properties to prove:
+- Type and structural invariants: per-client queues contain only valid request records and done markers; memory and request counts have the correct types.
+- At-most-one-outstanding-per-register: a client-register pair never has more than one outstanding request.
+- Read consistency: the value returned for a read corresponds to the memory value at the read’s address at the moment the read is responded to (or otherwise a clear consistency condition relating response to memory).
+- Memory update atomicity: writes become visible exactly when the corresponding queue entry is removed from the head.
+- Liveness: each issued request is eventually responded to and removed from the queue under the fairness assumptions.

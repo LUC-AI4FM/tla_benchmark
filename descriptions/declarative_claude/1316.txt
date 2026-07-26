@@ -1,0 +1,9 @@
+This TLA+ module specifies a distributed bakery algorithm for mutual exclusion among a set of nodes communicating via asynchronous message passing.
+
+The system models nodes attempting to enter a critical section. Each node maintains a ticket number (`num`), a local view of other nodes' numbers (`rnum`), a set of acknowledgments received (`acks`), and FIFO network channels (`net`) connecting each pair of nodes.
+
+The algorithm uses two process types per node: a mutex process handling the entry protocol, and a message-handling process. To enter the critical section, a node computes a ticket number higher than any known competitor's, broadcasts a write message with its number, and waits until it receives acknowledgments from all nodes and has priority over all others based on lexicographic ordering of number-node pairs. Upon exiting, the node broadcasts a zero to signal release. The message process receives write messages, updates local knowledge, and sends acknowledgments for non-zero writes.
+
+The specification includes weak fairness for mutex processes when not in the non-critical section and for all message processes, ensuring progress.
+
+The model checks three properties: `TypeOK` ensures variables remain well-typed, `Mutex` is a safety invariant guaranteeing no two nodes occupy the critical section simultaneously, and `StarvationFree` is a liveness property asserting that any node attempting entry eventually reaches the critical section. A state constraint bounds ticket numbers to enable finite model checking.

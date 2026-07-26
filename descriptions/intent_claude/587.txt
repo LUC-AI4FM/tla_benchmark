@@ -1,0 +1,47 @@
+Please write a formal TLA+ specification for a **distributed transactional key-value store using optimistic concurrency control with rollback collapse optimization**.
+
+## System Overview
+
+Model a multi-version concurrency control (MVCC) transaction system where multiple clients execute transactions against a shared set of keys. The system uses a two-phase commit protocol with a primary-secondary lock structure, similar to the Percolator transaction model.
+
+## Key Requirements
+
+### Transaction Lifecycle
+- Each transaction is assigned a unique, monotonically increasing start timestamp when it begins
+- Transactions read keys, then prewrite (lock) all keys they intend to modify
+- Each transaction designates one key as "primary" and the rest as "secondary"
+- After successfully acquiring all locks, the transaction obtains a commit timestamp and commits the primary key first
+- Transactions may abort at any point before committing
+
+### Locking and Data Model
+- Each key maintains multi-version data, locks, and a write history
+- Locks record which transaction holds them and reference the primary key
+- The write history contains both committed writes (with start and commit timestamps) and rollback records
+- At most one lock may exist per key at any time
+
+### Conflict Resolution and Cleanup
+- When a transaction encounters a stale lock (from an older timestamp), it may clean it up
+- Cleanup of a secondary lock requires checking the primary key's status first
+- If the primary was committed, the secondary must also be committed; otherwise, both are rolled back
+- Rollback records are written to prevent a rolled-back transaction from later committing
+
+### Rollback Collapse Optimization
+- When writing a new rollback record, if there is an existing rollback record at an earlier or equal timestamp, it may be logically deleted (collapsed)
+- Rollback records can be marked as deleted but remain in the history
+- If a rollback at the same timestamp was previously deleted, writing a new rollback restores it rather than creating a duplicate
+
+## Correctness Properties
+
+1. **Write Consistency**: Committed writes for each key must have non-overlapping timestamp ranges, ordered by time. Commit timestamps must be strictly greater than start timestamps.
+
+2. **Lock Consistency**: At most one lock per key. When a transaction is ready to commit with its primary lock held, all secondary locks must also be held.
+
+3. **Commit Consistency**: Once committed, the primary key must have its lock released and write record present. Secondary keys either have their locks released with write records, or still hold locks with no conflicting newer writes.
+
+4. **Abort Consistency**: An aborted transaction must not have any committed primary key write.
+
+5. **Rollback Consistency**: A transaction cannot have both committed writes and rollback records—it must be entirely committed or entirely rolled back.
+
+6. **Unique Writes**: Each write or rollback record for a key must have a unique start timestamp.
+
+7. **Snapshot Isolation**: No committed write should have a commit timestamp less than or equal to any read timestamp that already observed the key at that version.

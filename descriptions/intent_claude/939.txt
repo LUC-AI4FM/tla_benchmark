@@ -1,0 +1,34 @@
+# Specification Request: Live Write-Through Cache
+
+## System to Model
+
+A write-through cache system that sits between multiple processors and a main memory. The cache handles read and write requests from processors, ensuring that writes are propagated through to main memory (write-through policy) while maintaining cache coherence.
+
+## System Requirements
+
+The system should model:
+
+1. **Multiple processors** that can issue memory read and write requests through a defined interface
+2. **A cache layer** that intercepts these requests and may satisfy reads from cached data or must fetch from memory on a miss
+3. **A memory queue** that buffers requests to main memory, with a bounded capacity
+4. **Main memory** that processes queued read and write operations
+
+The cache must implement write-through semantics: all writes must eventually propagate to main memory, not just remain in the cache.
+
+## Key Correctness Properties
+
+### Safety
+The system must behave as if it were a linearizable memory system from the processors' perspective—the cache must not produce results that would be impossible with direct memory access.
+
+### Liveness
+This is the critical addition: the system must guarantee progress under reasonable fairness assumptions:
+
+1. **Response guarantee**: When a processor's request can be completed (response is ready or a read can be satisfied from cache), it will eventually happen
+2. **Miss handling guarantee**: Read misses will eventually be serviced, and writes will eventually be processed—these require stronger fairness since they involve coordination
+3. **Memory queue processing guarantee**: The memory queue will make progress, particularly ensuring writes are processed when the queue reaches capacity or when reads are pending
+
+The liveness conditions should ensure that no processor starves waiting for a memory operation, and that the memory queue doesn't indefinitely delay processing pending requests.
+
+## Goal
+
+Produce a complete specification that not only describes the allowed behaviors of a write-through cache (safety) but also guarantees that the system makes progress—requests are eventually serviced and writes eventually reach main memory. The specification should be verifiable with a model checker for finite instances.

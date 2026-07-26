@@ -1,0 +1,9 @@
+This TLA+ module specifies a simple concurrent algorithm demonstrating nested macro expansion in PlusCal.
+
+The system models two processes (with identifiers 1 and 2) that execute identical code involving nested macro calls. Three macros are defined: `ff` performs a simple assignment, `foo` calls `ff` and assigns to `y`, and `bar` assigns to `x` and calls `foo`. This creates a chain where `bar` invokes `foo`, which in turn invokes `ff`.
+
+The specification uses global variables `x` and `y`, plus a process-local variable `z` (represented as a function indexed by process identifier). A constant `defaultInitValue` represents uninitialized values.
+
+Each process executes two labeled steps. In the first step (`l1`), it initializes its local `z` to zero. In the second step (`l2`), it calls `bar(42)`, which atomically sets `x` to 42, `z` to 22, and `y` to 22—the result of expanding all nested macros into a single atomic action. An assertion verifies that `z` equals 22 and `x` equals 42 after execution.
+
+The temporal specification includes weak fairness for each process, ensuring progress. The module checks a termination property asserting that eventually all processes reach the "Done" state. The assertion within `l2` serves as a safety check validating correct macro expansion behavior.

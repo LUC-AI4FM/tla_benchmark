@@ -1,0 +1,7 @@
+The module models a rolling deployment strategy for a three-server system ("s1", "s2", "s3") sitting behind a load balancer. The constant `UPDATING` represents an intermediate version state during a server upgrade.
+
+The variables track the set of active servers in `load_balancer`, per-server boolean flags `update_flag` indicating whether a server should begin updating, and per-server `updated` values recording each server's current version state (FALSE for old, UPDATING for in-progress, TRUE for completed).
+
+The `start_update` process orchestrates the rolling deployment in three phases: first it removes "s1" from the load balancer and triggers updates on "s2" and "s3"; then, once those servers have finished updating, it swaps the load balancer to the newly updated servers and enables "s1" to update; finally, once "s1" finishes, it is added back to the load balancer. Each `update_server` process waits for its flag, transitions through the `UPDATING` intermediate state, and then completes. All processes carry weak fairness conditions, ensuring progress is eventually made.
+
+Two invariants are defined: `SameVersion` requires that all servers currently in the load balancer share the same version state, and `ZeroDowntime` requires that at least one server in the load balancer is not in the `UPDATING` state at any time. The spec also includes a `Termination` liveness property asserting that all processes eventually finish.

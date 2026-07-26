@@ -1,0 +1,17 @@
+Specify a formal model of a cloud-backed key-value store (single shard) accessed by clients that perform alternating writes and reads, where the storage exposes multiple configurable read consistency levels. The model should capture: a single datastore that appends written values to a log; asynchronous FIFO message delivery between clients and the datastore; clients that repeatedly perform a write (append a new value) and then issue a read request using a chosen consistency level; and the datastore’s read semantics for each consistency level.
+
+For each read consistency mode, define precisely which log entry the datastore may return to the requesting client:
+- Eventual: any entry currently in the datastore’s log (possibly stale).
+- Consistent prefix: any entry such that the returned value is part of some prefix of the current log.
+- Session: any entry at index >= the client’s session token (where a session token advances on acknowledgements for the client’s own writes).
+- Bounded staleness (parameter K): any entry within the K-most-recent suffix of the log.
+- Strong: only the most recent entry in the log.
+
+Model session tokens and write acknowledgements so that a client’s subsequent read can be constrained by its own prior write acknowledgements. Model message channels as FIFO queues and allow asynchronous delivery and processing by the datastore and clients.
+
+State the safety properties to verify for a single client and globally:
+- For each consistency level, every read result must satisfy the corresponding allowed-index constraint above relative to the datastore’s log at the time the reply is produced.
+- Session guarantees: after receiving an acknowledgement for a write, a client’s later reads must not return entries older than the acknowledged index.
+- Strong reads must always return the latest appended value.
+
+Also specify liveness assumptions minimal enough to avoid trivial violations (e.g., channels eventually deliver messages) but keep as weak as possible.

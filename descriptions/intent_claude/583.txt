@@ -1,0 +1,40 @@
+# Specification Request: Multi-Node Distributed Ledger Service with Leader Election
+
+## System Overview
+
+I need a formal specification for a multi-node distributed ledger service that extends a single-node model to handle the complexities of a replicated system with leader changes. This models a service like CCF (Confidential Consortium Framework) where multiple nodes maintain replicated transaction logs and must reach consensus.
+
+## System Description
+
+The system should model a distributed ledger service where:
+
+1. **Multiple ledger branches**: The system maintains a history of ledger states across different views (terms/epochs). When leadership changes occur, the ledger may fork from a previous state, creating branches.
+
+2. **Leader election and log truncation**: When a new leader is elected, uncommitted transactions from the previous leader may be rolled back. The new leader starts from the last committed state, potentially discarding pending but uncommitted entries.
+
+3. **Transaction lifecycle**: Transactions are submitted, assigned sequence numbers within views, and eventually either committed or invalidated. Clients receive responses about transaction status.
+
+## Key Behaviors to Model
+
+**View changes with rollback**: The specification must model what happens during leader elections—specifically that only committed transactions are preserved, while uncommitted transactions may be lost when leadership changes.
+
+**Transaction invalidation**: Transactions can become invalid in several scenarios:
+- The commit point has advanced past a transaction's sequence number, but a different transaction was committed at that position (due to a view change)
+- The commit point hasn't reached the transaction yet, but the current view has advanced beyond the transaction's view, making it impossible for that transaction to ever commit
+- The transaction belongs to the current view but is beyond the commit point (early invalidation for practical purposes)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Committed transactions are permanent**: Once a transaction is committed, it cannot be rolled back or invalidated by any subsequent view change.
+
+2. **Consistency across branches**: All ledger branches must agree on the prefix up to the commit point—committed entries are identical across all valid branches.
+
+3. **Valid status responses**: If a transaction is reported as committed, it must actually be committed. If reported as invalid, it must be genuinely impossible for that transaction to commit in the future.
+
+4. **No resurrection of invalidated transactions**: A transaction declared invalid cannot later become committed.
+
+## Context
+
+This specification builds upon a single-node model that handles basic transaction processing and commitment. The multi-node extension adds the complexity of distributed consensus, view changes, and the possibility of transaction rollback—capturing the essential behaviors that arise in real replicated state machine systems.

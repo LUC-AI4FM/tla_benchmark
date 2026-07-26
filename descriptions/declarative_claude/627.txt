@@ -1,0 +1,7 @@
+This TLA+ module specifies a draft API for light client verification in the Tendermint blockchain protocol. It defines the interface and core verification logic used by a light client to validate block headers without downloading the full blockchain.
+
+The module declares four constants: TRUSTING_PERIOD (the duration validators remain trusted), CLOCK_DRIFT (assumed clock precision), REAL_CLOCK_DRIFT (actual drift that may cause bugs if exceeding the assumed drift), and FAULTY_RATIO (the threshold for faulty validators, typically one-third). A single variable, localClock, tracks the light client's current time.
+
+The specification defines predicates for checking whether headers fall within the trusting period, accounting for clock drift. The central verification operator, ValidAndVerified, determines if an untrusted block can be validated against a trusted header, returning outcomes like SUCCESS, INVALID, NOT_ENOUGH_TRUST, or FAILED_TRUSTING_PERIOD. Verification requires that commits represent more than two-thirds of validators and, for non-adjacent blocks, that one-third of trusted validators signed the untrusted block.
+
+The module specifies several invariants: LightStoreInv ensures verified headers maintain proper chain connectivity, CorrectnessInv guarantees verified headers match the actual blockchain, and NoFailedBlocksOnSuccessInv ensures no failed blocks exist upon success. The VerifyToTargetPost predicate defines the expected postcondition when verification completes, linking correctness to peer honesty and trusting period validity.

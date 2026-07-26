@@ -1,0 +1,40 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol**, a distributed consensus algorithm used to ensure that a set of resource managers (participants) either all commit a transaction or all abort it.
+
+## System Description
+
+The system consists of:
+- A **transaction manager (coordinator)** that orchestrates the commit decision
+- A set of **resource managers (participants)** that vote on whether to commit or abort
+- A **message-passing communication channel** between the coordinator and participants
+
+## Behavioral Requirements
+
+The protocol should model the standard two-phase commit flow:
+
+1. **Phase 1 (Voting):** Each resource manager independently decides whether it can commit and sends a "prepared" message to the coordinator, or decides to abort.
+
+2. **Phase 2 (Decision):** The coordinator collects votes. If all resource managers are prepared, it broadcasts a commit decision. If any resource manager aborts or fails to prepare, it broadcasts an abort decision.
+
+3. Resource managers act on the coordinator's decision by either committing or aborting locally.
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Transaction Consistency:** It must never be the case that one resource manager has committed while another has aborted. All participants must reach the same final decision.
+
+2. **Commit Validity:** A commit can only occur if every resource manager has successfully prepared (voted "yes").
+
+3. **Decision Integrity:** Once the coordinator decides to commit, all participants must have been prepared, and no participant can be in a working or aborted state.
+
+4. **Abort Legitimacy:** An abort decision must be traceable to either an explicit coordinator abort or a resource manager that chose to abort before preparing.
+
+5. **Message Consistency:** The messages in the channel must be consistent with the actual states of the coordinator and participants (e.g., a "prepared" message from a participant implies that participant is no longer in its initial working state).
+
+## Goal
+
+Provide an inductive invariant that is strong enough to prove the safety properties of two-phase commit, particularly transaction consistency. The invariant should capture all the necessary relationships between coordinator state, participant states, and in-flight messages to enable inductive proof techniques.

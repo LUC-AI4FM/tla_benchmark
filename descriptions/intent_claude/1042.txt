@@ -1,0 +1,38 @@
+# Specification Request: Dijkstra's Mutual Exclusion Algorithm
+
+## System Overview
+
+I need a formal specification of Dijkstra's classic mutual exclusion algorithm, the first published solution to the mutual exclusion problem (from his 1965 CACM paper). The system consists of N concurrent processes that each repeatedly cycle through a non-critical section, an entry protocol, a critical section, and an exit protocol.
+
+## System Requirements
+
+### Basic Structure
+- Model an arbitrary set of concurrent processes (not necessarily numbered 1 to N)
+- Each process runs in an infinite loop, cycling between non-critical section, attempting to enter the critical section, executing the critical section, and returning to the non-critical section
+- Processes coordinate using shared boolean flags and a shared "turn" indicator
+
+### Entry and Exit Protocol
+- Before entering the critical section, a process must execute an entry protocol that involves:
+  - Signaling intent to enter
+  - Checking and potentially claiming priority via a shared turn indicator
+  - Verifying no other process is simultaneously attempting entry
+- The entry protocol may require a process to restart its attempt multiple times
+- After leaving the critical section, the process executes an exit protocol to release its claim
+- The order in which a process checks other processes during the entry protocol should be non-deterministic
+
+### Non-Critical Section Behavior
+- A process must be allowed to remain in its non-critical section indefinitely—the algorithm cannot require processes to continuously attempt entry
+
+## Correctness Properties
+
+### Safety Property (Required)
+- **Mutual Exclusion**: At most one process may be in its critical section at any given time
+
+### Liveness Properties
+- **Deadlock Freedom**: If any process is attempting to enter its critical section, then eventually some process (not necessarily the same one) will enter its critical section. This property should hold under appropriate fairness assumptions (weak fairness on process actions, except when in the non-critical section).
+
+- **Starvation Freedom** (for analysis, expected to fail): Individual processes are guaranteed to eventually enter their critical section if they attempt to. Note: Dijkstra's algorithm does NOT satisfy this property—the specification should allow TLC to produce a counterexample demonstrating starvation.
+
+## Fairness Assumptions
+
+The specification should support checking liveness under weak fairness, but must account for the fact that processes are permitted to stay in their non-critical section forever. Fairness should only apply when a process is actively trying to enter or is in the critical section.

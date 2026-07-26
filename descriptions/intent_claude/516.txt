@@ -1,0 +1,33 @@
+# Specification Request: Alternating Bit Protocol Abstract Specification
+
+## System Overview
+
+I need a formal specification that captures the high-level behavior of the Alternating Bit protocol—specifically, what the protocol is *supposed to accomplish*, not the implementation details of how messages are transmitted and acknowledged over unreliable channels.
+
+## System Description
+
+The system consists of two communicating entities: a sender and a receiver. The sender transmits data values (from some configurable set of possible data) to the receiver. Each transmission includes both the data and a single-bit tag that alternates between 0 and 1.
+
+The core behavior is:
+- The sender and receiver maintain synchronized state through this alternating bit
+- The sender can only send a new data value when the receiver has "caught up" (acknowledged receipt of the previous value)
+- The receiver accepts a new value only when the sender has made one available
+- After the receiver accepts a value, the sender becomes free to send the next one
+
+## Data Format
+
+Messages should be structured as records containing both a data element and a bit value (0 or 1). The system should work for any non-empty set of data values.
+
+## Initial Conditions
+
+The system should start in a synchronized state where both sender and receiver agree on the current message, with the bit initially set to 1.
+
+## Key Correctness Properties
+
+1. **Safety**: The receiver should only ever hold values that were sent by the sender. The alternating bit mechanism should properly enforce the send-then-receive ordering.
+
+2. **Liveness**: Both the sender and receiver must eventually make progress—the sender must eventually send new data, and the receiver must eventually receive it. Neither process should be starved indefinitely.
+
+## Fairness Requirements
+
+Both the sending and receiving actions should be treated as fair—if they are continuously enabled, they must eventually occur. This ensures the protocol makes progress rather than stuttering forever.

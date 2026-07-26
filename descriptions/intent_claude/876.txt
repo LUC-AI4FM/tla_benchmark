@@ -1,0 +1,36 @@
+# Specification Request: Spanning Tree Algorithm Verification Across All Graphs
+
+## System Overview
+
+I need a formal specification to verify a distributed spanning tree construction algorithm. The algorithm should compute a spanning tree rooted at a designated node in an arbitrary undirected graph, where each node learns its parent in the tree and its distance from the root.
+
+## Core Functionality
+
+The system models a network of nodes connected by edges. Starting from a designated root node, the algorithm should propagate distance information through the graph such that:
+
+- Each node eventually determines whether it is reachable from the root
+- Reachable nodes learn their shortest distance to the root
+- Reachable nodes identify a parent node that lies on a path toward the root
+
+The algorithm operates by having nodes examine their neighbors and potentially adopt a neighbor as their parent if doing so would provide a shorter path to the root.
+
+## Testing Requirement
+
+Rather than verifying the algorithm on a single fixed graph, I want to **test the algorithm against all possible undirected graphs** for a given set of nodes. The specification should non-deterministically select any valid graph structure at initialization, then run the spanning tree algorithm on that graph. This exhaustively verifies correctness regardless of the graph topology.
+
+## Correctness Properties
+
+**Safety (when the algorithm terminates):**
+- The root has distance zero and is its own parent
+- Any node unreachable from the root maintains maximum distance and is its own parent, and all its neighbors are also unreachable
+- Any reachable non-root node has a valid distance (between 1 and maximum), has a neighbor as its parent, and its distance equals its parent's distance plus one
+
+**Liveness:**
+- The algorithm eventually reaches a stable state satisfying the post-condition
+- Under fair scheduling, the computation must terminate
+
+## Parameters
+
+- A finite set of nodes
+- A designated root node (must be in the node set)
+- A maximum cardinality bound (at least the number of nodes) representing unreachability

@@ -1,0 +1,9 @@
+This TLA+ module specifies the Chang-Roberts algorithm for leader election on a unidirectional ring network, based on the 1979 CACM paper by Chang and Roberts.
+
+The system models N nodes arranged in a ring, where each node has a unique numeric identifier given by the sequence Id. The algorithm elects the initiator with the smallest ID as leader.
+
+The specification uses four variables: msgs (a mapping from nodes to sets of pending message IDs), pc (program counter for each node), initiator (whether each node starts the election), and state (each node's status: candidate, lost, or won).
+
+Initially, each node may non-deterministically be an initiator. Initiators begin as candidates and send their ID to their successor; non-initiators start in the lost state. In the main loop, nodes process incoming messages: lost nodes simply forward messages, candidates receiving a smaller ID mark themselves as lost and forward it, candidates receiving a larger ID discard it, and a candidate receiving its own ID declares victory.
+
+The specification includes weak fairness for all node processes. Safety is expressed through TypeOK (type invariant) and Correctness (a winner must be an initiator with the smallest ID among initiators, and all others must be in lost state). Liveness asserts that if any candidate exists, eventually some node wins.

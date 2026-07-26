@@ -1,0 +1,39 @@
+# Specification Request: Replicated Transaction Log System
+
+## System Overview
+
+I need a formal specification for a distributed replicated log system where multiple nodes share a single ordered log of transactions. Each node independently processes transactions from this shared log at its own pace.
+
+## System Description
+
+The system consists of:
+- A set of distributed nodes
+- A global transaction log that all nodes share
+- Each node maintains its own position tracking how many transactions it has processed from the log
+
+## Required Behaviors
+
+1. **Transaction Writing**: Any node that has fully caught up with the current log state may append a new transaction to the shared log. When a node appends a transaction, it immediately considers that transaction as processed.
+
+2. **Transaction Execution**: Any node that is behind the current log state may process the next transaction in sequence, advancing its position in the log.
+
+## Correctness Properties
+
+### Safety Requirements
+
+1. **No Over-Execution**: A node must never claim to have processed more transactions than actually exist in the log. The execution position of every node must always be at most the current length of the log.
+
+2. **Type Consistency**: The log must always be a valid sequence of transactions, and each node's execution position must be a natural number.
+
+### Liveness Requirements
+
+1. **Eventual Convergence**: Under appropriate fairness conditions, all nodes must eventually catch up to the current log length. The system should not allow any node to fall permanently behind.
+
+## Fairness Considerations
+
+I'm particularly interested in understanding what fairness conditions are necessary and sufficient to guarantee convergence. The specification should explore:
+- Whether weak fairness on individual actions (write or execute) is sufficient
+- What combinations of fairness assumptions guarantee that all nodes eventually synchronize
+- Cases where seemingly reasonable fairness assumptions are actually insufficient
+
+The goal is to understand the minimal fairness requirements needed to ensure the replicated log system maintains consistency across all participating nodes.

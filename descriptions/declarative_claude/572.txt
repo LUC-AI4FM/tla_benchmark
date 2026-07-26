@@ -1,0 +1,11 @@
+This TLA+ module specifies an abstract distributed consensus algorithm where nodes maintain commit logs that are append-only and never diverge from one another.
+
+The specification assumes a finite set of servers and a strictly totally ordered set of terms with a smallest element. The constant StartTerm represents the minimum term value. The single variable cLogs maps each server to a sequence of terms representing its commit log.
+
+Initially, each server's log is drawn from a set of possible starting configurations: empty logs, or logs of length two or four filled with the start term.
+
+Three actions define system transitions. Copy allows a node to append a suffix from another node's longer log onto its own. Extend permits a node with the longest log among all servers to append any finite sequence of terms. CopyMaxAndExtend combines both operations, allowing a node to copy from a longest log and extend it in one atomic step. The specification includes equivalent axiom-based formulations of Extend and CopyMaxAndExtend that TLC can check more efficiently.
+
+The temporal specification AbsSpec requires the system to start in a valid initial state and only take Next steps or stutter.
+
+The module defines several properties: AppendOnlyProp ensures logs only grow via prefix extension, NoConflicts guarantees that any two logs are prefix-comparable (preventing divergence), and equivalence properties verify that the action formulations and their axiomatic versions are logically identical.

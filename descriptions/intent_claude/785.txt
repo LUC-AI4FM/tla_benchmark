@@ -1,0 +1,35 @@
+# Specification Request: Distributed Termination Detection Algorithm
+
+## System Overview
+
+I need a formal specification of Huang's algorithm for distributed termination detection. This is a classic algorithm used in distributed systems where a designated leader process needs to detect when all processes in the system have become idle and no messages are in transit.
+
+## System Description
+
+The system consists of multiple processes connected in a fully-meshed network, with one distinguished process designated as the leader. Initially, only the leader is active, and computation can spread through the system as active processes send messages that activate other processes.
+
+The key mechanism uses a "weight" concept: the system starts with a total weight of 1, held entirely by the leader. When a process sends a message, it splits its weight in half—keeping half and attaching the other half to the message. When a process receives a message, it absorbs the message's weight. When a non-leader process becomes idle, it sends its accumulated weight back to the leader.
+
+## Behavioral Requirements
+
+1. **Message sending**: Any active process may send a message to any other process, splitting its current weight between itself and the outgoing message.
+
+2. **Message receiving**: Non-leader processes can receive messages in any order, becoming active and absorbing the message's weight.
+
+3. **Becoming idle**: Active non-leader processes may spontaneously become idle, at which point they must send their weight back to the leader.
+
+4. **Leader behavior**: The leader can receive weight-carrying messages and can also become idle, but handles these differently from other processes.
+
+## Correctness Properties
+
+### Safety Property
+The algorithm must guarantee that termination is detected only when the system has truly terminated. Specifically: if the leader ever concludes that termination has occurred (by being idle while holding all the weight), then indeed all processes are idle and no messages remain in transit, and this remains true forever.
+
+### Liveness Property
+The algorithm must eventually detect termination when it occurs. If all processes become idle and all messages are delivered, the leader must eventually detect this termination condition.
+
+## Key Invariant
+The total weight in the system—summing the weights held by all processes plus the weights attached to all in-transit messages—must always equal exactly 1. This conservation property is fundamental to the algorithm's correctness.
+
+## Fairness Requirements
+The specification should assume weak fairness for message reception and for processes becoming idle, ensuring that enabled actions eventually occur.

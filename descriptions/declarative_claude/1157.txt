@@ -1,0 +1,25 @@
+# RaftMongo Specification Summary
+
+This TLA+ module specifies a simplified version of the Raft consensus algorithm as implemented in MongoDB's replication system.
+
+## System Overview
+
+The specification models a distributed replicated log system where servers maintain operation logs (oplogs) and one server acts as the leader that accepts client writes. The model abstracts away explicit message passing, using direct state comparison between servers instead.
+
+## Constants and Variables
+
+The constants define the set of servers, possible log entry values, server states (Follower, Candidate, Leader), and a Nil placeholder. The variables track a global current term number, each server's state, and each server's log (a sequence of term-value entries).
+
+## Key Actions
+
+**BecomePrimaryByMagic**: A server becomes leader if a quorum of servers have logs no more up-to-date than its own, incrementing the global term and resetting all other servers to follower state.
+
+**ClientWrite**: A leader appends a new entry with the current term to its log.
+
+**AppendOplog**: A server copies the next log entry from another server if their logs match up to the recipient's current length.
+
+**RollbackOplog**: A server removes its last log entry when another server has a more recent term and divergent history.
+
+## Specification and Properties
+
+The temporal specification requires starting from the initial state with all followers, empty logs, and term 1, then transitioning according to the next-state relation. The key safety property **NeverRollbackCommitted** verifies that committed entries—those replicated to a quorum during the current term—are never rolled back.

@@ -1,0 +1,36 @@
+# Specification Request: Lamport's Bakery Algorithm
+
+## System Overview
+
+I need a formal specification of Lamport's Bakery Algorithm, a classic mutual exclusion protocol that allows multiple concurrent processes to safely access a shared critical section without hardware support for atomic operations.
+
+## System Description
+
+The system consists of a fixed number of concurrent processes (N processes) that repeatedly attempt to enter a critical section. The algorithm is inspired by a bakery where customers take numbered tickets and are served in order of their ticket numbers.
+
+Each process follows this general pattern:
+1. Signal intent to enter the critical section
+2. Observe other processes' ticket numbers and choose a number higher than all observed values
+3. Wait until it has the lowest ticket number among all interested processes (using process ID as a tiebreaker)
+4. Enter and execute the critical section
+5. Release the ticket and exit
+
+## Key Requirements
+
+### Functional Requirements
+- Processes must be able to enter and exit the critical section repeatedly
+- When multiple processes want to enter simultaneously, they must be ordered deterministically
+- Tie-breaking should use process identifiers when ticket numbers are equal
+- The algorithm should work without requiring atomic read-modify-write operations
+
+### Correctness Properties
+
+**Safety - Mutual Exclusion:**
+At no point in time should more than one process be executing in the critical section simultaneously. This is the primary safety guarantee the algorithm must provide.
+
+**Liveness - Starvation Freedom:**
+Any process that wishes to enter the critical section must eventually be able to do so. No process should wait indefinitely while others repeatedly enter the critical section.
+
+## Configuration
+
+The specification should be parameterized by the number of processes N, allowing verification for different system sizes (e.g., N = 4 processes).

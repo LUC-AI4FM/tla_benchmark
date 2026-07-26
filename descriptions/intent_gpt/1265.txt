@@ -1,0 +1,14 @@
+Specify a model of a trace-recording and trace-replay facility for a model checker that can export and import execution traces (including liveness counterexamples). The model should describe how a counterexample trace is captured, what information is stored, and how a stored trace is validated and replayed against a possibly different specification or variable set.
+
+Requirements:
+- A trace representation must record a sequence of states and the actions/edges between them, where each recorded state is paired with a logical "level" (a step index or depth). The action records must include source and target level indices to allow detection of a lasso (a back edge that closes a cycle) and of stuttering.
+- The export operation must produce a serializable artifact that contains the counterexample data and an explicit set of the variable names present in the trace.
+- The import and validation operation must allow loading that artifact and verifying, for a requested level, that any variables present both in the imported trace and in the current checker state have identical values at that level. If the imported trace lacks the requested level (e.g., liveness traces that stop before the closing step), verification at that level should be considered vacuously true unless a closing lasso target can be determined.
+- The replay view used by the checker must map requests for levels within the recorded sequence to the corresponding recorded state, and requests for levels beyond the end of a liveness trace to the lasso target level so that the cycle can be closed during replay.
+- Ensure that the mechanism tolerates replay against specs with different variable sets (only common variables are compared) and that serialization/deserialization are abstracted as black-box I/O operations.
+
+Key correctness properties to prove or check:
+- Exported traces accurately capture state values for the recorded levels and variables.
+- Replay validation never falsely reports a mismatch for levels not present in the imported trace.
+- Lasso detection correctly identifies the unique closing edge and mapping to the appropriate lasso target level.
+- Replay view returns a valid mapping for any requested level: either the recorded state at that level, or, for liveness traces beyond the recording, the lasso target level.

@@ -1,0 +1,13 @@
+Specify a formal TLA+ model of a distributed termination-detection protocol that runs on a fixed set of processes arranged in a logical ring and that uses a circulating token plus ordinary point-to-point payload messages. The model should treat processes as distinct identifiers organized in a simple directed cycle; one distinguished process acts as the token initiator for probe rounds. Processes can be active (performing local work and sending payload messages) or inactive; sending a payload increments a local in-flight count, and receiving a payload decrements it and may re-activate the receiver.
+
+The protocol must implement:
+- Token circulation: the token circulates around the ring. When the initiator holds the token it may start a new probe round and set the token’s probe color and vector-clock stamp to detect concurrent activity.
+- Color and counters: each process has a local color (white/black) and a counter of outstanding payloads it has sent but not yet had acknowledged by decreases; passing the token accumulates those counters into the token’s probe metadata and combines vector-clock information.
+- Vector-clock merging for causality: each process maintains a vector clock; sent payloads and token transfers carry vector-clock stamps that are merged into local clocks on receipt to capture causal dependencies.
+
+Correctness properties the model must guarantee:
+- Safety (soundness): the initiator detects termination only when every process is inactive and there are no in-flight payload messages; the detection condition must imply global termination.
+- Liveness (eventual detection): once the system has actually become quiescent (no active process and no in-flight payloads), the protocol must eventually cause the initiator to detect termination. In particular, detection must occur within a bounded number of token rounds (express this as an eventual upper bound proportional to the ring size, e.g., within three full token circulations after global quiescence).
+- Invariance: vector-clock and counter updates respect causal merging semantics and ensure that if any previously sent payload could reactivate work, the token’s metadata prevents premature termination detection.
+
+The specification should abstract away implementation details (no operational thread code) and state only the required system behavior, allowed transitions (payload send/receive, local activation/deactivation, token pass/initiate), and the invariants and liveness goals above.

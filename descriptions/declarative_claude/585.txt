@@ -1,0 +1,29 @@
+# SingleNode Module Description
+
+This TLA+ specification models the externally visible behavior of a single-node CCF (Confidential Consortium Framework) service. Since only one node exists, no view changes or ledger rollbacks occur.
+
+## Variables
+
+The specification tracks two variables: **history**, representing the sequence of external events (requests, responses, status messages), and **ledgerBranches**, an indexed collection of append-only ledgers where each branch corresponds to a leader's log in a particular view.
+
+## Key Actions
+
+The next-state relation comprises five actions:
+
+1. **RwTxRequestAction**: Submits a new read-write transaction request, appending it to the history with a unique identifier.
+
+2. **RwTxExecuteAction**: Executes a pending request by appending the transaction to some ledger branch, provided it hasn't already been recorded.
+
+3. **RwTxResponseAction**: Generates a response for an executed but unanswered request, recording the observed transaction sequence and transaction identifier.
+
+4. **StatusCommittedResponseAction**: Issues a committed status for a transaction, verifying it exists in the highest view's ledger at the expected position and no conflicting invalid status exists.
+
+5. **AppendOtherTxnAction**: Appends ledger entries without associated transactions, representing other system activity.
+
+## Type Invariants
+
+**TypeOK** and **LedgerTypeOK** verify that ledger entries contain valid views and optional transactions.
+
+## Temporal Properties
+
+**LedgersMonoProp** asserts that each ledger branch is append-only across all steps. The specification **SpecSingleNode** defines the initial state and permits only the defined next-state actions.

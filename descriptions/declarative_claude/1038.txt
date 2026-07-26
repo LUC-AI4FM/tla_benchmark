@@ -1,0 +1,13 @@
+This TLA+ module specifies an eventually perfect failure detector for distributed systems, modeling how processes detect failures of other processes through heartbeat mechanisms.
+
+The specification uses constants for the set of processes, a default timeout interval, and timing parameters that control when processes send heartbeats and make failure predictions. An assumption ensures these timing points are positive and neither divides the other, preventing simultaneous send and predict operations.
+
+Five variables track system state: each process maintains a local clock, a set of suspected failed processes, timeout intervals for each other process, time elapsed since last hearing from each process, and outgoing messages to send.
+
+Initially, no process suspects any failures, all timeouts equal the default value, no messages have been received or sent, and all clocks start at zero.
+
+Three main actions govern process behavior. SendAlive lets a process broadcast heartbeat messages to all others at regular intervals. Receive handles incoming messages by resetting the time-since-heard counter for senders, increasing timeouts for previously suspected processes that send messages, and removing such senders from the suspected set. Predict adds processes to the suspected set when the time since last hearing from them exceeds their timeout.
+
+Local clocks tick with each action and reset when they exceed all relevant thresholds.
+
+The TypeOK invariant ensures all variables maintain proper types throughout execution. No liveness properties or fairness conditions are specified in this module.

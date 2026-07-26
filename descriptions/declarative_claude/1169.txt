@@ -1,0 +1,25 @@
+# WorkerSpec Module Description
+
+This TLA+ module specifies the behavior of worker nodes in SwarmKit, Docker's container orchestration system, focusing on how the dispatcher manages task execution on behalf of workers.
+
+## State and Types
+
+The module tracks a single variable `nodes`, mapping each node to its state (either "up" or "down"), representing SwarmKit's view of node connectivity. The type invariant `WorkerTypeOK` ensures nodes maintain valid states.
+
+## Key Actions
+
+**ProgressTask** models containers advancing through their lifecycle states (assigned → accepted → preparing → ready → starting → running) when the node is connected and the transition doesn't exceed the desired state.
+
+**ShutdownComplete** handles running containers that finish stopping when shutdown or removal was requested.
+
+**RejectTask** allows nodes to reject tasks at any stage from assigned through starting, incrementing an event counter.
+
+**ContainerExit** represents running containers finishing execution, potentially reporting multiple exits simultaneously (e.g., during reconnection). Failed containers requested to shutdown are reported as shutdown instead.
+
+**WorkerDown** and **WorkerUp** model node disconnection and reconnection events.
+
+**OrphanTasks** marks tasks on persistently disconnected nodes as orphaned—noted as an exceptional case breaking the invariant that agents normally control state transitions past assignment.
+
+## Fairness and Structure
+
+The `AgentProgress` predicate groups actions expected to eventually occur (task progress, shutdown completion, orphaning, and reconnection), while `Agent` encompasses all possible worker actions.

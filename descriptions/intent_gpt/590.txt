@@ -1,0 +1,15 @@
+Specify a formal model of a concurrent transactional storage protocol that implements per-transaction multi-key optimistic locking with two-phase commit and garbage cleanup. The model should represent multiple clients that start transactions, read keys, prewrite (place locks and tentative versions) on a primary key and multiple secondary keys, and then commit by assigning a commit timestamp and making the primary write visible; secondary keys may be committed later or cleaned up by other transactions. Transactions may also abort or crash and leave stale locks and tentative data that other transactions must detect and clean up.
+
+The model must ensure monotonic, globally unique timestamps for transaction start and commit events and must allow concurrent prewrites and interleaving of reads, prewrites, commits, aborts, and cleanups. It must capture multi-version key state, locks (primary vs secondary), committed writes and explicit rollbacks, and a last-read-timestamp per key for snapshot checks.
+
+Key correctness properties to guarantee:
+- Type and structural invariants for timestamps, client states, key metadata, and versions.
+- Write ordering: committed writes for a key are ordered and commit_ts > start_ts; no overlapping committed versions.
+- Lock consistency: at most one lock per key; when a transaction is ready to commit its primary, all corresponding secondary locks must exist.
+- Committed-transaction invariants: after commit, the primary’s lock is removed, the committed write exists with matching timestamps, tentative data exists as expected on primary and secondaries, and secondary states are consistent (either committed or pending with appropriate order guarantees).
+- Aborted-transaction invariants: aborted transactions must not leave committed primary writes at their commit timestamp.
+- No transaction produces both committed and rollback records for the same start timestamp.
+- Uniqueness of start timestamps across all write or rollback records per key.
+- Snapshot isolation: no committed write can violate the snapshot seen by earlier reads (i.e., committed commit_ts must not be earlier than a recorded last-read timestamp on that key).
+
+Do not encode implementation scheduling specifics; instead specify allowed actions abstractly (start, read, prewrite/lock, commit primary, abort, and cleanup of stale locks) and ensure the above safety properties hold under all possible interleavings and crash/cleanup behaviors.

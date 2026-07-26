@@ -1,0 +1,39 @@
+# Specification Request: Distributed Shortest Path Tree Construction
+
+## System Overview
+
+I need a formal specification for a distributed algorithm that constructs a shortest-path tree rooted at a designated node in an undirected graph. Each node in the network should discover its shortest distance from the root and identify which neighboring node lies on a shortest path back to the root (its parent in the tree).
+
+## System Model
+
+The system consists of:
+- A set of nodes forming a connected undirected graph
+- A distinguished root node
+- Communication via message-passing between neighboring nodes only (nodes can only communicate with directly connected neighbors)
+- Each communication link is modeled as a bidirectional channel that can hold messages
+
+## Algorithm Requirements
+
+1. **Initialization**: The root node begins with distance zero and initiates the algorithm by sending messages to its neighbors. All other nodes start with no knowledge of their distance to the root.
+
+2. **Message Propagation**: Nodes receive distance announcements from neighbors. When a node learns of a shorter path to the root than previously known, it updates its distance, records the neighbor that provided the improvement as its parent, and propagates its new distance to other neighbors.
+
+3. **Distance Semantics**: The distance value a node holds should represent the number of hops to reach the root through the current parent pointer.
+
+4. **Distributed Execution**: All nodes execute concurrently and asynchronously. The specification should allow any enabled node to take a step at any time.
+
+## Correctness Properties
+
+The specification should support verification of:
+
+1. **Safety**: A node's recorded distance never underestimates its true shortest-path distance to the root.
+
+2. **Progress**: Under fair scheduling (every continuously enabled action eventually executes), the algorithm should eventually stabilize.
+
+3. **Correctness at Stabilization**: When the algorithm stabilizes, each node's recorded distance equals its true shortest-path distance to the root, and the parent pointers form a valid shortest-path tree.
+
+## Assumptions
+
+- The graph is connected (all nodes are reachable from the root)
+- The graph topology is fixed (no nodes or edges are added/removed during execution)
+- Message channels are reliable (no message loss or corruption)

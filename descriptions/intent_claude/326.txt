@@ -1,0 +1,38 @@
+# Specification Request: Partial Link Reversal Algorithm for Loop-Free Routing
+
+## System Overview
+
+I need a formal specification of the Gafni-Bertsekas partial link reversal algorithm, which is used in distributed systems to maintain loop-free routes in networks where topology changes frequently.
+
+## Problem Context
+
+Consider a network of nodes represented as a directed graph, where edges indicate routing directions toward a designated destination node. The challenge is that nodes may become "sinks" (nodes with no outgoing edges that are not the destination), which means they cannot route traffic forward. The algorithm must allow these sink nodes to reverse some of their incoming edges to restore routability, while critically ensuring the graph never contains cycles at any point during execution.
+
+## System Requirements
+
+### Network Model
+- A fixed set of nodes with one distinguished destination node
+- Directed edges between nodes representing routing relationships
+- The initial configuration must be a directed acyclic graph (DAG)
+
+### Algorithm Behavior
+- Any node that has no outgoing edges (and is not the destination) is considered a sink
+- Sink nodes may reverse some or all of their incoming edges to become outgoing edges
+- Multiple sink nodes may perform reversals simultaneously in a single step
+- The algorithm uses a "partial" reversal strategy: a sink reverses only a subset of incoming links based on tracking which links were recently reversed by neighbors
+
+### Edge Reversal Logic
+- Each node tracks which of its incoming edges were reversed by neighbors in previous steps
+- When a sink reverses edges, it preferentially reverses edges that haven't been recently reversed
+- If all incoming edges have been recently reversed, it reverses all of them
+- After reversing, the tracking information is reset for that node
+
+## Key Correctness Property
+
+**Acyclicity Invariant**: The directed graph must remain acyclic after every step of the algorithm. At no point during execution should a directed cycle exist in the network.
+
+This safety property ensures that routing loops can never form, which is essential for correct packet forwarding in networks.
+
+## Goal
+
+Provide a formal model that captures the partial link reversal mechanism and proves that the acyclicity invariant holds in all reachable states, demonstrating that this distributed algorithm is safe for maintaining loop-free routes.

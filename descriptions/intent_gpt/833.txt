@@ -1,0 +1,13 @@
+Model a replicated state-machine system that implements Multi-Paxos-style consensus for a single logical key, supporting two classes of client operations: writes (which install a new value) and reads (which observe the current value). The model should describe a set of server replicas that communicate by asynchronous, unreliable point-to-point broadcasts: messages may be arbitrarily delayed, duplicated, or lost, but non-Byzantine behavior is assumed (nodes follow the protocol). Clients submit a finite, pre-determined set of requests; the system should process them until all requests have been acknowledged.
+
+The specification must capture these requirements and correctness properties (without prescribing an implementation):
+
+- Safety (consensus/consistency): committed commands for each log position must be the same on a majority quorum and never diverge; once a command is committed at a position, no different command can later be committed at that position. Reads must observe values consistent with the serialized sequence of committed writes.
+
+- Linearizability from the client viewpoint: the sequence of client-visible request/acknowledgement events must correspond to some sequential execution of the submitted commands that respects real-time order of observed events (each acknowledged operation appears to take effect at some point between its request and acknowledgement).
+
+- Progress/Liveness under non-failure assumptions: if a majority of replicas remain non-faulty and messages between them can eventually be delivered, then every client request is eventually acknowledged (no permanent deadlock before all requests are processed).
+
+- Leader election and preemption semantics: the model must permit leaders to be chosen using ballot numbers, allow leaders to recover prior votes during preparation, and allow higher ballots to preempt lower ones while preserving safety.
+
+Capture replica local state for rounds/ballots, per-slot proposals and votes, commit visibility and apply semantics, and network message sets needed to express Prepare/PrepareReply, Accept/AcceptReply, and Commit notifications. Specify invariants asserting quorum intersection and the preservation of previously accepted votes when forming new proposals so safety holds.

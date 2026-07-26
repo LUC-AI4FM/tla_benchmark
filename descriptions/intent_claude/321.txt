@@ -1,0 +1,38 @@
+# Specification Request: Distributed Maximal Independent Set Algorithm
+
+## System Overview
+
+I need a formal specification of a distributed algorithm for computing a Maximal Independent Set (MIS) on an undirected graph. The algorithm should model a network of nodes that communicate with their neighbors in synchronous rounds to collectively determine which nodes belong to the independent set.
+
+## System Description
+
+The system consists of a collection of nodes connected by an undirected graph topology. Each node must eventually decide whether it is part of the independent set ("winner") or excluded from it ("loser"). The algorithm proceeds in synchronized phases where nodes:
+
+1. Compete with neighbors by selecting random values and comparing them
+2. Nodes with values higher than all their neighbors tentatively join the independent set
+3. Neighbors of newly joined nodes are marked as excluded
+4. Excluded nodes and their edges are removed from further consideration
+5. The process repeats among remaining undecided nodes until all nodes have decided
+
+## Functional Requirements
+
+- Nodes communicate only with their immediate neighbors in the graph
+- The algorithm operates in synchronized communication rounds
+- Each phase of the algorithm requires multiple rounds of message exchange
+- Nodes must handle three types of messages: value announcements, winner notifications, and loser notifications
+- Once a node decides its status (winner or loser), it becomes inactive but may still need to notify neighbors
+- The neighbor relationships must be updated as nodes are eliminated
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Independence**: At no point should two adjacent nodes both be marked as winners (members of the independent set)
+
+2. **Termination**: Eventually all nodes should become inactive, having decided their final status
+
+3. **Maximality** (implicit): The algorithm should produce a maximal independent set—no additional node can be added without violating independence
+
+## Additional Requirements
+
+The specification should support the injection of a bug (via a configuration flag) to demonstrate how the independence property can be violated when the value comparison logic is incorrectly implemented. This allows for testing and validation of the model checking approach.

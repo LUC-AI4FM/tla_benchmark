@@ -1,0 +1,48 @@
+# Specification Request: Light Client Block Verification Protocol
+
+## System Overview
+
+I need a formal specification for a blockchain light client verification protocol. The system models how a light client fetches and verifies block headers from a blockchain network, determining whether to trust new blocks based on validator signatures and timing constraints.
+
+## System Description
+
+The protocol involves a light client that starts with a trusted block at a known height and attempts to verify blocks up to a target height. The light client interacts with a primary node (which may or may not be correct/honest) to fetch light blocks, and must verify them against the blockchain's actual state.
+
+### Core Components
+
+1. **Light Client**: Maintains local state including fetched blocks, their verification status, and tracks which block is currently verified as trusted.
+
+2. **Blockchain/Reference**: The actual blockchain state that serves as ground truth, including the set of validators and which ones are faulty.
+
+3. **Clock Model**: Both a reference clock (real time) and a local clock that may drift from real time, reflecting realistic distributed system timing.
+
+4. **Validator Model**: Validators can be either honest or faulty, with a constraint on the ratio of faulty validators (less than one-third).
+
+## Key Parameters
+
+- A set of participating nodes/validators
+- Starting trusted height and target height for verification
+- A trusting period representing how long block headers remain valid for verification
+- Clock drift bounds (both assumed maximum drift and actual drift)
+- Whether the primary node providing blocks is honest
+- Maximum ratio of faulty validators allowed
+
+## Correctness Properties
+
+The specification should verify:
+
+1. **Safety**: The light client should never accept a block as verified that contradicts the actual blockchain state when operating within the trust assumptions (correct primary, bounded faults, bounded clock drift).
+
+2. **Liveness**: Under correct conditions, the light client should eventually verify blocks up to the target height.
+
+3. **Fault Tolerance**: The protocol should remain safe as long as fewer than one-third of validators are faulty.
+
+4. **Timing Correctness**: Verification decisions must properly account for the trusting period and clock drift to avoid accepting stale or future-dated blocks.
+
+## Behavioral Requirements
+
+- Track the progression of verification state
+- Handle the fetching of light blocks at various heights
+- Maintain verification status for each fetched block
+- Support monitoring of state transitions (previous vs. current state) for debugging and property checking
+- Model both the ideal reference time and the potentially-drifting local time

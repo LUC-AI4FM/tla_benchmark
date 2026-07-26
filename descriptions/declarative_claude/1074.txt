@@ -1,0 +1,9 @@
+This TLA+ module extends the EWD998Chan specification to instrument and measure the efficiency of Dijkstra's termination detection algorithm under various optimization variants.
+
+The specification models the same ring-based termination detection protocol as EWD998Chan but introduces configurable "feature flags" that modify token-passing behavior. The constant F is a subset of four possible optimizations: pt1 and pt2 allow active nodes to pass the token early if the node or token is tainted (black); pt3 and pt4 short-circuit inconclusive token rounds by returning the token directly to the initiator when the node or token is black.
+
+The specification constrains initial states via InitSim to start with all nodes active and white-colored, representing typical implementation startup conditions. The modified PassTokenOpts action implements the conditional token-passing logic based on which feature flags are enabled, determining whether to pass the token to the predecessor or return it directly to node zero.
+
+The module is designed specifically for TLC's random trace generation mode to collect statistical data. It tracks when actual termination occurs versus when termination is detected, counting the steps between these events and recording action frequencies. The AtTermination action constraint captures the moment of termination, while AtTerminationDetected writes measurements to a CSV file when detection occurs, including the feature flags used, node count, behavior length, and counts of each action type.
+
+The configuration reads the number of nodes and feature flag selection from environment variables, enabling batch experimentation across different algorithm variants.

@@ -1,0 +1,11 @@
+This TLA+ module specifies a refinement of worker node behavior in Docker SwarmKit's container orchestration system. It models the actual container states on worker nodes, providing a lower-level implementation that refines a higher-level worker specification.
+
+The module introduces one constant, `node`, representing this worker's node identifier, and adds a `containers` variable that maps task identifiers to container states (running, terminating, complete, or failed), supplementing the inherited `nodes` and `tasks` variables.
+
+The specification models several key actions: containers can exit naturally or through explicit shutdown; workers synchronize with managers to receive desired state and report actual container states; tasks progress through states from assigned to running; workers can reject tasks before they reach running state; nodes can go up or down; tasks can be orphaned when nodes are down for extended periods; and workers can reboot, terminating all running containers.
+
+The environment actions model task creation, updates, and removal by other system components.
+
+The temporal specification requires initial conditions, a next-state relation covering all actions, and weak fairness on agent progress actions (task progression, orphaning, reconnection, shutdown completion, and synchronization).
+
+The module includes a type invariant checking that containers map task identifiers to valid container states. The key property verified is that this implementation refines the higher-level WorkerSpec—any behavior allowed by this implementation must also satisfy the abstract worker specification, enabling compositional verification of the overall system.

@@ -1,0 +1,39 @@
+# Specification Request: Abstract Distributed Consensus Log Replication
+
+## System Overview
+
+I need a formal specification for an abstract model of distributed consensus, focusing on how committed log entries are replicated across a cluster of servers. This is meant to serve as a high-level abstraction that captures the essential safety properties of consensus algorithms (like Raft or similar protocols) without modeling the detailed message-passing mechanics.
+
+## System Description
+
+The system consists of a finite set of servers, each maintaining a commit log. Log entries are tagged with terms (representing logical time periods or leadership epochs). The model assumes an idealized setting where nodes can atomically observe the global state—this abstraction is appropriate for reasoning about safety properties rather than implementation details.
+
+### Key Behaviors
+
+1. **Log Extension**: A server that currently has the longest (or tied for longest) log among all servers may extend its own log by appending new entries. This models a leader adding new committed entries.
+
+2. **Log Copying**: A server with a shorter log may copy a suffix of entries from any server with a longer log, appending those entries to its own log. This models followers catching up to the leader's committed state.
+
+3. **Combined Copy-and-Extend**: A server may atomically copy from a longest log and then extend further. This captures scenarios where leadership and replication happen in quick succession.
+
+## Initial Conditions
+
+Servers begin with logs that may already contain some entries (to model joining an existing cluster or recovery scenarios), but all initial logs must be consistent with each other—no server starts with entries that conflict with another server's log.
+
+## Correctness Properties
+
+The specification must guarantee the following:
+
+1. **Append-Only Logs**: Once an entry is in a server's commit log, it is never removed or modified. Each server's log only grows by appending new entries.
+
+2. **No Conflicts (Log Consistency)**: At all times, any two servers' logs must be consistent—one must be a prefix of the other (or they are identical). There can never be a situation where two servers have divergent logs with conflicting entries at the same position.
+
+## Assumptions
+
+- The set of servers is finite and fixed.
+- Terms form a totally ordered set with a well-defined minimum starting term.
+- The specification models safety properties only; liveness and fairness are not the focus.
+
+## Purpose
+
+This abstract specification should serve as a refinement target—a concrete consensus protocol implementation should refine this specification, proving that it maintains these fundamental safety guarantees about committed log consistency.

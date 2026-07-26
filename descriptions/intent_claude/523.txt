@@ -1,0 +1,42 @@
+# Specification Request: Alternating Bit Protocol with Environment
+
+## System Overview
+
+I need a formal specification of the Alternating Bit Protocol (ABP) extended with an environment process that generates data values to be transmitted. The system should model reliable data transmission over unreliable channels between two communicating processes.
+
+## System Description
+
+The system consists of:
+
+1. **A sender process** that receives data values from an environment and transmits them reliably to a receiver
+2. **A receiver process** that acknowledges receipt of data
+3. **An environment process** that produces new data values to be sent
+4. **Two communication channels**: one for sending messages (data with sequence bits) from sender to receiver, and one for sending acknowledgments back
+
+The channels are FIFO queues that model unreliable communication where messages may be delayed but arrive in order.
+
+## Functional Requirements
+
+- The environment continuously generates new data values from a finite set of possible values (e.g., names like "Fred", "Mary", "Ted")
+- The sender must transmit data values using an alternating bit (0 or 1) to distinguish consecutive messages
+- The receiver must acknowledge received messages by sending back the bit value
+- The protocol must handle the asynchrony between value generation, transmission, and acknowledgment
+
+## Key Correctness Properties
+
+1. **Type Safety**: All protocol state must remain well-typed throughout execution:
+   - Messages contain data paired with a single bit (0 or 1)
+   - Acknowledgments are single bits
+   - Queues contain appropriate message types
+
+2. **Bounded Resources**: For model checking purposes, all queues (both channels and the pending value queue) should remain bounded in length
+
+3. **Consistency**: Under appropriate conditions, when the sender receives an acknowledgment matching its current bit, the sender and receiver should agree on the current data value
+
+4. **Sequence Stability**: The channels should exhibit a "two values" property—messages in transit should contain at most two distinct values, reflecting the alternating nature of the protocol
+
+5. **Refinement**: The implementation should refine a higher-level specification of the alternating bit protocol with environment
+
+## Important Considerations
+
+The specification should account for the fact that if the environment proposes new values faster than the protocol can complete rounds, the traditional ABP invariants may be temporarily violated. The bit could cycle through multiple values on the sender side before the receiver catches up.

@@ -1,0 +1,15 @@
+Specify a formal model of a simple shared internal memory service that services concurrent client requests from a fixed set of clients. The model should describe the abstract protocol between clients and a memory controller that supports read and write requests, without committing to any particular implementation technique.
+
+The system must expose these behaviors:
+- Clients may at any time issue a memory request (read or write). Issuing a request hands a request object to the memory service and marks the client as having an outstanding request; the shared memory contents do not change at the moment the request is issued.
+- The memory service processes outstanding requests one client at a time: when processing a write request, the memory contents are updated at the addressed location and the client's pending request is updated to indicate completion; when processing a read request, the service reads the current value and places it into the client's response buffer.
+- After processing, the client can receive a reply that delivers the read value or acknowledges the write, and the client then becomes ready to issue a new request.
+
+Specify the initial conditions (memory initial contents, all clients ready with empty buffers) and the allowed transitions (issue, process, reply). State invariants and correctness properties that must hold at all times:
+- Memory contents remain a function mapping addresses to values.
+- Each client is always in one of the protocol states: ready to issue, busy/processing, or done/awaiting reply.
+- Each client's buffer holds either no pending request, a request, or a response value consistent with the most recent processing action.
+- The protocol preserves consistency: a completed read returns the value that was present at the addressed location at the time the read was processed; a completed write updates the memory at the addressed location to the written value.
+- No client loses requests or receives spurious replies; requests are eventually either processed and replied to or the system's progress assumptions should be explicitly stated (e.g., fairness) to ensure liveness.
+
+Do not specify implementation-level scheduling, but allow nondeterministic interleaving of clients. Include type invariants and prove that the state space respects them and that the core safety properties above are invariant.

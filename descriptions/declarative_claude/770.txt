@@ -1,0 +1,11 @@
+This TLA+ module specifies a ring buffer data structure with explicit tracking of concurrent read and write accesses to detect data races.
+
+The ring buffer has a fixed number of slots determined by the constant Size, where each slot can hold a value from the Values set or NULL. The module defines separate sets of Readers and Writers that can access the buffer, with NULL explicitly excluded from valid values.
+
+The single variable ringbuffer is a record containing three components: slots (the actual data storage), readers (tracking which readers are currently accessing each slot), and writers (tracking which writers are currently accessing each slot). Initially, all slots contain NULL and no readers or writers are active.
+
+The module provides operations for multi-step read and write access. Writing involves Write (which registers a writer and stores a value) and EndWrite (which deregisters the writer). Reading involves BeginRead (registering a reader), Read (returning the slot value), and EndRead (deregistering the reader). The IndexOf operator maps sequence numbers to slot indices via modular arithmetic.
+
+The key safety property NoDataRaces requires that for every slot, readers and writers cannot simultaneously access it, and at most one writer can access any slot at a time. The TypeOk invariant ensures the ringbuffer maintains its expected structure.
+
+This module serves as a library component; specifications using it must incorporate NoDataRaces as an invariant and define their own next-state relation using these operations.

@@ -1,0 +1,9 @@
+This TLA+ module specifies the Paxos Commit algorithm, a distributed transaction commit protocol that combines Two-Phase Commit with Paxos consensus to achieve fault tolerance.
+
+The system models resource managers (RMs) that must reach agreement on committing or aborting a transaction, using a set of acceptors organized into overlapping majorities and a set of ballot numbers for leader election rounds.
+
+Three variables track system state: `rmState` records each RM's status (working, prepared, committed, or aborted), `aState` maintains each acceptor's state per RM instance (including maximum ballot seen, accepted ballot, and accepted value), and `msgs` accumulates all sent messages.
+
+Resource managers can prepare (voting to commit), choose to abort, or receive final commit/abort decisions. Leaders drive consensus through Paxos phases: Phase1a initiates new ballots, Phase2a sends values after receiving majority responses, and PCDecide announces the final outcome when all instances choose "prepared" (commit) or any instance chooses "aborted" (abort). Acceptors respond to leader messages through Phase1b and Phase2b actions, updating their state and sending acknowledgments.
+
+The specification defines only safety properties, omitting liveness and leader selection. The temporal specification PCSpec combines the initial state with the next-state relation under stuttering. A type-correctness invariant PCTypeOK is stated as a theorem but no explicit safety properties beyond typing are checked in this module.

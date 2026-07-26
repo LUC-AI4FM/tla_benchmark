@@ -1,0 +1,11 @@
+Specify a TLA+ model of a Byzantine-fault-tolerant light client protocol that verifies blockchain headers (light blocks) by polling a set of validators. The model should treat a fixed set of validators, of which an unknown subset may be Byzantine subject to a configurable faulty fraction. The light client periodically requests and receives succinct validator-signed headers for a sequence of increasing block heights; it may fetch headers from different validators and may retry if responses are missing or inconsistent.
+
+The model must capture the client's local clock drifting relative to real time and a trusting period parameter that bounds how old a header can be to be considered trustworthy. The client must maintain a notion of the latest verified header height and must only advance verification when signatures and time-related checks pass. The specification must allow validators to equivocate, omit replies, or provide conflicting headers, and must represent a configurable primary or leader that may be faulty.
+
+Key correctness properties to guarantee:
+- Safety: The client never accepts two different headers for the same height as both valid; it never verifies a header that conflicts with a previously verified header for a lower height.
+- Liveness (under assumptions): If a sufficient quorum of honest validators respond and clock drift/aging constraints hold, the client eventually verifies headers up to a target height.
+- Time-related validity: The client only verifies a header if it is within the trusting period relative to the client's (drifting) clock and signature-quorum constraints.
+- Fault tolerance: The protocol tolerates up to the configured faulty fraction and still preserves safety; specify conditions under which liveness may be guaranteed.
+
+Do not prescribe internal data structures or a particular algorithmic implementation; instead define allowed interactions, timing assumptions, validator behaviors (honest vs Byzantine), verification criteria (quorum signatures and time checks), and the above correctness properties to be proven.

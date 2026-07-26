@@ -1,0 +1,54 @@
+# Specification Request: Distributed Database Consistency Levels
+
+## System Overview
+
+I need a formal specification of a distributed database system that supports multiple consistency levels, similar to those offered by globally distributed databases like Azure Cosmos DB. The system should model how clients interact with a cloud database service and how different consistency guarantees affect what data clients can observe when reading.
+
+## System Components
+
+The system consists of:
+1. A single cloud database service that maintains an ordered log of values
+2. One or more clients that can write data to and read data from the database
+3. FIFO communication channels between clients and the database
+
+## Required Behavior
+
+### Client Operations
+Clients should repeatedly perform write-then-read cycles:
+- **Write**: Send a value to the database and wait for acknowledgment
+- **Read**: After receiving the write acknowledgment, issue a read request using a specified consistency level and record what value is returned
+
+Each client maintains a session token that gets updated based on responses from the database.
+
+### Database Operations
+The database should:
+- Process incoming requests in order
+- Append written values to its log
+- Respond to read requests according to the requested consistency level
+
+### Consistency Levels to Model
+
+The specification must support five distinct consistency levels that determine which values from the database log may be returned on a read:
+
+1. **Eventual**: Any value that has ever been written may be returned
+2. **Consistent Prefix**: Any value from the log may be returned (but values represent a consistent prefix of writes)
+3. **Session**: Only values at or after the client's session position may be returned
+4. **Bounded Staleness**: Only values within a fixed bound K of the latest value may be returned
+5. **Strong**: Only the most recent value may be returned
+
+## Correctness Properties
+
+The specification should verify that each consistency level provides its guaranteed properties:
+
+1. **Eventual Consistency**: Any value returned to a client exists somewhere in the database log
+2. **Consistent Prefix**: Any value returned exists in the database log
+3. **Session Guarantee**: After completing a write-read cycle, the client observes a value at least as recent as its last acknowledged write
+4. **Bounded Staleness**: The value returned is never more than K versions behind the latest value
+5. **Strong Consistency**: The value returned is always the most recent value in the database
+
+## Parameters
+
+- Number of clients (initially verified with a single client)
+- Maximum number of operations per client
+- The consistency level to use for reads
+- The staleness bound K (for bounded staleness mode)

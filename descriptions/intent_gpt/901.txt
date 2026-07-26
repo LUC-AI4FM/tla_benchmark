@@ -1,0 +1,15 @@
+Specify a concurrent write-through cache system with multiple processors issuing read and write requests to a shared memory through a simple cache and a bounded request queue. Model processors that repeatedly become ready, issue memory requests (reads or writes), wait for responses, and proceed when replies arrive. The system should include: a main memory that holds values per address; per-processor small caches that may hold a value or indicate no value; per-processor request buffers that hold the outstanding request or the returned value; per-processor control state with at least ready, busy, waiting, and done states; and a FIFO memory-queue of pending memory operations with a fixed maximum length.
+
+The model must allow:
+- A processor to send a request when ready without changing main memory immediately.
+- Reads to return cached values when present; on a cache miss, a read request must be enqueued if there is space and the processor moves to waiting.
+- Writes to update caches of processors that either issued the write or already have the address cached, enqueue the write to the memory queue if space, and clear the issuing processor's buffer.
+- The memory queue to be processed by a memory controller that dequeues operations in order: applying writes to main memory and answering reads by updating the requesting processor's cache with the value that main memory would have after earlier queued writes.
+- Eviction of individual cache lines without affecting other state.
+
+Require safety properties:
+- Type invariants: all variables always lie in their declared domains (memory, buffers, caches, control states, and queue length).
+- Coherence: if two processors both have a value for the same address in their caches (not "no value"), those cached values must be equal.
+- The queue and memory semantics must ensure reads that are served from the queue observe effects of earlier queued writes to the same address.
+
+Also require liveness-friendly behavior sufficient to reason about invariants (e.g., transitions exist for making progress) but do not mandate fairness of scheduling in the specification.

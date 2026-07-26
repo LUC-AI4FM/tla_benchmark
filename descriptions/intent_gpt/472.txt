@@ -1,0 +1,14 @@
+Specify a fault-tolerant distributed consensus protocol based on classic Paxos (single-decree consensus) for a fixed set of acceptors and a finite set of ballot identifiers and proposal values. The model should describe message-based interactions between proposers (leaders) and acceptors, where proposers attempt ballots to get a value chosen and acceptors respond to prepare and accept requests. The specification must not commit to a particular leader-election mechanism; instead allow any proposer to initiate a ballot by broadcasting a prepare and then, after collecting responses from a quorum, to send an accept request for a value that is safe for that ballot.
+
+The model must include:
+- a representation of messages that can be sent (prepare, promise, accept-request, accepted) and the state that acceptors maintain (the highest promised ballot and any accepted ballot/value);
+- nondeterministic message delivery (messages may be sent and later observed), but the safety properties are independent of losses;
+- quorum-based decision making: a quorum is any set of acceptors satisfying pairwise intersection.
+
+Key correctness properties:
+- Safety (Agreement): At most one value can ever be chosen; once a value is chosen by a quorum of acceptors for some ballot, no different value can later be chosen in any other ballot.
+- Integrity: Only values proposed by proposers can be chosen, and acceptors record only what they actually accepted.
+- Promise monotonicity: once an acceptor promises not to accept below some ballot, it never accepts at a lower ballot.
+- Validity of proposer choices: when a proposer issues an accept request for ballot b and value v, v must be consistent with the highest previously accepted values reported by a quorum during the prepare phase (i.e., v is either the highest accepted value among those responses or any value if none were accepted).
+
+Additionally, specify an inductive invariant (state constraints) sufficient to prove safety, and state the initial conditions (no promises, no accepted values, no messages). Do not prescribe internal leader state or synchronous rounds beyond the abstract prepare/accept steps; model only messages and acceptor local state.

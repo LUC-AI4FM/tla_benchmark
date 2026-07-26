@@ -1,0 +1,35 @@
+# Specification Request: Byzantine-Tolerant Broadcast Protocol
+
+## System Overview
+
+I need a formal specification of a Byzantine fault-tolerant broadcast protocol for a distributed system. The protocol should allow a set of processes to reliably disseminate a value despite the presence of malicious (Byzantine) faulty processes that may send arbitrary messages.
+
+## System Parameters
+
+The system consists of N total processes, where up to T processes may exhibit Byzantine behavior, and F represents the actual number of faulty processes present. The specification should assume the standard Byzantine fault tolerance threshold: N must be greater than 3T, and F is at most T.
+
+## Protocol Behavior
+
+Each correct process begins in one of two states: either as a process that initially wants to broadcast a value, or as one that does not. The protocol operates through processes exchanging echo messages:
+
+- A process that initially wants to broadcast should send an echo message
+- Upon receiving sufficient echo messages (more than T), a process that hasn't already done so should echo the message itself
+- Upon receiving a strong quorum of echo messages (at least N-T), a process should accept/deliver the broadcast value
+
+Faulty processes can behave arbitrarily—they may send echo messages to any subset of correct processes at any time, without following the protocol rules.
+
+## Communication Model
+
+Messages are asynchronously delivered. A correct process may receive any subset of messages that have been sent, plus potentially spurious messages from faulty processes. Message reception is non-lossy in the sense that previously received messages remain received.
+
+## Correctness Properties
+
+The specification must verify the following safety and liveness guarantees:
+
+1. **Unforgeability**: If no correct process initially wants to broadcast (all start silent), then no correct process should ever accept/deliver.
+
+2. **Correctness/Validity**: If all correct processes initially want to broadcast, then eventually some correct process accepts.
+
+3. **Relay/Agreement**: If any correct process accepts, then eventually all correct processes accept.
+
+These properties should hold despite arbitrary behavior by up to F Byzantine processes.

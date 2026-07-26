@@ -1,0 +1,15 @@
+Specify a high-level model of a blockchain protocol as used by a light client, capturing validator sets, blocks, commits, time, and a non-decreasing set of faulty validators. The model should represent a sequence of block headers with monotonically increasing heights and timestamps, each header carrying the validator set for the block and the next-block validator set, and each header including the set of validators who committed the previous block. The model must include a global clock and an explicit trusting period for headers.
+
+Require that:
+- Commits on each block must represent more-than-2/3 support of that block’s previous validator set (quorum rule).
+- For any header still within its trusting period, the set of non-faulty validators for that header’s next-validator-set must constitute more than 2/3 of that next-validator-set (a global failure assumption while headers are fresh).
+- The set of faulty validators is monotonic (faults do not disappear) and may grow over time.
+- A header is considered validly signed either if it matches a known on-chain header or if its commit set is entirely faulty (to model forged headers).
+- Time may advance arbitrarily, and faults may be added; the model must identify when the chain enters a “faulty zone” where the failure assumption no longer holds.
+
+State the main correctness properties the light client requires:
+- Safety: a light client that accepts a header only while the header is within its trusting period and while the failure assumption holds must not accept two conflicting headers at the same height (i.e., no equivocation at the same height accepted under trust).
+- Liveness (conditional): if the failure assumption continues to hold and validators continue to produce headers with valid quorums, the client can advance and accept new headers up to a bounded maximum height.
+- Fork detection: if conflicting headers exist that cannot both be justified under the failure assumption, the model should allow detection of the conflict when time and fault events make the discrepancy observable.
+
+Do not prescribe implementation details; leave validator voting power uniform or abstracted, and allow the model checker to explore time and fault scenarios to validate safety and conditional liveness.

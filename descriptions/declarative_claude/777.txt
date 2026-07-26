@@ -1,0 +1,7 @@
+This TLA+ module specifies a distributed replicated log system where multiple servers maintain logs that must stay within a bounded lag of each other.
+
+The system models servers that can either extend their own logs or copy entries from other servers. The constant `Lag` defines the maximum allowed difference in log lengths between any two servers, `Servers` is the finite set of participating nodes, and `Values` represents possible log entries. The variable `cLogs` maps each server to its sequence of values.
+
+The `Copy` action allows a server with a shorter log to synchronize by copying a suffix from another server with a longer log. The amount copied is constrained to be near the full difference in lengths. The `Extend` action permits a server to append new entries only when it has the longest (or tied-longest) log, and the extension size is bounded to maintain the lag constraint.
+
+The temporal specification includes weak fairness for both actions on all servers, ensuring continuous progress. The key safety property `BoundedLag` asserts that log length differences never exceed the configured `Lag` constant. The liveness property `AllExtending` guarantees that every server's log grows infinitely often. An additional property `InSync` (noted as not holding) would require all logs to eventually become equal, which the specification intentionally does not guarantee since partial copying is permitted.

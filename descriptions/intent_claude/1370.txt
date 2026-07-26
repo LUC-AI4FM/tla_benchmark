@@ -1,0 +1,46 @@
+# Specification Request: Distributed Shortest Path Tree Construction
+
+## System Overview
+
+I need a formal specification for a distributed algorithm that constructs a shortest-path tree (or minimum spanning tree based on hop count) from a designated root node in an undirected graph. Each node in the network operates as an independent process, communicating only with its immediate neighbors through message-passing.
+
+## System Description
+
+The system consists of:
+- A fixed undirected graph with a set of nodes and edges
+- One distinguished root node
+- FIFO message queues between each pair of neighboring nodes (one queue per direction)
+
+Each node must independently discover:
+1. Its shortest distance (in hops) from the root
+2. Which neighbor is its parent on the shortest path to the root
+
+## Algorithm Behavior
+
+The algorithm operates as follows:
+- The root node initiates the process by sending its distance (zero) to all neighbors
+- When a node receives a distance value that would improve its known shortest path, it updates its distance and parent, then propagates its new distance to other neighbors
+- Nodes must handle messages that don't improve their distance appropriately
+- Communication is asynchronous via queues between neighbors
+
+## Correctness Requirements
+
+The specification must guarantee the following properties:
+
+### Safety Properties
+1. **Type Safety**: All node distances remain within valid bounds, parent pointers reference valid nodes, and message queues contain valid distance values.
+
+2. **Correctness Upon Termination**: When all message queues are empty:
+   - Every node's recorded distance equals its true shortest-path distance to the root
+   - Every non-root node's parent is a neighbor whose distance is exactly one less than the node's own distance (i.e., the parent lies on a valid shortest path)
+
+### Liveness Property
+1. **Termination**: The algorithm must eventually terminate—all message queues must eventually become empty, assuming fair scheduling of all nodes.
+
+## Assumptions
+
+- The graph is connected (all nodes are reachable from the root)
+- The number of nodes is bounded by a known constant
+- All edges are bidirectional with uniform weight (hop count)
+- Message delivery is reliable (queues don't lose messages)
+- Each node process is scheduled fairly

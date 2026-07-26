@@ -1,0 +1,9 @@
+This TLA+ module specifies the Two-Phase Commit protocol, a distributed transaction protocol ensuring atomic commitment across multiple resource managers.
+
+The system models a transaction manager (TM) coordinating with a set of resource managers (RMs) defined by the constant RM. Four variables track the system state: rmState maps each RM to its current state (working, prepared, committed, or aborted), tmState tracks the transaction manager's state (init or done), tmPrepared records which RMs have sent prepare messages, and msgs accumulates all messages ever sent.
+
+The protocol proceeds as follows: Each RM can independently prepare (sending a Prepared message) or choose to abort while still working. The TM receives Prepared messages and tracks them. Once all RMs have prepared, the TM may commit by broadcasting a Commit message. Alternatively, the TM can abort at any time while in init state by sending an Abort message. RMs respond to Commit or Abort messages by transitioning to committed or aborted states respectively.
+
+The next-state relation allows any of these actions to occur non-deterministically. The temporal specification TPSpec requires the system to start in TPInit and always take TPNext steps or stutter.
+
+No explicit safety or liveness properties are defined in this module, though the structure ensures the classic two-phase commit invariant that no RM commits unless all RMs prepared.

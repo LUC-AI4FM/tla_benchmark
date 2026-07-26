@@ -1,0 +1,11 @@
+This TLA+ module specifies an inner sequential memory system where each processor maintains a queue of pending operations that are executed in order against a shared memory.
+
+The system models multiple processors interacting with a shared memory through a register-based interface. Each processor has registers that can hold pending read or write requests, and a per-processor queue tracks the order in which operations were issued.
+
+The module uses constants from RegisterInterface (Proc, Reg, Adr, Val, Request) and introduces three variables: regFile (processor registers holding pending operations), opQ (per-processor queues of issued operations with their completion status), and mem (the shared memory mapping addresses to values).
+
+Four actions define the system behavior. IssueRequest allows a processor to submit a read or write request through a free register, appending it to the processor's queue. RespondToRd and RespondToWr mark operations as complete (Done) in the queue and free the register, with reads nondeterministically choosing a return value. Internal (via RemoveOp) removes completed operations from the queue head, applying writes to memory and enforcing that reads return the current memory value at that address.
+
+The temporal specification requires initial conditions, the next-state relation, and weak fairness on response and removal actions, ensuring pending operations eventually complete.
+
+The DataInvariant theorem states that queues contain at most one entry per non-free register, memory and registers maintain proper types, establishing type safety throughout execution.

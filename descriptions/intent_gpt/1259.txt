@@ -1,0 +1,10 @@
+Model a trace serialization and replay facility for a state-exploration tool. The model should describe how a counterexample trace (a finite sequence of states with associated actions) is exported to a JSON file and later imported to be used for replay and debugging. The exported artifact must record the sequence of states, the set of variable names present in the trace, and the action graph (including action source and target indices) so that liveness-cycle information (a lasso closing edge) can be reconstructed.
+
+The model must specify the semantics of serialization so that sets and other TLA+ values are encoded into JSON-friendly sequences and mappings; it must record variable names and ensure that the trace file contains enough information to map each state’s recorded variables to the variables expected by the replay environment.
+
+The replay facility must allow loading a serialized trace and present it as a sequence of observable states to the tool. It must:
+- Validate state equality for every variable that exists both in the stored trace and in the current replay spec, ignoring variables missing from either side.
+- Support reading a requested trace level (step index) and return the corresponding state; if the requested level is beyond the recorded prefix but the trace contains a liveness closing edge (lasso), map that beyond-end level to the lasso’s target state so the cycle closes.
+- Treat out-of-range level requests (beyond prefix with no lasso) as vacuously satisfied rather than failing.
+
+Key correctness properties: exported traces faithfully represent the original counterexample (state values and action targets), replayed states agree with the exported values for the intersection of variables, and liveness traces reconstruct the lasso so that replay can present a closed cycle when appropriate.

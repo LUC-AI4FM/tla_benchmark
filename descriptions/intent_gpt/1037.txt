@@ -1,0 +1,18 @@
+Specify a formally verified model of a message-passing channel with bounded-state descriptions of message transit and delivery. The model should capture the following system and requirements without prescribing internal implementation details:
+
+- System: a communication substrate that carries discrete messages from senders to receivers by placing each message into a packet-like container that records how long the message has been in transit. The substrate supports three kinds of observable events: sending (placing one or more messages into transit with age zero), delivery (selectively delivering some in-transit messages to their intended receiver), and time-progress ticks that increase the age of all in-transit packets by one.
+
+- Functional requirements:
+  - Any message put into the channel is represented as a container carrying the message payload and a nonnegative integer age.
+  - Sending can insert any finite set of valid messages into the channel at age zero.
+  - Delivery may nondeterministically deliver any subset of in-transit containers whose payloads are addressed to the same receiver; delivered containers are removed from transit and their payloads are presented as the delivery set for that step.
+  - Time-progress increments the age field of every container currently in transit by exactly one and does not deliver messages.
+
+- Correctness properties to guarantee:
+  - Type safety: the collection of containers and the delivered payloads always conform to their declared domains (containers have payload+age, delivered values are valid messages).
+  - No spurious loss: a message is removed from transit only when it is delivered.
+  - Message isolation by receiver: a delivery event only yields messages addressed to the same receiver.
+  - Progress/absence-of-stuckness: time ticks and send actions remain enabled as long as there exist messages or potential sends; deliveries may nondeterministically occur but cannot produce payloads not present as in-transit containers.
+  - Age monotonicity: for each individual container, its recorded age increases by one on each time tick and starts at zero when sent.
+
+Also state which artifacts are considered atomic observations (the set of in-transit containers and the set of messages produced by a delivery event) and require that deliveries expose only message payloads (not ages).

@@ -1,0 +1,36 @@
+# Specification Request: In-Order Message Delivery Over Unreliable Network
+
+## System Overview
+
+I need a formal specification of a message delivery system between two network processes: a sender and a receiver. The core challenge is that while the network may deliver messages out of order, the receiver must present messages to its client application in the exact order they were originally sent.
+
+## System Requirements
+
+### Sender Behavior
+- The sender transmits messages sequentially, each with an incrementing sequence number
+- Messages are sent one at a time in strict numeric order (0, 1, 2, ...)
+- Once sent, a message remains available in the network for delivery
+
+### Network Behavior
+- The network may deliver any subset of sent messages to the receiver at any time
+- Messages can arrive out of order (e.g., message 5 might arrive before message 3)
+- Messages are not lost permanently—they remain "in flight" until received
+- The network does not duplicate or corrupt messages
+
+### Receiver Behavior
+- The receiver accumulates messages as they arrive from the network (possibly out of order)
+- The receiver delivers messages to its client strictly in sequence
+- A message can only be delivered to the client when all preceding messages have already been delivered
+- For example: if messages 0, 2, and 3 have arrived but message 1 has not, only message 0 can be delivered; messages 2 and 3 must wait
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Delivery Integrity**: Every message delivered to the client must have been previously sent by the sender. The receiver cannot fabricate or deliver messages that were never transmitted.
+
+2. **In-Order Delivery**: Messages are delivered to the client in exactly the same sequence they were sent, with no gaps or reordering.
+
+## Purpose
+
+This specification should serve as a foundation for reasoning about reliable, ordered message delivery protocols where the underlying transport does not guarantee ordering. It models the essential buffering and resequencing logic needed at the receiver.

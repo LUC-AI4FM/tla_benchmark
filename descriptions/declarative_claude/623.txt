@@ -1,0 +1,11 @@
+This TLA+ module specifies a simplified Tendermint consensus protocol designed for analyzing fork accountability. The specification models one-shot consensus (single height) with non-deterministic timeouts and proposer selection, focusing on safety rather than liveness.
+
+The system consists of correct processes (Corr) and Byzantine/faulty processes (Faulty), with total count N and Byzantine bound T. Valid and invalid values are distinguished, with rounds numbered from zero to MaxRound. Each process has voting power of one.
+
+State variables track each correct process's current round, protocol step (PROPOSE, PREVOTE, PRECOMMIT, or DECIDED), decision value, locked value and round, and valid value and round. Message sets store proposals, prevotes, and precommits per round. An evidence set collects messages used in transitions for accountability analysis.
+
+Byzantine behavior is modeled by injecting all possible faulty messages into initial states. Correct processes follow the Tendermint protocol: proposers broadcast proposals, processes prevote based on validity and lock conditions, collect quorums of prevotes to precommit, and decide upon sufficient precommits. Quorum thresholds require 2T+1 messages; catching up requires T+1 messages from higher rounds.
+
+The specification defines two Byzantine misbehavior patterns: equivocation (sending conflicting messages in the same round) and amnesia (locking new values without proper unlocking evidence).
+
+Key properties include Agreement (correct processes decide the same value), Validity (decisions are valid values), and Accountability (disagreement implies detectable Byzantine misbehavior by at least T+1 faulty processes exhibiting equivocation or amnesia). Several negated properties serve as counterexample generators for demonstrating specific protocol behaviors.

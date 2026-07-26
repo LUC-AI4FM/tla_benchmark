@@ -1,0 +1,59 @@
+# Specification Request: Parallel Bounded Model Checker
+
+## System Overview
+
+I need a formal specification of a parallel bounded model checking algorithm. The system should model how multiple worker threads collaborate to explore a bounded execution space of a system while simultaneously checking that safety invariants hold at each explored state.
+
+## Core Functionality
+
+The model checker performs a bounded depth-first exploration of possible execution traces, where each trace is a sequence of symbolic transitions. The key insight is that two distinct tasks can be parallelized:
+
+1. **Exploration**: Determining which transitions are actually feasible (enabled) at each depth of the search, using an SMT solver to check satisfiability.
+
+2. **Proving**: Verifying that discovered execution prefixes do not violate any safety invariants, again using SMT solving.
+
+## Worker Model
+
+The system should have a configurable pool of worker threads that dynamically switch between roles:
+
+- **Explorers** incrementally build the execution tree by checking which transitions can fire at the current depth. They work with incremental SMT contexts and focus on satisfiability queries.
+
+- **Provers** take discovered execution prefixes and verify the invariant holds. They work with standalone SMT queries and focus on unsatisfiability (proving the invariant cannot be violated).
+
+Workers should be able to transition between idle, exploring, and proving states based on available work.
+
+## Search Strategy
+
+The exploration should:
+- Start from initial states and systematically explore transitions up to a maximum depth
+- Track which transitions at each depth are enabled, disabled, or timed out
+- Collect enabled transitions into a running prefix that represents the current exploration path
+- Handle SMT timeouts gracefully by setting aside "slow" prefixes for later exploration
+- Switch to exploring slow prefixes when the main exploration path is exhausted or reaches maximum depth
+
+## Handling of Problematic Cases
+
+The specification must account for:
+- SMT solver timeouts during transition feasibility checking
+- Situations where all transitions are disabled (potential deadlock in the target system)
+- The need to defer and later revisit prefixes that caused timeouts
+- Reaching the maximum exploration depth
+
+## Correctness Properties
+
+The specification should allow verification of:
+
+1. **Soundness**: If the checker reports no errors, then no invariant violations exist within the bounded exploration depth.
+
+2. **Error Detection**: If a bad execution trace exists within bounds, the checker should eventually detect and report it.
+
+3. **Termination**: The search should eventually complete (either finding an error, confirming safety within bounds, or detecting deadlock).
+
+4. **Parallelism Behavior**: It should be possible to analyze whether workers actually operate in parallel or serialize unexpectedly.
+
+## Parameters
+
+The specification should be parameterized by:
+- Number of symbolic transitions in the target system
+- Maximum exploration depth
+- Number of worker threads

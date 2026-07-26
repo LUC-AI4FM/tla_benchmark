@@ -1,0 +1,40 @@
+# Specification Request: One-Bit Mutual Exclusion Protocol
+
+## System Overview
+
+I need a formal specification of a mutual exclusion protocol for N concurrent processes where each process uses only a single shared boolean flag to coordinate access to a critical section. This is a classic "one-bit" mutual exclusion algorithm.
+
+## System Description
+
+The system consists of N processes (numbered 0 through N-1) that repeatedly cycle through three phases:
+1. A non-critical section where they perform regular work
+2. An entry protocol where they attempt to gain exclusive access
+3. A critical section followed by an exit protocol
+
+Each process has access to a shared array of boolean flags—one flag per process—that it uses to signal intent and coordinate with other processes. The entry protocol involves checking other processes' flags in a specific order, backing off when conflicts are detected, and ensuring no higher-numbered processes are also trying to enter.
+
+## Key Requirements
+
+### Functional Behavior
+- Processes must be able to repeatedly enter and exit the critical section
+- The entry protocol should use a systematic scan of other processes' flags
+- When a process detects a conflict with a lower-numbered process, it should back off (clear its flag, wait, then restart)
+- Before entering the critical section, a process must verify that no higher-numbered processes have their flags set
+- Upon exiting, a process clears its flag
+
+### Fairness Assumptions
+- The system should assume weak fairness for processes that are actively trying to enter or exit (not while in the non-critical section)
+- Processes may remain in the non-critical section indefinitely
+
+## Correctness Properties to Verify
+
+### Safety: Mutual Exclusion
+At most one process may be in the critical section at any given time.
+
+### Liveness: Starvation Freedom
+Under the fairness assumptions, any process that wishes to enter the critical section will eventually do so (no process starves indefinitely).
+
+## Parameters
+
+- N: The number of processes (must be a positive integer)
+- The set of process identifiers: 0 through N-1

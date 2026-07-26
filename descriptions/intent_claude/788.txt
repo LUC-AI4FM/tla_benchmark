@@ -1,0 +1,44 @@
+# Specification Request: Key-Value Store with Snapshot Isolation
+
+## System Overview
+
+I need a formal specification for a concurrent key-value store that implements snapshot isolation as its transaction isolation level. The system should support multiple concurrent transactions, each performing reads and writes against a consistent snapshot of the data.
+
+## Functional Requirements
+
+### Data Model
+- The store manages a set of keys, each mapped to a value
+- Keys are initialized to a special "no value" marker
+- When a transaction writes to a key, it stores its own transaction identifier as the value
+
+### Transaction Lifecycle
+Each transaction should:
+1. **Begin**: Take a consistent snapshot of the current store state at the moment it starts
+2. **Read Phase**: Read any subset of keys from its private snapshot (not the live store)
+3. **Write Phase**: Apply writes to its local snapshot
+4. **Commit**: Attempt to commit changes back to the shared store
+
+### Concurrency Control
+The system must implement first-committer-wins conflict detection:
+- A transaction can only commit if none of the keys it wants to write have been modified by other transactions that committed after this transaction took its snapshot
+- If a conflict is detected, the transaction should abort (not apply its writes)
+- Transactions that don't conflict should successfully commit their writes to the shared store
+
+### Conflict Tracking
+The system needs to track which writes each active transaction has "missed" (i.e., writes committed by other transactions since the active transaction began). This information is used at commit time to detect write-write conflicts.
+
+## Correctness Properties
+
+### Safety Properties
+1. **Type Safety**: The store should always contain valid values, and internal bookkeeping structures should maintain their expected types
+2. **Snapshot Isolation Guarantee**: The system must satisfy the formal definition of snapshot isolation - transactions read from a consistent snapshot and write-write conflicts between concurrent transactions are prevented
+
+### Liveness Properties
+- All transactions should eventually complete (either commit or abort)
+- The system should be free from deadlocks
+
+### Non-Requirements
+- The system is explicitly **not** required to provide serializability. Write skew anomalies (where two transactions read overlapping data and write to disjoint keys based on stale reads) are permitted under snapshot isolation.
+
+## Verification Goals
+The specification should be structured to enable automated checking of the snapshot isolation guarantee, ideally by interfacing with a client-centric model of transaction isolation that can verify the observed histories satisfy snapshot isolation semantics.

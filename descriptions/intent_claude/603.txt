@@ -1,0 +1,38 @@
+# Specification Request: Distributed Transaction Protocol (Percolator-style)
+
+## System to Model
+
+I need a formal specification of a distributed transaction system based on Google's Percolator protocol. This is a multi-version concurrency control (MVCC) system that provides snapshot isolation for transactions over a distributed key-value store.
+
+## System Description
+
+The system should model:
+
+- A key-value store with multiple keys that supports versioned writes
+- Multiple concurrent clients, each executing transactions that may read and write multiple keys
+- A two-phase commit protocol where each transaction designates one key as its "primary" and other keys as "secondaries"
+- Lock management where transactions must acquire locks before writing, with the primary key's lock serving as the commit point
+
+## Behavioral Requirements
+
+1. **Transaction Execution**: Each client should be able to perform a transaction that involves multiple keys, with reads occurring at a consistent snapshot timestamp and writes being buffered until commit.
+
+2. **Two-Phase Commit**: The commit process should first prewrite all keys (acquiring locks and writing tentative values), then commit the primary key, and finally commit secondary keys.
+
+3. **Conflict Detection**: When a transaction encounters a lock held by another transaction, the system must handle this appropriately (either waiting, aborting, or cleaning up stale locks).
+
+4. **Primary Key Coordination**: Each transaction has a designated primary key that serves as the source of truth for whether the transaction committed or aborted.
+
+## Key Correctness Properties
+
+1. **Snapshot Isolation**: Transactions should observe a consistent snapshot of the data—reads within a transaction must not see partial results of other concurrent transactions.
+
+2. **Atomicity**: Either all writes of a transaction become visible, or none do. There should be no state where only some keys from a committed transaction are visible.
+
+3. **No Lost Updates**: Concurrent transactions writing to the same keys must not silently lose updates.
+
+4. **Consistency of Lock State**: The lock and data state must remain consistent—there should be no orphaned locks from committed transactions or visible uncommitted data.
+
+## Testing Configuration
+
+For model checking, use a small instance with 3 keys and 3 concurrent clients. The clients can be treated as symmetric (interchangeable) to reduce the state space during verification.

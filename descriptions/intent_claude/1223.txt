@@ -1,0 +1,45 @@
+# Specification Request: Function Equality Semantics Test Suite
+
+## Overview
+
+I need a formal specification that serves as a test suite to verify that a TLA+ model checker correctly implements function equality semantics. The specification should confirm that different syntactic representations of mathematically equivalent functions are recognized as equal, and that genuinely different functions are recognized as unequal.
+
+## Goal
+
+Create a comprehensive test harness that validates the correctness of function comparison operations across various function construction methods in TLA+. This is essentially a conformance test for the tool's implementation of function equality.
+
+## Requirements
+
+### Function Representations to Test
+
+The test suite must verify equality between functions constructed via:
+
+1. **Enumerated tuples vs. function mapping notation** — A tuple like `<<3, 4, 5>>` should equal a function defined over a 1-indexed integer domain that produces the same values.
+
+2. **Record notation vs. function mapping with CASE expressions** — Records with named fields should equal functions over string domains that return the same values.
+
+3. **EXCEPT modifications** — Functions modified with EXCEPT should equal directly-constructed functions with those values.
+
+4. **Different but equivalent domain specifications** — Functions over `{3, 2, 1}` should equal functions over `1..3` when they produce the same mapping.
+
+5. **Multi-argument functions vs. functions over Cartesian products** — A function taking two arguments from separate domains should equal a function taking a single pair argument from the product domain.
+
+6. **Empty functions** — The empty tuple should equal a function over the empty domain.
+
+7. **Sets of functions** — Filtered function sets should equal explicitly enumerated tuple sets.
+
+8. **Function set notation equivalence** — The set of all functions from one set to another should equal the record-set notation over the same domains.
+
+### Correctness Properties
+
+1. Functions that represent the same mathematical mapping must compare as equal, regardless of syntactic construction method.
+
+2. Functions with different structures (e.g., a flat two-argument function vs. a curried/nested function) must compare as unequal, even if they produce the same values when fully applied.
+
+3. Nested EXCEPT operations must correctly compute the resulting function.
+
+4. The `@` notation in EXCEPT expressions must correctly reference the current value being modified.
+
+### Expected Behavior
+
+Each test case should pass silently (or print confirmation) when equality behaves correctly, and should halt with an assertion failure if the tool's equality semantics are incorrect.

@@ -1,0 +1,45 @@
+# Specification Request: Sequential Bounded Model Checker
+
+## System Overview
+
+I need a formal specification of a sequential bounded model checker that explores system executions up to a fixed depth limit. The model checker works symbolically, accumulating constraints that represent sets of possible executions rather than enumerating concrete states individually.
+
+## Core Functionality
+
+The model checker should:
+
+1. **Initialize** by processing an initial state specification and immediately checking whether any initial state violates the target invariant.
+
+2. **Iteratively explore** the state space depth by depth, up to a configurable maximum depth bound.
+
+3. **Track enabled transitions**: At each depth level, determine which transitions (from a finite set of possible transitions) can extend the current set of reachable executions. The checker should be able to prune transitions that are provably disabled given the accumulated constraints.
+
+4. **Check for invariant violations**: After determining enabled transitions at each depth, check whether any of them could lead to a state that violates the invariant being verified.
+
+5. **Accumulate execution prefixes**: Rather than tracking individual states, maintain a representation of all possible execution prefixes explored so far (as sets of transitions enabled at each depth level).
+
+6. **Terminate** with one of several outcomes:
+   - An error/counterexample is found (invariant violation detected)
+   - The maximum depth is reached without finding violations
+   - A deadlock is detected (no transitions are enabled)
+
+## Key Abstractions
+
+The specification should abstract over the actual constraint solving mechanism. The core idea is that the checker queries whether certain executions are possible and whether they lead to bad states, without specifying how those queries are resolved.
+
+Transitions should be modeled abstractly (e.g., as identifiers), with the notion of "bad executions" represented as a known set of transition sequences that lead to invariant violations.
+
+## Correctness Properties
+
+The specification should allow verification of:
+
+1. **Error detection correctness**: If the checker reports an error, there must actually exist a reachable execution that violates the invariant.
+
+2. **Deadlock detection**: The checker should correctly identify when no forward progress is possible.
+
+3. **Bounded completeness**: If no error is reported after exploring to the maximum depth, no invariant-violating execution exists within that bound.
+
+## Parameters
+
+- The number of transitions that partition the system's next-state relation
+- The maximum exploration depth bound

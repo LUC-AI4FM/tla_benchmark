@@ -1,0 +1,39 @@
+# Specification Request: Distributed Transaction System
+
+## System Overview
+
+I need a formal specification for a distributed transaction system that supports multiple concurrent clients performing transactions across a set of shared keys. The system should model a realistic distributed database transaction protocol.
+
+## Core Requirements
+
+### Transaction Model
+- Multiple clients can initiate transactions concurrently
+- Each client's transaction involves reading from some keys and writing to other keys
+- Each transaction designates one key as its "primary" key (likely for coordination purposes, similar to a primary lock in two-phase commit protocols)
+
+### Client Types
+The system must support two distinct transaction modes:
+- **Pessimistic clients**: These acquire locks eagerly before performing operations
+- **Optimistic clients**: These proceed without early locking and handle conflicts later (possibly through validation or retry)
+
+### Transaction Operations
+- Clients should be able to read specified keys
+- Clients should be able to write to specified keys
+- The protocol should handle the coordination between reads, writes, and commits
+
+## Correctness Properties
+
+The specification should guarantee:
+
+1. **Transaction Isolation**: Concurrent transactions should not interfere with each other in ways that violate consistency
+2. **No Lost Updates**: Writes from committed transactions must be durable and visible
+3. **Conflict Resolution**: When pessimistic and optimistic clients contend for the same keys, the system must resolve conflicts correctly
+4. **Atomicity**: Each transaction either fully commits or fully aborts—partial results should not be visible
+
+## Test Configuration
+
+For verification purposes, model a small instance with:
+- Two keys in the system
+- Three clients: two using pessimistic mode and one using optimistic mode
+- Varying read/write sets per client to exercise different contention scenarios
+- Different primary key assignments to test the coordination protocol under various conditions

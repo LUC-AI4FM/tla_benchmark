@@ -1,0 +1,67 @@
+# Specification Request: Raft Consensus Protocol with Client Sessions
+
+## System Overview
+
+I need a formal specification of a distributed consensus system based on the Raft protocol, extended with client session management. The system consists of a cluster of servers that must replicate a log of commands while tolerating failures, and must also manage client sessions for tracking client interactions.
+
+## Core Requirements
+
+### Leader Election
+
+The system must implement a leader election mechanism where:
+- Servers operate in one of three roles: follower, candidate, or leader
+- Elections use a term-based system where terms increase monotonically
+- A candidate must receive votes from a majority (quorum) of servers to become leader
+- Servers can only vote once per term
+- A pre-voting phase should be supported where followers can poll other servers before initiating a full election (to avoid disrupting the cluster unnecessarily)
+- Servers with more up-to-date logs should be preferred during voting
+
+### Log Replication
+
+The leader must replicate log entries to followers such that:
+- Only the leader accepts new entries and appends them to its log
+- The leader sends entries to followers and tracks their progress
+- Entries are committed only when replicated to a majority of servers
+- Followers must maintain log consistency with the leader, resolving conflicts by truncating divergent entries
+- The commit index advances only for entries from the current term
+
+### Server Recovery
+
+Servers may crash and restart:
+- Upon restart, a server retains its term, vote, and log (durable state)
+- Volatile state (role, replication progress, commit index) is reset
+- The server reverts to follower state
+
+### Client Session Management
+
+The system must support client sessions:
+- Clients can open sessions, which are recorded as log entries
+- Clients can close sessions
+- Clients can submit commands associated with their session
+- Session operations must be consistently replicated like any other log entry
+- Responses are sent to clients when session operations are applied
+
+### Message Handling
+
+The system communicates via messages that may be reordered or duplicated (but not corrupted):
+- Servers update their term when receiving messages with higher terms
+- Stale responses (from old terms) are ignored
+- All message types must be handled appropriately based on sender/receiver roles
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Election Safety**: At most one leader can be elected per term
+
+2. **Log Matching**: If two logs contain an entry with the same index and term, all preceding entries are identical
+
+3. **Leader Completeness**: If an entry is committed in a given term, it will be present in the logs of all leaders for higher terms
+
+4. **State Machine Safety**: If a server has applied a log entry at a given index, no other server will apply a different entry at that index
+
+5. **Session Consistency**: Session state (open/closed) must be consistent across all servers after applying the same log prefix
+
+## Scope
+
+The specification should model a fixed set of servers with asynchronous message passing. It should capture all possible interleavings of server actions and message deliveries to verify safety properties hold in all scenarios.

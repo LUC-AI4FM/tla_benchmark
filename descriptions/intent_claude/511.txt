@@ -1,0 +1,40 @@
+# Specification Request: Distributed Breadth-First Search Tree Construction
+
+## System Overview
+
+I need a formal specification for a distributed algorithm that constructs a breadth-first search (BFS) spanning tree from a designated root node across a network of interconnected nodes. The algorithm should work in a message-passing environment where nodes communicate asynchronously with their neighbors.
+
+## System Description
+
+The system consists of:
+- A network of nodes with a known neighborhood/connectivity structure
+- One distinguished root node that initiates the tree construction
+- Message queues between neighboring nodes for asynchronous communication
+
+The algorithm should enable each node to:
+1. Discover its shortest-path distance from the root
+2. Establish a parent pointer toward the root, forming a spanning tree
+
+## Functional Requirements
+
+1. The root node initiates the algorithm by sending messages to its neighbors
+2. Nodes propagate distance information through the network via messages to neighbors
+3. Each node maintains its current known depth (distance from root) and a parent reference
+4. Messages carry depth information to help receiving nodes determine their position in the tree
+5. The algorithm should eventually terminate with all message queues empty
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: All variables remain within their expected domains throughout execution (depths are bounded non-negative integers, parent pointers reference valid nodes, messages contain valid depth values)
+
+2. **Message Validity**: Messages in transit should carry depth values that are consistent with the current state (specifically, messages should not carry outdated/smaller depth values than the recipient's current depth)
+
+3. **Termination**: The algorithm must eventually reach a state where all message queues are empty
+
+4. **BFS Correctness**: Upon termination, the parent pointers must form a valid BFS tree - meaning that for every node, following the parent pointers to the root traces a shortest path. Equivalently, each node's recorded depth must equal its actual graph distance from the root.
+
+## Additional Context
+
+The network topology is fixed and known. The algorithm should work for arbitrary connected graphs, not just trees. The specification should be parameterized to allow model checking with different network sizes and topologies.

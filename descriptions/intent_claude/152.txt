@@ -1,0 +1,32 @@
+# Specification Request: Delayed State Tracking System
+
+## System Overview
+
+I need a formal specification for a simple state tracking system that maintains a history of recent values. The system should track a primary value along with its two most recent previous values, creating a sliding window of the last three states.
+
+## System Behavior
+
+The system should:
+
+1. **Initialize** with a primary value chosen from a bounded non-negative integer range, while the historical values start in a distinguished "unset" state (represented by values outside the normal range)
+
+2. **Evolve** by selecting new primary values from the valid range while shifting the current value into the "previous value" slot and the previous value into the "older previous value" slot
+
+This creates a delay chain where any value that appears as the primary value will, after two transitions, appear in the oldest historical slot.
+
+## Purpose
+
+The primary purpose of this specification is to explore and test temporal properties involving **delayed causality**—specifically, properties where a condition in the current state should eventually lead to an observable effect, but that effect only becomes visible after multiple state transitions due to the propagation delay through the history chain.
+
+## Key Correctness Properties
+
+The specification should be suitable for verifying:
+
+1. **Delayed propagation property**: If the primary value equals some target value, then eventually (after sufficient transitions) the oldest historical value should also equal that same target value
+
+2. **Testing counterexample structure**: The specification should be useful for validating model checker behavior when counterexamples require a non-trivial prefix before entering a loop—specifically, cases where the system needs several steps before the historical slots are fully "warmed up" with valid values from the tracked range
+
+## Constraints
+
+- The primary value should be bounded to a reasonable finite range for model checking (e.g., 0 to 50)
+- The history tracking should be deterministic given the sequence of primary values

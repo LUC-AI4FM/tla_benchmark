@@ -1,0 +1,9 @@
+This TLA+ module specifies the Yo-Yo leader election algorithm with pruning, designed for distributed systems operating on undirected connected graphs.
+
+The algorithm elects a leader among nodes identified by unique integers. It proceeds in alternating "down" and "up" phases. During the down phase, source nodes (those with no incoming edges) broadcast their identity, while other nodes forward the minimum value received from incoming neighbors to outgoing neighbors. During the up phase, nodes send replies indicating whether they received the minimum value ("yes" or "no"), and the graph is progressively pruned.
+
+The constants define the graph structure: Nodes (a set of integers) and Edges. Variables track each node's activation status, current phase, incoming and outgoing neighbor sets, and message mailbox.
+
+Pruning occurs through two rules: sink nodes with a single neighbor become inactive after replying, and nodes receiving the same value from multiple neighbors keep only one path, pruning redundant edges. Messages include a prune flag indicating whether the receiver should remove the corresponding link.
+
+The specification uses weak fairness on all actions to ensure progress. Key properties verified include: TypeOK (type correctness), NeighborInv (consistency of neighbor relationships), Liveness (eventual termination where the minimum-identity node becomes the isolated leader), and FinishIffTerminated (deadlock occurs exactly when termination is achieved). The MoreThanOneSource predicate helps generate counterexample traces showing source elimination.

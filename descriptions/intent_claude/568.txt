@@ -1,0 +1,42 @@
+# Specification Request: Configurable Network Message Delivery Semantics
+
+## System Overview
+
+I need a formal specification of a network communication layer that can model different message delivery guarantees between distributed servers. The system should be parameterizable so that the same specification can be used to explore how a distributed protocol behaves under various network assumptions.
+
+## Core Requirements
+
+The network layer must support communication between a set of servers, where each server can send messages to any other server. Messages should have at minimum a source and destination field.
+
+## Delivery Guarantee Modes
+
+The specification must support four distinct network behavior modes, selectable at model-checking time:
+
+1. **Ordered with no duplicates**: Messages between any two servers are delivered in the order they were sent, and each message is delivered at most once.
+
+2. **Ordered with duplicates**: Messages are delivered in order, but the same message may be delivered multiple times.
+
+3. **Unordered with no duplicates**: Messages may arrive in any order relative to when they were sent, but each distinct message appears at most once.
+
+4. **Unordered with duplicates**: Messages may arrive in any order and may be duplicated arbitrarily (modeling a bag/multiset of in-flight messages).
+
+## Required Operations
+
+The specification should provide:
+
+- **Initialization**: Set up the network state appropriately for the chosen delivery mode
+- **Send**: Add a message to the network (respecting the semantics of the chosen mode)
+- **Receive/Remove**: Remove a message from the network when a server processes it
+- **Query pending messages**: Determine what messages are currently in transit, optionally filtered by source and destination
+- **Message loss**: Model the ability for messages to be dropped/lost, consistent with the delivery guarantees
+
+## Key Properties
+
+- The operations must correctly enforce the selected delivery guarantee
+- For ordered modes, point-to-point ordering must be maintained (messages from A to B arrive at B in the order A sent them)
+- For no-duplicate modes, receiving a message must remove it from the network
+- For duplicate modes, multiple copies of the same message must be trackable
+
+## Usage Context
+
+This network model is intended to be imported into other specifications of distributed algorithms, allowing the same algorithm to be verified under different network assumptions without rewriting the core protocol logic.

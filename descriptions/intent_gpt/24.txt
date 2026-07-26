@@ -1,0 +1,12 @@
+Specify a model of a bounded symbolic model-checking procedure that explores all executions of a transition system up to a fixed maximum length. The model should treat the transition relation as partitioned into a finite set of named transitions and, at every depth k (1..MAX_DEPTH), record which transitions are considered for extension of the symbolic frontier. The checker must repeatedly query an SMT-like oracle about satisfiability of the constraints induced by the current frontier: the oracle responds "sat" if it can witness a concrete execution (sequence of transitions) in the set represented by the frontier that violates a given safety property, and "unsat" otherwise.
+
+The model should support:
+- initialization that encodes initial transitions into the frontier and immediately detects an initial invariant violation if present;
+- an exploration step that (nondeterministically) selects any subset of transitions to attempt to extend the frontier at the current depth, asks the oracle whether any extension yields a violation, and either reports a counterexample and halts in an error state, or updates the frontier and increments depth;
+- detection of deadlock when no transitions are selectable for extension at a depth;
+- termination when a counterexample is found, when a deadlock occurs, or when the maximum depth is reached without finding a violation.
+
+Specify key correctness properties to be checked:
+- safety preservation: the checker should not reach an error state unless the oracle legitimately reports a violating execution;
+- completeness up to the bound: if there exists any concrete violating execution whose length is ≤ MAX_DEPTH, the model must allow the checker to reach the error state;
+- proper termination: the checker eventually stops in one of the terminal states (found error, no-error at bound, or deadlock).

@@ -1,0 +1,36 @@
+Specify a formal model for the **light client verification protocol** used in a blockchain system (such as Tendermint), focusing on how a light client validates block headers without downloading the full blockchain.
+
+## System Description
+
+The system models a light client that synchronizes with a blockchain by fetching and verifying block headers from a peer. The light client maintains a local clock and a store of fetched light blocks, each tagged with a verification status. Starting from an already-trusted block header, the client attempts to verify headers up to some target height by checking cryptographic commit signatures and validator set overlap.
+
+## Key Requirements
+
+1. **Trusting Period Enforcement**: Block headers are only considered trustworthy if they fall within a defined trusting period relative to the light client's local clock. Clock drift (both assumed and actual) must be accounted for when determining whether a header is still within this window.
+
+2. **Validator Set Verification**: 
+   - Commits on an untrusted block must come from validators in that block's validator set
+   - More than two-thirds of the validator set must have signed the block
+   - When verifying a non-adjacent block, at least one-third of the trusted block's next validator set must have signed the untrusted block
+
+3. **Sequential Consistency**: For consecutive blocks (height difference of 1), the trusted block's declared next validator set must match the untrusted block's current validator set.
+
+4. **Time Monotonicity**: Untrusted headers must have timestamps strictly later than trusted headers, and headers should not claim to be from the future (accounting for clock drift).
+
+5. **Verification Outcomes**: The verification process should distinguish between:
+   - Success (block is valid and sufficiently signed)
+   - Invalid (structural or timing violations)
+   - Insufficient trust (valid structure but not enough validator overlap)
+   - Trusting period expired
+
+## Correctness Properties
+
+1. **Correctness Invariant**: Every header marked as verified in the light store must exactly match the corresponding header in the actual blockchain (assuming the peer is honest).
+
+2. **No Failed Blocks on Success**: If verification succeeds, no blocks in the store should be marked as failed.
+
+3. **Light Store Consistency**: For any two verified headers in the store, there must either be an intermediate verified header between them, or it must be possible to verify the later one directly from the earlier one.
+
+4. **Termination Guarantee**: If the peer is correct and the trusted block is within the trusting period, verification to the target should succeed.
+
+The model should parameterize the trusting period duration, clock drift bounds, and the threshold ratio for faulty validators (typically less than one-third for Byzantine fault tolerance).

@@ -1,0 +1,44 @@
+# Specification Request: Light Client Protocol with Byzantine Fault Tolerance
+
+## System Overview
+
+I need a formal specification for a **blockchain light client verification protocol** that can securely synchronize block headers from a potentially Byzantine blockchain network.
+
+## System Description
+
+The system models a light client that needs to verify blockchain blocks without downloading the full chain. The light client:
+
+1. Starts from a **trusted block** at a known height and must reach a **target block** at a higher height
+2. Fetches light blocks (block headers with validator signatures) from a primary node
+3. Verifies the authenticity of blocks using validator set information and cryptographic proofs
+4. Must handle the possibility that the primary node providing blocks may be **faulty or malicious**
+
+## Key System Parameters
+
+- A fixed set of validator nodes participating in consensus
+- A **trusting period** during which validator signatures remain valid (representing real-world unbonding periods)
+- **Clock drift** considerations - both the assumed maximum drift and actual drift of the local clock relative to real time
+- A **Byzantine fault threshold** - the system assumes fewer than 1/3 of validators are faulty
+
+## Functional Requirements
+
+1. The light client must be able to skip intermediate blocks (not verify every single block) while still maintaining security
+2. The protocol must track which blocks have been fetched and their verification status
+3. The system must model the passage of time, including both a reference clock (real time) and the light client's local clock
+4. The specification should capture the state of the blockchain itself as a reference for correctness
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Safety**: The light client should never accept a block that contradicts the actual blockchain, even when the primary is malicious (given the <1/3 Byzantine assumption holds)
+2. **Consistency with Trusting Period**: Verification decisions must respect the trusting period - blocks signed too far in the past should not be blindly trusted
+3. **Progress Monitoring**: Track the number of verification attempts/probes to analyze efficiency
+
+## Adversarial Model
+
+- The primary node serving blocks can be either correct or faulty (configurable)
+- Faulty validators can behave arbitrarily but are bounded by the fault ratio
+- Clock drift represents realistic network timing assumptions
+
+The goal is to verify that the light client protocol remains safe under these Byzantine conditions while making progress toward the target height.

@@ -1,0 +1,7 @@
+This TLA+ module provides a machine-checked proof that the internal memory specification preserves its type invariant. The module extends the InternalMemory specification and uses the TLA+ Proof System (TLAPS) to formally verify correctness.
+
+The specification models a memory system where processes interact through request-response cycles. Each process has a control state (ready, busy, or done) and a buffer that holds either memory requests or response values.
+
+The key insight is that the basic type invariant alone is not inductive—meaning it cannot be proved preserved by examining single transitions. The Do action accesses fields of the buffer assuming it contains a memory request, which is only valid when the control state is "busy." To address this, the module introduces BufConsistent, a strengthening predicate that relates each process's control state to the appropriate type of its buffer: when ready or done, the buffer holds a value or NoVal; when busy, it holds a memory request.
+
+The combined invariant Inv conjoins TypeInvariant with BufConsistent. The proof proceeds by showing Inv holds initially and is preserved by all transitions: Req, Do, Rsp, and stuttering steps. The Do case is the most intricate, requiring analysis of read versus write operations to verify memory and buffer typing. The final theorem establishes that the original type invariant holds throughout any behavior satisfying the internal specification.

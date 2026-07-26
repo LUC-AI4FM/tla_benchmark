@@ -1,0 +1,11 @@
+This TLA+ module provides infrastructure for serializing and deserializing TLC model checker traces, primarily for debugging and trace replay purposes.
+
+The module defines utilities to capture counterexamples found during model checking and save them to files, as well as reload and replay those traces later. It relies heavily on Java module overrides for the actual serialization and deserialization operations.
+
+Two constants parameterize the module: `_TLCTraceFile` specifies the output filename for writing counterexamples, and `_TLCTraceInputFile` specifies the input filename when loading traces.
+
+The main operator `_TLCTrace` serializes a counterexample when one exists, writing both the counterexample data and the set of variable names to the specified file. A verbose variant prints confirmation; a silent variant suppresses output.
+
+For trace replay, the module provides `_TLCTraceConstraint`, which constrains state exploration to follow a previously recorded trace by ensuring each level's state matches the corresponding state in the deserialized trace. It handles partial variable matching, allowing replay with specifications that have different variable sets than the original.
+
+The module includes special handling for liveness counterexamples, which contain lasso structures. The `_TLCTraceLassoTarget` operator identifies the closing edge of such lassos, and `_TLCTraceView` provides an appropriate view definition that enables proper cycle detection during replay by mapping states beyond the trace to the lasso target.

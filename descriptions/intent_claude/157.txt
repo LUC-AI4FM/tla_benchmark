@@ -1,0 +1,39 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System Overview
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol**, a distributed transaction protocol used to achieve atomic commitment across multiple resource managers coordinated by a single transaction manager.
+
+## System Description
+
+The system consists of:
+- A **transaction manager (TM)** that coordinates the commit/abort decision
+- Multiple **resource managers (RMs)** that participate in the distributed transaction
+
+The protocol operates in two phases:
+1. **Prepare phase**: The transaction manager asks all resource managers whether they are ready to commit. Each resource manager responds with either a "prepared" vote (willing to commit) or aborts unilaterally.
+2. **Commit/Abort phase**: Based on the responses, the transaction manager decides to either commit (if all RMs prepared) or abort (if any RM cannot prepare), and broadcasts this decision to all participants.
+
+## Functional Requirements
+
+- Resource managers should be able to independently decide to abort at any time before committing
+- Resource managers must prepare (vote "yes") before they can commit
+- The transaction manager must collect "prepared" messages from all resource managers before deciding to commit
+- Once the transaction manager decides to commit or abort, it broadcasts this decision
+- Resource managers that have prepared must wait for the transaction manager's decision before finalizing
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Consistency (Agreement)**: It must never be the case that one resource manager commits while another aborts. All participants must reach the same final decision.
+
+2. **Validity**: 
+   - A commit can only happen if all resource managers were prepared to commit
+   - An abort can happen if any resource manager was unable or unwilling to commit
+
+3. **Safety with respect to state transitions**: Resource managers and the transaction manager must follow valid state transition rules (e.g., cannot commit without first preparing, cannot change decision once committed/aborted)
+
+## Scalability Consideration
+
+The specification should be parameterized by the set of resource managers, allowing verification with different numbers of participants (the example configuration uses 50 resource managers to stress-test the protocol).

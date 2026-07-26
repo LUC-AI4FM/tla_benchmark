@@ -1,0 +1,37 @@
+# Specification Request: Internal Memory System
+
+## System Overview
+
+I need a formal specification of an internal memory system that models how multiple processors interact with a shared memory through a request-response protocol. This represents the internal workings of a memory subsystem where processors can read from and write to memory addresses.
+
+## System Description
+
+The system consists of:
+- A set of processors that can issue memory operations
+- A shared memory that maps addresses to values
+- A communication mechanism between processors and the memory subsystem
+
+Each processor follows a protocol to interact with memory:
+1. A processor initiates a memory request (either a read or write operation targeting a specific address)
+2. The memory system processes the request by either retrieving the value at an address or updating memory with a new value
+3. The processor receives a response completing the operation
+
+## Behavioral Requirements
+
+The system must model:
+- **Read operations**: A processor requests to read a value from a given memory address, and receives the current value stored there
+- **Write operations**: A processor requests to write a specific value to a given memory address, and the memory is updated accordingly
+- **Sequential processor behavior**: Each processor must complete one memory operation before starting another (request, then processing, then response, then ready for next request)
+
+## Correctness Properties
+
+The specification must guarantee **type correctness** throughout all executions:
+
+1. **Memory integrity**: The shared memory must always be a valid mapping from addresses to values
+2. **Protocol state consistency**: Each processor's control state must always be one of the valid protocol phases
+3. **Buffer coherence**: The data buffer for each processor must contain appropriate content based on the current protocol phase:
+   - When ready for a new request: may hold a return value or be empty
+   - When a request is pending: must hold a well-formed memory request
+   - When processing is complete: must hold a return value or be empty
+
+The key challenge is that type safety depends on protocol state—certain data accesses are only meaningful when the processor is in the correct phase. The specification should ensure these consistency conditions are maintained as an invariant.

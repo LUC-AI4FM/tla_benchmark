@@ -1,0 +1,47 @@
+# Specification Request: Task Lifecycle Management System
+
+## System Overview
+
+I need a formal specification for a distributed task management system that tracks tasks through their complete lifecycle, from creation to completion or removal. The system models how tasks are processed by multiple independent components, each responsible for different phases of a task's life.
+
+## System Description
+
+The system manages a collection of tasks, where each task belongs to a service and has an assigned slot (which may be a specific node, a generic slot, or global). Tasks progress through various states as different system components act on them.
+
+The system has four distinct components that can modify task state:
+
+1. **Orchestrator**: Creates new tasks and introduces them into the system
+2. **Allocator**: Handles initial resource allocation for newly created tasks
+3. **Scheduler**: Assigns allocated tasks to specific execution locations
+4. **Agent**: Manages the actual execution lifecycle, including preparation, startup, running, and various terminal states (completion, failure, rejection, or orphaning)
+5. **Reaper**: Removes tasks that have reached terminal states or need cleanup
+
+## Task State Progression
+
+Tasks should flow through states representing their lifecycle:
+- Initial creation and allocation phases
+- Scheduling and assignment
+- Execution preparation and startup
+- Active running
+- Terminal states including successful completion, failure, explicit shutdown, rejection (at various stages), or becoming orphaned
+
+## Key Requirements
+
+### Task Identity Preservation
+When a task is updated, its fundamental identity must remain unchanged. Specifically, the task ID, the service it belongs to, and its assigned slot must never be modified during state transitions.
+
+### State Transition Ownership
+Each state should have exactly one component responsible for transitioning tasks out of that state, with limited exceptions for cleanup scenarios. This prevents conflicts and ensures clear responsibility.
+
+### Monotonic State Progression
+Task states should generally progress forward through the lifecycle—transitions should not move tasks backward to earlier states in the normal flow.
+
+### Type Safety
+The system should maintain that the task collection always contains valid task records with properly structured fields.
+
+## Correctness Properties
+
+1. **Single Responsibility**: At most one component should be able to act on a task in any given state (with explicit exceptions for cleanup)
+2. **Identity Immutability**: Task identity fields remain constant throughout all state transitions
+3. **Valid Updates**: Only tasks that actually exist in the system can be updated
+4. **Forward Progress**: State transitions respect a defined ordering, preventing tasks from regressing to earlier lifecycle stages

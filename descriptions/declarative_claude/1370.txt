@@ -1,0 +1,9 @@
+This module specifies a distributed algorithm for computing a minimum spanning tree (or more precisely, a breadth-first spanning tree with correct distances) in an undirected graph rooted at a designated node.
+
+The system models a fixed graph with six nodes and six edges forming a connected topology. Constants define the node identifiers, with one designated as the root. The graph structure is encoded through an explicit edge set, and helper functions compute neighbors and reachability.
+
+Four variables track the algorithm state: **msgs** holds message queues between adjacent nodes (directed pairs), **depth** records each node's current believed distance from the root, **parent** stores each node's current parent in the spanning tree, and **acked** tracks acknowledgment status for neighbors.
+
+Initially, the root broadcasts depth zero to its neighbors while all other nodes start with maximum depth and themselves as parent. The algorithm proceeds as each node process repeatedly checks incoming message queues. When a node receives a depth value smaller than its current depth minus one, it updates its depth, sets the sender as its parent, and propagates its new depth to other neighbors. Otherwise, it simply consumes the message and potentially marks acknowledgment.
+
+The specification includes fair weak fairness for all node processes. The **TypeOK** invariant constrains variable domains. **Correctness** asserts that upon termination (all queues empty), every node's depth equals its true distance from the root, and non-root nodes have parents one level closer to the root. The liveness property **Prop** asserts eventual termination.

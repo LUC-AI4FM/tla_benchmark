@@ -1,0 +1,47 @@
+# Specification Request: Block DAG Linearization
+
+## System Overview
+
+I need a formal specification for a **block-based directed acyclic graph (DAG) consensus structure** where multiple nodes produce blocks across successive rounds, and the system must be able to linearize (totally order) the blocks in a deterministic way.
+
+## System Description
+
+The system consists of:
+
+- A fixed set of **nodes** (participants) that produce blocks
+- A sequence of **rounds**, where each round has a designated **leader node**
+- Blocks are identified by which node created them and in which round
+- A special **genesis block** serves as the common starting point
+- Blocks reference earlier blocks, forming a DAG structure where edges represent dependencies
+
+## Core Requirements
+
+### Block Structure
+- Each block should be associated with a specific node and round number
+- There must be a way to identify which block is the "leader block" for any given round (the block produced by that round's designated leader)
+- A genesis block must exist as the root of the DAG
+
+### DAG Structure
+- The DAG consists of vertices (blocks) and directed edges (references from newer blocks to older blocks)
+- Blocks can reference multiple previous blocks, not just one
+
+### Leader Chain Navigation
+- Given any round, the system must be able to find the previous round's leader block by traversing backwards through the DAG
+- For the first round, there is no previous leader (base case)
+
+### Linearization
+- The system must provide a **deterministic linearization** of blocks reachable from any given block
+- The linearization must respect the leader structure: leader blocks from earlier rounds should appear before leader blocks from later rounds
+- Non-leader blocks between two leader blocks should be included in a deterministic order
+- The same set of blocks must always produce the same linearized sequence
+
+## Key Correctness Properties
+
+1. **Determinism**: Given the same DAG and starting block, linearization always produces the identical sequence
+2. **Completeness**: All blocks reachable from a given block appear exactly once in the linearization
+3. **Leader Ordering**: Leader blocks appear in round order within the linearized sequence
+4. **Consistency**: The ordering of any subset of blocks is consistent across different linearizations that include them
+
+## Purpose
+
+This specification should serve as the foundation for reasoning about DAG-based consensus protocols where blocks must eventually be totally ordered despite being produced concurrently by multiple participants.

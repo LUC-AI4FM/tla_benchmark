@@ -1,0 +1,36 @@
+# Specification Request: TLA+ Counterexample Trace Serialization and Replay
+
+## System Overview
+
+I need a utility system for the TLA+ model checker (TLC) that enables saving counterexample traces to files and replaying them later. This supports debugging workflows where a violation is found, saved, and then re-examined or reproduced in subsequent model-checking sessions.
+
+## Core Functionality
+
+### Trace Serialization
+When TLC discovers a counterexample (a trace demonstrating a property violation), the system should serialize this trace to a specified file. The serialization should capture:
+- The complete counterexample structure
+- The set of variable names involved in the trace
+
+The system should handle cases where no counterexample exists or where console output is suppressed, doing nothing in those situations. There should be both verbose and silent modes for serialization, with the verbose mode confirming the file was written.
+
+### Trace Deserialization and Replay
+The system must support loading a previously saved counterexample trace and replaying it during model checking. This replay mechanism should:
+
+1. **Constrain state exploration** to follow the saved trace, ensuring each state at a given level matches the corresponding state in the loaded trace.
+
+2. **Support partial variable matching** — when replaying a trace, only check variables that exist in both the saved trace and the current specification. This enables trace replay even when the specification has been modified to add, remove, or rename variables.
+
+3. **Handle liveness counterexamples** — liveness violations produce traces with a "lasso" structure (a prefix followed by a cycle). The system must detect the back-edge that closes the lasso and correctly map states beyond the saved trace length back to the lasso target, allowing the cycle to be verified.
+
+## Key Correctness Properties
+
+1. **Fidelity**: When replaying a trace, every state at each level must match the corresponding saved state for all shared variables.
+
+2. **Lasso Detection**: For liveness traces, the system must correctly identify the unique closing edge where the target level is less than or equal to the source level.
+
+3. **Graceful Degradation**: The system should work correctly when:
+   - The current specification has different variables than the original
+   - The trace level requested doesn't exist in the saved trace (vacuously satisfied)
+   - No counterexample exists to serialize
+
+4. **State Identity**: During replay, states must be distinguished by their level in the trace to prevent the model checker from collapsing states that are identical but occur at different points in the counterexample.

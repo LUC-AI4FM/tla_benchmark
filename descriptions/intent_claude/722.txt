@@ -1,0 +1,51 @@
+# Specification Request: JSON Serialization Library for TLA+
+
+## System Overview
+
+I need a formal specification for a JSON serialization and deserialization library that allows TLA+ values to be converted to JSON strings and stored to/loaded from files. This library should enable interoperability between TLA+ specifications and external systems that use JSON as a data format.
+
+## Functional Requirements
+
+### JSON String Conversion
+
+The system must provide operations to convert TLA+ values into their JSON string representations:
+
+1. **Primitive value conversion**: Booleans, integers, strings, and model values must serialize to appropriate JSON primitives (e.g., `FALSE` → `"false"`, integers as numeric literals, strings as quoted strings).
+
+2. **Collection conversion to arrays**: Sets, sequences, function mappings, Cartesian products, powersets, and integer ranges must all be convertible to JSON array format. Sets should produce sorted output for determinism.
+
+3. **Record conversion to objects**: TLA+ records and functions with appropriate domains must convert to JSON object format with string keys and properly serialized values.
+
+4. **Nested structure handling**: The conversion must correctly handle arbitrarily nested combinations of records, sequences, and other structures.
+
+### File Operations
+
+The system must support two serialization formats:
+
+1. **Standard JSON format**: Serialize a sequence or record to a single JSON document in a file, and deserialize it back.
+
+2. **Newline-delimited JSON (ndjson) format**: Serialize a sequence where each element becomes a separate JSON line, and deserialize such files back (including handling trailing whitespace and empty lines).
+
+## Correctness Properties
+
+### Round-trip Integrity
+
+For any TLA+ value that can be represented in JSON (excluding sets, which have no JSON equivalent):
+- Serializing a value to a file and then deserializing it must return an equivalent value
+- This must hold for complex nested structures including records, sequences, integers, and strings
+
+### Deterministic Output
+
+- Converting the same TLA+ value to JSON must always produce the same string
+- Set elements should appear in a consistent sorted order
+
+### Type Safety
+
+The operations must reject invalid inputs with clear error messages:
+- Standard JSON serialization must only accept sequences or records as top-level values
+- Newline-delimited serialization must only accept sequences
+- Attempting to serialize other types (like bare sets or integers) at the top level must produce an error
+
+### Format Correctness
+
+Generated JSON must be valid according to JSON syntax rules, with proper escaping of strings, correct representation of booleans and numbers, and properly structured arrays and objects.

@@ -1,0 +1,7 @@
+This specification models the Bloemen-Laarman-van de Pol multi-core on-the-fly algorithm for computing strongly connected components (SCCs) in a directed graph. The algorithm uses a concurrent union-find data structure to allow multiple threads to collaboratively discover SCCs.
+
+The constants define the graph structure: Nodes, Edges (a subset of node pairs), and Threads representing parallel workers. The shared variables maintain the union-find state: ufStatus tracks whether each set is live or dead, parent implements the disjoint-set forest, workerSet records which threads are processing each set, and liveElements tracks unprocessed nodes per set.
+
+Each thread performs a modified Tarjan-style DFS traversal. When encountering a node, a thread makes a claim: if the node's set is dead, it skips it; if the thread already claimed it, a cycle is detected; otherwise, the thread claims it for exploration. When cycles are found, the unite procedure merges sets by updating parent pointers and combining worker sets and live elements. Threads maintain local recursion and root stacks to manage the DFS state and backtracking.
+
+The specification includes fair weak fairness on all thread actions. The temporal formula ensures the algorithm progresses. The key safety property Correct asserts that upon termination, the partition computed by the algorithm equals the true SCCs defined mathematically via mutual reachability. The liveness property Termination asserts all threads eventually complete.

@@ -1,0 +1,18 @@
+Specify a concurrent state-exploration test harness for a simple nondeterministic state machine and the test-suite bookkeeping that aggregates results across multiple workers. The system repeatedly increments a global counter in a persistent test registry while independently nondeterministically assigning two local variables values from a finite range. The harness must allow multiple independent worker processes to explore the state space in parallel and record per-worker observations into the registry so that the test-run controller can later verify aggregated statistics.
+
+Model the core state-transition system that:
+- Has an initial state with both local variables set to a known value.
+- Repeatedly performs a transition that (a) increases a registry entry representing a shared counter by one and (b) nondeterministically sets each local variable to an integer in a given finite range; transitions may be interleaved arbitrarily among workers.
+
+Model the registry and bookkeeping that:
+- Contains named entries for the shared counter, a static configuration parameter indicating the number of worker processes, and a slot for per-worker observed values for selected registry keys.
+- Records, for each worker, the value of the shared counter observed by that worker during exploration.
+- Provides a way to collect the set of distinct global states seen by all workers.
+
+Specify correctness properties that must hold at termination:
+- The registry contains entries for the shared counter and the static configuration.
+- The per-worker list for the shared counter has length equal to the configured number of workers.
+- The sum of the per-worker observed counter values equals the total number of distinct states recorded across workers.
+- The registry entry for a second named key remains set to a fixed value produced during setup.
+
+Do not constrain the scheduling beyond allowing arbitrary interleavings and multiple workers; focus on the observable aggregation properties and invariants of the registry.

@@ -1,0 +1,41 @@
+# Specification Request: TLA+ to PlusCal Source Mapping Structure
+
+## System Overview
+
+I need a formal specification for a data structure that represents the mapping between translated TLA+ code and its original PlusCal source code. This mapping enables tools to trace regions in the generated TLA+ specification back to corresponding regions in the PlusCal algorithm that produced them.
+
+## Core Concepts
+
+The system should model:
+
+1. **Source locations** in a text file, identified by line and column numbers, with a natural ordering (one location precedes another if it appears earlier in the file).
+
+2. **Regions** in source code, defined by a beginning and ending location, where the end must not precede the beginning.
+
+3. **A mapping specification** represented as a sequence of objects that describe how TLA+ text regions correspond to nested PlusCal code regions.
+
+## Structure Requirements
+
+The mapping sequence contains three types of elements:
+
+- **Tokens**: References to specific regions in the TLA+ specification that contain meaningful translated text (as opposed to whitespace or formatting).
+
+- **Parentheses (begin/end markers)**: Delimiters that define nested syntactic units in the PlusCal source. Each pair of matching markers identifies the smallest PlusCal construct (such as an expression or statement) whose translation contains the tokens between them.
+
+- **Breaks**: Markers indicating discontinuities in the PlusCal source—places where successive PlusCal regions are not adjacent in the original text (for example, code in a macro versus code in a procedure). Breaks carry a depth indicating how many nesting levels the discontinuity affects.
+
+## Correctness Properties
+
+A valid mapping specification must satisfy:
+
+1. **Well-formed nesting**: The sequence must begin and end with parenthesis markers, and all begin/end markers must be properly balanced and nested (parenthesis depth never goes negative and returns to zero at the end).
+
+2. **Token ordering**: TLA+ tokens must appear in the sequence in the same left-to-right order as their regions appear in the TLA+ file, with no overlapping regions.
+
+3. **Break placement**: Breaks may only appear between an end marker and a begin marker.
+
+4. **Location consistency**: Matching parenthesis pairs must have non-decreasing source locations, and top-level regions within any matched pair must be properly ordered in the PlusCal source.
+
+## Purpose
+
+This specification defines the valid structures for mapping data that enables bidirectional navigation between PlusCal source code and its TLA+ translation, supporting features like source-level debugging and error reporting.

@@ -1,0 +1,40 @@
+# Specification Request: Stuttering Step Instrumentation for TLA+ Specifications
+
+## System Overview
+
+I need a formal framework for augmenting an existing TLA+ specification with explicit stuttering steps. The goal is to transform any specification into an equivalent one where stuttering (steps that leave the original system state unchanged) is made visible and controllable through an auxiliary variable.
+
+## Purpose and Motivation
+
+In TLA+, specifications implicitly allow unlimited stuttering between any two "real" steps. For certain verification tasks—particularly refinement proofs and simulation relations—it is necessary to make these stuttering steps explicit and observable. This framework should allow me to instrument any action in a specification so that a configurable number of visible stuttering steps can occur either before or after the action executes.
+
+## Requirements
+
+### Core Functionality
+
+The framework must provide mechanisms to:
+
+1. **Add stuttering after an action**: Execute the original action, then perform a specified number of steps that leave the original variables unchanged before allowing the next action.
+
+2. **Add stuttering before an action**: When an action becomes enabled, perform a specified number of steps that leave the original variables unchanged, then execute the actual action.
+
+3. **Optional stuttering variants**: Support versions where stuttering steps may or may not occur (zero or more steps rather than one or more).
+
+### Configuration Parameters
+
+For each instrumented action, I need to specify:
+- An identifier distinguishing this action from others
+- A context value (e.g., which process or parameter values are involved when the action appears under quantifiers)
+- A well-founded ordering that determines how many stuttering steps occur (specified via a set of values, a minimum element, and a decrement function)
+
+### Correctness Properties
+
+1. **Termination of stuttering sequences**: Every sequence of stuttering steps must eventually complete. The framework should provide a way to verify that the countdown mechanism (the set, minimum, and decrement function) is well-founded—meaning repeated application of the decrement always reaches the minimum in finite steps.
+
+2. **Non-interference between actions**: When multiple actions can be instrumented, the stuttering steps for one action must not interfere with another. The context must be verified at each step to ensure only the correct action/process advances through its stuttering sequence.
+
+3. **Preservation of original behavior**: The projection of the instrumented specification onto the original variables should refine (or be equivalent to) the original specification.
+
+## Intended Use Case
+
+This framework is designed for use with specifications that have been decomposed into a disjunction of subactions (a common pattern in PlusCal-generated or structured TLA+ specifications). Each subaction can be individually wrapped with stuttering instrumentation while preserving the overall system behavior.

@@ -1,0 +1,32 @@
+# Specification Request: Markov Chain Probability Tracking
+
+## System Overview
+
+I need a formal specification for a probabilistic state machine (Markov chain) that tracks the cumulative probability of reaching each state as the system evolves. The model should simulate random walks through a directed graph where each edge has an associated transition probability.
+
+## What the System Should Do
+
+The system should model a Markov chain execution that:
+
+1. Starts in a designated initial state with probability 1 (certainty)
+2. At each step, non-deterministically chooses one of the available outgoing transitions from the current state
+3. Multiplies the current path probability by the probability of the chosen transition
+4. Continues until reaching one of several designated "accepting" or terminal states, or until the accumulated probability becomes negligible
+
+The specific Markov chain to model has a tree-like structure with some cycles: it begins at a root state, branches into two paths, each of which further branches, with some paths leading to cycles and others leading to six distinct terminal states.
+
+## Probability Arithmetic Requirements
+
+Since TLA+ works with integers, the specification needs a way to represent and compute with fractional probabilities. Use rational number arithmetic (numerator/denominator pairs) with multiplication of fractions, and provide a way to extract an integer approximation for comparison purposes. Use a scaling factor large enough to maintain precision across multiple probability multiplications.
+
+## Key Correctness Properties
+
+**Convergence (Liveness):** The system must eventually either:
+- Reach one of the accepting/terminal states, OR
+- Have its path probability reduce to effectively zero (representing probability mass that has "leaked" through the non-deterministic choices not taken)
+
+This property ensures that all executions terminate—the random walk cannot loop indefinitely with non-zero probability.
+
+## Fairness Requirements
+
+The specification should include weak fairness on transitions, ensuring that if the system can continue making progress, it eventually will. This is essential for proving the convergence property.

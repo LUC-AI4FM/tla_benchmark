@@ -1,0 +1,11 @@
+Model a client-facing sequencer that receives two kinds of messages from a replicated server system—responses (replies to client requests) and events (server-generated notifications)—and must deliver a single total ordered stream of outputs to the client that interleaves those responses and events in a consistent, causally meaningful way.
+
+The model should describe the logical entities: messages in transit (with possible duplication and loss), the server side that emits responses and periodic events with monotonic sequence/index numbers, and the client-side sequencer that accepts messages, buffers out-of-order arrivals, and emits an ordered sequence to the client. The system must tolerate message reordering, duplication, and drops, and must allow messages to be queued until their dependencies are met.
+
+Specify these requirements precisely as properties to be checked:
+- Safety: the delivered sequence must preserve the intended ordering constraints between responses and events: when a response and an event are adjacent in the delivered stream, their indices must reflect the causal rules (events carry the most recent response index they observe; responses carry a strictly increasing response index relative to prior responses and must appear after any earlier event they depend on).
+- No duplication: the same logical message must not be delivered twice in the ordered output.
+- Progress (liveness): if a particular message is sent and not lost indefinitely (i.e., some copy eventually arrives), then it is eventually either buffered or delivered; eventually, if all lower-indexed dependencies are satisfied, the message is delivered.
+- Buffering correctness: queued messages must be emitted exactly when their ordering constraints become satisfied and in a way that preserves the total order invariant.
+
+Do not prescribe internal variable names or algorithm steps; instead, state the system components, their inputs/outputs, the allowed network failures, and the formal safety and liveness properties the TLA+ specification must verify.

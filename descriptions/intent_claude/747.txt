@@ -1,0 +1,64 @@
+# Specification Request: Distributed Checkpoint Coordination Protocol
+
+## System Overview
+
+I need a formal specification for a checkpoint coordination protocol in a distributed replicated system. The system consists of a cluster of nodes that maintain replicated logs using a consensus protocol (like Paxos). The goal is to safely coordinate which node can take a checkpoint (snapshot) of the system state at any given time.
+
+## System Description
+
+The system operates in an environment where:
+- Nodes can fail and recover
+- Network links between nodes can fail independently in each direction and later recover
+- A leader node must be elected from among available nodes, requiring a majority quorum
+- Commands are replicated through a distributed log that all nodes maintain
+
+The checkpoint coordination mechanism must work on top of this consensus-based replication system. The leader is responsible for granting "checkpoint leases" to follower nodes, allowing exactly one node at a time to perform a checkpoint operation.
+
+## Functional Requirements
+
+1. **Leader Election**: When no leader exists and a node has connectivity to a majority of nodes, that node may become the leader. The leader must be fully caught up with the replicated log.
+
+2. **Checkpoint Lease Granting**: The leader grants checkpoint leases to follower nodes through replicated requests. A lease includes which node may checkpoint and the log position at which the lease was issued.
+
+3. **Lease Replacement**: A new lease may only be granted when:
+   - The current lease has timed out, OR
+   - The node holding the current lease has reported completion of its checkpoint
+
+4. **Checkpoint Execution**: A node holding a valid lease may begin taking a checkpoint. Upon completion, it reports this back to the leader.
+
+5. **Timeout Mechanism**: Leases expire based on a logical timeout counter that advances over time.
+
+6. **Node Recovery**: When a node recovers from failure, it must restore its state from the latest available checkpoint combined with its locally persisted log.
+
+## Safety Properties
+
+The specification must guarantee:
+
+1. **Mutual Exclusion**: At most one node may be authorized to take a checkpoint at any time. At most one node may be actively taking a checkpoint at any time.
+
+2. **Leader Cannot Checkpoint**: The current leader must never take a checkpoint itself.
+
+3. **Lease Consistency**: If the leader has no lease recorded, no node should believe it can take a checkpoint. If the leader has a lease recorded, only the designated node may checkpoint.
+
+4. **Valid Authorization**: A node may only checkpoint if it holds a valid (non-expired) lease designating itself.
+
+5. **Log Consistency**: The replicated logs across nodes must never contain conflicting values at the same index.
+
+## Liveness Properties
+
+Under fair scheduling assumptions:
+
+1. **Progress**: Eventually, some node will be able to take a checkpoint.
+
+2. **Checkpoint Initiation**: If a node can take a checkpoint, it will eventually either start taking one, fail, or have its lease expire.
+
+3. **Checkpoint Completion**: If a node is taking a checkpoint, it will eventually either complete, fail, or have its lease expire.
+
+4. **System Progress**: Eventually, a checkpoint will be successfully completed.
+
+## Environmental Assumptions
+
+- Nodes may fail at any time, losing volatile state
+- Network partitions may occur but will eventually heal
+- Node failures will eventually be followed by recovery
+- The system has a defined majority threshold for quorum

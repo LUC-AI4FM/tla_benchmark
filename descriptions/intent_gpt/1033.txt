@@ -1,0 +1,15 @@
+Specify a high-level model of a round-based leader-driven Byzantine fault-tolerant replication protocol that builds a directed acyclic graph (DAG) of proposals and uses quorum-based voting to decide and linearize committed proposals. The model should treat nodes partitioned into correct and Byzantine, and rounds numbered starting at 1 with a distinguished leader for each round. Correct nodes repeatedly participate in rounds by proposing a vertex that references a quorum of vertices from the previous round; correct proposals must reference only vertices from the immediately prior round. Byzantine nodes may also propose vertices but may not equivocate (a node cannot create two different vertices for the same round). Message delivery and proposal dissemination are abstracted: a proposal becomes visible to a node when that node includes it among a selected quorum of previous-round vertices.
+
+The specification must capture these requirements and correctness properties:
+
+- Safety (Agreement): All correct nodes must always produce compatible linearized logs — once a node has produced a log prefix, every other correct node’s log must be compatible with it (no two correct nodes produce conflicting committed sequences).
+
+- Validity of DAG structure: Every vertex must be attributed to a valid node and round; children of a vertex must belong to exactly the previous round; edges connect existing vertices.
+
+- Quorum and blocking semantics: Define quorums and blocking sets abstractly so that quorums ensure progress and blocking sets capture sufficient evidence that a leader cannot be committed.
+
+- Liveness under partial synchrony: After a global stabilization time, if a round’s leader is correct, then every sufficiently advanced correct node (at least two rounds ahead) eventually has the leader’s vertex included and therefore the leader’s proposal can become committed and appear in its log.
+
+- Non-equivocation constraint: Byzantine nodes cannot create two different vertices for the same round; their proposals are only considered by correct nodes when quorum conditions are met.
+
+Do not prescribe an implementation mechanism (no concrete broadcast or timers); instead specify the invariants and temporal properties that ensure safety and eventual liveness given the quorum and blocking assumptions.

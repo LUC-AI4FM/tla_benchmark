@@ -1,0 +1,44 @@
+# Specification Request: Asynchronous Byzantine Consensus Protocol
+
+## System Overview
+
+I need a formal specification of an asynchronous Byzantine consensus protocol for a distributed system where processes must reach agreement on a binary value despite the presence of malicious (Byzantine) faulty processes and asynchronous communication.
+
+## System Description
+
+The system consists of a fixed number of processes that communicate by broadcasting messages. Each process starts by proposing either 0 or 1 as its initial value. The goal is for correct (non-faulty) processes to eventually decide on a value while tolerating up to a bounded number of Byzantine failures.
+
+The protocol operates in phases where processes exchange two types of messages (conceptually "echo" and "ready" messages) before making a final decision. Processes transition through states based on the messages they receive, with specific thresholds determining when state transitions occur.
+
+## Fault Model
+
+- The total number of processes N must exceed 3T, where T is the maximum number of tolerated faults
+- Up to F processes may actually become Byzantine during execution, where F ≤ T
+- Byzantine processes can behave arbitrarily, including sending spurious messages that correct processes may receive
+- Communication is asynchronous with no timing guarantees
+
+## Key Requirements
+
+### Message Exchange Rules
+- A process that proposes 1 should broadcast an echo message
+- A process that proposes 0 should broadcast an echo message only after receiving sufficient echo messages or ready messages from others
+- After sending an echo, a process should broadcast a ready message upon receiving enough echo or ready messages
+- A process decides after receiving ready messages from a sufficient number of processes
+
+### Threshold Conditions
+The protocol uses specific quorum thresholds based on N and T to determine when processes advance to the next phase, ensuring that Byzantine processes cannot manipulate the outcome.
+
+## Correctness Properties
+
+### Validity (Unforgeability)
+If all correct processes initially propose 0, then no correct process ever decides 1 (reaches acceptance).
+
+### Termination (Correctness/Liveness)
+If all correct processes initially propose 1, then eventually some correct process decides.
+
+### Agreement
+If any correct process decides, then eventually all correct processes decide (or are Byzantine).
+
+## Fairness Requirements
+
+The specification should include weak fairness conditions ensuring that enabled actions (receiving messages, sending messages, deciding) eventually occur, which is necessary for verifying the liveness properties.

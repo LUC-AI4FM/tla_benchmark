@@ -1,0 +1,55 @@
+# Specification Request: Tendermint Blockchain Model for Light Client Verification
+
+## System Overview
+
+I need a formal specification of a simplified Tendermint-style blockchain, designed specifically to support reasoning about light client behavior. The model should capture the essential structure of a proof-of-stake blockchain where validators vote on blocks, and where there is a bounded "trusting period" during which validator sets are considered reliable.
+
+## Core Requirements
+
+### Blockchain Structure
+
+The specification should model:
+
+- A blockchain as a sequence of block headers up to some maximum height
+- Each block header containing: height, timestamp, the set of validators for that block, the set of validators for the next block, and a record of which validators committed (voted for) the previous block
+- A global clock representing the current time
+- A distinction between correct and faulty (Byzantine) nodes, where any node can potentially act as a validator
+
+### Validator Voting Model
+
+For simplicity, each validator should have equal voting power of one unit. To model different voting powers, multiple copies of a validator with distinct identifiers can be used.
+
+### Block Validity Constraints
+
+The blockchain must satisfy these constraints at every height (after genesis):
+
+1. Only validators from the previous block's validator set can appear in that block's commit
+2. Each block's commit must contain signatures from more than two-thirds of the previous validator set
+3. Timestamps must be strictly increasing between consecutive blocks
+4. Consecutive blocks cannot have timestamps that differ by more than the trusting period
+
+### Fault Model
+
+The specification must capture the Tendermint security assumption:
+
+- For any block whose timestamp is still within the trusting period (relative to the current time), the correct validators must hold more than two-thirds of the voting power in that block's next validator set
+- This ensures that within the trusting period, Byzantine validators cannot unilaterally create fake blocks
+
+### Digital Signature Semantics
+
+The model should express what blocks a Byzantine adversary can produce: either the actual block from the honest chain, or a block signed exclusively by faulty validators.
+
+## System Dynamics
+
+The specification should allow:
+
+1. **Time advancement**: The global clock can advance forward
+2. **Fault occurrence**: Additional nodes can become faulty over time (though this is primarily for fork detection reasoning; the light client analysis may assume faults are fixed initially)
+
+## Key Properties
+
+The specification should support reasoning about:
+
+- Whether the blockchain is currently in a "faulty zone" where the security assumptions are violated
+- Whether a given block header is still within its trusting period
+- Whether blocks presented to a light client could have been legitimately produced given the current fault set

@@ -1,0 +1,28 @@
+Please formally specify a framework for reasoning about database transaction isolation levels using a client-centric approach.
+
+**System Overview:**
+The system should model database transactions as sequences of read and write operations on key-value pairs. Given a set of committed transactions, the specification needs to determine whether those transactions could have been executed under various standard isolation levels (such as Read Uncommitted, Read Committed, Snapshot Isolation, Serializability, and Strict Serializability).
+
+**Core Concepts to Model:**
+- A database state as a mapping from keys to values
+- Transactions as ordered sequences of read and write operations, where each operation accesses a specific key-value pair
+- Executions as possible orderings of transactions, where each transaction has a "parent state" representing the database state it observed when it began
+- The concept of "read states" — the set of database states from which a given read operation could have obtained its value (either directly from that state, or from an earlier write within the same transaction)
+
+**Key Requirements:**
+
+1. **Execution Generation:** Given an initial database state and a set of transactions, enumerate all possible serial orderings (executions) of those transactions, tracking how each transaction transforms the state.
+
+2. **Isolation Level Verification:** For each isolation level, define a "commit test" that checks whether a transaction's observed reads are consistent with that isolation level's guarantees:
+   - *Read Uncommitted:* Any execution is valid
+   - *Read Committed:* Every read operation must have at least one valid source state
+   - *Snapshot Isolation:* All operations in a transaction must be explainable by a single consistent snapshot, with no write conflicts
+   - *Serializability:* All operations must be consistent with the transaction's parent state in some serial execution
+   - *Strict Serializability:* Serializability plus respect for real-time ordering constraints based on transaction timestamps
+
+3. **Satisfaction Checking:** The specification should determine whether there exists at least one valid execution where all transactions pass the commit test for a given isolation level.
+
+**Correctness Properties:**
+- The isolation levels should form a hierarchy (stronger levels imply weaker ones)
+- If a set of transactions satisfies a given isolation level, there must exist a witness execution demonstrating this
+- Write-read dependencies within a transaction must be properly tracked (a read can see an earlier write from the same transaction)

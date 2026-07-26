@@ -1,0 +1,38 @@
+# Specification Request: Pseudo-Random Subset Selection Utilities
+
+## Overview
+
+I need a library of operators for generating pseudo-random subsets from a given set. The primary use case is supporting inductive invariance checking in model checking, where these operators would typically be used to construct randomized initial states. However, the utilities should be general enough for other model checking scenarios.
+
+## Required Capabilities
+
+### 1. Random Subset Selection
+Provide a way to select a single subset of a specified exact size from a given set. Given a target size and a source set, return one randomly chosen subset containing exactly that many elements.
+
+### 2. Random Collection of Subsets
+Provide a way to generate a collection of random subsets from a given set, where:
+- The user specifies a target number of subsets to generate
+- Each individual subset is constructed probabilistically, where each element of the source set has a specified expected probability of inclusion
+- The result is a set of these randomly generated subsets
+- Due to potential duplicates in the random generation process, the actual number of subsets returned may be less than the target
+
+### 3. Testing/Calibration Utility
+Provide a way to empirically test the random subset collection generator, so users can calibrate parameters to achieve their desired result sizes. This should run multiple trials and report the actual sizes obtained.
+
+## Behavioral Requirements
+
+### Determinism in Breadth-First Search
+When used during breadth-first model checking, the random choices for computing successor states must be deterministic with respect to the source state. This ensures:
+- Reproducible behavior across multiple runs
+- The ability to reconstruct error traces when violations are found
+
+### Non-Determinism in Simulation Mode
+When used in simulation mode, the random choices should be independent of the current state.
+
+## Key Properties
+
+1. **Size Constraints**: The exact-size subset selector should only be used when the requested size is valid (positive and less than the source set's cardinality)
+
+2. **Probability Distribution**: For the collection generator, each element should appear in a generated subset with probability equal to (expected size) / (source set cardinality)
+
+3. **Bounded Output**: The collection of subsets should never exceed the requested target count

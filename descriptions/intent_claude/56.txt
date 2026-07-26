@@ -1,0 +1,36 @@
+# Specification Request: Simplified Raft Leader Election Protocol
+
+## System Overview
+
+I need a formal specification of a simplified leader election protocol inspired by Raft consensus. The system consists of a small fixed cluster of servers that coordinate to elect a single leader for each term (logical time period).
+
+## System Requirements
+
+### Participants and Communication
+- A fixed set of three servers that communicate by exchanging messages
+- Messages are never lost or duplicated (reliable, unordered delivery modeled as a message pool)
+- Three types of messages: vote requests, votes, and leader announcements
+
+### Election Mechanics
+1. **Candidacy**: Any server may decide to become a candidate by incrementing its term and broadcasting a vote request to other servers
+2. **Voting**: A server that receives a vote request for a term higher than its own updates its term and sends a vote to the requesting candidate
+3. **Leader Establishment**: A candidate that collects votes from a quorum (majority) of servers for its current term becomes the leader and announces this by broadcasting a leader message
+
+### Constraints
+- Terms are bounded to a small finite range for model checking purposes
+- A quorum is defined as any two of the three servers (simple majority)
+
+## Correctness Properties
+
+### Safety (Critical)
+**Leader Uniqueness**: For any given term, at most one server can become leader. If two leader announcements exist for the same term, they must originate from the same server.
+
+### Invariants
+1. **Type Safety**: Server terms stay within the valid range, and all messages conform to expected formats
+2. **Term Consistency**: Any message a server sends reflects a term no greater than its current term—servers don't send messages "from the past"
+3. **Vote Uniqueness**: Each server votes at most once per term—if a server casts two votes in the same term, they must be for the same candidate
+4. **Leader Agreement**: The quorum-based definition of leadership implies that no two distinct servers can simultaneously satisfy leader conditions for the same term
+
+## Goal
+
+The specification should demonstrate that the quorum intersection property ensures leader uniqueness even with concurrent message delivery and arbitrary interleaving of server actions.

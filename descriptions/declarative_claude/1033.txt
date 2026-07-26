@@ -1,0 +1,11 @@
+This TLA+ module specifies the Sailfish consensus algorithm, a DAG-based Byzantine fault-tolerant protocol. The specification abstracts over differences between Sailfish and its signature-free variant.
+
+The system models nodes building a directed acyclic graph of blocks across numbered rounds. Constants define the node set N, Byzantine nodes F, rounds R, quorum and blocking-set predicates, a leader function mapping rounds to nodes, and GST (Global Stabilization Time) marking when synchrony begins.
+
+Variables include the global DAG state (vertices vs and edges es) and per-node state: each correct node tracks its current round and a committed log of linearized vertices.
+
+Correct nodes start by creating a round-1 vertex referencing Genesis, then iteratively advance rounds. To enter a new round, a node must observe a quorum of vertices from the previous round; after GST, all correct nodes' vertices must be observed. The protocol enforces rules about leader vertices: if the previous round's leader exists, nodes must either see it reference the prior leader or have quorum evidence the prior leader cannot commit. When a quorum votes for a leader from two rounds back, that leader's causal history is linearized and committed to the log.
+
+Byzantine nodes can create vertices but cannot equivocate and must reference a quorum of prior-round vertices.
+
+The specification checks a type invariant, an Agreement property (correct nodes' logs are prefix-compatible), and a Liveness property (after GST, correct leaders eventually appear in logs).

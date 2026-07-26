@@ -1,0 +1,41 @@
+# Specification Request: TLA+ Value Fingerprinting Correctness
+
+## System to Model
+
+A test harness for verifying that a TLA+ model checker correctly identifies equivalent values as identical, regardless of how those values are constructed or represented syntactically.
+
+## Goal
+
+Demonstrate that the model checker's internal fingerprinting mechanism properly recognizes semantic equality between values, even when those values are expressed through different syntactic constructions. The system should explore multiple ways of constructing the same logical values and confirm they all resolve to a single canonical state.
+
+## Requirements
+
+### Core Functionality
+
+The system should initialize a state containing several data structures:
+- A record with named fields
+- A sequence (tuple)
+- A finite set of integers
+- A function defined over a Cartesian product domain
+- A function constructed via modification of another function
+
+### Equivalence Cases to Verify
+
+The specification must test that the following representations are recognized as equivalent:
+
+1. **Records**: A record literal versus a function over string domain elements
+2. **Sequences vs Functions**: A tuple versus a function with domain {1, 2, ...}
+3. **Sequence Construction**: Direct tuple notation versus concatenation of smaller sequences versus EXCEPT modifications
+4. **Sets**: Set literals with duplicate elements versus integer ranges versus set comprehensions that produce the same elements
+5. **Functions over Products**: A function defined with multiple index variables versus a function defined over an explicit Cartesian product domain
+6. **Nested EXCEPT**: Different ways of applying EXCEPT to nested structures
+
+### Correctness Properties
+
+1. **Single State Property**: Despite having multiple transition branches that appear to modify state variables in different ways, the system should produce exactly one distinct reachable state. All transitions should result in values semantically equal to the initial state.
+
+2. **Semantic Equality**: The model checker must treat syntactically different but semantically identical constructions as the same value for purposes of state exploration.
+
+## Expected Outcome
+
+When model-checked, this specification should report only a single distinct state, confirming that the fingerprinting system correctly identifies all the equivalent value representations.

@@ -1,0 +1,40 @@
+# Specification Request: Asynchronous Communication Channel
+
+## System Overview
+
+I need a formal specification for a single-place asynchronous communication channel that allows a sender and receiver to exchange data values without a shared clock. This is a fundamental building block for modeling message-passing systems.
+
+## Functional Requirements
+
+The channel should support two operations:
+
+1. **Send**: A sender can place a data value into the channel, but only when the channel is ready to accept new data (i.e., the previous value, if any, has been acknowledged by the receiver).
+
+2. **Receive**: A receiver can consume a data value from the channel, but only when there is data available that hasn't yet been acknowledged.
+
+## Synchronization Mechanism
+
+The channel must use a handshake protocol to coordinate between sender and receiver:
+- The sender and receiver must alternate in a lock-step fashion
+- The sender cannot overwrite data before the receiver has acknowledged the previous transmission
+- The receiver cannot acknowledge unless there is fresh data to consume
+
+This should be implemented using a two-phase handshake where matching control signals indicate the channel is empty/ready, and mismatched signals indicate data is present and awaiting consumption.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: The channel state must always consist of a valid data value and valid control signals (binary flags for ready and acknowledge states).
+
+2. **No Data Loss**: The sender cannot overwrite unacknowledged data.
+
+3. **No Spurious Receives**: The receiver cannot acknowledge when no new data is present.
+
+## Parameters
+
+The specification should be parameterized by the set of possible data values that can be transmitted through the channel.
+
+## Notes
+
+This channel represents one of the simplest forms of reliable asynchronous communication and should serve as a foundation for more complex FIFO queue specifications.

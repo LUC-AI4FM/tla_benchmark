@@ -1,0 +1,11 @@
+This specification models Multi-Paxos consensus for state machine replication with write and read commands on a single key. The system replicates a log of commands across server nodes using the Paxos protocol.
+
+**Constants** include `Replicas` (server nodes), `Writes` and `Reads` (command sets), and `MaxBallot` (upper bound on ballot numbers). The specification assumes at least one replica, at least one write command, and a maximum ballot of at least two.
+
+**Variables** track `msgs` (a monotonically growing set modeling an asynchronous network), `node` (per-replica state including leader identity, current key value, commit progress, ballot numbers, and per-slot instance states), `pending` (sequence of client requests awaiting processing), and `observed` (sequence of client-visible request and acknowledgment events).
+
+**Key actions** implement the Multi-Paxos phases: a replica can become leader by broadcasting Prepare messages with a fresh ballot; replicas respond to Prepare with their voted commands; leaders gather PrepareReply messages from a majority to complete preparation; prepared leaders accept new requests into empty slots; replicas vote on Accept messages; leaders commit slots upon receiving majority AcceptReply responses and notify followers via CommitNotice messages.
+
+**Temporal specification** defines the system behavior as initial state followed by repeated next-state transitions. The specification includes a termination condition checking that all commands have been requested and acknowledged.
+
+**Properties checked** include deadlock freedom (ensuring progress until all requests are observed) and linearizability verification through the sequence of client-observed request/acknowledgment events after termination.

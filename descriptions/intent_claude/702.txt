@@ -1,0 +1,39 @@
+# Specification Request: Trace Visualization Data Extraction for Distributed Systems
+
+## Overview
+
+I need a utility that processes execution traces from a TLA+ model checker and extracts information suitable for visualization in a distributed system trace visualization tool (specifically ShiViz-compatible format).
+
+## System Purpose
+
+When model-checking a distributed system specification, the tool produces execution traces showing how the system evolves through states. I want to post-process these traces to extract two pieces of information at each step:
+
+1. **Which process/host performed the action** that caused the state transition
+2. **A vector clock representation** tracking the logical time for each process
+
+## Requirements
+
+### Host/Process Identification
+- For each state in the trace, determine which process was responsible for the transition from the previous state
+- This should be based on detecting which process's control state (program counter) changed between consecutive states
+- For the initial state (where there is no predecessor), use a placeholder value indicating no specific host
+
+### Vector Clock Computation
+- Maintain a vector clock with one component per process in the system
+- Initialize all clock components to zero at the start of the trace
+- When a process takes a step, increment only that process's component of the vector clock
+- The clock should accumulate across the trace (each state's clock builds on the previous state's clock)
+
+### Output Format
+- The vector clock should be exportable in JSON object format for compatibility with external visualization tools
+
+## Key Properties
+
+- The host identification must correctly track which single process changed between any two consecutive states
+- The vector clock must monotonically increase (components never decrease)
+- The vector clock increment must correspond exactly to the process that took the action
+- The system must handle traces of arbitrary length from the model checker
+
+## Context
+
+This is meant to bridge TLA+ model checking output with distributed system visualization tools, enabling developers to see the causal structure and per-process progression of counterexample traces or simulation runs.

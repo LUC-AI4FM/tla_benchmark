@@ -1,0 +1,9 @@
+This TLA+ module specifies Lamport's distributed mutual-exclusion algorithm from his 1978 paper on logical clocks and event ordering in distributed systems.
+
+The specification models N processes competing for access to a critical section using message passing over FIFO channels. The constants are N (number of processes) and maxClock (used to bound state space during model checking).
+
+Five variables track system state: clock holds each process's local Lamport clock; req records request timestamps received from other processes; ack tracks which processes have acknowledged a request; network represents pairwise FIFO message queues between processes; and crit contains processes currently in the critical section.
+
+The algorithm proceeds through several actions. A process can Request entry by broadcasting a timestamped request to all others. Upon receiving a request (ReceiveRequest), a process updates its logical clock and sends an acknowledgment. ReceiveAck records received acknowledgments. A process may Enter the critical section only when it has received acknowledgments from all processes and its request has the highest priority (determined by clock value, with process ID breaking ties). Upon Exit, a process broadcasts release messages and clears its request. ReceiveRelease handles incoming release notifications.
+
+The specification defines a standard temporal formula with initial state and next-state relation but includes no fairness conditions. Two safety properties are specified: BoundedNetwork asserts channels contain at most three messages, and Mutex ensures mutual exclusion—at most one process occupies the critical section at any time.

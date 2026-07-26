@@ -1,0 +1,12 @@
+Specify a concurrent register service that accepts read and write requests from multiple clients, queues each client’s outstanding request in a per-client FIFO, and ensures that every completed operation observes a global serial ordering consistent with real-time and program order. The model should treat requests as operations that may be issued, completed, or remain pending in a client queue. Reads must return the value produced by some write to the same address (or an initial value), and writes must eventually become visible as the value read by later reads according to the serialization.
+
+Requirements:
+- Represent an unbounded set of clients and a finite set of registers addressed by some domain; each client may have at most one outstanding slot per register in its queue.
+- Allow a client to issue a read or write to a register only when the corresponding per-client slot is free; issuing enqueues the request.
+- Allow a write to complete (respond) and mark its queue entry done, freeing the client slot; allow a read to complete by selecting as its return source either an initial write or some previously issued write to the same address, record that source, deliver the corresponding value, and mark the read done.
+- Maintain a partial order of operations that can be extended to a total order (serial order) satisfying: (1) the recorded partial order is a subset of the total order; (2) each client’s operations appear in the total order in program order; (3) each read’s chosen source precedes the read in the total order; if the read’s source is not the special initial source, then the source write must be ordered consistently with other writes to the same address (no cycles or contradictions).
+
+Correctness properties to guarantee:
+- Safety: every completed read returns a value from either the initial memory or some write to the same address, and this choice is consistent with a global sequential ordering that respects program order and the maintained partial order.
+- Progress/Liveness: issued operations that are enabled for completion (reads or writes at the head of a client slot) must eventually be able to respond (weak fairness for completion actions).
+- Invariant: per-client queue structure, register slot occupancy, and the relation between recorded request metadata and register state remain consistent throughout execution.

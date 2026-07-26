@@ -1,0 +1,11 @@
+Specify a formal TLA+ model of the Yo‑Yo leader‑election algorithm running on an arbitrary undirected, connected graph of distinct integer‑identified nodes. The model should describe rounds composed of two phases ("down" then "up") that propagate candidate identities along oriented edges and that may reverse edge orientations based on comparisons, with the global objective that the node with the smallest identifier becomes the unique leader candidate. The system must allow asynchronous interleaving of local actions at nodes, message passing via per‑node mailboxes, and nondeterministic scheduling, but assume reliable delivery and that each round’s messages are processed before that node advances to the next phase.
+
+Requirements:
+- Initialization: every undirected edge has an initial orientation determined by node identifiers (smaller -> larger), and every node starts the down phase with empty mailboxes.
+- Down phase semantics: sources (local minima) broadcast their identity; non‑sources wait to receive values from all incoming neighbors and forward the minimum seen to their outgoing neighbors; sinks do not send in the down phase.
+- Up phase semantics: sinks reply to neighbors that sent the round’s minimum with "yes" and to others with "no"; intermediate nodes collect replies from outgoing neighbors, propagate "no" if any outgoing reply is "no", otherwise reply "yes" only to incoming neighbors that contributed the minimum; sources do not send in the up phase.
+- Edge reversal: an edge must change orientation whenever a "no" is sent along it during the up phase; mailboxes must accurately reflect messages in flight during orientation changes so that reversals are observable.
+- Safety properties to verify: preservation of message/neighbor consistency during reversals (a relation between incoming/outgoing sets and pending "no" messages), no creation of new sources beyond those due to reversals, and eventual uniqueness of the smallest‑id source.
+- Liveness property: the algorithm stabilizes with exactly one source (the node with minimal id), after which all down messages carry that id and all up replies are "yes" forever (stabilization eventually holds).
+
+Do not embed pruning or explicit termination detection in the primary model; instead ensure the specification can be extended to add pruning as a separate variant.

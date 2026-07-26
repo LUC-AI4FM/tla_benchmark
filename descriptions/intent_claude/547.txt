@@ -1,0 +1,38 @@
+# Specification Request: One-Bit Mutual Exclusion Protocol
+
+## System Overview
+
+I need a formal specification of a mutual exclusion protocol for N concurrent processes, where each process uses only a single shared bit to coordinate access to a critical section. This is a classic problem in distributed computing where processes must take turns accessing a shared resource without conflicts.
+
+## System Requirements
+
+### Basic Structure
+- The system consists of N processes (numbered 0 through N-1) that run concurrently
+- Each process cycles indefinitely through three phases: a non-critical section, an entry protocol to gain access, a critical section, and an exit protocol to release access
+- Each process has access to a single-bit flag that it can set or clear, and can read the flags of all other processes
+
+### Entry Protocol Behavior
+- When a process wants to enter its critical section, it must first signal its intent by raising its flag
+- The process must then check other processes in a specific order (from lower-numbered to higher-numbered processes)
+- If the process encounters another process with its flag raised:
+  - For lower-numbered processes: it must back off (lower its own flag), wait for that process to finish, then restart the entry protocol from the beginning
+  - For higher-numbered processes: it must wait until they complete before proceeding
+- This asymmetric treatment based on process ID prevents deadlock while ensuring fairness
+
+### Exit Protocol Behavior
+- When a process finishes its critical section, it simply clears its flag to signal it has released the resource
+
+## Correctness Properties
+
+### Safety: Mutual Exclusion
+The primary safety property is that **at most one process may be in its critical section at any time**. No two processes should ever simultaneously occupy their critical sections.
+
+### Liveness Considerations
+The protocol should be designed such that:
+- Processes do not deadlock while trying to enter the critical section
+- The backing-off mechanism for lower-numbered conflicts ensures progress
+
+## Constraints
+- Each process may only write to its own single-bit flag
+- Each process may read any other process's flag
+- The protocol must work for any number N ≥ 1 of processes

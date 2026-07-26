@@ -1,0 +1,13 @@
+This TLA+ module specifies a reconfigurable Paxos consensus algorithm, modeling a distributed system where configurations (consisting of quorum sets) can change over time while maintaining consensus safety.
+
+The specification uses constants for acceptors, commands, configuration commands that establish new configurations, and an initial configuration. Configurations contain a configuration number and a set of quorums, where any two quorums must intersect.
+
+Two variables track system state: `avote` records each acceptor's vote (or abstention) for each instance and ballot number combination, and `learned` tracks which commands have been chosen for which instances.
+
+The key actions are VoteFor, where an acceptor casts a vote for a command in a specific instance and ballot using a particular configuration, subject to safety conditions ensuring no conflicting command could be chosen; Abstain, where an acceptor marks certain instance-ballot pairs as abstained; and Learn, where a command becomes learned when chosen by a quorum under a valid configuration.
+
+The ConfigOKAt predicate ensures a configuration is valid for use at a given instance and ballot by verifying the configuration command was previously learned and no reconfiguration commands can interfere in intermediate instances.
+
+The temporal specification requires the initial state and allows any sequence of next-state actions with stuttering. No fairness conditions are specified.
+
+Two safety properties are verified: TypeOK ensures proper typing of all variables, and SafetyInv ensures that at most one command is learned per instance, guaranteeing consensus. The module includes stability theorems showing that certain predicates, once true, remain true.

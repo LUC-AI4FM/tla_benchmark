@@ -1,0 +1,9 @@
+Specify a distributed transaction commit coordinator and a set of resource managers participating in a two-phase commit-like protocol. The model should describe an arbitrary finite set of participants and a coordinator that drives commit or abort of a single transaction. It must allow participants to vote to commit or to abort and to transition through states such as initial, prepared, committed, and aborted. The coordinator may decide to commit only if all participants have prepared; otherwise it must abort. The system must tolerate asynchrony: messages between coordinator and participants may be delayed, duplicated, or lost, but not corrupted. Participants must be able to recover after crashes by using persisted state to reach a consistent final decision. The specification should capture message exchanges for prepare, vote, commit, and abort, and the possibility of timeouts that cause the coordinator or participants to take recovery actions.
+
+Key correctness properties to guarantee:
+- Safety: No two participants reach conflicting terminal decisions — once any participant commits, no participant may abort the transaction; once any participant aborts, no participant may commit.
+- Agreement: All non-faulty participants eventually decide on the same outcome (commit or abort) in executions without indefinite message loss.
+- Validity: Commit is decided only if every participant voted to commit; if any participant voted abort then abort is decided.
+- Termination/Liveness under fairness conditions: If messages are eventually delivered and parties eventually recover, the protocol reaches a terminal state where every non-crashed participant has decided.
+
+Do not prescribe a particular implementation detail such as exact message buffering or timeout values; specify the abstract states, message types, allowed transitions, and the above invariants and liveness requirements.

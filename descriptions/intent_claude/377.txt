@@ -1,0 +1,41 @@
+# Specification Request: Reconfigurable Consensus (Paxos with Dynamic Configurations)
+
+## System Overview
+
+I need a formal specification of a reconfigurable consensus algorithm—essentially a variant of Paxos that supports changing the set of quorums (and thus potentially the set of participating acceptors) over time. The system must allow commands to be chosen across multiple "instances" (like Multi-Paxos) while also supporting reconfiguration commands that change which quorums are valid for future instances.
+
+## Core Functionality
+
+The system should model:
+
+1. **Multiple consensus instances**: Each instance independently agrees on a command, identified by an instance number.
+
+2. **Configurations with quorums**: A configuration specifies a set of quorums (sets of acceptors), where any two quorums must intersect (the classic Paxos quorum requirement). Each configuration has a unique configuration number.
+
+3. **Voting by acceptors**: Acceptors can vote for commands in specific instances and ballots. Each vote is tagged with a configuration number indicating which configuration was used.
+
+4. **Abstaining**: Acceptors can abstain from voting in certain ballots, preventing them from voting in those ballots later.
+
+5. **Learning chosen commands**: When a quorum of acceptors has voted for the same command in the same ballot, that command becomes chosen and can be learned.
+
+6. **Reconfiguration commands**: Special commands that, when chosen, establish a new configuration for use in subsequent instances. A reconfiguration command chosen in instance *i* enables the new configuration to be used starting from instance *i+1*.
+
+## Key Constraints
+
+- A new configuration's number must be exactly one greater than the configuration used to choose it.
+- Before using a configuration to choose a command in instance *i*, there must be evidence that no reconfiguration command can be chosen in any earlier instance (after the instance where that configuration was established) that would invalidate the configuration.
+- The standard Paxos safety conditions apply within each configuration: a vote in ballot *b* is only safe if no conflicting command could have been chosen in any lower ballot.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety)**: For any given instance, at most one command can be learned. If two commands are learned for the same instance, they must be identical.
+
+2. **Type Correctness**: All state variables maintain proper structure—votes contain valid configuration numbers and commands, and learned values are properly formed.
+
+3. **Configuration Consistency**: Reconfiguration commands are chosen with configuration numbers that properly increment, maintaining a coherent chain of configurations.
+
+## Purpose
+
+This specification should serve as a foundation for proving that reconfigurable consensus maintains safety despite dynamic changes to the quorum structure, ensuring that the fundamental agreement property of consensus is preserved even as the system evolves.

@@ -1,0 +1,43 @@
+# Specification Request: Non-Blocking Atomic Commitment Protocol with Crash Failures
+
+## System Overview
+
+I need a formal specification of the Non-Blocking Atomic Commitment (NBAC) protocol for a distributed system where processes can crash. This protocol is used to achieve consensus on whether to commit or abort a distributed transaction, even in the presence of failures.
+
+## System Description
+
+The system consists of a fixed number of distributed processes. Each process begins by casting an initial vote—either in favor of committing ("yes") or against it ("no"). The processes then communicate their votes to each other and must ultimately reach a decision to either commit or abort the transaction.
+
+Each process has access to an unreliable failure detector that provides (possibly incorrect) information about whether some process in the system has crashed. The failure detector's output can change nondeterministically over time.
+
+Processes may crash at any point during execution. A crashed process stops participating in the protocol permanently.
+
+## Protocol Behavior
+
+The protocol should work as follows:
+1. Each process starts with an initial vote (yes or no)
+2. Processes broadcast their votes to all other processes
+3. After voting, each process collects votes from others and consults its failure detector
+4. A process decides to **abort** if it either receives a "no" vote from any process OR its failure detector indicates a crash has occurred
+5. A process decides to **commit** only if it has received "yes" votes from ALL processes AND its failure detector indicates no crashes have occurred
+
+## Correctness Properties
+
+The specification must guarantee the following properties:
+
+### Safety: Validity
+If any process commits, then all processes must have initially voted "yes." Equivalently: if any process voted "no," then no process may commit.
+
+### Type Safety
+All protocol state should remain well-formed throughout execution—votes and decisions should only take on valid values, and message sets should only contain properly structured vote messages.
+
+## Additional Modeling Requirements
+
+- The failure detector should be modeled as unreliable—it can nondeterministically report crashes even when none have occurred, or fail to report actual crashes
+- Message delivery should allow for asynchronous receipt of any subset of sent messages
+- The specification should include appropriate fairness conditions to ensure that non-crashed processes eventually make progress (send their votes and reach decisions)
+- Crashed processes should be distinguishable from correct processes that simply haven't yet decided
+
+## Reference
+
+This protocol is based on the NBAC algorithm described in academic literature on agreement problems in distributed systems.

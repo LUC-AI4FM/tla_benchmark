@@ -1,0 +1,37 @@
+# Specification Request: Sequential Memory with Per-Processor Operation Queues
+
+## System Overview
+
+I need a formal specification for a shared memory system where multiple processors can issue read and write operations to a shared memory. The key characteristic is that each processor's operations must be executed against memory **in the order they were issued** (sequential per-processor ordering), even though the system may respond to individual operations out of order.
+
+## System Description
+
+The system consists of:
+- Multiple processors that can concurrently issue memory operations
+- A shared memory addressable by addresses, each holding a value
+- A register file interface where processors submit requests and receive responses
+- An internal mechanism that ensures operations take effect on memory in issue order
+
+## Functional Requirements
+
+1. **Operation Submission**: A processor can issue a read or write request by placing it in a free register slot. Multiple outstanding operations per processor should be supported.
+
+2. **Response Delivery**: The system may respond to a processor's pending read or write operation, marking the register as available again. For reads, a value is returned; for writes, just an acknowledgment.
+
+3. **Sequential Execution**: Although responses may arrive in any order, the actual effect on shared memory must happen in the order operations were issued by each processor. Specifically:
+   - Write operations update memory in issue order
+   - Read operations must return the value that exists in memory at the logical point when that read executes (respecting all prior writes from the same processor)
+
+4. **Liveness**: The system must eventually respond to every issued operation, and completed operations must eventually be retired from the internal queue.
+
+## Correctness Properties
+
+1. **Data Integrity Invariant**: The internal bookkeeping must remain consistent—each pending register has exactly one corresponding entry in the processor's operation queue, and free registers have none.
+
+2. **Sequential Consistency Per Processor**: When a read completes, the value returned must match what memory contains at the point that read is actually applied (i.e., after all earlier operations from the same processor have taken effect).
+
+3. **Eventual Completion**: Every issued operation must eventually receive a response and be fully processed (fairness requirement).
+
+## Purpose
+
+This specification serves as a model for memory systems that allow pipelining of operations (multiple outstanding requests) while guaranteeing that each processor sees memory effects in program order. It can serve as a reference specification for verifying more complex memory system implementations.

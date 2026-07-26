@@ -1,0 +1,13 @@
+Specify a formal model of a two-phase commit protocol (one transaction manager coordinating several resource managers) and state its required safety properties.
+
+Model a system with a single coordinator (transaction manager) and a fixed set of participants (resource managers). Participants can be in states like "working", "prepared", "committed", or "aborted". The coordinator can be in states like "init", "committed", or "aborted". Communication is asynchronous via a shared message set; messages include "Prepared(rm)", "Commit", and "Abort". Participants may send Prepared messages, receive Commit or Abort messages, or decide locally to abort. The coordinator decides to Commit only after it has knowledge that every participant is prepared; it decides to Abort otherwise, and then broadcasts the decision.
+
+Require the model to guarantee these correctness properties:
+- Type safety: all state variables and messages always conform to their declared types and domains.
+- Consistency (agreement): it is impossible for one participant to end up committed while another ends up aborted in the same execution.
+- Coordinator-decision fidelity: when the coordinator's state is "committed" (resp. "aborted"), a Commit (resp. Abort) message has been broadcast; when in "init", no decision messages have been broadcast.
+- Prepared-message integrity: any participant listed as known prepared by the coordinator must have actually sent a Prepared message; any Prepared message in the message set implies the sender is not still "working".
+- Commit prerequisites: a Commit message is broadcast only after every participant has sent Prepared.
+- Abort characterization: if a participant is aborted, then either an Abort message was broadcast or that participant never sent a Prepared message.
+
+Do not prescribe implementation details; leave nondeterminism for message delivery and the ordering of independent actions.

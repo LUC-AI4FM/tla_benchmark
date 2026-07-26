@@ -1,0 +1,43 @@
+# Specification Request: Eventually Perfect Failure Detector
+
+## System Overview
+
+I need a formal specification of an **eventually perfect failure detector** for a distributed system. This is a fundamental building block for fault-tolerant distributed algorithms, where processes need to detect which other processes in the system have failed.
+
+## System Description
+
+The system consists of a fixed set of distributed processes, each with its own local clock. Processes communicate by sending periodic "alive" messages to all other processes. Based on the messages received (or not received), each process maintains a set of suspected failed processes.
+
+### Core Behaviors
+
+1. **Heartbeat Mechanism**: Each process periodically broadcasts "alive" messages to all other processes at regular intervals determined by its local clock.
+
+2. **Failure Prediction**: Each process periodically evaluates whether it has heard from other processes within expected timeout intervals. If no message has been received from a process within its timeout window, that process is suspected as failed.
+
+3. **Adaptive Timeouts**: When a process receives a message from a process it had previously suspected, it removes that process from its suspected set and increases the timeout interval for that process. This allows the detector to adapt to varying network delays.
+
+4. **Message Reception**: Processes receive messages asynchronously and update their internal state accordingly—resetting timers for processes they hear from and potentially clearing suspicions.
+
+### Timing Constraints
+
+- The sending and prediction operations occur at different periodic intervals
+- These intervals must be chosen such that neither operation's timing subsumes the other (they cannot always coincide)
+- Each process tracks how long it has been since it last heard from every other process
+
+## Key Correctness Properties
+
+The specification should support verification of:
+
+1. **Type Safety**: All data structures maintain their expected types throughout execution (clock values are integers, timeout intervals are integers, suspected sets contain only valid process identifiers, etc.)
+
+2. **Strong Completeness** (implicit goal): Eventually, every process that actually fails should be permanently suspected by all correct processes.
+
+3. **Eventual Strong Accuracy** (implicit goal): Eventually, no correct process should be permanently suspected by any correct process.
+
+These properties together characterize an "eventually perfect" failure detector—one that may make mistakes initially but eventually stabilizes to correct predictions.
+
+## Environmental Assumptions
+
+- There is an external communication system (not modeled in detail) that handles message delivery between processes
+- The system operates under partial synchrony assumptions, meaning bounds on message delays and clock drift exist but may not be known a priori
+- At least one correct process makes progress at every global time step

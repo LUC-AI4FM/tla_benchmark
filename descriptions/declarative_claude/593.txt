@@ -1,0 +1,25 @@
+# Distributed Transaction Specification
+
+This TLA+ module specifies a distributed transaction protocol supporting both optimistic and pessimistic concurrency control, modeled after TiKV's transaction system based on the Percolator algorithm.
+
+## System Overview
+
+The specification models clients executing transactions against a key-value store with multi-version concurrency control. Clients can be either optimistic (read-then-write) or pessimistic (lock-then-write). The system uses a global timestamp oracle for transaction ordering.
+
+## Constants and Variables
+
+**Constants** define the key space, client sets (optimistic and pessimistic), per-client read/write key sets, and primary keys for two-phase commit.
+
+**Variables** include: message sets for requests and responses; per-key state tracking data versions, locks (with types for pessimistic locks, optimistic prewrites, and pessimistic prewrites), and write records (commits and rollbacks); client state tracking transaction stage, timestamps (start, commit, for_update), pending operations, and read values; and a global monotonic timestamp counter.
+
+## Key Actions
+
+Clients progress through stages: initialization, reading/locking, prewriting, and committing. Optimistic clients read keys then prewrite; pessimistic clients acquire pessimistic locks first, then prewrite. The server handles read requests, lock acquisition with write conflict detection, prewrite operations that check for conflicts, and commit requests. A check_txn_status mechanism allows resolving stale locks from other transactions.
+
+## Safety Properties
+
+The TypeOK invariant ensures structural correctness, including at most one lock per key. Response messages track committed and aborted transactions to verify consistency—ensuring no transaction is both committed and aborted.
+
+## Fairness
+
+No explicit fairness conditions are specified; the model focuses on safety properties.

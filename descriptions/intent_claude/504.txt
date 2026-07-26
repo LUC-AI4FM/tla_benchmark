@@ -1,0 +1,44 @@
+# Specification Request: Single-Decree Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the single-decree Paxos consensus algorithm. This is a distributed consensus protocol that allows a set of processes to agree on a single value, even in the presence of failures. For simplicity, leader election should be omitted—assume there is a fixed leader that coordinates the protocol.
+
+## System Components
+
+The system consists of:
+- A set of acceptor processes (at least 3)
+- A collection of quorums, where any two quorums must overlap (ensuring consistency)
+- A set of possible values that can be proposed
+- A set of ballot numbers used to order proposals
+
+## Protocol Behavior
+
+The protocol operates in two main phases:
+
+**Phase 1 (Prepare):** The leader selects a ballot number and requests promises from acceptors. Each acceptor, upon receiving such a request with a ballot number higher than any it has seen, promises not to accept proposals with lower ballot numbers and reports any value it has previously accepted.
+
+**Phase 2 (Accept):** Once the leader receives promises from a quorum of acceptors, it proposes a value. The value must be the one associated with the highest ballot number reported by any acceptor, or any value if no acceptor reported a prior acceptance. Acceptors vote for the proposal unless they have already promised to a higher ballot.
+
+## Communication Model
+
+- Communication is asynchronous via message passing
+- Messages may be delivered in any order but are not lost or corrupted
+- The leader may only initiate each ballot's prepare phase once
+- The leader may only send one accept request per ballot
+
+## Key Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety):** No two acceptors ever vote for different values in a way that would allow two different values to be chosen. If a value is chosen (accepted by a quorum), no other value can ever be chosen.
+
+2. **Validity:** Any chosen value must have been proposed.
+
+3. **Progress (under assumptions):** If the system stabilizes with a single leader and sufficient acceptors available, consensus will eventually be reached.
+
+## Assumptions
+
+- Quorums are defined such that any two quorums share at least one acceptor
+- Ballot numbers are drawn from natural numbers
+- The special "no value" state is distinct from all proposable values

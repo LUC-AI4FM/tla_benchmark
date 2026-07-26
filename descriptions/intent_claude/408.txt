@@ -1,0 +1,35 @@
+# Specification Request: TLA+ Temporal Operator Semantics Test Suite
+
+## System Overview
+
+I need a formal specification that serves as a test harness to verify the correct behavior of TLA+'s "stutter" and "change" temporal operators, specifically the `[A]_e` (square bracket) and `<<A>>_e` (angle bracket) notation.
+
+## Background
+
+In TLA+, these operators have specific semantics:
+- `[A]_e` means "A or e is unchanged" (allows stuttering)
+- `<<A>>_e` means "A and e changes" (requires actual change)
+
+## Requirements
+
+Create a specification that tests the following semantic properties of these operators:
+
+1. **Tautological False Under Change Operator**: When an action is self-contradictory (like checking if a variable differs from itself), wrapping it with the change operator applied to state variables should always evaluate to false.
+
+2. **Stuttering Action Detection**: When an action technically "executes" but leaves all relevant variables unchanged, the angle-bracket (change-requiring) form should evaluate to false, since no actual state change occurred.
+
+3. **Change Requirement Enforcement**: The angle-bracket operator should block execution when the expression it guards doesn't actually change, even if the action formula itself is satisfiable.
+
+4. **Stuttering Allowance**: The square-bracket operator applied to a false action should still permit execution via the stuttering clause (since the variables remain unchanged).
+
+## Correctness Properties
+
+The specification should verify:
+- The distinction between actions that syntactically execute versus those that produce observable state changes
+- That `[A]_e` permits stuttering steps even when A is unsatisfiable
+- That `<<A>>_e` blocks when e doesn't change, regardless of A's satisfiability
+- Proper evaluation of these operators in contexts where the guarded expression is trivially false or involves unchanged variables
+
+## Goal
+
+This test suite should confirm that a TLA+ model checker correctly implements the formal semantics of these fundamental temporal operators, catching any implementation bugs in how stuttering and change detection are handled.

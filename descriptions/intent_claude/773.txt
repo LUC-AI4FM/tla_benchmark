@@ -1,0 +1,35 @@
+# Specification Request: Distributed Replicated Log System
+
+## System Overview
+
+I need a formal specification for a distributed replicated log system where multiple servers maintain copies of a log and must stay reasonably synchronized with each other.
+
+## System Description
+
+The system consists of a set of servers, each maintaining its own log (an ordered sequence of values). Servers can append new values to their logs, and the system must ensure that all server logs remain consistent with each other while allowing for some bounded amount of temporary divergence.
+
+## Key Requirements
+
+### Functional Requirements
+
+1. **Log Replication**: Each server maintains a log that is a sequence of values drawn from a defined set of possible values.
+
+2. **Bounded Lag**: Servers are allowed to have logs of different lengths at any given time, but the difference in log lengths between any two servers must never exceed a specified maximum lag threshold. This models a system where replicas can temporarily fall behind but must stay within acceptable bounds.
+
+3. **Prefix Consistency**: All server logs must be consistent in the sense that they represent prefixes of the same logical log. If two servers both have entries at a given position, those entries must be identical.
+
+### Correctness Properties
+
+1. **Safety - Bounded Divergence**: At no point should any server's log length differ from another server's log length by more than the configured lag parameter.
+
+2. **Safety - Log Agreement**: The logs across all servers must agree on all committed entries—there should be no conflicting values at the same log position across different servers.
+
+## Parameters
+
+- A set of participating servers
+- A set of possible values that can be appended to logs
+- A maximum allowable lag between the shortest and longest logs in the system
+
+## Goal
+
+The specification should be suitable for model checking to verify that the replication protocol maintains consistency guarantees while allowing concurrent operations across servers within the bounded lag constraint.

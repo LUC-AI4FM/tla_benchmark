@@ -1,0 +1,38 @@
+# Specification Request: Apalache Performance Antipattern Benchmark Suite
+
+## Overview
+
+I need a formal specification that serves as a benchmark suite for measuring the performance impact of known inefficient coding patterns in the Apalache model checker. The specification should collect examples of constructs that are functionally correct but perform poorly, allowing systematic performance measurement across different Apalache versions.
+
+## System Purpose
+
+The specification should define several operations that deliberately use suboptimal implementation patterns while producing results equivalent to simpler, more efficient alternatives. This allows comparing execution times between the inefficient patterns and their optimal counterparts.
+
+## Required Operations
+
+The benchmark suite should include the following categories of antipatterns:
+
+1. **Redundant Set Reconstruction**: An operation that takes a set and reconstructs it element-by-element using a fold operation, ultimately producing the identical set. This should be equivalent to simply returning the input set unchanged.
+
+2. **Incremental Function Modification**: An operation that modifies a function's codomain values one element at a time through folding, where a direct function mapping would suffice. Specifically, incrementing all values in an integer-valued function.
+
+3. **Incremental Function Construction**: Building a function by repeatedly extending it one mapping at a time, rather than defining the entire function at once with a standard function constructor.
+
+4. **Sequence Construction from Function**: Converting a function to a sequence by repeatedly appending elements, rather than using direct sequence construction primitives.
+
+## Correctness Properties
+
+The specification must verify that each antipattern operation produces results identical to its efficient equivalent:
+
+- The set reconstruction must return exactly the original set
+- The incremental function modification must equal a directly-constructed modified function
+- The incrementally-built function must equal a function defined with standard syntax
+- The sequence built by appending must equal a sequence built with direct construction
+
+## Configuration
+
+The specification should support configurable problem sizes (such as 10, 20, 40, 80, and 160 elements) to measure how performance scales with input size.
+
+## Goal
+
+The ultimate goal is to have a reproducible benchmark that quantifies performance differences, helping track improvements in the model checker's handling of these patterns over time and documenting which constructs users should avoid for performance-critical specifications.

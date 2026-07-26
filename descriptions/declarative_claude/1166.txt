@@ -1,0 +1,32 @@
+# Tasks Module Specification
+
+This TLA+ module specifies the lifecycle and state management of tasks within a distributed orchestration system, similar to container orchestration platforms.
+
+## System Overview
+
+The module models tasks that progress through various states as they are created, scheduled, executed, and eventually removed. Tasks belong to services and can be assigned to nodes or slots.
+
+## Variables
+
+The single variable `tasks` represents the set of currently allocated tasks in the system. The type invariant `TasksTypeOK` ensures this remains a subset of all possible tasks.
+
+## Task Structure
+
+Tasks are records containing an identifier, associated service, current status with state, desired state, assigned node, and slot. The `NewTask` operator constructs tasks in the initial `new` state.
+
+## State Transitions
+
+The module defines a transition table organized by system component:
+- **Orchestrator**: Creates tasks (null → new)
+- **Allocator**: Moves tasks from new → pending
+- **Scheduler**: Assigns pending tasks (pending → assigned)
+- **Agent**: Handles execution lifecycle including acceptance, preparation, starting, running, and terminal states (complete, failed, shutdown, rejected, orphaned)
+- **Reaper**: Removes tasks in terminal or early states
+
+## Task Updates
+
+The `UpdateTasks` operator applies state changes while preserving task identity (ID, service, and virtual slot must remain unchanged).
+
+## Validation
+
+The `TransitionTableOK` predicate verifies that transitions only move to higher-ranked states and that each source state has exactly one responsible component (with exceptions for reaper removing new/pending tasks).

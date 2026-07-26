@@ -1,0 +1,58 @@
+# Specification Request: Light Client Blockchain Verification Protocol
+
+## System Overview
+
+I need a formal specification for a **blockchain light client verification protocol** that allows a lightweight client to securely synchronize with a blockchain without downloading and validating every block. The light client should be able to verify blockchain headers by fetching them from a primary node and validating them against trusted information.
+
+## System Requirements
+
+### Network Model
+- The system consists of multiple validator nodes in a blockchain network
+- The light client communicates with a primary node to fetch block headers (light blocks)
+- The primary node may be **faulty or Byzantine** — it cannot be assumed to be honest
+- The validator set may contain some fraction of faulty validators, but this fraction must remain below a specified threshold (e.g., less than one-third)
+
+### Core Functionality
+The light client must:
+1. Start from a **trusted height** with a known valid light block
+2. Attempt to reach and verify a **target height** on the blockchain
+3. Fetch light blocks from the primary node as needed
+4. Verify fetched blocks using cryptographic and temporal checks
+5. Track verification status of fetched blocks
+6. Progressively build trust from the initial trusted block toward the target
+
+### Timing and Clock Model
+- The protocol operates with a **trusting period** — a time window during which validator signatures remain valid
+- The light client has a **local clock** that may drift from real time
+- The specification must account for both assumed clock drift bounds and actual drift behavior
+- Block timestamps must be validated against clock constraints
+
+### State Tracking
+The system should track:
+- The current verification state of the light client
+- Which light blocks have been fetched
+- The verification status of each fetched block
+- The latest successfully verified block
+- The number of verification probes performed
+
+## Correctness Properties
+
+### Safety Properties
+1. **No false verification**: The light client must never mark a block as verified if it was not actually produced by the honest blockchain (assuming the fault threshold is not exceeded)
+2. **Consistency**: Verified blocks must form a consistent chain back to the trusted block
+
+### Liveness Properties
+1. **Progress**: If the primary is correct and network conditions permit, the light client should eventually reach and verify the target height
+2. **Termination**: The verification protocol should eventually terminate with either success or a detected failure
+
+### Fault Tolerance
+- The protocol must remain safe even when the primary node is Byzantine
+- The protocol must tolerate clock drift within specified bounds
+- The protocol should detect and handle scenarios where verification is impossible (e.g., expired trusting period)
+
+## Analysis Goals
+
+The specification should support model checking to verify:
+- The protocol behaves correctly under faulty primary scenarios
+- Timing assumptions are sufficient for safety
+- The relationship between trusting period, clock drift, and protocol correctness

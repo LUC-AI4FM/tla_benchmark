@@ -1,0 +1,15 @@
+Specify a formal model of a multi-processor memory-access coordinator that serializes concurrent read and write operations on shared addresses. The model should describe a finite set of processors that issue operations (reads or writes) identified by per-processor operation identifiers and enqueued for service. The coordinator delivers to each operation a response that reflects a total order of operations per address consistent with program order per processor: for any single memory address, the visible effects of operations must be as if all operations on that address were executed in some sequential order. Concurrent operations on different addresses may be ordered independently.
+
+The model must capture:
+- a bounded queueing mechanism per processor for outstanding operations (queue lengths are bounded by a fixed constant),
+- the creation of operations (reads producing returned values, writes producing acknowledgements),
+- the service/commit of operations by the coordinator that updates a shared memory state and produces responses,
+- per-processor registers that track operation status until a response is observed.
+
+Correctness properties to guarantee:
+- Safety: linearizability/serializability per address — every completed response must correspond to executing the operation at a single point in a total order for that address that respects real-time order and program order;
+- Atomicity of individual operations: each operation appears to take effect instantaneously at its linearization point;
+- Progress: every issued operation eventually receives a response (no operation is permanently lost or starved), assuming the queue bounds are respected;
+- Queue bounds invariant: no per-processor queue length exceeds the configured bound.
+
+Do not specify internal implementation details of the coordinator or concrete scheduling; instead, specify abstract transitions for enqueueing, starting, committing, and responding, and express the invariants and liveness requirements above.

@@ -1,0 +1,43 @@
+# Specification Request: Leader Election on a Unidirectional Ring
+
+## System Overview
+
+I need a formal specification of the Chang-Roberts algorithm for leader election in a distributed system where processes are arranged in a unidirectional ring topology.
+
+## System Description
+
+The system consists of a fixed number of processes (nodes) arranged in a ring, where each node can only send messages to its successor in one direction around the ring. Each node has a unique numeric identifier. Some subset of the nodes may initiate the election process, and the goal is for exactly one node to be elected as the leader.
+
+## Behavioral Requirements
+
+1. **Initialization**: Any subset of nodes may act as initiators of the election. Initiators begin as candidates and send their own identifier around the ring. Non-initiators start in a passive state, having already "lost."
+
+2. **Message Passing**: Nodes communicate by passing identifier values to their successor. A node can only send to the next node in the ring (unidirectional communication).
+
+3. **Election Logic**:
+   - When a node that has already lost receives a message, it simply forwards the identifier to its successor
+   - When a candidate node receives an identifier smaller than its own, it recognizes it has lost and forwards the message
+   - When a candidate node receives an identifier larger than or equal to its own, it does not forward that message
+   - When a node receives its own identifier back (having traveled the full ring), it declares itself the winner
+
+4. **Fairness**: Every node must eventually process its incoming messages (weak fairness).
+
+## Correctness Properties
+
+### Safety
+- **Unique Winner with Minimum ID**: If any node declares itself the winner, then:
+  - That node must have been an initiator
+  - All other nodes must be in a "lost" state
+  - Among all initiators, the winner must have the smallest identifier
+
+### Liveness
+- **Guaranteed Termination**: If there is at least one candidate (initiator) in the system, eventually some node will win the election.
+
+### Type Correctness
+- Messages circulating in the system should only contain valid node identifiers
+- Node states should only take on valid values (candidate, lost, or won)
+
+## Parameters
+
+- The number of nodes in the ring (must be at least 1)
+- A mapping from nodes to their unique identifiers (all identifiers must be distinct non-negative integers)

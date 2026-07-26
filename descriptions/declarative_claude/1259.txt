@@ -1,0 +1,11 @@
+This module provides infrastructure for serializing and deserializing TLA+ counterexample traces in JSON format, enabling trace persistence and replay functionality within TLC model checking.
+
+The module declares two constants: `_JsonTraceFile` specifies the output file path for writing counterexamples, and `_JsonTraceInputFile` specifies the input file for loading previously saved traces.
+
+The `_JsonTrace` operator handles trace serialization. When TLC finds a counterexample (a non-empty state in the CounterExample structure that should be written to console), it converts the counterexample to a trace, extracts all variable names across states, serializes both to JSON, and prints a confirmation message.
+
+For trace deserialization and replay, several local operators work together. `_JsonTraceDump` deserializes the JSON input file. `_JsonTraceLassoTarget` identifies liveness counterexamples by detecting back-edges in the action graph where a transition returns to an earlier state, forming a lasso structure.
+
+`_JsonTraceConstraint` serves as a state constraint during trace replay, ensuring each explored state matches the corresponding state in the loaded trace. It handles partial variable matching, allowing replay with specs having different variable sets than the original.
+
+`_JsonTraceView` provides a view definition for replay that includes the trace level to prevent premature state collapsing, with special handling for liveness traces where states beyond the trace length map to the lasso target to enable cycle closure.

@@ -1,0 +1,57 @@
+# Specification Request: Light Client Attack Detector for Blockchain
+
+## System Overview
+
+I need a formal specification for a **light client detector** in a blockchain system that can identify and gather evidence of malicious behavior from potentially faulty blockchain peers.
+
+## Context
+
+In a proof-of-stake blockchain network, light clients don't download the full blockchain but instead rely on trusted peers (primary and secondary nodes) to provide them with block headers and validator information. Malicious peers might try to deceive light clients by providing fraudulent block data. The system needs to detect such attacks and collect cryptographic evidence.
+
+## System Requirements
+
+### Components to Model
+
+1. **Reference Blockchain**: A source of truth representing the actual valid blockchain state
+2. **Light Client**: A client that fetches and verifies block headers from peers without maintaining the full chain
+3. **Multiple Peers**: At least one primary and one secondary full node that the light client communicates with, where some may be faulty/malicious
+4. **Clock System**: Both local client time and reference time, accounting for clock drift between them
+
+### Core Functionality
+
+The detector should:
+- Start from a previously trusted block at a known height
+- Attempt to verify blocks up to a target height
+- Fetch light blocks (headers with validator signatures) from multiple peers
+- Compare information received from different peers to detect inconsistencies
+- When conflicts are found, trace back to find a common trusted height where divergence began
+- Generate evidence of misbehavior that can be used for accountability
+
+### Assumptions and Parameters
+
+- The system operates within a **trusting period** during which validator sets are considered stable
+- Clock drift exists between the light client and the blockchain (both assumed maximum drift and actual drift)
+- A **Byzantine fault tolerance threshold** applies (less than 1/3 of validators may be faulty)
+- Peers can be configured as correct or faulty for analysis purposes
+
+## Correctness Properties
+
+The specification must verify:
+
+1. **Detection Soundness**: If evidence is produced, there was actual misbehavior (no false accusations against correct peers)
+
+2. **Detection Completeness**: If a faulty peer provides conflicting information that violates the protocol, the detector will eventually identify it
+
+3. **Evidence Validity**: Any generated evidence correctly identifies the height and nature of the divergence
+
+4. **Termination**: The detection process completes within bounded time/steps
+
+5. **Safety under Partial Faults**: The system remains safe as long as the faulty validator ratio stays below the threshold
+
+## Analysis Scenarios
+
+The specification should support analyzing scenarios where:
+- The primary peer is faulty but secondaries are correct
+- Different combinations of faulty/correct peers
+- Various network sizes (e.g., 3 nodes)
+- Different height ranges between trusted and target blocks

@@ -1,0 +1,9 @@
+This TLA+ module specifies the Echo algorithm for constructing a spanning tree in an undirected, connected graph starting from a designated initiator node.
+
+The specification models a distributed system where each node communicates via message passing. The constants define a set of nodes, a single initiator that becomes the tree root, and a neighborhood relation R representing graph edges. The relation must be irreflexive, symmetric, and connected.
+
+Each node maintains local variables: a parent pointer (initially undefined), a set of children, a count of received messages, and its neighbor set. A global inbox variable models asynchronous communication channels.
+
+The algorithm proceeds in three phases per node. Initially, the initiator multicasts an "m" message to all neighbors. Each node then loops, receiving messages until it has heard from all neighbors. Upon receiving its first message, a non-initiator records the sender as its parent and forwards "m" messages to remaining neighbors. Messages of kind "c" indicate child acknowledgments, which nodes track. After receiving all expected messages, non-initiators send a "c" message to their parent confirming the parent-child relationship.
+
+The specification includes a standard safety property TypeOK ensuring proper typing of all variables. Additional invariants verify that the initiator never has a parent, parents are always neighbors, and the parent-child relationship is consistent. The AncestorProperties invariant checks that upon termination, the initiator is an ancestor of all nodes and the ancestor relation is acyclic. A liveness property asserts eventual termination of all nodes.

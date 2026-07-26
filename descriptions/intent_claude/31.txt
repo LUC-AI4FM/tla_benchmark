@@ -1,0 +1,44 @@
+# Specification Request: Apalache Model Checker Standard Library
+
+## Overview
+
+I need a formal specification of a standard utility library designed to support symbolic model checking of TLA+ specifications. This library should provide helper operators that make it easier to write specifications that can be efficiently analyzed by a symbolic model checker, while remaining compatible with explicit-state model checkers.
+
+## System Goals
+
+The library should provide utilities in several categories:
+
+### 1. Variable Assignment Annotation
+Provide a way to explicitly mark when a value is being assigned to a state variable. While TLA+ treats everything as mathematical relations, symbolic model checkers benefit from knowing which expressions represent assignments versus constraints.
+
+### 2. Non-deterministic Value Generation
+- A mechanism to generate arbitrary data structures up to a specified size bound, useful for creating test inputs or initial states
+- A way to non-deterministically select a value from a set, similar to CHOOSE but without requiring the set to be non-empty (returning some valid typed value if empty)
+
+### 3. Data Structure Conversions
+- Convert a set of key-value pairs into a function, handling ambiguous cases where multiple pairs share the same key
+- Construct sequences efficiently from a generating function and length
+- Reinterpret integer-indexed functions as sequences, with explicit length and capacity bounds for type safety
+
+### 4. Optimization Hints
+Provide annotation operators that hint to a symbolic model checker about:
+- When existential quantifiers can be Skolemized (replaced with witness constants)
+- When sets should be explicitly expanded rather than handled symbolically
+- When cardinality constraints should be expanded into existential quantifiers
+
+### 5. Fold Operations
+- Fold over sets: combine all elements of a set using a binary operator and initial value
+- Fold over sequences: left-fold over sequence elements using a binary operator and initial value
+
+### 6. Iteration
+A repetition operator that applies a function N times starting from an initial value, where the function receives both the accumulated value and the iteration count.
+
+## Key Requirements
+
+1. **Backward Compatibility**: All operators must have valid TLA+ semantics so specifications using them can still be checked by traditional explicit-state model checkers
+
+2. **Type Safety**: Operators dealing with conversions between data structures must preserve type information and handle edge cases appropriately
+
+3. **Deterministic Fallbacks**: Where operators provide non-deterministic behavior for symbolic checking, they should fall back to deterministic behavior (like CHOOSE) for explicit-state checking
+
+4. **Static Bounds**: Certain parameters (like sequence capacity or repetition count) should be statically determinable constants to enable efficient symbolic encoding

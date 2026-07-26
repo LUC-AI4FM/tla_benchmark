@@ -1,0 +1,44 @@
+Please write a formal TLA+ specification for the **Paxos consensus algorithm**.
+
+## System Description
+
+Paxos is a distributed consensus protocol that allows a collection of processes (acceptors) to agree on a single value, even in the presence of failures. The algorithm operates through message passing between a coordinator (leader) and acceptors, proceeding in numbered rounds called ballots.
+
+## Requirements
+
+### Participants and Structure
+- Model a set of acceptor processes that can vote on proposed values
+- Define quorums as subsets of acceptors (typically majorities) where any two quorums must overlap
+- Support multiple ballot numbers (rounds) in which consensus can be attempted
+- Allow multiple possible values that could be chosen
+
+### Protocol Phases
+
+The algorithm should implement two main phases:
+
+**Phase 1 (Prepare)**
+- A leader initiates a ballot by broadcasting a prepare request
+- An acceptor responds to a prepare request only if the ballot number is higher than any it has previously seen, promising not to accept proposals from earlier ballots
+- The acceptor's response includes information about the highest-numbered ballot in which it has already voted (if any) and the value it voted for
+
+**Phase 2 (Accept)**
+- Once the leader receives responses from a quorum, it proposes a value: either the value from the highest-numbered ballot reported by any acceptor, or any value if no acceptor has voted yet
+- An acceptor accepts the proposal if it hasn't promised to a higher ballot
+- When an acceptor accepts, it records its vote and broadcasts this decision
+
+### Communication Model
+- Use an abstract message-passing model where messages are never lost (safety analysis)
+- Messages may be delivered in any order or duplicated
+- Model the set of all messages ever sent (rather than channels)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety)**: If a value is chosen (accepted by a quorum in some ballot), then no different value can be chosen in any ballot
+
+2. **Validity**: Only proposed values can be chosen
+
+3. **Consistency across ballots**: The value proposed in any ballot must be safe—meaning it doesn't conflict with any value that could have been or will be chosen in an earlier ballot
+
+The specification should define an invariant that captures when a value is "safe" to propose based on quorum responses, ensuring that the protocol correctly threads information about earlier votes through to later ballots.

@@ -1,0 +1,39 @@
+# Specification Request: DAG-Based Byzantine Consensus Protocol
+
+## System Overview
+
+I need a formal specification of a DAG-based Byzantine fault-tolerant consensus protocol. The system consists of a set of nodes, some of which may be Byzantine (malicious), that collectively build a directed acyclic graph (DAG) of blocks and derive a totally ordered log of committed decisions from this structure.
+
+## System Description
+
+The protocol operates in rounds, where each node creates one block (vertex) per round. Each block references a set of blocks from the previous round, forming edges in the DAG. One node is designated as the "leader" for each round according to a predetermined schedule.
+
+### Core Mechanics
+
+1. **DAG Construction**: Nodes progressively build a shared DAG by creating blocks that reference blocks from the previous round. All blocks ultimately trace back to a common genesis block.
+
+2. **Round Progression**: A node can advance to a new round only after receiving a quorum of blocks from the previous round. After a global stabilization time (GST), synchrony is assumed, and nodes must receive blocks from all correct nodes before advancing.
+
+3. **Leader-Based Commitment**: The protocol commits leader blocks based on "votes" - a block votes for a leader if it directly references that leader's block. When a node observes a quorum of votes for a leader from two rounds ago, it commits that leader's block and all blocks it transitively references (linearized into a log).
+
+4. **Safety Rules for Non-Voting**: Before advancing rounds or creating blocks, nodes must ensure they don't break safety. Specifically, if a leader block doesn't reference the previous leader, the node must verify there's already a quorum of non-votes for that previous leader (ensuring it cannot be committed elsewhere).
+
+### Byzantine Behavior Model
+
+Byzantine nodes can create blocks at any round but are constrained by the underlying reliable broadcast mechanism: they cannot equivocate (create multiple blocks for the same round) and their blocks must reference a valid quorum from the previous round to be accepted.
+
+## Correctness Properties
+
+### Safety: Agreement
+All correct nodes must have compatible logs - meaning one log is always a prefix of the other. No two correct nodes should ever commit conflicting sequences of decisions.
+
+### Liveness: Eventual Commitment
+After the global stabilization time, if a round's leader is correct, then every correct node that advances sufficiently far (at least two rounds past that leader's round) must eventually include that leader's block in its committed log.
+
+## Parameters
+
+- A set of nodes partitioned into correct and Byzantine subsets
+- A finite set of rounds
+- Quorum and blocking set predicates (typically requiring n-f and f+1 nodes respectively, where f is the number of Byzantine nodes)
+- A leader assignment function mapping rounds to nodes
+- A global stabilization time marking the transition to synchronous operation

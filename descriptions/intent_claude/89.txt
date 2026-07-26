@@ -1,0 +1,32 @@
+# Specification Request: Asynchronous Communication Channel
+
+## System Overview
+
+I need a formal specification for a one-place asynchronous communication channel that allows a sender and receiver to exchange data values without requiring synchronized clocks or simultaneous action.
+
+## System Description
+
+The channel should support exactly two operations:
+1. **Sending** a data value from some fixed set of possible values
+2. **Receiving** (acknowledging) a previously sent value
+
+The channel can hold at most one unacknowledged message at a time. The sender and receiver must coordinate through the channel state to ensure proper handshaking—the sender cannot send a new value until the previous one has been acknowledged, and the receiver cannot acknowledge unless there is an unacknowledged message waiting.
+
+## Behavioral Requirements
+
+- The sender may only transmit a new data value when the channel is "clear" (no pending unacknowledged message)
+- The receiver may only acknowledge when there is a pending message that has not yet been acknowledged
+- The protocol should use a toggle-based signaling mechanism where sender and receiver alternate their readiness/acknowledgment indicators
+- Initially, the channel should be in a state where the sender is permitted to send (i.e., the channel is clear)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Type Safety**: The channel state must always consist of valid data values and valid signaling bits (binary indicators for readiness and acknowledgment)
+
+2. **Proper Alternation**: Send and receive operations must strictly alternate—two sends cannot occur consecutively without an intervening receive, and vice versa
+
+## Purpose
+
+This specification models the fundamental building block for asynchronous communication, which can serve as the basis for more complex protocols like FIFO queues or producer-consumer systems.

@@ -1,0 +1,49 @@
+# Specification Request: Promise Resolution System with Heap-Based Object Model
+
+## System Overview
+
+I need a formal specification of a **promise-based asynchronous computation system** that models how promises are created, resolved, and garbage collected in a heap-based object environment. This is similar to promise/future mechanisms found in languages like JavaScript or E, where computations can depend on values that are not yet available.
+
+## Core Concepts to Model
+
+### Object Heap
+The system should model a memory heap containing objects. Each object has a type and fields that can hold primitive values, references to other objects, or sequences of these. The specification must track object reachability through the heap.
+
+### Promises
+The central abstraction is a **promise** - an object representing a value that may not yet be computed. Promises have two states:
+- **Unresolved**: The value is not yet available; the promise is waiting on some dependency
+- **Resolved**: The value has been computed and is available
+
+### Two Kinds of Unresolved Promises
+1. **"When" promises**: Created by registering a callback on another promise (like `.then()` in JavaScript). These wait for a specific argument promise to resolve, then execute a method with that resolved value.
+
+2. **Regular method-call promises**: Created by invoking a method on an object through a promise. These wait for the target object's identity to be resolved before the method can be dispatched.
+
+### Method Evaluation
+Methods transform the heap and produce results. Method evaluation must be deterministic with respect to the reachable portion of the heap - if two heaps agree on all objects reachable from the method's inputs, they produce identical results and heap modifications.
+
+## Key Operations
+
+1. **Resolve a "when" promise**: When the argument promise becomes resolved, execute the callback method and store the result.
+
+2. **Resolve a method-call promise**: When the target object promise becomes resolved, dispatch the method call and store the result.
+
+3. **Garbage collect resolved promises**: Remove resolved promises from the heap when they are no longer referenced by any other object.
+
+## Correctness Properties Required
+
+1. **No dangling references**: Every object reference in the heap must point to a valid object.
+
+2. **Promise type consistency**: Objects marked as promises must have the correct structure for their promise kind.
+
+3. **No promise cycles**: The dependency chain of unresolved promises must be acyclic - a promise cannot transitively depend on itself.
+
+4. **Heap locality**: Method evaluation can only modify objects reachable from its inputs or create new objects; it cannot arbitrarily modify unrelated parts of the heap.
+
+5. **Determinism**: Method results depend only on the reachable portion of the heap, not on unreachable objects.
+
+## Additional Modeling Requirements
+
+- Support for exceptions as an alternative to successful values (promises can be "broken" rather than fulfilled)
+- A notion of "ToDo" items representing pending work with associated success and failure handlers
+- Support for marshalling considerations (whether work can be migrated across execution contexts)

@@ -1,0 +1,51 @@
+# Specification Request: Blockchain Light Client Verification Protocol
+
+## System Overview
+
+I need a formal specification of a **light client verification protocol** for a blockchain system (similar to Tendermint consensus). The light client is a resource-constrained node that needs to verify blockchain headers without downloading and validating the entire chain.
+
+## System Description
+
+The light client starts with a **trusted block header** (established through social consensus) and attempts to verify a **target block header** at a higher height. It does this by fetching intermediate block headers from a primary full node and verifying them using validator signatures and a chain-of-trust mechanism.
+
+The system operates under a **trusting period** constraint: validators can only be trusted for a limited time window. Once a block's validators fall outside this trusting period, they can no longer be used to establish trust in subsequent blocks.
+
+## Key Mechanisms
+
+1. **Block Verification**: A light block can be verified against a trusted block if:
+   - The trusted block is still within the trusting period
+   - The untrusted block has valid commit signatures from more than 2/3 of its validator set
+   - For adjacent blocks, the validator set transition is valid
+   - For non-adjacent blocks, at least 1/3 of the trusted block's next validators have signed the untrusted block
+
+2. **Bisection Strategy**: When a block cannot be directly verified (validator sets are too different), the client schedules verification of intermediate heights to build a chain of trust.
+
+3. **Adversarial Environment**: The primary full node may be faulty/Byzantine, potentially providing fabricated blocks. However, faulty nodes are still constrained by digital signature requirements.
+
+## Correctness Properties Required
+
+### Safety Properties
+
+1. **Correctness**: Every header marked as verified must exactly match the corresponding header in the actual blockchain.
+
+2. **Proof of Chain of Trust**: For any two verified headers, there must exist either an intermediate verified header between them, or direct verification must be possible, or the earlier header has expired from the trusting period.
+
+3. **No Failed Blocks on Success**: If verification succeeds, no fetched blocks should be in a failed state.
+
+4. **Precision**: If verification fails, then either the trusted header has expired OR the primary node provided incorrect information (wrong header or invalid commits).
+
+### Liveness Properties
+
+1. **Termination**: The protocol must eventually terminate (either success or failure).
+
+2. **Success with Correct Primary**: If the primary is correct and there exists a verified block still within the trusting period, the protocol must eventually succeed.
+
+### Complexity Bound
+
+The number of block fetches/probes should be bounded quadratically by the height difference between trusted and target blocks.
+
+## Environmental Assumptions
+
+- Time advances globally and blocks may expire from the trusting period during execution
+- The blockchain itself is fixed/immutable during verification
+- The primary node's correctness is a parameter (enabling analysis of both honest and Byzantine scenarios)

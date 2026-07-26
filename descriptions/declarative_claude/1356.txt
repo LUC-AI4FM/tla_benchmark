@@ -1,0 +1,31 @@
+# Overview
+
+This TLA+ specification tests the model checker's handling of operator arguments passed through module instantiation, particularly focusing on how parameterized operators are processed when nested through abstract module wrappers.
+
+## System Being Modeled
+
+The specification models a simple counter that cycles through values 0 to 8. When the counter reaches 8, it resets to 0.
+
+## Constants and Variables
+
+The module declares one variable `s` representing the counter state. Two constant operators `Op` and `Op2` are declared, which the configuration substitutes with the `Test` operator.
+
+## Actions and Specification
+
+The initial state sets `s` to 0. The next-state relation increments `s` by 1 while below 8, otherwise resets to 0. The specification allows stuttering steps.
+
+## Module Instantiation
+
+The module instantiates `Github1161Abstract`, which provides wrapper operators. The abstract module defines `Property` as a box formula and `Double` as a passthrough to `Property`, creating nested parameterized operator calls that exercise the model checker's argument-binding logic.
+
+## Properties Checked
+
+Seven properties are verified, all routing through the abstract module's wrappers:
+- `Property` and `Double`: pass operator `Test` (always returns TRUE)
+- `StateProperty`: verifies `s` remains in range 0..8
+- `PropertyE`: uses an operator defined in the abstract module
+- `PropertyF`: uses `Test2` which checks membership in 0..8
+- `PropertyG`: passes the constant operator `Op`
+- `PropertyH`: passes a recursive operator
+
+A `Tautology` leads-to property and a `PropertyViolated` (expected to fail for values reaching 5) are defined but not checked.

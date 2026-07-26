@@ -1,0 +1,44 @@
+# Specification Request: Wait-Free Shared Snapshot Object
+
+## System Overview
+
+I need a formal specification of a **wait-free atomic snapshot algorithm** for shared memory systems. This is the unbounded memory version of the algorithm by Afek et al. for implementing shared snapshot objects.
+
+## System Description
+
+The system consists of two types of concurrent processes:
+- **Writers**: Each writer owns a dedicated memory location and can update its value
+- **Readers**: Processes that can obtain an atomic snapshot of all writers' memory locations
+
+The key challenge is that readers must obtain a **consistent view** of all memory locations, even while writers are concurrently modifying their values. The snapshot must appear to have been taken at a single instant in time, despite being constructed by reading each location separately.
+
+## Required Operations
+
+1. **Write Operation**: A writer updates its own memory location with a new value. As part of performing a write, the writer must also capture a snapshot of the current memory state.
+
+2. **Read/Scan Operation**: A reader obtains a consistent snapshot of all writers' memory locations. Both readers and writers need the ability to perform this scanning operation.
+
+## Algorithm Approach
+
+The algorithm should use a **double-collect** strategy:
+- Perform two complete reads of all memory locations
+- If both reads return identical values, the snapshot is valid
+- If values differ between the two reads, detect whether any writer has moved "enough" times to have captured a valid snapshot that can be borrowed
+
+Writers must store their most recent snapshot along with their written value, allowing a reader to borrow this snapshot when it cannot obtain a consistent double-collect on its own.
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Atomicity/Linearizability**: Every completed read operation returns a memory state that existed at some point during the operation's execution interval.
+
+2. **Wait-Freedom**: Every operation completes in a bounded number of steps, regardless of the behavior of other processes.
+
+3. **Consistency**: The snapshot returned reflects a coherent state where all values coexisted simultaneously.
+
+## Additional Requirements
+
+- The algorithm uses unbounded memory (values can grow without bound)
+- The specification should refine a higher-level snapshot specification, with internal implementation details hidden
+- Writers and readers are disjoint sets of processes

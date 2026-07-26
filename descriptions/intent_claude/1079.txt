@@ -1,0 +1,47 @@
+# Specification Request: Automated Parameter Sweep for Distributed Algorithm Variants
+
+## System Overview
+
+I need a test harness that systematically explores different configurations of a distributed termination detection algorithm (specifically, Dijkstra's EWD998 token-based scheme). The harness should automatically run simulations across multiple parameter combinations and collect performance statistics.
+
+## Goal
+
+Create an automated benchmarking framework that:
+
+1. Explores all combinations of optional algorithm features/optimizations
+2. Tests each feature combination across different network sizes
+3. Runs multiple simulation traces for each configuration
+4. Collects and records statistics about algorithm behavior to a CSV file for later analysis
+
+## Requirements
+
+### Parameter Space
+- The system should iterate over all subsets of a defined set of algorithm feature flags (representing different optimizations or variants of the base algorithm)
+- Each feature combination should be tested across multiple network sizes (different node counts)
+
+### Execution Model
+- For each (feature set, node count) combination, spawn a separate model checker instance to run simulations
+- The nested model checker instances should generate random simulation traces (not exhaustive state exploration)
+- Multiple traces should be generated per configuration to gather statistical data
+
+### Data Collection
+- Record results to a CSV file with appropriate column headers
+- Track metrics such as trace length and counts of various algorithm actions (probe initiations, token passes, message sends/receives, node deactivations)
+
+### Error Handling
+- Detect and report different types of failures from the nested runs:
+  - Assumption violations
+  - Safety property violations
+  - Liveness property violations
+  - Other unexpected errors
+- Continue testing remaining configurations even if some fail
+
+### Output
+- Provide progress feedback showing which configurations have completed
+- Generate a timestamped CSV file suitable for statistical analysis (e.g., in R)
+
+## Correctness Properties
+
+- The harness itself should complete after exploring all parameter combinations
+- Each nested simulation run should either complete successfully or report a categorized error
+- The CSV output should contain valid, parseable data for all successful runs

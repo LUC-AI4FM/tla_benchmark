@@ -1,0 +1,50 @@
+# Specification Request: Atomic Commitment Protocol with Simple Broadcast
+
+## System Overview
+
+I need a formal specification of a distributed atomic commitment protocol involving a single coordinator and multiple participants. The protocol should model how distributed processes reach a unanimous decision to either commit or abort a transaction, even in the presence of process failures.
+
+## System Description
+
+The system consists of:
+- A **coordinator** process that orchestrates the commitment decision
+- A set of **participant** processes that vote on whether to commit or abort
+
+The protocol operates in phases:
+1. The coordinator sends vote requests to all participants
+2. Each participant responds with either a "yes" or "no" vote
+3. The coordinator collects votes and makes a decision: commit only if all votes are "yes", otherwise abort
+4. The coordinator broadcasts its decision to all participants
+5. Participants adopt the coordinator's decision (or may unilaterally abort in certain circumstances)
+
+## Communication Model
+
+Communication should be modeled as asynchronous message passing. The broadcast mechanism is "simple" — meaning the coordinator sends its decision to participants one at a time, and this process may be interrupted by coordinator failure (resulting in partial delivery).
+
+## Failure Model
+
+Both the coordinator and participants may fail (crash) at any point during the protocol. Failures are permanent (no recovery). Failed processes should be detectable by other processes (abstractly modeled, not via explicit timeouts). A participant that votes "no" may unilaterally decide to abort. A participant that detects coordinator failure before receiving a vote request may also unilaterally abort.
+
+## Correctness Properties
+
+The specification must verify the following safety properties:
+
+1. **Agreement**: No two participants reach different decisions — it's impossible for one to commit while another aborts.
+
+2. **Commit Validity**: If any participant decides to commit, then all participants must have voted "yes".
+
+3. **Abort Validity**: If any participant decides to abort, then either some participant voted "no", or some participant failed, or the coordinator failed.
+
+4. **Irrevocability**: Once a participant reaches a decision (commit or abort), that decision is permanent and cannot change.
+
+The specification should also verify this liveness property:
+
+5. **Progress**: Eventually, either all participants reach a decision, or at least one process (participant or coordinator) has failed.
+
+## Important Limitation
+
+This protocol does **not** guarantee termination in all failure scenarios. Due to the simple broadcast mechanism, if the coordinator fails mid-broadcast, some participants may never receive the decision and will remain undecided indefinitely. This is an expected limitation of this protocol variant.
+
+## Fairness Requirements
+
+The specification should assume weak fairness for participant actions and coordinator protocol actions (excluding failure transitions). Failures should be allowed but not forced by fairness conditions.

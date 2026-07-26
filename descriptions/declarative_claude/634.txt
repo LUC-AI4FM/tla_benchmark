@@ -1,0 +1,11 @@
+This TLA+ module specifies a **light client detector** for the Tendermint blockchain protocol, modeling how a light client detects conflicting blocks between a primary and secondary peer to identify Byzantine behavior.
+
+**Constants** define the system parameters: the set of all validator nodes, trusted and target block heights, the trusting period duration, clock drift bounds (assumed and actual), the maximum ratio of faulty validators, and boolean flags indicating whether the primary and secondary peers are correct.
+
+**Variables** track the reference blockchain state, local and reference clocks, the set of faulty validators, the detector's state machine, three sets of fetched light blocks (from primary, secondary, and a secondary verification trace), the common trusted height during evidence creation, the next height to verify, and collected evidences.
+
+**Initialization** sets up the blockchain, initializes clocks within drift bounds, and precomputes a possible verification result from the primary peer starting from the trusted height.
+
+**Key actions** include: `CompareLast` fetches the target block from the secondary and compares headers; `CreateEvidenceForSecondary` and `CreateEvidenceForPrimary` iteratively verify blocks between common and target heights to find mismatches; `SwitchToPrimary` transitions to checking the primary after finding secondary evidence; and `AdvanceClocks` models clock progression with drift.
+
+**Safety invariants** checked include: evidence is only found when at least one peer is faulty (`EvidenceWhenFaultyInv`), no evidence exists when both peers are correct (`NoEvidenceForCorrectInv`), evidence is sound and verifiable (`CommonHeightOnEvidenceInv`), and absence of evidence implies no attack (`AccuracyInv`). **Precision properties** verify that corrupted blocks from the primary lead to evidence when the secondary is correct and within the trusting period.

@@ -1,0 +1,37 @@
+# Specification Request: Single-Node Confidential Consortium Framework Service
+
+## System Overview
+
+I need a formal specification for the externally visible behavior of a single-node instance of a confidential consortium framework (CCF) service. This models a distributed ledger system where, because there is only one node, no leader elections or view changes occur, meaning the ledger never experiences rollbacks.
+
+## System Description
+
+The system should model a transaction processing service with the following characteristics:
+
+1. **Transaction Lifecycle**: Clients can submit read-write transactions, which are then executed by being appended to a ledger, and eventually receive responses indicating the transaction's position in the ledger.
+
+2. **Ledger Structure**: The system maintains ledger branches indexed by "view" (leadership term). Each ledger entry has a view number and optionally contains a transaction. Entries are identified by their sequence number (position in the ledger).
+
+3. **Transaction IDs**: Each transaction receives a unique identifier composed of a view number and sequence number indicating where it was recorded in the ledger.
+
+4. **Commit Status**: Transactions can receive a "committed" status, indicating they are durably recorded and will not be rolled back.
+
+## Required Behaviors
+
+The specification must capture:
+
+- **Transaction Request**: New read-write transactions can be submitted with unique identifiers
+- **Transaction Execution**: A requested transaction gets appended to a ledger branch, recording which view it was added under
+- **Transaction Response**: After execution, the system responds with the transaction's ID and an observation of what transactions preceded it in that ledger branch
+- **Commit Notification**: The system can report that a transaction is committed when it appears at the expected position in the current ledger
+- **Background Ledger Activity**: Other transactions (not explicitly tracked) may be appended to ledgers, representing system overhead or other clients' transactions
+
+## Key Correctness Properties
+
+1. **Type Safety**: All ledger entries must contain valid view numbers, and any included transactions must be valid transaction identifiers
+
+2. **Ledger Monotonicity**: Each ledger branch must be append-only—existing entries are never modified or removed, only new entries are added to the end
+
+3. **No Invalid Transactions**: Since there is only one node and no view changes can occur, the ledger is never rolled back. Therefore, once a transaction is recorded, its transaction ID remains valid permanently (unlike multi-node scenarios where competing leaders might cause some branches to be abandoned)
+
+4. **External History Consistency**: The observable history of requests, responses, and status notifications must satisfy consistency properties appropriate for the service's guarantees

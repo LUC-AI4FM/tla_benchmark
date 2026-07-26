@@ -1,0 +1,31 @@
+# Specification Request: Resolved Timestamp Tracking System
+
+## System Overview
+
+I need a formal specification for a **resolved timestamp** mechanism, which is a component commonly used in distributed database systems to track the progress of time across multiple data regions or keys.
+
+## What the System Should Model
+
+The system should model how a coordinator tracks timestamp resolution across a set of resource managers (or key ranges). The resolved timestamp represents a point in time before which all transactions affecting the tracked resources are guaranteed to have completed or become visible.
+
+## Functional Requirements
+
+1. **Resource Manager Tracking**: The system must track the state of multiple independent resource managers, each of which can have pending operations at various timestamps.
+
+2. **Timestamp Progression**: There should be a logical clock or timestamp counter that can advance over time.
+
+3. **Resolution Calculation**: The system must compute a "resolved timestamp" that represents the minimum timestamp at which there might still be pending or uncommitted work across all tracked resources.
+
+4. **Safe Reads**: The resolved timestamp should enable consistent snapshot reads—any read at or below the resolved timestamp should see a consistent view of all committed data.
+
+## Key Correctness Properties
+
+1. **Safety**: The resolved timestamp must never advance past any timestamp where uncommitted or in-flight operations exist. Reading at the resolved timestamp must always be safe.
+
+2. **Monotonicity**: The resolved timestamp should never decrease; it must only advance forward or remain unchanged.
+
+3. **Progress**: Under appropriate conditions (when pending operations complete), the resolved timestamp should eventually advance.
+
+## Scope Constraints
+
+For model checking purposes, the specification should work with a small, finite set of resource managers (e.g., 2 keys) and bounded timestamp values to keep the state space tractable.

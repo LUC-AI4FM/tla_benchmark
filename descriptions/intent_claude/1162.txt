@@ -1,0 +1,43 @@
+# Specification Request: Single-Decree Paxos Consensus Protocol
+
+## System Overview
+
+I need a formal specification of the classic Paxos consensus algorithm as described in "Paxos Made Simple." The system should model a distributed consensus protocol where multiple proposers can propose values and a set of acceptors collectively decide on a single value.
+
+## System Components
+
+The model should include:
+
+- **Proposers/Leaders**: Entities that can propose values across multiple ballot rounds
+- **Acceptors**: Entities that receive proposals and vote on values
+- **Quorums**: Collections of acceptors where any two quorums must overlap (this intersection property is critical for correctness)
+- **Messages**: An asynchronous message-passing communication model
+
+## Required Behavior
+
+The protocol operates in two phases:
+
+**Phase 1 (Prepare)**: A leader initiates a ballot by requesting promises from acceptors. Acceptors respond with their current state (any previously accepted ballot and value), promising not to accept proposals from earlier ballots.
+
+**Phase 2 (Accept)**: Once a leader receives responses from a quorum, it proposes a value—either a value it chooses freely (if no acceptor reported a prior acceptance) or the value from the highest-numbered previously accepted ballot. Acceptors then vote on this proposal if it doesn't violate their promises.
+
+The specification should model:
+- Leaders can initiate ballots at any time
+- Acceptors can respond to any ballot higher than what they've previously promised
+- A value is considered "chosen" when a quorum of acceptors has voted for it in the same ballot
+- Message delivery is unreliable (messages may be lost or delayed, but not corrupted)
+
+## Correctness Properties
+
+The specification must guarantee:
+
+1. **Agreement (Safety)**: If any two values are chosen, they must be the same value. The protocol must never allow two different values to both be chosen.
+
+2. **Type Safety**: All protocol state should remain well-formed throughout execution.
+
+## Modeling Considerations
+
+- Ballots should be modeled as natural numbers
+- The message history approach (tracking all sent messages rather than in-flight messages) is acceptable, as safety properties concern what *may* happen rather than what *must* happen
+- The quorum intersection property must be assumed as a precondition
+- Liveness is not required for this specification—focus on safety properties only

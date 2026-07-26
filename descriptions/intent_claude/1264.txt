@@ -1,0 +1,38 @@
+# Specification Request: TLA+ Counterexample Trace Export Utility
+
+## System Overview
+
+I need a utility that automatically exports TLC model checker counterexamples to a standalone, reusable TLA+ module file when a specification violation is detected.
+
+## Goal
+
+When TLC finds a counterexample (indicating a property violation or invariant failure), the system should capture the error trace and serialize it into a new TLA+ module file that can be independently loaded and analyzed. This enables trace replay, debugging, and sharing of counterexamples without requiring access to the original model checking session.
+
+## Functional Requirements
+
+1. **Counterexample Detection**: The system must detect when TLC has produced a counterexample during model checking.
+
+2. **Trace Extraction**: When a counterexample exists, extract the complete execution trace (sequence of states) that led to the violation.
+
+3. **Module Generation**: Generate a syntactically valid TLA+ module containing:
+   - Proper module header and footer
+   - The necessary TLC imports
+   - A definition that holds the complete trace data in a reusable format
+
+4. **File Output**: Write the generated module to a specified output file with:
+   - Configurable filename
+   - Proper text encoding (UTF-8)
+   - Overwrite behavior if file already exists
+
+5. **Conditional Execution**: The export should only occur when:
+   - A counterexample actually exists (non-empty state trace)
+   - Console output suppression is not enabled
+
+6. **User Feedback**: Provide confirmation when the counterexample has been successfully written to disk.
+
+## Correctness Properties
+
+- The generated file must be a syntactically valid TLA+ module that can be parsed independently
+- The trace data must faithfully represent the counterexample produced by TLC
+- File operations must complete successfully (verified exit code)
+- No output should be generated when no counterexample exists

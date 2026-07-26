@@ -1,0 +1,38 @@
+Specification Request: Buffered Random Access File
+
+## System to Model
+
+A buffered wrapper around a random access file that provides efficient read and write operations by maintaining an in-memory buffer. This is the kind of buffering layer commonly found in file I/O libraries, where an internal buffer caches a portion of the file to reduce direct disk operations.
+
+## System Description
+
+The system should model a buffered file abstraction that sits on top of a basic random access file. The underlying file supports seeking to arbitrary positions, reading and writing data at the current position, and changing the file's length. The buffered layer adds an in-memory buffer of fixed size that caches a contiguous region of the file.
+
+The buffered file must support these operations:
+- **Seek**: Move the current position to any valid offset
+- **Read**: Read bytes starting from the current position, advancing the position
+- **Write**: Write bytes starting from the current position, advancing the position and potentially extending the file
+- **Flush**: Write any modified (dirty) buffer contents back to the underlying file
+- **Set Length**: Truncate or extend the file to a specified size
+
+The buffer maintains a "window" into the file. When reading or writing, if the requested position falls within the buffered region, operations can proceed using the buffer without touching the underlying file. If the position falls outside the buffer, the buffer must be flushed (if modified) and then refilled with data from the new region.
+
+## Key Correctness Properties
+
+1. **Logical consistency**: The logical contents of the file (combining buffered and unbuffered regions) must always be well-defined. The tracked length must match the logical file's actual length.
+
+2. **Buffer bounds invariant**: The current position must always remain within valid bounds relative to the buffer's starting offset and size.
+
+3. **Buffer coherence**: For any position covered by the buffer, reading from the buffer must yield the same result as reading from the logical file.
+
+4. **Unbuffered region coherence**: For any position not covered by the buffer, the logical file content must match the underlying file's content.
+
+5. **Dirty tracking correctness**: If any buffered byte differs from what is on disk, the buffer must be marked as dirty.
+
+6. **Refinement**: The buffered file must behave identically to a simple random access file from the client's perspective. Every operation on the buffered file should correspond to the equivalent operation on a plain random access file in terms of observable state (file contents and current position).
+
+7. **Invariant restoration**: It must always be possible to restore the buffer bounds invariant by flushing (if dirty) and then seeking to the current position. Specifically:
+   - Flushing must be enabled whenever the buffer is dirty
+   - Flushing must clear the dirty flag
+   - Seeking to the current position must be enabled when not dirty
+   - Seeking must restore the buffer bounds invariant

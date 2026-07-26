@@ -1,0 +1,40 @@
+# Specification Request: Two-Phase Commit Protocol
+
+## System to Model
+
+I need a formal specification of the **Two-Phase Commit (2PC) protocol** for distributed transaction coordination. This protocol coordinates a transaction across multiple resource managers (participants) with a central transaction manager acting as coordinator.
+
+## System Description
+
+The system consists of:
+- A fixed set of **resource managers** (participants in the distributed transaction)
+- A **transaction manager** (coordinator) that decides whether to commit or abort
+- A **message-passing communication mechanism** between participants and coordinator
+
+## Required Behavior
+
+1. **Resource Manager Preparation**: Each resource manager that is ready to commit must send a "prepared" message to the transaction manager. Resource managers start in a working state and transition to prepared when ready.
+
+2. **Transaction Manager Decision**: The transaction manager collects prepared messages from resource managers. Once all resource managers have indicated they are prepared, the transaction manager can issue a commit decision.
+
+3. **Message Types**: The system should support three types of messages:
+   - Prepared messages (from resource managers)
+   - Commit decision (from transaction manager)
+   - Abort decision (from transaction manager)
+
+## Initial State Requirements
+
+The specification should start from a partially-progressed state where:
+- Some resource managers may already be prepared while others are still working
+- The transaction manager's knowledge of prepared participants is consistent with the messages sent
+- The message set reflects the actual prepared messages that have been sent
+
+## Key Correctness Properties
+
+1. **Commit Safety**: A commit decision should only be issued after ALL resource managers have prepared. The commit message must not appear in the system until every participant has sent their prepared message.
+
+2. **Message Consistency**: The transaction manager's record of which participants are prepared should be consistent with the prepared messages in the system.
+
+## Purpose
+
+This specification is intended to verify that the two-phase commit protocol maintains its safety guarantees—specifically that commits only occur when all participants are ready—even when starting from arbitrary intermediate states of the protocol.

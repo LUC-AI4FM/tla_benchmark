@@ -1,0 +1,30 @@
+# Specification Request: Symmetric Message Transfer with Iterations
+
+## System Overview
+
+I need a formal specification for a system that transfers a set of messages from one collection to another, repeatedly cycling through multiple iterations of this transfer process.
+
+## System Description
+
+The system manages two collections (think of them as buffers or queues) and a fixed set of distinct messages. Initially, all messages reside in the first collection while the second is empty. The system should:
+
+1. **Transfer messages one at a time**: Messages move individually from the first collection to the second collection. Each transfer should be counted.
+
+2. **Support multiple iterations**: Once all messages have been moved to the second collection, the system can begin a new iteration by swapping the roles of the two collections—messages that were in the second collection become available for transfer again from the first collection.
+
+3. **Run for a bounded number of iterations**: The cycling behavior should continue for a configurable number of iterations.
+
+## Key Requirements
+
+- The set of messages is fixed and known upfront (specifically four distinct messages for verification purposes)
+- Messages are transferred non-deterministically (any available message can be chosen)
+- An iteration can only complete when the source collection is fully drained
+- The total number of completed iterations is bounded by a configurable parameter
+
+## Correctness Properties
+
+The primary safety property is **message conservation**: at any point during execution, the union of both collections must equal exactly the original set of messages. No messages should ever be created, destroyed, or duplicated.
+
+## Verification Considerations
+
+The messages themselves are interchangeable—their specific identities don't matter, only that they are distinct. The specification should take advantage of this symmetry to reduce the state space during model checking. Additionally, the transfer count is auxiliary information that doesn't affect the core behavior and can be excluded from state comparison for further optimization.
