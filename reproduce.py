@@ -144,6 +144,8 @@ def tableA6(sets, res):
 
 def pass_quality_rows(ids):
     keep = set(ids)
+    global audit12
+    audit12 = [r for r in load("pass_quality", "audit12.json") if r["spec_id"] in keep]
     mut = [r for r in load("pass_quality", "mutation_default.json") if r["spec_id"] in keep]
     ref = [r for r in load("pass_quality", "refcheck_default.json") if r["spec_id"] in keep]
     audit = [r for r in load("_pass_audit.json") if r["spec_id"] in keep]
@@ -165,7 +167,8 @@ def table5(sets, res, cfg):
             ("Behavior-mutation", "a named property catches a behavior change",
              sum(1 for r in mut if r["verdict"] == "load_bearing")),
             ("Matches reference", "same behaviors as the reference (TLC, both directions)",
-             sum(1 for r in ref if r.get("behavior") == "same_behaviors")),
+             sum(1 for r in ref if r.get("behavior") == "same_behaviors")
+             + sum(1 for r in audit12 if r["behavior"] == "same_behaviors")),
         ]
         print(f"  [{name}, {n} outputs]")
         for regime, asks, k in rows:
@@ -185,8 +188,15 @@ def section87(sets):
         print(f"    configuration checks : {dict(checks)}")
         print(f"    behavior-mutation    : {dict(Counter(r['verdict'] for r in mut))}")
         print(f"    reference properties : {dict(Counter(r['ref_props'] for r in ref))}")
-        print(f"    behavior vs reference: "
+        print(f"    behavior vs reference (identity mapping): "
               f"{dict(Counter(r.get('behavior') or 'cfg_names_no_SPECIFICATION' for r in ref))}")
+        print(f"    audit of the undecided cases (explicit mappings): "
+              f"{dict(Counter(r['behavior'] for r in audit12))}")
+        decided = {(r['model'], r['spec_id']): r['behavior'] for r in ref
+                   if r.get('behavior') in ('same_behaviors', 'omits_reference_behavior')}
+        decided.update({(r['model'], r['spec_id']): r['behavior'] for r in audit12})
+        print(f"    combined over the {len(ref)} passes: "
+              f"{dict(Counter(decided.get((r['model'], r['spec_id']), 'different_algorithm') for r in ref))}")
         same = sum(1 for r in mut if r["verdict"] == ref_mut.get(r["spec_id"], {}).get("verdict"))
         print(f"    same mutation verdict as the pass's own reference: {same} of {len(mut)}")
     for name, ids in sets.items():

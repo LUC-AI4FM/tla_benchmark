@@ -12,7 +12,8 @@ specifications that both parse under SANY and model-check under TLC; each gold
 specification has a `.tla` file and a matching `.cfg` configuration, except four
 listed in `outputs/audit/gold_without_cfg.json` (see CHANGES below). The `silver`
 subfolder has 897 specifications that parse under SANY but do not ship a runnable
-configuration. Files are named `<id>_<Module>.tla`.
+configuration. The `deps` subfolder holds two modules that are not benchmark items; they are
+included only so that imports resolve (see `specs/deps/README.md`). Files are named `<id>_<Module>.tla`.
 
 The `descriptions` folder holds four sets of natural-language descriptions, one text
 file per specification, keyed by the specification id. The `declarative` sets keep the
@@ -52,6 +53,7 @@ The `outputs` folder holds everything behind the reported tables:
 | `pass_quality/mutation_reference.json` | the same test on the reference specifications |
 | `pass_quality/mutation_control.json` | control: real properties against a vacuous one |
 | `pass_quality/refcheck_default.json` | each pass checked against the reference (properties and behaviors) |
+| `pass_quality/audit12.json` | the 12 passes the reference check could not decide, re-checked with explicit mappings |
 | `audit/fixture_audit.json` | distinct-state count of every evaluation reference |
 | `audit/gold_without_cfg.json` | gold specifications with no configuration |
 | `_pass_audit.json` | per-pass audit used for the substantive-pass count |
@@ -67,7 +69,10 @@ and the pass-quality counts of Section 8.7 on the 100 evaluation specifications.
 number is counted from the files above, with no model queries. `python reproduce.py
 --clean` also prints each table without the specifications listed under Evaluation set in
 CHANGES.
-To re-grade a generated specification from scratch, use `code/validator.py`.
+To re-grade a generated specification from scratch, use `code/validator.py`. The scripts
+that produce the pass-quality, audit and configuration-aware files are in `code/analysis/`
+(see `code/analysis/README.md`); `code/analysis/check_grading.py` re-grades all 900
+released generated specifications and compares them with the released verdicts.
 
 The default-regime generated specifications of the open models are not included; their
 graded results are. The generation prompts are in `code/generation/` and in the paper's appendix.
@@ -94,16 +99,27 @@ kept as `reproduce_as_submitted.py`.
   the original configuration. A property is load-bearing when it catches a mutant that
   changes the reachable behavior. A control with a vacuous property is included.
 - **Reference check.** New. Each pass is checked against the reference module: the
-  reference's own definitions of the configured properties, and a two-way behavior
-  comparison in TLC.
+  reference's own definitions of the configured properties, and TLC refinement in both
+  directions. The 12 passes this cannot decide under the identity mapping are re-checked
+  with explicit mappings. Of the 30 passes, 27 match the reference behavior exactly, 2 miss
+  some reference behavior and 1 implements a different algorithm.
 - **Evaluation set.** Specification 1142 has no usable configuration (its source Toolbox
   model is empty), and six references (1275, 1343, 1413, 1435, 1455, 1504) have a single
   reachable state. They remain in the 100-specification evaluation set and are flagged in
   `outputs/audit/`; `python reproduce.py --clean` also reports every table without them.
 - **Gold tier.** Specifications 853, 854, 1140, and 1142 are labelled gold but have no
   configuration of their own.
+- **Grader in the release.** `code/analysis/grading.py` resolves imported modules among the
+  released specifications. `code/analysis/check_grading.py` re-grades all 900 released
+  generated specifications with it and reproduces every released verdict, apart from the
+  random item below. `code/analysis/check_gold_parse.py` confirms that all 403 gold
+  references parse in the release layout.
 - **Known limitation.** The July Opus configuration-aware run used a 4,096-token budget;
   the other runs used 16,000. Two Opus outputs (1009, 1578) reached that limit; both failed.
+- **Known limitation.** Specification 875 (`SpanTreeRandom`) uses TLC's `RandomElement`, so
+  TLC checks a different random graph on each run. The reference passes on every run. The
+  Opus configuration-aware output passed in the released run; on re-runs it took between
+  21 and 301 seconds and failed once by reaching the 300-second limit.
 
 ## Licensing and responsible use
 
