@@ -1,0 +1,1 @@
+I'm ready to write the TLA+ specification based on your description. However, you haven't provided the list of exact names (constants, variables, and operators) that my specification must define. Please provide this list so I can create a complete and syntactically correct TLA+ module that meets your requirements.

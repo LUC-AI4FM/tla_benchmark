@@ -1,0 +1,29 @@
+---- MODULE RandomSubset ----
+EXTENDS TLC, Integers, FiniteSets
+
+(*
+This module specifies a single-variable system used to sample a random
+subset of the function set [S -> T], where S is a finite set of nine
+integers and T is the integer range 1..10. The full function space
+has 10^9 elements and should not be explicitly enumerated, so the design
+instead initializes x to an element of RandomSubset(1000, [ S -> T ]).
+The behavior after initialization is pure stuttering, and the specification
+includes a trivial invariant Inv == TRUE.
+*)
+
+CONSTANTS S, T
+ASSUME S = 1..9 /\ T = 1..10
+
+VARIABLES x
+
+FunctionSpace == [S -> T]
+
+Init == x \in RandomSubset(1000, FunctionSpace)
+
+Next == x' = x
+
+Inv == TRUE
+
+Spec == Init /\ [][Next]_x
+
+================================

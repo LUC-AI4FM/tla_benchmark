@@ -1,0 +1,23 @@
+---------------------------- MODULE Channel ----------------------------
+
+CONSTANTS Data
+
+VARIABLES chan
+
+TypeInvariant == chan \in [val : Data, rdy : {0, 1}, ack : {0, 1}]
+
+Init == chan = [val |-> CHOOSE d \in Data : TRUE, rdy |-> 0, ack |-> 0]
+
+Send(d) == /\ chan.rdy = chan.ack
+           /\ chan' = [chan EXCEPT !.val = d, !.rdy = 1 - chan.rdy]
+
+Receive == /\ chan.rdy # chan.ack
+           /\ chan' = [chan EXCEPT !.ack = 1 - chan.ack]
+
+Next == (\E d \in Data : Send(d)) \/ Receive
+
+Spec == Init /\ [][Next]_chan
+
+THEOREM Spec => []TypeInvariant
+
+=============================================================================

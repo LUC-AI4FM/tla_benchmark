@@ -9,7 +9,8 @@ natural-language descriptions written by two language models in two styles.
 
 The `specs` folder holds the specifications. The `gold` subfolder has 403
 specifications that both parse under SANY and model-check under TLC; each gold
-specification has a `.tla` file and a matching `.cfg` configuration. The `silver`
+specification has a `.tla` file and a matching `.cfg` configuration, except four
+listed in `outputs/audit/gold_without_cfg.json` (see CHANGES below). The `silver`
 subfolder has 897 specifications that parse under SANY but do not ship a runnable
 configuration. Files are named `<id>_<Module>.tla`.
 
@@ -37,11 +38,23 @@ runs the SANY parse gate and the TLC semantic gate over a specification and its
 reference configuration, with the compute budget the paper states; `tla2tools.jar`
 is included. See `code/README.md` for usage.
 
-The `outputs` folder holds the graded model verdicts behind the reported tables:
-the per-model results on the 100-specification evaluation set
-(`claude-opus-4-5.json`, `gemini-2-5-pro.json`, `gpt-5.json`), the open-model
-results (`outputs/contamination/*__clean.json`), and the pass-quality and vacuity
-records (`_pass_audit.json`, `all_passes_vacuity.json`, `oracle_scope_proof.json`).
+The `outputs` folder holds everything behind the reported tables:
+
+| Path | Contents |
+|---|---|
+| `eval_100_ids.json` | the 100 evaluation specifications |
+| `claude-opus-4-5.json`, `gemini-2-5-pro.json`, `gpt-5.json` | graded default-regime results |
+| `contamination/*__clean.json` | graded default-regime results of the three open models |
+| `cfgaware/*.json` | graded configuration-aware results of all six models |
+| `generations/default/<model>/<id>.tla` | the generated specifications of the frontier models, default regime |
+| `generations/cfgaware/<model>/<id>.tla` | the generated specifications of all six models, configuration-aware regime |
+| `pass_quality/mutation_default.json` | behavior-mutation test on every default-regime pass, per mutant |
+| `pass_quality/mutation_reference.json` | the same test on the reference specifications |
+| `pass_quality/mutation_control.json` | control: real properties against a vacuous one |
+| `pass_quality/refcheck_default.json` | each pass checked against the reference (properties and behaviors) |
+| `audit/fixture_audit.json` | distinct-state count of every evaluation reference |
+| `audit/gold_without_cfg.json` | gold specifications with no configuration |
+| `_pass_audit.json` | per-pass audit used for the substantive-pass count |
 
 Running
 
@@ -49,9 +62,48 @@ Running
 python reproduce.py
 ```
 
-recomputes Table 5, the correctness envelope of Table 6, and the pass-quality
-counts of Section 8.7 from these verdicts, with no model queries. To re-grade a
-generated specification from scratch, use `code/validator.py`.
+recomputes Table 6, Table A7, Table A4, Table A6, the correctness envelope of Table 5,
+and the pass-quality counts of Section 8.7 on the 100 evaluation specifications. Every
+number is counted from the files above, with no model queries. `python reproduce.py
+--clean` also prints each table without the specifications listed under Evaluation set in
+CHANGES.
+To re-grade a generated specification from scratch, use `code/validator.py`.
+
+The default-regime generated specifications of the open models are not included; their
+graded results are. The generation prompts are in `code/generation/` and in the paper's appendix.
+
+## CHANGES
+
+This release corrects the reviewer release of July 2026. The previous `reproduce.py` is
+kept as `reproduce_as_submitted.py`.
+
+- **Configuration-aware results.** The previous script printed the configuration-aware
+  row of the envelope as a fixed value (56 of 300). Only the Claude Opus 4.5 run behind it
+  existed. We ran GPT-5 (snapshot `gpt-5-2025-08-07`) and Gemini-2.5-pro in this regime on
+  the same 100 specifications with the same prompt, names, and grader as the Opus run.
+  The correct rates are Opus 26%, GPT-5 28%, Gemini 22%, pooled 76 of 300. The open-model
+  values in the submitted Table A7 also had no run behind them. Measured with the same
+  prompt and grader, they are qwen2.5-coder-32b 2%, llama3.3-70b 1% and gpt-oss-20b 4%.
+  The open models use their default-regime decoding settings (Ollama, temperature 0.0,
+  8,192 output tokens); llama3.3-70b used a 12,288-token context so that it fits on one
+  GPU, which holds the prompt and the full output.
+- **Mutation test.** The previous test replaced each checked invariant with `TRUE`. That
+  cannot make a passing run fail, so it cannot show that a property is vacuous, and the
+  previous script printed its count as a fixed value. It is replaced by a behavior-mutation
+  test: the specification's actions are mutated one change at a time and TLC is re-run with
+  the original configuration. A property is load-bearing when it catches a mutant that
+  changes the reachable behavior. A control with a vacuous property is included.
+- **Reference check.** New. Each pass is checked against the reference module: the
+  reference's own definitions of the configured properties, and a two-way behavior
+  comparison in TLC.
+- **Evaluation set.** Specification 1142 has no usable configuration (its source Toolbox
+  model is empty), and six references (1275, 1343, 1413, 1435, 1455, 1504) have a single
+  reachable state. They remain in the 100-specification evaluation set and are flagged in
+  `outputs/audit/`; `python reproduce.py --clean` also reports every table without them.
+- **Gold tier.** Specifications 853, 854, 1140, and 1142 are labelled gold but have no
+  configuration of their own.
+- **Known limitation.** The July Opus configuration-aware run used a 4,096-token budget;
+  the other runs used 16,000. Two Opus outputs (1009, 1578) reached that limit; both failed.
 
 ## Licensing and responsible use
 

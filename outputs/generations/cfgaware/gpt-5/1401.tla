@@ -1,0 +1,12 @@
+---- MODULE Inner ----
+EXTENDS Naturals
+
+VARIABLE x
+
+Inc ==
+  /\ x < 3
+  /\ x' = x + 1
+
+Fair == WF_x(Inc)
+
+====

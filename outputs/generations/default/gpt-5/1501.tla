@@ -1,0 +1,21 @@
+---- MODULE FactorialSpec ----
+EXTENDS Naturals
+
+CONSTANTS Dummy
+
+VARIABLES x
+
+RECURSIVE fact(_)
+fact(n) == IF n = 0 THEN 1 ELSE n * fact(n - 1)
+
+A == x' = fact(3)
+B == x' = fact(9)
+
+Init == x = 0
+
+Next == A \/ B
+
+Spec == Init /\ [][Next]_<<x>>
+
+TypeInv == x \in Nat
+====
