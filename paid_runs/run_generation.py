@@ -158,8 +158,6 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="only the first N specifications (smoke test)")
     ap.add_argument("--dry-run", action="store_true", help="print the first prompt and exit, no API call")
     a = ap.parse_args()
-    if a.desc.startswith("intent_") and a.mode == "cfgaware":
-        ap.error("intent descriptions hide the names; use them only in the default mode")
 
     man = {str(json.loads(l)["spec_id"]): json.loads(l) for l in open(ROOT / "manifest.jsonl")}
     ids = [str(s) for s in json.load(open(ROOT / "outputs" / "eval_100_ids.json"))]

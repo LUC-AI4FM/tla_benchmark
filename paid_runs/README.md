@@ -22,14 +22,17 @@ All commands run from the repository root, for example `./paid_runs/jobs.sh I1`.
 | A1 | Claude Opus 4.5 | Configuration-aware regime at 16,000 tokens | 100 | done (PR #39) |
 | A2 | Claude Opus 4.5 | Claude-written declarative descriptions | 100 | done (PR #39) |
 | A3 | Claude Opus 4.5 | 4 more samples on the GPT-written descriptions | 400 | done (PR #39) |
-| **I1** | Claude Opus 4.5 | **Both intent (name-hidden) description sets** | 200 | **to run** |
+| **I1** | Claude Opus 4.5 | **Both intent (name-hidden) description sets, in both regimes** | 400 | **to run** |
 | B1, I2 | GPT-5 | Claude-written and intent descriptions | | run by the authors |
 | C1, I3 | Gemini 2.5 Pro | Claude-written and intent descriptions | | run by the authors |
-| D, I4 | open models | Claude-written and intent descriptions | | run by the authors |
+| D, D0, I4 | open models | Claude-written, GPT-written (strict grading) and intent descriptions | | run by the authors |
 
-I1 uses the same settings as A2 and A3: default mode, 16,000 output tokens, provider-default
-temperature. It reads the intent text from `descriptions/intent_gpt/` and
-`descriptions/intent_claude/`. Rough cost: $15 to $30.
+I1 runs both intent sets (`descriptions/intent_gpt/`, `descriptions/intent_claude/`) in the
+default regime (no names given) and in the configuration-aware regime (the names the
+reference configuration checks are listed in the prompt). The intent text hides the module's
+names, while TLC checks operators by name, so the second regime separates understanding the
+system from guessing its names. Settings: 16,000 output tokens and provider-default
+temperature, as in A1 to A3. Rough cost: $30 to $60.
 
 Every job can be stopped and restarted with the same command; finished items are skipped.
 A job stops by itself if its estimated spend passes the cap in `jobs.sh`. Failed requests are
