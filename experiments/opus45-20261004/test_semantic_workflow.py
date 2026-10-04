@@ -38,6 +38,33 @@ class IndependentWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "coverage differs|inventory differs"):
             R.reduce_evidence(data, allow_partial=True)
 
+    def test_fresh_sample_alias_cannot_be_dropped(self):
+        data = copy.deepcopy(self.evidence)
+        fresh = next(r for r in data["rows"] if r["run_id"].startswith("A3:")
+                     and r["run_id"].endswith(":s0:matched-20261004")
+                     and r["execution_reused_from"] != r["run_id"])
+        data["rows"].remove(fresh)
+        with self.assertRaisesRegex(ValueError, "alias coverage differs"):
+            R.reduce_evidence(data, allow_partial=True)
+
+    def test_final_cohort_and_execution_inputs_are_reconciled(self):
+        scope = self.report["target_scope"]
+        self.assertEqual(scope["experimental_outputs"], 700)
+        self.assertEqual(scope["a3_samples"], [0, 1, 2, 3, 4])
+        self.assertEqual(scope["original_passing_output_rows"], 127)
+        self.assertEqual(scope["original_unique_input_keys"], 114)
+        self.assertEqual(scope["fresh_sample0_passing_output_rows"], 19)
+        self.assertEqual(scope["fresh_sample0_new_unique_input_keys"], 13)
+        self.assertEqual(scope["fresh_sample0_reused_input_keys"], 6)
+        self.assertEqual(scope["passing_output_rows_by_condition"], {"A1": 22, "A2": 31, "A3": 93})
+        sources = {r["run_id"]: r for r in E.collect()}
+        for row in self.report["row_reconciliation"]:
+            source = sources[row["run_id"]]
+            self.assertEqual((row["mode"], row["description_provider"], row["sample"]),
+                             (source["mode"], source["description_provider"], source["sample"]))
+            self.assertEqual(row["execution_input_key"]["reference_sha256"], source["reference_sha256"])
+            self.assertEqual(row["execution_input_key"]["configuration_sha256"], source["configuration_sha256"])
+
     def test_invented_outcome_cannot_override_raw_evidence(self):
         data = copy.deepcopy(self.evidence)
         result = next(r[c] for r in data["rows"] for c in R.COMPONENTS if r[c].get("raw") and r[c]["status"] == "holds")

@@ -46,9 +46,20 @@ def reduce_evidence(evidence, allow_partial=False):
               and (not evidence["complete"] or set(observed) == set(expected)),
               "Independent audit passing-output coverage differs")
     chains = {r["run_id"]: r for r in E.load(E.HERE / "provenance.json")["runs"]}
-    unique = {(expected[rid]["spec_id"], r["generated_sha256"]) for rid, r in observed.items()}
-    full_unique = {(r["spec_id"], E.sha(E.HERE / chains[rid]["directory"] / "generation.tla"))
-                   for rid, r in expected.items()}
+    # Reuse checker executions only for identical task/module/reference/config inputs.
+    # Every experimental condition and sample retains its own reconciled output row.
+    input_keys = {rid: (r["spec_id"], E.sha(E.HERE / chains[rid]["directory"] / "generation.tla"),
+                       r["reference_sha256"], r["configuration_sha256"])
+                  for rid, r in expected.items()}
+    compact_keys = {}
+    for key in input_keys.values():
+        compact_keys.setdefault(key[:2], set()).add(key)
+    E.require(all(len(keys) == 1 for keys in compact_keys.values()),
+              "Compact evaluator key aliases different reference/configuration inputs")
+    unique = {input_keys[rid] for rid in observed}
+    full_unique = set(input_keys.values())
+    E.require(set(observed) == {rid for rid, key in input_keys.items() if key in unique},
+              "Independent audit condition/sample alias coverage differs")
     E.require(evidence["completed_unique_outputs"] == len(unique) and evidence["expected_unique_outputs"] == len(full_unique),
               "Independent execution inventory differs")
     reconciled = []
@@ -70,7 +81,7 @@ def reduce_evidence(evidence, allow_partial=False):
         E.require(row["execution_reused_from"] in observed, "Unindexed reused execution")
         reused = observed[row["execution_reused_from"]]
         E.require(reused["generated_sha256"] == row["generated_sha256"]
-                  and expected[reused["run_id"]]["spec_id"] == original["spec_id"]
+                  and input_keys[reused["run_id"]] == input_keys[rid]
                   and all(row[c] == reused[c] for c in COMPONENTS), "Reused execution differs")
         statuses = {c: row[c]["status"] for c in COMPONENTS}
         control_holds = statuses["reference_self_check"] == "holds"
@@ -78,6 +89,8 @@ def reduce_evidence(evidence, allow_partial=False):
         qualified = original["qualified_tlc_pass"] and all(v == "holds" for v in statuses.values())
         counterexample = control_holds and any(row[c].get("semantic_kill") is True for c in COMPONENTS[1:])
         reconciled.append({"run_id": rid, "spec_id": original["spec_id"], "job": original["job"], "sample": original["sample"],
+            "mode": original["mode"], "description_provider": original["description_provider"],
+            "execution_input_key": dict(zip(["spec_id", "generated_sha256", "reference_sha256", "configuration_sha256"], input_keys[rid])),
             "author_tlc_pass": True, "qualified_checked_tlc_pass": original["qualified_tlc_pass"],
             "external_reference_qualified_tlc_pass": qualified,
             "behavior_comparison_holds_under_identity_bindings": behavior_holds,
@@ -106,12 +119,28 @@ def reduce_evidence(evidence, allow_partial=False):
     else:
         any_pass.update(reason="Incomplete audit: unexecuted outputs remain unresolved; no population score certified.",
                         observed_passing_ids=sorted(passing, key=int))
+    fresh_ids = {rid for rid, r in expected.items() if r["job"] == "A3" and r["sample"] == 0}
+    original_keys = {key for rid, key in input_keys.items() if rid not in fresh_ids}
+    fresh_keys = {input_keys[rid] for rid in fresh_ids}
+    target_scope = {
+        "experimental_outputs": sum(r["job"] != "smoke" for r in original_rows),
+        "separate_smoke_outputs": sum(r["job"] == "smoke" for r in original_rows),
+        "a3_samples": sorted({r["sample"] for r in a3}),
+        "original_passing_output_rows": len(expected) - len(fresh_ids),
+        "original_unique_input_keys": len(original_keys),
+        "fresh_sample0_passing_output_rows": len(fresh_ids),
+        "fresh_sample0_new_unique_input_keys": len(fresh_keys - original_keys),
+        "fresh_sample0_reused_input_keys": len(fresh_keys & original_keys),
+        "passing_output_rows_by_condition": dict(sorted(Counter(r["job"] for r in expected.values()).items())),
+        "execution_key_fields": ["spec_id", "generated_sha256", "reference_sha256", "configuration_sha256"],
+    }
     return {"schema": 1, "assessment_phase": "post_generation_validation_of_frozen_reference_contracts", "complete": evidence["complete"],
         "claim_scope": "Bounded reference-derived named properties and both behavior inclusions under explicit identity bindings; not natural-language faithfulness certification.",
         "audit_script_sha256": evidence["audit_script_sha256"], "runtime": evidence["runtime"], "timeout_seconds": evidence["timeout_seconds"], "jvm_heap_MiB": evidence["jvm_heap_MiB"],
         "passing_outputs_audited": len(reconciled), "passing_outputs_expected": len(expected),
         "unexecuted_run_ids": sorted(set(expected) - set(observed)),
         "unique_generated_outputs_executed": len(unique), "unique_generated_outputs_expected": len(full_unique), "jobs": by_job,
+        "target_scope": target_scope,
         "external_reference_qualified_a3_any_pass": any_pass,
         "row_reconciliation": reconciled}
 

@@ -73,8 +73,9 @@ The local audit uses the recorded Temurin 11.0.25+9 runtime and pinned jar, a bo
 seed 1, fingerprint 0, a 60-second compiler limit and **5 seconds per independent TLC
 check**. This bounded audit's timeouts are unresolved outcomes, distinct from the original
 300-second experimental timeouts. Neither parser/configuration failures nor timeouts are
-semantic counterexamples. Identical generated modules for the same task reuse one
-checking execution, with the origin recorded explicitly.
+semantic counterexamples. Checking executions are reused only when task ID, generated
+module hash, reference hash and original configuration hash are identical. Every condition
+and sample retains its own output row and the execution origin is recorded explicitly.
 
 `semantic-evidence.json` retains full checker logs, exact derived configurations, source
 hashes, substitutions, and outcomes. `reduce_semantics.py` reconstructs every wrapper,
@@ -84,8 +85,19 @@ nonempty completed reference control and success in all three external checks. I
 a bounded reference result, not a certificate that the description faithfully expresses
 all intended requirements. Unresolved and counterexample components remain visible.
 
-The saved checkpoint is **incomplete: 18 of 146 passing outputs audited, 18 of 127
-unique generated sources**. `semantic-report.json` lists every unexecuted run explicitly.
+The target includes all **700 experimental outputs**, including the fresh A3 sample 0;
+the separate smoke output is excluded. The original delivery supplies 127 passing rows
+with 114 unique input keys. Fresh sample 0 adds 19 passing rows: 13 new input keys and
+6 identical inputs that reuse existing executions. The final target is therefore
+**146 passing rows and 127 unique input keys** across A1/A2/A3 and all five A3 samples.
+`semantic-report.json` derives this inventory from the frozen outputs and records each
+row's condition, sample and full execution input key.
+
+The saved checkpoint is **incomplete: 44 of 146 passing outputs audited, 42 of 127
+unique input keys**. All 18 previously published records remain unchanged. The continuation
+stopped when the coordination host's configured local compute policy terminated the
+checker workload. No checker was active at checkpoint publication; 85 unique checks
+remain. `semantic-report.json` lists every unexecuted run explicitly.
 The default reducer rejects incomplete evidence; `--allow-partial` verifies the checkpoint
 without certifying a population score. The archived matched pass@5 and named-check
 qualification above have complete evidence coverage independently of this partial audit.
