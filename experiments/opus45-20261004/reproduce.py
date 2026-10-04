@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 from collections import Counter
 import hashlib
 import json
@@ -44,6 +45,35 @@ def verify(root=HERE, repo=REPO):
         require(sha(repo / rel) == digest, f"Repository hash mismatch: {rel}")
     for rel, digest in load(root / "protocol.json")["dependencies"].items():
         require(sha(repo / rel) == digest, f"Frozen protocol/input mismatch: {rel}")
+    if "input_manifest" in load(root / "protocol.json"):
+        frozen_manifest(root)
+
+
+def frozen_manifest(root=HERE):
+    """Read the experiment's original manifest, independently of upstream edits."""
+    pin = load(root / "protocol.json")["input_manifest"]
+    path = root / pin["path"]
+    require(sha(path) == pin["sha256"], "Frozen input manifest hash mismatch")
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    manifest = {str(record["spec_id"]): record for record in records}
+    require(len(manifest) == len(records), "Duplicate frozen manifest IDs")
+    return manifest
+
+
+def prompt_builder(repo=REPO, root=HERE):
+    """Load only the pure templates and cfg-name function from the pinned grader."""
+    path = repo / "code/analysis/grading.py"
+    require(sha(path) == load(root / "protocol.json")["dependencies"]["code/analysis/grading.py"],
+            "Frozen prompt builder hash mismatch")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    selected = [node for node in tree.body if
+                (isinstance(node, ast.Assign) and len(node.targets) == 1
+                 and isinstance(node.targets[0], ast.Name)
+                 and node.targets[0].id in {"GEN_PROMPT", "GEN_PROMPT_CFG"})
+                or (isinstance(node, ast.FunctionDef) and node.name == "cfg_names")]
+    namespace = {"re": re}
+    exec(compile(ast.Module(body=selected, type_ignores=[]), str(path), "exec"), namespace)
+    return namespace
 
 
 def extract_module(text):
@@ -78,6 +108,8 @@ def checked_result(sany, tlc, cfg_text):
 def collect(root=HERE, repo=REPO):
     provenance = load(root / "provenance.json")
     protocol = load(root / "protocol.json")
+    manifest = frozen_manifest(root)
+    builder = prompt_builder(repo, root)
     ids = {str(i) for i in load(repo / "outputs/eval_100_ids.json")}
     rows = []
     seen = set()
@@ -121,6 +153,14 @@ def collect(root=HERE, repo=REPO):
         cfg = (repo / run["reference_path"]).with_suffix(".cfg")
         require((sha(cfg) if cfg.exists() else None) == run["configuration_sha256"], "Configuration hash mismatch")
         require(run["missing_cfg"] == (not cfg.exists()), "Missing config flag mismatch")
+        description = manifest[str(run["spec_id"])]["desc_declarative_" + desc]
+        require(isinstance(description, str) and bool(description.strip()), "Empty frozen description")
+        template = builder["GEN_PROMPT_CFG" if mode == "cfgaware" else "GEN_PROMPT"]
+        reconstructed = template.format(description=description,
+            names=builder["cfg_names"](cfg.read_text()) if cfg.exists() else "")
+        require(reconstructed.encode("utf-8") == (directory / "prompt.txt").read_bytes(),
+                f"Frozen manifest/prompt mismatch: {run_id}")
+        require(len(reconstructed.encode("utf-8")) == run["prompt_utf8_bytes"], "Prompt byte count mismatch")
         raw_text = "\n".join(x["text"] for x in response["output"]["message"]["content"] if "text" in x)
         require(bool(raw_text.strip()) and bool((directory / "generation.tla").read_text().strip()), "Empty output")
         require(raw_text == (directory / "raw-response.txt").read_text(), "Raw response extraction mismatch")
@@ -174,8 +214,15 @@ def collect(root=HERE, repo=REPO):
     return rows
 
 
-def reduce_rows(rows, repo=REPO):
-    result = {"schema": 1, "model_id": load(HERE / "protocol.json")["model_id"], "jobs": {}}
+def reduce_rows(rows, repo=REPO, root=HERE):
+    protocol = load(root / "protocol.json")
+    manifest = frozen_manifest(root)
+    result = {"schema": 1, "model_id": protocol["model_id"], "jobs": {}}
+    result["input_provenance"] = {"manifest_path": protocol["input_manifest"]["path"],
+        "manifest_sha256": protocol["input_manifest"]["sha256"], "manifest_records": len(manifest),
+        "prompt_reconstruction_outputs": len(rows),
+        "description_fields_used": dict(sorted(Counter("desc_declarative_" + r["description_provider"]
+                                                       for r in rows).items()))}
     for job in sorted({r["job"] for r in rows}):
         group = [r for r in rows if r["job"] == job]
         result["jobs"][job] = {
@@ -234,7 +281,6 @@ def reduce_rows(rows, repo=REPO):
                           "qualified_checked_tlc_passes": sum(r["qualified_tlc_pass"] for r in rr),
                           "sany_semantic_ok_count": sum(r["sany_semantic_ok"] for r in rr)}
                      for j in ["A1", "A2", "A3"] for rr in [[r for r in rows if r["job"] == j and r["spec_id"] in selected]]}}
-    manifest = {str(r["spec_id"]): r for r in map(json.loads, (repo / "manifest.jsonl").read_text().splitlines())}
     a2 = {r["spec_id"]: r for r in rows if r["job"] == "A2"}
     common = set(a2) & set(by_id)
     result["paired_default_description_comparison"] = {"definition": "Descriptive paired task comparison: one A2 Claude-description sample vs mean of four matched default/GPT-description A3 samples. No causal provider-effect claim; description equivalence requires independent review.",

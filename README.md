@@ -123,15 +123,38 @@ kept as `reproduce_as_submitted.py`.
 
 ## Supplementary Opus 4.5 runs (2026-10-04)
 
-The [new evidence release](experiments/opus45-20261004/README.md) adds 700 experimental
-outputs with exact prompts, configurations, dependencies, and raw grading evidence.
-It reports `sany_semantic_ok` separately from retained flags, matched A3 pass@5,
-configuration/nonempty-check qualifications, independent reference checks, and evaluator
-regression controls. It preserves the historical tables above. Reproduce the supplement
-offline with `python3 experiments/opus45-20261004/reproduce.py --check`.
-The independent reference audit covers all 146 passing output rows and 127 unique input
-keys. Its [derived tables](experiments/opus45-20261004/semantic-tables.md) label the mixed
-Mac/NUC runtime profiles and unresolved cases; human description review remains pending.
+The [supplement](experiments/opus45-20261004/README.md) contains 700 new experimental
+outputs over the same 100 tasks, plus one separate smoke output. All runs used Bedrock
+Claude Opus 4.5, a 16,000-token output limit and provider-default temperature.
+
+| Run | Description | Prompt | Outputs | Archived SANY flag | `sany_semantic_ok` | Archived TLC pass |
+|---|---|---|---:|---:|---:|---:|
+| A1 | GPT declarative | Configuration-aware | 100 | 91 | 74 | 22 |
+| A2 | Claude declarative | Default | 100 | 89 | 77 | 31 |
+| A3 | GPT declarative | Default, five samples | 500 | 449 | 390 | 93 |
+
+A3's matched author-protocol **pass@5 is 27/100**: 27 tasks have at least one TLC pass
+among their five saved samples. The original four samples give 26/100. The historical
+baseline is recorded separately because its request settings are incomplete.
+
+`sany_semantic_ok` checks compiler diagnostics as well as the exit code. Original grades
+and logs are retained. Compiler acceptance and author-protocol TLC passes do not establish
+faithfulness to the natural-language description. A1 and A2 change both the prompt and
+the description source, so their difference cannot isolate a provider effect.
+
+The experiment uses its own [frozen manifest](experiments/opus45-20261004/inputs/manifest.jsonl).
+Verification reconstructs all 701 request prompts from its declarative descriptions and
+the pinned grader/configurations. Later root-manifest edits do not change these inputs.
+
+```sh
+python3 experiments/opus45-20261004/reproduce.py --check
+python3 -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
+python3 reproduce.py --clean
+```
+
+The supplement preserves the historical results and the corrected 76/300 pooled
+configuration-aware count above. The separate experimental reference audit is available
+on [wip/reference-audit](https://github.com/LUC-AI4FM/tla_benchmark/tree/wip/reference-audit/experiments/opus45-20261004).
 
 ## Licensing and responsible use
 

@@ -28,6 +28,54 @@ class EvidenceWorkflow(unittest.TestCase):
                                 text=True, capture_output=True, check=True)
         self.assertEqual(json.loads(result.stdout), self.report)
 
+    def test_upstream_manifest_updates_leave_frozen_workflow_valid(self):
+        # Exercise every join and hash check with a different root manifest.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            for child in repro.REPO.iterdir():
+                if child.name not in {"manifest.jsonl", ".git"}:
+                    (repo / child.name).symlink_to(child, target_is_directory=child.is_dir())
+            updated = copy.deepcopy(list(repro.frozen_manifest().values()))
+            for record in updated:
+                record["desc_declarative_gpt"] = "A changed upstream description."
+                record["desc_declarative_claude"] = "A newly filled upstream description."
+                record["desc_intent_gpt"] = "New intent field."
+                record["desc_intent_claude"] = "Another new intent field."
+                record["source_repo"] = "changed/upstream"
+            (repo / "manifest.jsonl").write_text("\n".join(map(json.dumps, updated)) + "\n")
+            repro.verify(repo=repo)
+            rows = repro.collect(repo=repo)
+            self.assertEqual(repro.reduce_rows(rows, repo=repo), self.report)
+
+    def test_frozen_manifest_byte_tampering_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "inputs").mkdir()
+            shutil.copyfile(HERE / "protocol.json", root / "protocol.json")
+            data = (HERE / "inputs/manifest.jsonl").read_bytes()
+            (root / "inputs/manifest.jsonl").write_bytes(data + b"\n")
+            with self.assertRaisesRegex(ValueError, "Frozen input manifest hash mismatch"):
+                repro.frozen_manifest(root)
+
+    def test_changed_description_cannot_match_saved_request(self):
+        manifest = copy.deepcopy(repro.frozen_manifest())
+        manifest["1000"]["desc_declarative_claude"] = "An unrelated description."
+        with patch.object(repro, "frozen_manifest", return_value=manifest):
+            with self.assertRaisesRegex(ValueError, "Frozen manifest/prompt mismatch"):
+                repro.collect()
+
+    def test_intent_fields_are_not_generation_inputs(self):
+        manifest = copy.deepcopy(repro.frozen_manifest())
+        for record in manifest.values():
+            record["desc_intent"] = "Changed old intent field."
+            record["desc_intent_gpt"] = "New GPT intent field."
+            record["desc_intent_claude"] = "New Claude intent field."
+        with patch.object(repro, "frozen_manifest", return_value=manifest):
+            self.assertEqual(repro.collect(), self.rows)
+        self.assertEqual(self.report["input_provenance"]["prompt_reconstruction_outputs"], len(self.rows))
+        self.assertEqual(set(self.report["input_provenance"]["description_fields_used"]),
+                         {"desc_declarative_gpt", "desc_declarative_claude"})
+
     def test_independent_reduction_of_archived_grades(self):
         for job, summary in self.report["jobs"].items():
             grades = [json.loads(p.read_text()) for p in (HERE / "evidence" / job).rglob("author-grade.json")]
