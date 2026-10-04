@@ -1,0 +1,139 @@
+```tla+
+---------------------------- MODULE AsyncTerminationDetection ----------------------------
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS N
+
+ASSUME N \in Nat \ {0}
+
+VARIABLES
+    active,      \* active[i] = TRUE iff node i is active
+    pending,     \* pending[i] = number of pending messages at node i
+    detected     \* detected = TRUE iff termination has been detected
+
+vars == <<active, pending, detected>>
+
+Nodes == 0..(N-1)
+
+TypeOK ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending \in [Nodes -> Nat]
+    /\ detected \in BOOLEAN
+
+-----------------------------------------------------------------------------
+(* Initial state: all nodes are active, no pending messages, not detected *)
+
+Init ==
+    /\ active = [i \in Nodes |-> TRUE]
+    /\ pending = [i \in Nodes |-> 0]
+    /\ detected = FALSE
+
+-----------------------------------------------------------------------------
+(* Actions *)
+
+(* A node terminates (becomes inactive) *)
+Terminate(i) ==
+    /\ active[i] = TRUE
+    /\ active' = [active EXCEPT ![i] = FALSE]
+    /\ UNCHANGED <<pending, detected>>
+
+(* An active node sends a message to another node *)
+SendMsg(i, j) ==
+    /\ active[i] = TRUE
+    /\ pending' = [pending EXCEPT ![j] = pending[j] + 1]
+    /\ UNCHANGED <<active, detected>>
+
+(* A node receives a pending message and becomes active *)
+ReceiveMsg(i) ==
+    /\ pending[i] > 0
+    /\ pending' = [pending EXCEPT ![i] = pending[i] - 1]
+    /\ active' = [active EXCEPT ![i] = TRUE]
+    /\ UNCHANGED <<detected>>
+
+(* Global termination: all nodes inactive and no pending messages *)
+Terminated ==
+    /\ \A i \in Nodes : active[i] = FALSE
+    /\ \A i \in Nodes : pending[i] = 0
+
+(* Detection occurs when actual termination has occurred *)
+DetectTermination ==
+    /\ Terminated
+    /\ detected = FALSE
+    /\ detected' = TRUE
+    /\ UNCHANGED <<active, pending>>
+
+-----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ \E i \in Nodes : Terminate(i)
+    \/ \E i \in Nodes : \E j \in Nodes : SendMsg(i, j)
+    \/ \E i \in Nodes : ReceiveMsg(i)
+    \/ DetectTermination
+
+-----------------------------------------------------------------------------
+(* Fairness and Specification *)
+
+Fairness == WF_vars(DetectTermination)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+(* Detection implies actual termination *)
+DetectionSafety ==
+    detected => Terminated
+
+(* Main safety invariant *)
+Safety == TypeOK /\ DetectionSafety
+
+-----------------------------------------------------------------------------
+(* Auxiliary Invariants *)
+
+(* Pending messages are bounded by some reasonable value during model checking *)
+PendingBounded == \A i \in Nodes : pending[i] <= 3 * N
+
+(* At least one node must be active or have pending messages, or termination occurred *)
+AuxInvariant ==
+    \/ \E i \in Nodes : active[i] = TRUE
+    \/ \E i \in Nodes : pending[i] > 0
+    \/ Terminated
+
+-----------------------------------------------------------------------------
+(* Stability: Once terminated and detected, it stays detected and terminated *)
+
+StableTermination ==
+    [](Terminated /\ detected => [](Terminated /\ detected))
+
+(* Once terminated (without detection), system remains terminated *)
+TerminatedStable ==
+    [](Terminated => []Terminated)
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* If termination occurs, detection eventually follows *)
+LivenessDetection ==
+    Terminated ~> detected
+
+(* Eventually either some activity or detection *)
+EventualProgress ==
+    <>(\E i \in Nodes : active[i] \/ detected)
+
+-----------------------------------------------------------------------------
+(* State constraint for bounded model checking *)
+
+StateConstraint ==
+    /\ \A i \in Nodes : pending[i] <= 3
+
+-----------------------------------------------------------------------------
+(* Theorems to check *)
+
+THEOREM Spec => []TypeOK
+THEOREM Spec => []DetectionSafety
+THEOREM Spec => LivenessDetection
+
+=============================================================================
+```

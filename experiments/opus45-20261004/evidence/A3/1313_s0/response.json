@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DieHard ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS Small, Big\n\nVARIABLES small, big, waterUsed\n\nvars == <<small, big, waterUsed>>\n\nTypeOK == \n    /\\ small \\in 0..Small\n    /\\ big \\in 0..Big\n    /\\ waterUsed \\in Nat\n\nInit ==\n    /\\ small = 0\n    /\\ big = 0\n    /\\ waterUsed = 0\n\nFillSmall ==\n    /\\ small' = Small\n    /\\ big' = big\n    /\\ waterUsed' = waterUsed + (Small - small)\n\nFillBig ==\n    /\\ big' = Big\n    /\\ small' = small\n    /\\ waterUsed' = waterUsed + (Big - big)\n\nEmptySmall ==\n    /\\ small' = 0\n    /\\ big' = big\n    /\\ waterUsed' = waterUsed\n\nEmptyBig ==\n    /\\ big' = 0\n    /\\ small' = small\n    /\\ waterUsed' = waterUsed\n\nSmallToBig ==\n    LET amount == IF small + big <= Big THEN small ELSE Big - big\n    IN\n        /\\ small' = small - amount\n        /\\ big' = big + amount\n        /\\ waterUsed' = waterUsed\n\nBigToSmall ==\n    LET amount == IF small + big <= Small THEN big ELSE Small - small\n    IN\n        /\\ big' = big - amount\n        /\\ small' = small + amount\n        /\\ waterUsed' = waterUsed\n\nNext ==\n    \\/ FillSmall\n    \\/ FillBig\n    \\/ EmptySmall\n    \\/ EmptyBig\n    \\/ SmallToBig\n    \\/ BigToSmall\n\nSpec == Init /\\ [][Next]_vars\n\n-----------------------------------------------------------------------------\n(* Safety Invariants *)\n\nNotFour == big /= 4\n\nBigNeverFour == []NotFour\n\n(* Liveness Properties - checking reachability *)\nEventuallyFour == <>(big = 4)\n\n-----------------------------------------------------------------------------\n(* TLC Statistics and Inspection Operators *)\n\nStateCount == TLCGet(\"distinct\")\n\nActionCount == TLCGet(\"generated\")\n\nDiameter == TLCGet(\"diameter\")\n\n-----------------------------------------------------------------------------\n(* Predicates for checking state space properties *)\n\nBigHasFour == big = 4\n\nCheckStateSpace == \n    TLCGet(\"distinct\") > 0\n\nExpectedStatesReached ==\n    LET states == TLCGet(\"distinct\")\n    IN states >= 1\n\nExpectedActionsGenerated ==\n    LET actions == TLCGet(\"generated\")\n    IN actions >= 1\n\nPostCondition ==\n    /\\ PrintT(<<\"Distinct States:\", TLCGet(\"distinct\")>>)\n    /\\ PrintT(<<\"Generated States:\", TLCGet(\"generated\")>>)\n    /\\ PrintT(<<\"Diameter:\", TLCGet(\"diameter\")>>)\n\n-----------------------------------------------------------------------------\n(* Alias for state display *)\nAlias == [\n    small |-> small,\n    big |-> big,\n    waterUsed |-> waterUsed,\n    stateCount |-> TLCGet(\"distinct\")\n]\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 267,
+    "outputTokens": 795,
+    "totalTokens": 1062,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12221
+  }
+}

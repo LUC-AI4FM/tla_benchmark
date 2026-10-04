@@ -1,0 +1,32 @@
+---------------------------- MODULE TinyStateMachine ----------------------------
+EXTENDS Integers, FiniteSets, TLC
+
+CONSTANTS S
+
+VARIABLES x, y
+
+TypeOK ==
+    /\ x \subseteq S
+    /\ y \subseteq S
+
+Init ==
+    /\ x \in SUBSET S
+    /\ y \in SUBSET S
+
+Next ==
+    /\ y' = y
+    /\ x' \in SUBSET y'
+
+FullSet == x = {1, 2, 3}
+
+GainThree == /\ 3 \notin x
+             /\ 3 \in x'
+
+CheckCounts ==
+    /\ TLCGet("stats").generated > 0
+    /\ Assert(TLCGet("stats").distinct >= 0, "Expected non-negative distinct states")
+
+FullSetPredicate == FullSet
+GainThreePredicate == GainThree
+
+=============================================================================

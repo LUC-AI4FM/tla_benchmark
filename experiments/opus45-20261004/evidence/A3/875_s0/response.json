@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets, TLC\n\nCONSTANTS Nodes, Root\n\nASSUME Root \\in Nodes\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\n-----------------------------------------------------------------------------\n(* Define Edges using RandomElement to generate a random undirected graph *)\n\nRandomSubset(S) == RandomElement(SUBSET S)\n\nEdgesFrom(n) == RandomSubset(Nodes \\ {n})\n\nEdges == UNION {{{n, m} : m \\in EdgesFrom(n)} : n \\in Nodes}\n\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges}\n\n-----------------------------------------------------------------------------\n(* Type definitions *)\n\nTypeOK == /\\ mom \\in [Nodes -> Nodes]\n          /\\ dist \\in [Nodes -> Nat \\cup {-1}]\n\n-----------------------------------------------------------------------------\n(* Initial state *)\n\nInit == /\\ mom = [n \\in Nodes |-> n]\n        /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE -1]\n\n-----------------------------------------------------------------------------\n(* Next state action: a node adopts a neighbor with strictly smaller distance *)\n\n(* A node n can adopt neighbor m if m has a valid distance and either\n   n has no distance yet (-1) or m's distance is strictly smaller *)\nCanAdopt(n, m) == /\\ m \\in Neighbors(n)\n                  /\\ dist[m] >= 0\n                  /\\ \\/ dist[n] = -1\n                     \\/ dist[m] < dist[n]\n\n(* Choose a new distance strictly between m's distance and n's current distance (or any larger value) *)\nChooseDistance(n, m) == \n    IF dist[n] = -1 \n    THEN dist[m] + 1\n    ELSE CHOOSE d \\in (dist[m]+1)..(dist[n]-1) : TRUE\n\nAdoptNeighbor(n, m) ==\n    /\\ CanAdopt(n, m)\n    /\\ mom' = [mom EXCEPT ![n] = m]\n    /\\ dist' = [dist EXCEPT ![n] = IF dist[n] = -1 \n                                   THEN dist[m] + 1\n                                   ELSE CHOOSE d \\in {d \\in (dist[m]+1)..dist[n] : d < dist[n]} : TRUE]\n\nNext == \\E n \\in Nodes : \\E m \\in Nodes : AdoptNeighbor(n, m)\n\n-----------------------------------------------------------------------------\n(* Postcondition: characterizes a rooted spanning-tree or unreachable nodes *)\n\n(* A node is reachable if it can reach Root through the graph *)\nReachableNodes == {n \\in Nodes : \\E path \\in Seq(Nodes) : \n                    /\\ Len(path) > 0\n                    /\\ path[1] = n\n                    /\\ path[Len(path)] = Root\n                    /\\ \\A i \\in 1..(Len(path)-1) : {path[i], path[i+1]} \\in Edges}\n\n(* Postcondition for spanning tree:\n   - Root points to itself with distance 0\n   - Each reachable non-root node points to a neighbor with smaller distance\n   - Unreachable nodes point to themselves with distance -1 *)\nPostcondition ==\n    /\\ mom[Root] = Root\n    /\\ dist[Root] = 0\n    /\\ \\A n \\in Nodes \\ {Root} :\n        \\/ /\\ dist[n] >= 1\n           /\\ mom[n] \\in Neighbors(n)\n           /\\ dist[n] = dist[mom[n]] + 1\n        \\/ /\\ dist[n] = -1\n           /\\ mom[n] = n\n\n-----------------------------------------------------------------------------\n(* Safety property: quiescence implies postcondition *)\n\nQuiescent == ~ENABLED Next\n\nSafetyProperty == Quiescent => Postcondition\n\n-----------------------------------------------------------------------------\n(* Liveness property: eventually the postcondition holds *)\n\nLivenessProperty == <>Postcondition\n\n-----------------------------------------------------------------------------\n(* Specification with weak fairness *)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n-----------------------------------------------------------------------------\n(* Invariants to check *)\n\nInvariant == TypeOK\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 322,
+    "outputTokens": 1060,
+    "totalTokens": 1382,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16383
+  }
+}

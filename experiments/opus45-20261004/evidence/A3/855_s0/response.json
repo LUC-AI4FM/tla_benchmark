@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE PrisonersAndSwitches ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N >= 2\n\nPrisoners == 1..N\n\nCounter == 1\n\nNonCounters == 2..N\n\nVARIABLES\n    switchA,\n    switchB,\n    count,\n    timesFlippedA,\n    declared,\n    inRoom\n\nvars == <<switchA, switchB, count, timesFlippedA, declared, inRoom>>\n\nTypeOK ==\n    /\\ switchA \\in BOOLEAN\n    /\\ switchB \\in BOOLEAN\n    /\\ count \\in 0..(2 * (N - 1))\n    /\\ timesFlippedA \\in [NonCounters -> 0..2]\n    /\\ declared \\in BOOLEAN\n    /\\ inRoom \\in Prisoners \\cup {0}\n\nInit ==\n    /\\ switchA = FALSE\n    /\\ switchB = FALSE\n    /\\ count = 0\n    /\\ timesFlippedA = [p \\in NonCounters |-> 0]\n    /\\ declared = FALSE\n    /\\ inRoom = 0\n\nCounterAction ==\n    /\\ inRoom = Counter\n    /\\ ~declared\n    /\\ IF switchA = TRUE\n       THEN /\\ switchA' = FALSE\n            /\\ count' = count + 1\n            /\\ IF count + 1 = 2 * (N - 1)\n               THEN declared' = TRUE\n               ELSE declared' = declared\n            /\\ switchB' = switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ switchA' = switchA\n            /\\ count' = count\n            /\\ declared' = declared\n    /\\ UNCHANGED timesFlippedA\n    /\\ inRoom' = 0\n\nNonCounterAction(p) ==\n    /\\ inRoom = p\n    /\\ p \\in NonCounters\n    /\\ ~declared\n    /\\ IF switchA = FALSE /\\ timesFlippedA[p] < 2\n       THEN /\\ switchA' = TRUE\n            /\\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]\n            /\\ switchB' = switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ switchA' = switchA\n            /\\ timesFlippedA' = timesFlippedA\n    /\\ UNCHANGED <<count, declared>>\n    /\\ inRoom' = 0\n\nSelectPrisoner(p) ==\n    /\\ inRoom = 0\n    /\\ ~declared\n    /\\ inRoom' = p\n    /\\ UNCHANGED <<switchA, switchB, count, timesFlippedA, declared>>\n\nTerminated ==\n    /\\ declared\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ \\E p \\in Prisoners : SelectPrisoner(p)\n    \\/ CounterAction\n    \\/ \\E p \\in NonCounters : NonCounterAction(p)\n    \\/ Terminated\n\nCounterFairness == WF_vars(CounterAction)\n\nNonCounterFairness == \\A p \\in NonCounters : WF_vars(NonCounterAction(p))\n\nSelectionFairness == \\A p \\in Prisoners : WF_vars(SelectPrisoner(p))\n\nFairness == CounterFairness /\\ NonCounterFairness /\\ SelectionFairness\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nvisited == {p \\in NonCounters : timesFlippedA[p] > 0} \\cup \n           (IF count > 0 THEN {Counter} ELSE {})\n\nSafety == declared => (visited = Prisoners)\n\nLiveness == <>declared\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 249,
+    "outputTokens": 926,
+    "totalTokens": 1175,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13557
+  }
+}

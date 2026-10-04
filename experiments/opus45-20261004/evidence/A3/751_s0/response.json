@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CigaretteSmokers ----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Smokers, Ingredients, Offers\n\nASSUME /\\ Smokers # {}\n       /\\ Ingredients # {}\n       /\\ Offers \\subseteq SUBSET Ingredients\n       /\\ \\A offer \\in Offers : Cardinality(offer) = Cardinality(Ingredients) - 1\n\nVARIABLES smoking, offer\n\nvars == <<smoking, offer>>\n\nTypeOK == /\\ smoking \\in [Smokers -> BOOLEAN]\n          /\\ offer \\in Offers \\cup {<<>>}\n\nInit == /\\ smoking = [s \\in Smokers |-> FALSE]\n        /\\ offer = <<>>\n\nDealerOffer == /\\ offer = <<>>\n               /\\ \\E o \\in Offers : offer' = o\n               /\\ smoking' = smoking\n\nSmokerSmoke(s) == /\\ offer # <<>>\n                  /\\ smoking[s] = FALSE\n                  /\\ smoking' = [smoking EXCEPT ![s] = TRUE]\n                  /\\ offer' = offer\n\nSmokerFinish(s) == /\\ smoking[s] = TRUE\n                   /\\ smoking' = [smoking EXCEPT ![s] = FALSE]\n                   /\\ offer' = <<>>\n\nNext == \\/ DealerOffer\n        \\/ \\E s \\in Smokers : SmokerSmoke(s)\n        \\/ \\E s \\in Smokers : SmokerFinish(s)\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\nAtMostOne == Cardinality({s \\in Smokers : smoking[s]}) <= 1\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 263,
+    "outputTokens": 428,
+    "totalTokens": 691,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 6961
+  }
+}

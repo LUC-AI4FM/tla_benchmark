@@ -1,0 +1,175 @@
+---------------------------- MODULE LockWithHistory ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS Procs
+
+VARIABLES pc, h_turn, s
+
+vars == <<pc, h_turn, s>>
+
+--------------------------------------------------------------------------------
+(* 
+   States for the lock protocol with stuttering steps to match Peterson's 3-step entry:
+   - "idle"      : process is in non-critical section
+   - "enter1"    : first step of entry protocol (stuttering step)
+   - "enter2"    : second step of entry protocol (stuttering step)  
+   - "enter3"    : third step of entry protocol (waiting/checking)
+   - "critical"  : in critical section
+   - "exit"      : leaving critical section
+*)
+
+TypeOK == 
+    /\ pc \in [Procs -> {"idle", "enter1", "enter2", "enter3", "critical", "exit"}]
+    /\ h_turn \in Procs \cup {CHOOSE x : x \notin Procs}
+    /\ s \in [Procs -> {0, 1, 2, 3}]
+
+None == CHOOSE x : x \notin Procs
+
+--------------------------------------------------------------------------------
+(* Initial State *)
+
+Init == 
+    /\ pc = [p \in Procs |-> "idle"]
+    /\ h_turn = None
+    /\ s = [p \in Procs |-> 0]
+
+--------------------------------------------------------------------------------
+(* Transition Actions *)
+
+(* Process p starts entering - first stuttering step (mimics setting flag[p] = TRUE) *)
+Enter1(p) ==
+    /\ pc[p] = "idle"
+    /\ pc' = [pc EXCEPT ![p] = "enter1"]
+    /\ s' = [s EXCEPT ![p] = 1]
+    /\ h_turn' = h_turn
+
+(* Second stuttering step (mimics setting turn = other process) *)
+Enter2(p) ==
+    /\ pc[p] = "enter1"
+    /\ pc' = [pc EXCEPT ![p] = "enter2"]
+    /\ s' = [s EXCEPT ![p] = 2]
+    (* Record that this process set turn - history variable tracks last writer *)
+    /\ h_turn' = CHOOSE other \in Procs : other # p
+
+(* Third step - actual lock acquisition attempt *)
+Enter3(p) ==
+    /\ pc[p] = "enter2"
+    /\ pc' = [pc EXCEPT ![p] = "enter3"]
+    /\ s' = [s EXCEPT ![p] = 3]
+    /\ h_turn' = h_turn
+
+(* Enter critical section when allowed *)
+EnterCS(p) ==
+    /\ pc[p] = "enter3"
+    (* Lock condition: either no other process in entry/critical, or turn favors us *)
+    /\ \/ \A other \in Procs \ {p} : pc[other] \in {"idle", "exit"}
+       \/ h_turn = p
+    /\ pc' = [pc EXCEPT ![p] = "critical"]
+    /\ s' = [s EXCEPT ![p] = 0]
+    /\ h_turn' = h_turn
+
+(* Exit critical section *)
+Exit(p) ==
+    /\ pc[p] = "critical"
+    /\ pc' = [pc EXCEPT ![p] = "exit"]
+    /\ UNCHANGED <<h_turn, s>>
+
+(* Return to idle *)
+Return(p) ==
+    /\ pc[p] = "exit"
+    /\ pc' = [pc EXCEPT ![p] = "idle"]
+    /\ s' = [s EXCEPT ![p] = 0]
+    /\ h_turn' = h_turn
+
+--------------------------------------------------------------------------------
+(* Combined Next-State Relation *)
+
+Next == 
+    \E p \in Procs : 
+        \/ Enter1(p)
+        \/ Enter2(p)
+        \/ Enter3(p)
+        \/ EnterCS(p)
+        \/ Exit(p)
+        \/ Return(p)
+
+--------------------------------------------------------------------------------
+(* Fairness Conditions *)
+
+Fairness == 
+    \A p \in Procs :
+        /\ WF_vars(Enter1(p))
+        /\ WF_vars(Enter2(p))
+        /\ WF_vars(Enter3(p))
+        /\ WF_vars(EnterCS(p))
+        /\ WF_vars(Exit(p))
+        /\ WF_vars(Return(p))
+
+--------------------------------------------------------------------------------
+(* Specification *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+--------------------------------------------------------------------------------
+(* Safety Invariants *)
+
+(* Mutual Exclusion: At most one process in critical section *)
+MutualExclusion == 
+    \A p1, p2 \in Procs : 
+        (pc[p1] = "critical" /\ pc[p2] = "critical") => p1 = p2
+
+(* Alternative formulation *)
+AtMostOneCritical == 
+    Cardinality({p \in Procs : pc[p] = "critical"}) <= 1
+
+(* Type correctness is an invariant *)
+Inv == TypeOK /\ MutualExclusion
+
+--------------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* Starvation Freedom: If a process wants to enter, it eventually will *)
+StarvationFreedom == 
+    \A p \in Procs : 
+        pc[p] \in {"enter1", "enter2", "enter3"} ~> pc[p] = "critical"
+
+(* Deadlock Freedom: If some process wants to enter, some process will enter *)
+DeadlockFreedom == 
+    (\E p \in Procs : pc[p] \in {"enter1", "enter2", "enter3"}) 
+    ~> 
+    (\E p \in Procs : pc[p] = "critical")
+
+--------------------------------------------------------------------------------
+(* Refinement Mapping to Peterson's Algorithm *)
+(* 
+   This section defines the mapping from LockWithHistory to Peterson's algorithm.
+   
+   Peterson's algorithm uses:
+   - flag[p] : boolean indicating p wants to enter
+   - turn : which process should yield
+   - pc states: "ncs", "e1", "e2", "e3", "cs", "e4"
+   
+   Refinement mapping:
+   - flag[p] = pc[p] \notin {"idle", "exit"}
+   - turn = h_turn (history variable tracks turn assignments)
+   - Peterson's pc maps to our pc with stuttering steps
+*)
+
+(* Derived flag variable for refinement *)
+flag == [p \in Procs |-> pc[p] \notin {"idle", "exit"}]
+
+(* The turn is tracked by history variable h_turn *)
+turn == h_turn
+
+(* PC mapping for Peterson refinement *)
+peterson_pc == 
+    [p \in Procs |-> 
+        CASE pc[p] = "idle" -> "ncs"
+          [] pc[p] = "enter1" -> "e1"
+          [] pc[p] = "enter2" -> "e2"
+          [] pc[p] = "enter3" -> "e3"
+          [] pc[p] = "critical" -> "cs"
+          [] pc[p] = "exit" -> "e4"
+          [] OTHER -> "ncs"]
+
+================================================================================

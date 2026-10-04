@@ -36,7 +36,7 @@ class EvidenceWorkflow(unittest.TestCase):
             self.assertEqual(sum(g["sany_pass"] is True for g in grades), summary["author_exit_code_sany_passes"])
         independently_passing_ids = {str(json.loads(p.read_text())["spec_id"])
                                      for p in (HERE / "evidence/A3").rglob("author-grade.json")
-                                     if json.loads(p.read_text())["tlc_pass"] is True}
+                                     if json.loads(p.read_text())["tlc_pass"] is True and json.loads(p.read_text())["sample"] in [1, 2, 3, 4]}
         self.assertEqual(independently_passing_ids, set(self.report["matched_a3_pass_at_4"]["passing_ids"]))
 
     def test_tables_change_when_an_output_changes(self):
@@ -98,15 +98,15 @@ class EvidenceWorkflow(unittest.TestCase):
         self.assertIn("Unknown operator: `Permutations'", raw["stdout"])
         self.assertEqual(repro.strict_sany_result(raw), {"passed": False, "reason": "semantic_error"})
         # This total includes the separate smoke; the experimental total is 74.
-        self.assertEqual(len(self.report["strict_parser_corrections"]), 75)
-        self.assertEqual(sum(r["author_true_with_semantic_errors"] for j, r in self.report["jobs"].items()
-                             if j != "smoke"), 74)
+        self.assertEqual(sum(":matched-" not in r["run_id"] for r in self.report["strict_parser_corrections"]), 75)
+        self.assertEqual(sum(r["author_sany"] and not r["sany_semantic_ok"] for r in self.rows
+                             if r["job"] != "smoke" and ":matched-" not in r["run_id"]), 74)
 
     def test_verified_timeouts_are_nonpasses(self):
-        timeouts = [r for r in self.rows if r["timeout"]]
+        timeouts = [r for r in self.rows if r["timeout"] and ":matched-" not in r["run_id"]]
         self.assertEqual(len(timeouts), 5)
         self.assertTrue(all(r["tlc_pass"] is False for r in timeouts))
-        self.assertEqual(set(self.report["timeout_ids"]),
+        self.assertEqual({r for r in self.report["timeout_ids"] if ":matched-" not in r},
                          {"A1:1384:s0", "A1:1610:s0", "A2:1394:s0", "A3:1394:s1", "A3:1609:s2"})
 
     def test_mixed_baseline_is_never_certified_pass_at_5(self):
@@ -114,6 +114,60 @@ class EvidenceWorkflow(unittest.TestCase):
         self.assertIs(mixed["strict_pass_at_5_certified"], False)
         self.assertTrue(mixed["missing_baseline_provenance"])
         self.assertEqual(mixed["baseline_only_ids"], ["1595"])
+
+    def test_named_nonempty_completed_checks_are_required(self):
+        directory = HERE / "evidence/A1/1399_s0"
+        sany = repro.load(directory / "run_sany-raw.json")
+        tlc = repro.load(directory / "run_tlc-raw.json")
+        run = repro.load(directory / "run.json")
+        cfg = (repro.REPO / run["reference_path"]).with_suffix(".cfg").read_text()
+        self.assertTrue(repro.checked_result(sany, tlc, cfg)["passed"])
+        for altered_cfg in [None, "SPECIFICATION Spec\nCHECK_DEADLOCK FALSE\n"]:
+            self.assertFalse(repro.checked_result(sany, tlc, altered_cfg)["passed"])
+        for altered in [dict(tlc, returncode=1), dict(tlc, stdout="No error has been found\n0 distinct states found\nFinished in 1s"),
+                        dict(tlc, stdout=tlc["stdout"] + "\nError: invalid configuration\n"),
+                        dict(tlc, stdout="1 distinct states found\nFinished in 1s\nError: The invariant Inv is violated.")]:
+            self.assertFalse(repro.checked_result(sany, altered, cfg)["passed"])
+        with self.assertRaisesRegex(ValueError, "Malformed TLC"):
+            repro.checked_result(sany, dict(tlc, returncode=False), cfg)
+        self.assertFalse(repro.checked_result(repro.load(HERE / "evidence/A3/1000_s1/run_sany-raw.json"), tlc, cfg)["passed"])
+
+    def test_sensitivity_keeps_explicit_denominators_and_row_reasons(self):
+        strata = self.report["evaluation_strata"]
+        self.assertEqual([strata[n]["specifications"] for n in ["full_primary", "with_original_configuration",
+            "without_missing_cfg_or_single_state_fixtures"]], [100, 99, 93])
+        for name, item in strata.items():
+            for job in ["A1", "A2", "A3"]:
+                n = len(self.report["jobs"][job]["per_sample_tlc_passes"])
+                self.assertEqual(item["jobs"][job]["outputs"], item["specifications"] * n)
+        self.assertEqual(len(self.report["row_reconciliation"]), len(self.rows))
+        self.assertTrue(all(r["qualification_reasons"] for r in self.report["row_reconciliation"]
+                            if not r["qualified_checked_tlc_pass"]))
+
+    def test_default_description_comparison_uses_same_tasks(self):
+        comparison = self.report["paired_default_description_comparison"]
+        self.assertEqual(comparison["common_task_count"], 100)
+        self.assertEqual(sum(r["tasks"] for r in comparison["repository_sensitivity"].values()), 100)
+        a2 = {r["spec_id"]: r["tlc_pass"] for r in self.rows if r["job"] == "A2"}
+        a3 = {sid: [r["tlc_pass"] for r in self.rows if r["job"] == "A3" and r["spec_id"] == sid and r["sample"] in [1, 2, 3, 4]] for sid in a2}
+        for r in comparison["rows"]:
+            self.assertEqual(r["paired_difference"], float(a2[r["spec_id"]]) - sum(a3[r["spec_id"]]) / len(a3[r["spec_id"]]))
+
+    def test_matched_fifth_sample_is_fresh_and_complete(self):
+        fresh = [r for r in self.rows if r["job"] == "A3" and r["sample"] == 0]
+        self.assertEqual(len(fresh), 100)
+        self.assertTrue(all(r["run_id"].endswith(":matched-20261004") for r in fresh))
+        actual = {r["spec_id"] for r in self.rows if r["job"] == "A3" and r["tlc_pass"]}
+        self.assertEqual(set(self.report["matched_a3_pass_at_5"]["passing_ids"]), actual)
+        self.assertEqual(len(self.rows), 701)
+        original_load = repro.load
+        def tamper(path):
+            data = original_load(path)
+            if Path(path).name == "protocol.json":
+                data.pop("additional_cohorts")
+            return data
+        with patch.object(repro, "load", tamper), self.assertRaisesRegex(ValueError, "Malformed run identity|Incomplete"):
+            repro.collect()
 
 
 class StrictParser(unittest.TestCase):

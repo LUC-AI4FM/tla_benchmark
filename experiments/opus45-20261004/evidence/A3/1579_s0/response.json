@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANTS N, K\n\nASSUME NPositive == N > 0\nASSUME KGreaterThanN == K > N\n\nVARIABLES x\n\nvars == <<x>>\n\nProc == 0..(N-1)\n\nTypeOK == x \\in [Proc -> 0..(K-1)]\n\nHasToken(i) ==\n    IF i = 0 \n    THEN x[i] = x[N-1]\n    ELSE x[i] /= x[(i-1)]\n\nTokenCount == Cardinality({i \\in Proc : HasToken(i)})\n\nSomeProcessHasToken == \\E i \\in Proc : HasToken(i)\n\nExactlyOneToken == Cardinality({i \\in Proc : HasToken(i)}) = 1\n\nInit == x \\in [Proc -> 0..(K-1)]\n\nPass0(i) ==\n    /\\ i = 0\n    /\\ x[0] = x[N-1]\n    /\\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]\n\nPassOther(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ x[i] /= x[i-1]\n    /\\ x' = [x EXCEPT ![i] = x[i-1]]\n\nPass(i) ==\n    \\/ Pass0(i)\n    \\/ PassOther(i)\n\nNext == \\E i \\in Proc : Pass(i)\n\nFairness == \\A i \\in Proc : WF_vars(Pass(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nSafety == SomeProcessHasToken\n\nLiveness == <>ExactlyOneToken\n\nTHEOREM TypeCorrect == Spec => []TypeOK\nPROOF OMITTED\n\nTHEOREM SafetyHolds == Spec => []Safety\nPROOF OMITTED\n\nTHEOREM LivenessHolds == Spec => Liveness\nPROOF OMITTED\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 518,
+    "totalTokens": 776,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9402
+  }
+}

@@ -1,109 +1,189 @@
-# Opus 4.5 supplementary runs (2026-10-04)
+# Opus 4.5 supplementary evidence (2026-10-04)
 
-This additive release contains 600 new experimental outputs plus one separate smoke output.
-It preserves the historical release at `90b1a31e7f2d3bb4901f9309ce0490ecef50ed8d` and its
-corrected 76/300 configuration-aware pooled count. It does not replace historical scores.
+This additive release contains 700 experimental outputs and one separate smoke output.
+It preserves the historical release at `90b1a31e7f2d3bb4901f9309ce0490ecef50ed8d`, including
+its corrected 76/300 configuration-aware pooled count. Original scores and raw sources
+remain intact; additional qualifications and reference checks have their own fields.
 
-The requests use Amazon Bedrock `us.anthropic.claude-opus-4-5-20251101-v1:0` in `us-east-2`,
-`maxTokens=16000`, and provider-default temperature (the parameter is omitted).
-The prompt protocol and original reference configurations are unchanged.
+Requests use Amazon Bedrock `us.anthropic.claude-opus-4-5-20251101-v1:0` in `us-east-2`,
+`maxTokens=16000`, and provider-default temperature (omitted from the request).
+Original prompts, references, configurations, grader and tools jar are unchanged.
 
-| Experiment | Description source | Mode | Outputs | Archived SANY flag | Strict SANY | TLC passes |
-|---|---|---|---:|---:|---:|---:|
-| A1 | GPT declarative | Configuration-aware | 100 | 91 | 74 | 22 |
-| A2 | Claude declarative | Default | 100 | 89 | 77 | 31 |
-| A3 | GPT declarative | Default, samples 1-4 | 400 | 360 | 315 | 74 |
-| Smoke (separate) | GPT declarative | Default | 1 | 1 | 0 | 0 |
+## Derived results and score definitions
 
-Every table value is computed from the saved evidence by `reproduce.py`; `report.json` is its
-derived machine-readable result. A3 TLC passes per sample are 19, 19, 19, and 17.
-The full 100-ID denominator includes missing-configuration item 1142 and the six single-state
-fixtures identified in the historical release. A TLC pass means success under the supplied
-configuration; it does not establish equivalence to the reference or natural-language intent.
+[Generated tables](tables.md) are rendered by `reproduce.py` from the saved outputs;
+`--check` verifies both `report.json` and the Markdown tables. The A3 cohort now contains
+five fresh matched samples per task: samples 1-4 from the original delivery and an additive
+sample 0 with complete request/response/grading provenance. Archived TLC passes per
+sample 0-4 are **19, 19, 19, 19, 17**. Empirical archived-protocol pass@5 is **27/100**;
+with n=k=5, each task scores one if any recorded sample passes and zero otherwise.
+All 100 tasks, including failures, remain in the mean. Independence and an uncertainty
+interval are not asserted.
+
+`qualified_checked_tlc_pass` additionally requires `sany_semantic_ok`, a resolved original
+configuration, enabled named invariants/properties, evidence of nonempty initial states,
+completed checking, exit code zero and no error diagnostics. Its matched any-pass@5 is
+**18/100**. This qualification still does not certify natural-language faithfulness.
+Every output has original and recomputed outcomes, configuration source, named checks,
+and row-level reasons in `report.json`.
+
+The primary denominator remains the full 100 IDs. Sensitivity tables separately retain
+99 tasks with original configurations and 93 after also excluding six documented
+single-state reference fixtures. Missing-configuration item 1142 cannot count as a pass.
+A successful unchecked model run cannot satisfy the named-check qualification.
+
+The original four-sample result remains **26/100**. The historical released baseline
+still has 16/100 passes and lacks request-level generation settings. Its descriptive
+union with the original four samples remains 27/100, explicitly uncertified as pass@5.
+The matched five-sample result uses the newly generated sample 0, never that baseline.
+
+## Compiler correction
+
+SANY can exit zero while reporting semantic errors. `code/analysis/strict_sany.py` adds
+an opt-in diagnostic-aware compiler result, named **`sany_semantic_ok`** here: zero exit,
+completed semantic processing, and no parse/semantic errors on either stream. Harmless
+warnings do not fail this check. This is a compiler result, not an adequacy metric.
+
+The original delivery has 75 author-true semantic-error records: 17 A1, 12 A2, 45 A3,
+and one separate smoke. The fresh sample 0 adds 14, making 59 across the matched
+500-output A3 cohort. All original flags and diagnostics are retained, with separate
+recomputed results. The five original 300-second TLC timeouts remain nonpasses;
+two belong to A3. The fresh sample 0 has no such timeout.
+
+## Independent reference checks and evaluator controls
+
+`semantic_audit.py` implements checks for experimentally passing outputs against a separate,
+frozen reference module through TLA+ `INSTANCE`, with explicit identity substitutions.
+The reference and original configuration predate these outputs. The audit first checks
+the reference itself, then checks reference-owned configured properties, whether the
+reference allows the generated behaviors, and whether the generated specification
+allows reference behaviors. The reverse direction exposes omitted behavior that a
+safety-only check would miss. Candidate-owned tautologies cannot weaken the external
+reference properties.
+
+This is **post-generation validation of frozen reference contracts**. It is not a
+preregistered natural-language assessment. Only identical, resolvable variable/constant
+interfaces receive automatic bindings. Renamed variables, incompatible representations,
+ambiguous dependencies and unsupported behavior contracts are reported as unresolved;
+no inferred mapping or human judgment is invented. Original reference configurations
+and derived audit configurations are labeled separately. Derived configurations preserve
+the original constants/constraints while replacing the checks with external aliases.
+
+The local audit uses the recorded Temurin 11.0.25+9 runtime and pinned jar, a bounded 512-MiB JVM heap, one TLC worker,
+seed 1, fingerprint 0, a 60-second compiler limit and **5 seconds per independent TLC
+check**. This bounded audit's timeouts are unresolved outcomes, distinct from the original
+300-second experimental timeouts. Neither parser/configuration failures nor timeouts are
+semantic counterexamples. Identical generated modules for the same task reuse one
+checking execution, with the origin recorded explicitly.
+
+`semantic-evidence.json` retains full checker logs, exact derived configurations, source
+hashes, substitutions, and outcomes. `reduce_semantics.py` reconstructs every wrapper,
+verifies its modules/configuration/mapping and derives `semantic-report.json` from raw
+logs. External qualification requires the original named-check qualification plus a
+nonempty completed reference control and success in all three external checks. It remains
+a bounded reference result, not a certificate that the description faithfully expresses
+all intended requirements. Unresolved and counterexample components remain visible.
+
+The saved checkpoint is **incomplete: 18 of 146 passing outputs audited, 18 of 127
+unique generated sources**. `semantic-report.json` lists every unexecuted run explicitly.
+The default reducer rejects incomplete evidence; `--allow-partial` verifies the checkpoint
+without certifying a population score. The archived matched pass@5 and named-check
+qualification above have complete evidence coverage independently of this partial audit.
+Audit continuation accepts the same evaluator, runtime, settings and unchanged sources:
+use `--resume --max-new-outputs 1` to checkpoint bounded batches.
+
+Live regression fixtures establish that replacing a valid invariant by TRUE or removing
+its check preserves the already passing state graph, while FALSE is rejected on a model
+whose control establishes nonempty Init. A known broken transition is rejected by a
+frozen external invariant even when the candidate substitutes TRUE. A disabled transition
+passes forward inclusion but fails reverse inclusion. Actual zero-exit semantic-error
+logs, harmless warnings, malformed evidence, compiler/configuration errors, incomplete
+checking and timeouts exercise the fail-closed paths. Errors and timeouts never count
+as semantic mutation kills.
+
+## Description comparison and remaining human review
+
+A1 changes both configuration exposure and description source relative to A2. Their
+22 versus 31 archived passes do not isolate a description-provider effect.
+`paired_default_description_comparison` instead joins A2 with default/GPT-description
+A3 on the same 100 tasks, comparing A2's one sample to the original four A3 samples'
+mean pass rate. It includes task-level paired differences and source-repository sensitivity.
+This is descriptive: unequal draw counts and unresolved description equivalence limit
+causal interpretation.
+
+`description-review-cases.jsonl` supplies 100 independent-human review cases with a
+common frozen reference/configuration contract and two descriptions. The packet omits
+candidate outputs and provider/model labels; all assessments are explicitly **unreviewed**.
+A reviewer should compare both descriptions against the reference's allowed and required
+behavior, record missing/added requirements and ambiguity, and judge equivalence before
+consulting labeled generations. The original repository contains labeled descriptions,
+so reviewers need to use the packet first to preserve that blinding. Renamed-interface
+or unresolved semantic cases also require explicit reviewed mappings or a documented
+reason they cannot be compared. No agent result is presented as human agreement.
+
+To rebuild the packet and keep its assignment key outside the publication:
+
+```sh
+python3 experiments/opus45-20261004/build_review_cases.py \
+  --output /tmp/description-review-cases.jsonl --private-key /tmp/description-review-key.json
+```
 
 ## Reproduce offline
 
-Python 3.10+ and its standard library suffice for evidence verification and table reductions.
-From the repository root:
+Python 3.10+ and its standard library suffice for verification, reductions and tables.
+Java is used only for live compiler/checker controls; set `TLA_TEST_JAVA` to select a JDK.
+CI uses the recorded Temurin 11.0.25+9. No generation API, credentials or Python packages
+are required.
 
 ```sh
 python3 experiments/opus45-20261004/reproduce.py --check
-python3 experiments/opus45-20261004/reproduce.py --check --json
+python3 experiments/opus45-20261004/reduce_semantics.py --allow-partial --check
 python3 -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
 python3 -O -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
 python3 reproduce.py --clean
 ```
 
-The tests execute the complete 601-output verification/reduction, independently reduce
-archived grades, mutate an output to prove counts respond to data, and reject missing records,
-hash tampering, extra files, and request/model mismatches. A small real SANY fixture checks its
-zero-exit semantic-error behavior when Java is available; set `TLA_TEST_JAVA` to select a JDK.
-No generation API, credentials, or Python packages are required.
-
-For a new local SANY/TLC execution of a recorded output, provide the original runtime:
+Tests verify complete artifact/request/config joins and sample coverage, mutate inputs to
+prove counts depend on outputs, and reject missing/duplicate rows, mismatched models,
+hash tampering, empty output, incomplete checker evidence and invented classifications.
+They also execute a saved generated source through the original grading workflow.
+For additional local checks, write results outside the frozen evidence directory:
 
 ```sh
 python3 experiments/opus45-20261004/regrade.py \
   --run-id A1:1343:s0 --java /path/to/temurin-11.0.25+9/bin/java \
   --output /tmp/opus45-1343-regrade.json
+python3 experiments/opus45-20261004/semantic_audit.py \
+  --java /path/to/temurin-11.0.25+9/bin/java --workers 1 --timeout 5 \
+  --output /tmp/opus45-independent-audit.json
+python3 experiments/opus45-20261004/reduce_semantics.py \
+  --evidence /tmp/opus45-independent-audit.json --json
 ```
 
-This command uses the unchanged release grader, module/dependency staging, jar, and reference
-configuration; SANY has a 60-second limit and TLC a 300-second limit. It writes a new result
-outside the immutable evidence directory. The five archived 300-second TLC timeouts remain
-nonpasses. Item 875 is stochastic, so a new local verdict need not equal the archived verdict.
-Local reruns do not replace or filter the recorded results.
+Reruns preserve archived results. Stochastic reference item 875 can yield a different local
+verdict; neither rerun outcomes nor unsupported cases filter the primary denominators.
 
-## Strict parser correction
+## Integrity and publication scope
 
-The archived author grader used SANY's exit code alone. SANY can return zero while reporting
-semantic errors. Seventy-five author-true records contain such errors: 17 A1, 12 A2, 45 A3,
-and one smoke. `code/analysis/strict_sany.py` adds an opt-in diagnostic-aware interpretation:
-exit code zero, completed semantic processing, and no parse/semantic-error diagnostics on
-either stream. `report.json` lists every affected run. Original flags, diagnostics, and TLC
-scores remain available; strict SANY is a separately labeled derived result, not a new run.
+Each evidence directory contains the exact generated module, prompt, raw model text,
+request/response, planned run and author grade, plus raw checker evidence and public
+run metadata. `protocol.json` pins all 1,746 original specification/configuration files
+and the grader, validator, manifest and tools jar. `provenance.json` binds all 701 source
+chains to their frozen source hashes. `integrity.json` verifies all public artifacts and
+required repository inputs. Canonical protocol hashes use sorted compact JSON; file
+hashes use the exact original bytes.
 
-## Four-sample coverage and the baseline limit
+Generated sources, prompts, requests, responses and grades remain byte-identical to their
+source. Checker messages and return codes are preserved, with absolute workspace paths
+replaced by `<WORKSPACE>` or `<AUDIT_TMP>` and JSON serialized consistently. Private
+operational, billing, access and identity records are excluded. Original source archives
+remain unchanged. There were 706 source API attempts: 701 retained outputs, including
+smoke, and five original access failures that produced no output.
 
-The four matched A3 samples give empirical TLC pass@4 of **26/100 (26%)**: with n=k=4,
-each specification scores one if any recorded sample passes, otherwise zero. All 100 remain
-in the mean. No sampling independence or uncertainty interval is asserted.
+Frozen archive SHA256 values:
 
-The released Opus baseline has 16/100 TLC passes; 15 overlap A3's any-pass set. Combining
-that baseline with the four new samples gives **27/100 descriptive mixed coverage**.
-Only item 1595 increases the union. This is **not certified strict pass@5**.
+- Original delivery: `6dcb2e5c2ddc39903c0a4c324a99bc80000bbb19bdb2f5c0a483ffa526651393`.
+- Matched fifth-sample addendum: `29179a1f5b2ea8af9a822ebb70d06e00f45087e9779ec648e2b3b588ddc85f96`.
 
-| Baseline vs new A3 | Compatibility evidence |
-|---|---|
-| Evaluation IDs and denominator | Same ordered 100 IDs, including all failures/fixtures |
-| Descriptions and prompts | Manifest and prompt templates identical; new requests match the templates; historical request prompts unrecorded |
-| Specifications/configurations | All 1,746 released `.tla`/`.cfg` inputs byte-identical; 99 evaluation configurations, item 1142 absent in both |
-| Grader, validator, tools jar | Byte-identical, hashes in `protocol.json` |
-| Model identity and generation settings | New requests have exact Bedrock model ID, provider, token budget and omitted temperature; baseline has only a display label |
-| Runtime/seed control | Historical Linux/JDK 11 vs new macOS/Temurin 11.0.25+9; seeds not controlled |
-
-The archived baseline lacks request-level snapshot/provider, prompt receipts, output-token
-budget, decoding settings, and sample provenance. Compatible content cannot certify an
-additional matched draw. No fifth sample was generated or substituted.
-
-## Artifact integrity and publication scope
-
-Each `evidence/<job>/<id>_s<sample>/` directory contains the exact generated TLA module,
-prompt, raw model text, request/response payload, planned run, archived author grade, and
-raw checker evidence. `metadata.json` records public scientific provenance. `protocol.json`
-pins all original specification/configuration dependencies and the exact grader/jar.
-`provenance.json` links public artifacts and source chains to the frozen input digests;
-`integrity.json` verifies every public file and required repository input.
-
-Generated modules, prompts, requests, responses, and author grades are byte-identical to the
-audited source. Checker diagnostics retain every message and return code, with absolute
-workspace paths replaced by `<WORKSPACE>` and JSON serialized consistently. The original
-private archives are unchanged. Operational access/billing/identity records, task logs,
-credentials, and duplicate packages are excluded. Of 606 source API attempts, 601 produced
-the retained outputs; five failed access attempts produced no output and do not inflate the
-scientific denominators. Source archive SHA256:
-`6dcb2e5c2ddc39903c0a4c324a99bc80000bbb19bdb2f5c0a483ffa526651393`.
-
-Specification licensing follows the original source repositories recorded in `manifest.jsonl`;
-description/annotation licensing follows the root `LICENSE`. The historical release and
-paper files are unchanged.
+Specification licensing follows source repositories in `manifest.jsonl`;
+description/annotation licensing follows the root `LICENSE`. Paper files are unchanged.

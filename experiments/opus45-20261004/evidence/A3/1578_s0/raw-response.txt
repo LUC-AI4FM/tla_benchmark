@@ -1,0 +1,394 @@
+```tla+
+---------------------------- MODULE ConcurrentDeque ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    Procs,          \* Set of process identifiers
+    MaxAddr,        \* Maximum number of memory addresses
+    Values,         \* Set of values that can be stored
+    NullAddr        \* Null address constant
+
+VARIABLES
+    mem,            \* Memory: mapping from addresses to node records
+    leftHat,        \* Left hat pointer (head of deque from left)
+    rightHat,       \* Right hat pointer (head of deque from right)
+    freelist,       \* Set of free addresses for allocation
+    pc,             \* Program counter for each process
+    op,             \* Current operation for each process
+    localNode,      \* Local node address for each process
+    localVal,       \* Local value for each process
+    localLeft,      \* Local left pointer for each process
+    localRight,     \* Local right pointer for each process
+    oldLeftHat,     \* Saved left hat for CAS operations
+    oldRightHat,    \* Saved right hat for CAS operations
+    result,         \* Result of pop operations
+    valBag          \* Multiset tracking values in the deque
+
+vars == <<mem, leftHat, rightHat, freelist, pc, op, localNode, localVal, 
+          localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+Addresses == 1..MaxAddr
+
+NullNode == [val |-> 0, left |-> NullAddr, right |-> NullAddr]
+
+\* Initial state
+Init ==
+    /\ mem = [a \in Addresses |-> NullNode]
+    /\ leftHat = NullAddr
+    /\ rightHat = NullAddr
+    /\ freelist = Addresses
+    /\ pc = [p \in Procs |-> "T1"]
+    /\ op = [p \in Procs |-> "none"]
+    /\ localNode = [p \in Procs |-> NullAddr]
+    /\ localVal = [p \in Procs |-> 0]
+    /\ localLeft = [p \in Procs |-> NullAddr]
+    /\ localRight = [p \in Procs |-> NullAddr]
+    /\ oldLeftHat = [p \in Procs |-> NullAddr]
+    /\ oldRightHat = [p \in Procs |-> NullAddr]
+    /\ result = [p \in Procs |-> 0]
+    /\ valBag = [v \in Values |-> 0]
+
+\* Allocate a node from freelist
+Allocate(p) ==
+    /\ freelist /= {}
+    /\ \E a \in freelist:
+        /\ localNode' = [localNode EXCEPT ![p] = a]
+        /\ freelist' = freelist \ {a}
+    /\ UNCHANGED <<mem, leftHat, rightHat, pc, op, localVal, localLeft, 
+                   localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* Free a node back to freelist
+Free(p, addr) ==
+    /\ addr /= NullAddr
+    /\ freelist' = freelist \cup {addr}
+    /\ mem' = [mem EXCEPT ![addr] = NullNode]
+
+\* Test process chooses an operation
+ChooseOp(p) ==
+    /\ pc[p] = "T1"
+    /\ \/ /\ freelist /= {}
+          /\ \E v \in Values:
+              /\ localVal' = [localVal EXCEPT ![p] = v]
+              /\ \/ /\ op' = [op EXCEPT ![p] = "pushLeft"]
+                    /\ pc' = [pc EXCEPT ![p] = "PL1"]
+                 \/ /\ op' = [op EXCEPT ![p] = "pushRight"]
+                    /\ pc' = [pc EXCEPT ![p] = "PR1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localLeft,
+                        localRight, oldLeftHat, oldRightHat, result, valBag>>
+       \/ /\ \/ /\ op' = [op EXCEPT ![p] = "popLeft"]
+                /\ pc' = [pc EXCEPT ![p] = "POL1"]
+             \/ /\ op' = [op EXCEPT ![p] = "popRight"]
+                /\ pc' = [pc EXCEPT ![p] = "POR1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localVal,
+                        localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* ============ PUSH LEFT ==============
+
+\* PL1: Allocate node
+PushLeft1(p) ==
+    /\ pc[p] = "PL1"
+    /\ freelist /= {}
+    /\ \E a \in freelist:
+        /\ localNode' = [localNode EXCEPT ![p] = a]
+        /\ freelist' = freelist \ {a}
+        /\ pc' = [pc EXCEPT ![p] = "PL2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, op, localVal, localLeft, 
+                   localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* PL2: Initialize node with value, read leftHat
+PushLeft2(p) ==
+    /\ pc[p] = "PL2"
+    /\ oldLeftHat' = [oldLeftHat EXCEPT ![p] = leftHat]
+    /\ oldRightHat' = [oldRightHat EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PL3"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                   localLeft, localRight, result, valBag>>
+
+\* PL3: Setup node and attempt DCAS-like update
+PushLeft3(p) ==
+    /\ pc[p] = "PL3"
+    /\ LET node == localNode[p]
+           v == localVal[p]
+           oLH == oldLeftHat[p]
+           oRH == oldRightHat[p]
+       IN
+       \* DCAS-like: check leftHat and rightHat unchanged, then update
+       IF leftHat = oLH /\ rightHat = oRH
+       THEN
+           /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> NullAddr, right |-> oLH]]
+           /\ IF oLH = NullAddr
+              THEN \* Empty deque: set both hats
+                   /\ leftHat' = node
+                   /\ rightHat' = node
+              ELSE \* Non-empty: update old left's left pointer and leftHat
+                   /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> NullAddr, right |-> oLH],
+                                         ![oLH] = [mem[oLH] EXCEPT !.left = node]]
+                   /\ leftHat' = node
+                   /\ UNCHANGED rightHat
+           /\ valBag' = [valBag EXCEPT ![v] = @ + 1]
+           /\ pc' = [pc EXCEPT ![p] = "T1"]
+           /\ UNCHANGED <<freelist, op, localNode, localVal, localLeft, localRight,
+                         oldLeftHat, oldRightHat, result>>
+       ELSE \* CAS failed, retry
+           /\ pc' = [pc EXCEPT ![p] = "PL2"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* Simplified PushLeft3 for proper syntax
+PushLeft3Fixed(p) ==
+    /\ pc[p] = "PL3"
+    /\ LET node == localNode[p]
+           v == localVal[p]
+           oLH == oldLeftHat[p]
+           oRH == oldRightHat[p]
+       IN
+       IF leftHat = oLH /\ rightHat = oRH
+       THEN
+           IF oLH = NullAddr
+           THEN \* Empty deque
+               /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> NullAddr, right |-> NullAddr]]
+               /\ leftHat' = node
+               /\ rightHat' = node
+               /\ valBag' = [valBag EXCEPT ![v] = @ + 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<freelist, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat, result>>
+           ELSE \* Non-empty deque
+               /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> NullAddr, right |-> oLH],
+                                     ![oLH] = [mem[oLH] EXCEPT !.left = node]]
+               /\ leftHat' = node
+               /\ valBag' = [valBag EXCEPT ![v] = @ + 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<rightHat, freelist, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat, result>>
+       ELSE \* Retry
+           /\ pc' = [pc EXCEPT ![p] = "PL2"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* ============ PUSH RIGHT ==============
+
+PushRight1(p) ==
+    /\ pc[p] = "PR1"
+    /\ freelist /= {}
+    /\ \E a \in freelist:
+        /\ localNode' = [localNode EXCEPT ![p] = a]
+        /\ freelist' = freelist \ {a}
+        /\ pc' = [pc EXCEPT ![p] = "PR2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, op, localVal, localLeft,
+                   localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+PushRight2(p) ==
+    /\ pc[p] = "PR2"
+    /\ oldLeftHat' = [oldLeftHat EXCEPT ![p] = leftHat]
+    /\ oldRightHat' = [oldRightHat EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PR3"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                   localLeft, localRight, result, valBag>>
+
+PushRight3(p) ==
+    /\ pc[p] = "PR3"
+    /\ LET node == localNode[p]
+           v == localVal[p]
+           oLH == oldLeftHat[p]
+           oRH == oldRightHat[p]
+       IN
+       IF leftHat = oLH /\ rightHat = oRH
+       THEN
+           IF oRH = NullAddr
+           THEN \* Empty deque
+               /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> NullAddr, right |-> NullAddr]]
+               /\ leftHat' = node
+               /\ rightHat' = node
+               /\ valBag' = [valBag EXCEPT ![v] = @ + 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<freelist, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat, result>>
+           ELSE \* Non-empty deque
+               /\ mem' = [mem EXCEPT ![node] = [val |-> v, left |-> oRH, right |-> NullAddr],
+                                     ![oRH] = [mem[oRH] EXCEPT !.right = node]]
+               /\ rightHat' = node
+               /\ valBag' = [valBag EXCEPT ![v] = @ + 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<leftHat, freelist, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat, result>>
+       ELSE
+           /\ pc' = [pc EXCEPT ![p] = "PR2"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* ============ POP LEFT ==============
+
+PopLeft1(p) ==
+    /\ pc[p] = "POL1"
+    /\ oldLeftHat' = [oldLeftHat EXCEPT ![p] = leftHat]
+    /\ oldRightHat' = [oldRightHat EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "POL2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                   localLeft, localRight, result, valBag>>
+
+PopLeft2(p) ==
+    /\ pc[p] = "POL2"
+    /\ LET oLH == oldLeftHat[p]
+           oRH == oldRightHat[p]
+       IN
+       IF oLH = NullAddr
+       THEN \* Empty deque
+           /\ result' = [result EXCEPT ![p] = 0]
+           /\ pc' = [pc EXCEPT ![p] = "T1"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, valBag>>
+       ELSE IF leftHat = oLH /\ rightHat = oRH
+       THEN
+           LET v == mem[oLH].val
+               newLH == mem[oLH].right
+           IN
+           IF oLH = oRH
+           THEN \* Single element
+               /\ leftHat' = NullAddr
+               /\ rightHat' = NullAddr
+               /\ freelist' = freelist \cup {oLH}
+               /\ mem' = [mem EXCEPT ![oLH] = NullNode]
+               /\ result' = [result EXCEPT ![p] = v]
+               /\ valBag' = [valBag EXCEPT ![v] = @ - 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat>>
+           ELSE \* Multiple elements
+               /\ leftHat' = newLH
+               /\ IF newLH /= NullAddr
+                  THEN mem' = [mem EXCEPT ![newLH] = [mem[newLH] EXCEPT !.left = NullAddr],
+                                          ![oLH] = NullNode]
+                  ELSE mem' = [mem EXCEPT ![oLH] = NullNode]
+               /\ freelist' = freelist \cup {oLH}
+               /\ result' = [result EXCEPT ![p] = v]
+               /\ valBag' = [valBag EXCEPT ![v] = @ - 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<rightHat, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat>>
+       ELSE \* Retry
+           /\ pc' = [pc EXCEPT ![p] = "POL1"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* ============ POP RIGHT ==============
+
+PopRight1(p) ==
+    /\ pc[p] = "POR1"
+    /\ oldLeftHat' = [oldLeftHat EXCEPT ![p] = leftHat]
+    /\ oldRightHat' = [oldRightHat EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "POR2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                   localLeft, localRight, result, valBag>>
+
+PopRight2(p) ==
+    /\ pc[p] = "POR2"
+    /\ LET oLH == oldLeftHat[p]
+           oRH == oldRightHat[p]
+       IN
+       IF oRH = NullAddr
+       THEN \* Empty deque
+           /\ result' = [result EXCEPT ![p] = 0]
+           /\ pc' = [pc EXCEPT ![p] = "T1"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, valBag>>
+       ELSE IF leftHat = oLH /\ rightHat = oRH
+       THEN
+           LET v == mem[oRH].val
+               newRH == mem[oRH].left
+           IN
+           IF oLH = oRH
+           THEN \* Single element
+               /\ leftHat' = NullAddr
+               /\ rightHat' = NullAddr
+               /\ freelist' = freelist \cup {oRH}
+               /\ mem' = [mem EXCEPT ![oRH] = NullNode]
+               /\ result' = [result EXCEPT ![p] = v]
+               /\ valBag' = [valBag EXCEPT ![v] = @ - 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat>>
+           ELSE \* Multiple elements
+               /\ rightHat' = newRH
+               /\ IF newRH /= NullAddr
+                  THEN mem' = [mem EXCEPT ![newRH] = [mem[newRH] EXCEPT !.right = NullAddr],
+                                          ![oRH] = NullNode]
+                  ELSE mem' = [mem EXCEPT ![oRH] = NullNode]
+               /\ freelist' = freelist \cup {oRH}
+               /\ result' = [result EXCEPT ![p] = v]
+               /\ valBag' = [valBag EXCEPT ![v] = @ - 1]
+               /\ pc' = [pc EXCEPT ![p] = "T1"]
+               /\ UNCHANGED <<leftHat, op, localNode, localVal, localLeft, localRight,
+                             oldLeftHat, oldRightHat>>
+       ELSE \* Retry
+           /\ pc' = [pc EXCEPT ![p] = "POR1"]
+           /\ UNCHANGED <<mem, leftHat, rightHat, freelist, op, localNode, localVal,
+                         localLeft, localRight, oldLeftHat, oldRightHat, result, valBag>>
+
+\* Next state relation
+Next ==
+    \E p \in Procs:
+        \/ ChooseOp(p)
+        \/ PushLeft1(p)
+        \/ PushLeft2(p)
+        \/ PushLeft3Fixed(p)
+        \/ PushRight1(p)
+        \/ PushRight2(p)
+        \/ PushRight3(p)
+        \/ PopLeft1(p)
+        \/ PopLeft2(p)
+        \/ PopRight1(p)
+        \/ PopRight2(p)
+
+\* Fairness: weak fairness for all process actions
+Fairness ==
+    \A p \in Procs:
+        /\ WF_vars(ChooseOp(p))
+        /\ WF_vars(PushLeft1(p))
+        /\ WF_vars(PushLeft2(p))
+        /\ WF_vars(PushLeft3Fixed(p))
+        /\ WF_vars(PushRight1(p))
+        /\ WF_vars(PushRight2(p))
+        /\ WF_vars(PushRight3(p))
+        /\ WF_vars(PopLeft1(p))
+        /\ WF_vars(PopLeft2(p))
+        /\ WF_vars(PopRight1(p))
+        /\ WF_vars(PopRight2(p))
+
+\* Specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* ============ INVARIANTS ==============
+
+\* Type invariant
+TypeOK ==
+    /\ mem \in [Addresses -> [val: Int, left: Addresses \cup {NullAddr}, right: Addresses \cup {NullAddr}]]
+    /\ leftHat \in Addresses \cup {NullAddr}
+    /\ rightHat \in Addresses \cup {NullAddr}
+    /\ freelist \subseteq Addresses
+    /\ pc \in [Procs -> {"T1", "PL1", "PL2", "PL3", "PR1", "PR2", "PR3", 
+                         "POL1", "POL2", "POR1", "POR2"}]
+    /\ op \in [Procs -> {"none", "pushLeft", "pushRight", "popLeft", "popRight"}]
+
+\* ValBag consistency: counts are non-negative
+ValBagConsistent ==
+    \A v \in Values: valBag[v] >= 0
+
+\* Hat consistency: both null or both non-null
+HatConsistent ==
+    (leftHat = NullAddr) <=> (rightHat = NullAddr)
+
+\* Safety invariant
+SafetyInvariant ==
+    /\ TypeOK
+    /\ ValBagConsistent
+    /\ HatConsistent
+
+\* ============ LIVENESS PROPERTIES ==============
+
+\* Every test process returns to T1 infinitely often
+LivenessT1 ==
+    \A p \in Procs: []<>(pc[p] = "T1")
+
+================================================================================
+```

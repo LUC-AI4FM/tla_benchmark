@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE MultiSlotConsensus ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Values, Slots\n\nVARIABLES proposed, chosen\n\nvars == <<proposed, chosen>>\n\nTypeOK ==\n    /\\ proposed \\subseteq Values\n    /\\ chosen \\in [Slots -> SUBSET Values]\n    /\\ \\A s \\in Slots : Cardinality(chosen[s]) <= 1\n\nInit ==\n    /\\ proposed = {}\n    /\\ chosen = [s \\in Slots |-> {}]\n\nPropose(v) ==\n    /\\ v \\notin proposed\n    /\\ proposed' = proposed \\cup {v}\n    /\\ UNCHANGED chosen\n\nChoose(s, v) ==\n    /\\ chosen[s] = {}\n    /\\ v \\in proposed\n    /\\ chosen' = [chosen EXCEPT ![s] = {v}]\n    /\\ UNCHANGED proposed\n\nNext ==\n    \\/ \\E v \\in Values : Propose(v)\n    \\/ \\E s \\in Slots, v \\in Values : Choose(s, v)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Safety Properties *)\n\nNontriviality ==\n    \\A s \\in Slots : \\A v \\in chosen[s] : v \\in Values\n\nStability ==\n    \\A s \\in Slots : chosen[s] /= {} => [][chosen[s] = chosen'[s]]_vars\n\nConsistency ==\n    \\A s \\in Slots : Cardinality(chosen[s]) <= 1\n\nChosenWasProposed ==\n    \\A s \\in Slots : \\A v \\in chosen[s] : v \\in proposed\n\nSafetyInvariant ==\n    /\\ TypeOK\n    /\\ Nontriviality\n    /\\ Consistency\n    /\\ ChosenWasProposed\n\n(* Liveness Property *)\n\nAllSlotsEventuallyChosen ==\n    \\A s \\in Slots : <>(chosen[s] /= {})\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 503,
+    "totalTokens": 772,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8688
+  }
+}

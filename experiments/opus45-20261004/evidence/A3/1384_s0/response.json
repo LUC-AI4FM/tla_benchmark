@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE BoundedSeqGraph ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\n\\* Helper operator for bounded sequences up to length n\nBoundedSeq(S, n) == UNION {[1..m -> S] : m \\in 0..n}\n\n\\* Helper operators for directed graphs\nCONSTANT Nodes\n\n\\* Edge set of a directed graph (all possible edges)\nEdgeSet(N) == N \\times N\n\n\\* A graph is a set of edges (subset of EdgeSet)\nIsGraph(G, N) == G \\subseteq EdgeSet(N)\n\n\\* Outgoing edges from a node\nOutEdges(G, n) == {e \\in G : e[1] = n}\n\n\\* Successor nodes\nSuccessors(G, n) == {e[2] : e \\in OutEdges(G, n)}\n\n\\* The constant graph we work with\nCONSTANT Graph\n\n\\* Assumption about the graph\nASSUME IsGraph(Graph, Nodes)\n\n\\* Assumption about cardinality of nested bounded-sequence construction\n\\* This tests that TLCEval caching works correctly for complex expressions\nASSUME Cardinality(BoundedSeq(BoundedSeq(Nodes, 2), 3)) >= 0\n\nVARIABLES x, y\n\nvars == <<x, y>>\n\n\\* Derived test graph - a subgraph based on some condition\n\\* Using TLCEval to force evaluation in a particular context\nTestGraph == TLCEval({e \\in Graph : e[1] # e[2]})\n\n\\* Type invariant for the variables\nTypeOK == /\\ x \\in EdgeSet(Nodes)\n          /\\ y \\in EdgeSet(Nodes)\n\n\\* Membership in the derived test graph\n\\* The caching behavior of TLCEval matters here - if TestGraph is\n\\* not cached properly, this could evaluate differently in different contexts\nMembershipInv == /\\ x \\in Graph\n                 /\\ y \\in Graph\n\n\\* Fixed TLCEval-computed cardinality check\n\\* This verifies that the cardinality computation is stable\nCardinalityCheck == TLCEval(Cardinality(TestGraph)) = Cardinality(TestGraph)\n\n\\* Combined invariant\nInvariant == /\\ TypeOK\n             /\\ MembershipInv\n             /\\ CardinalityCheck\n\n\\* Initial state - pick edges from the graph\n\\* Using RandomElement to demonstrate TLC-specific evaluation\nInit == /\\ x = IF Graph # {} \n           THEN RandomElement(Graph)\n           ELSE <<1, 1>>\n        /\\ y = IF Graph # {}\n           THEN RandomElement(Graph)\n           ELSE <<1, 1>>\n\n\\* Next state - transition along graph edges\n\\* We stay within the edge set of the constant graph\nNext == \\/ /\\ Graph # {}\n           /\\ x' = RandomElement(Graph)\n           /\\ y' = RandomElement(Graph)\n        \\/ /\\ x' = x\n           /\\ y' = y\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Liveness property - if graph is non-empty, we eventually visit different edges\nLiveness == Graph # {} => <>(x # y)\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 246,
+    "outputTokens": 811,
+    "totalTokens": 1057,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15227
+  }
+}

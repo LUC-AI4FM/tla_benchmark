@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE Scratch ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nVARIABLES x\n\nInit == x = 0\n\nNext == \n    \\/ (x = 0 /\\ (x' = 1 \\/ x' = 2))\n    \\/ (x /= 0 /\\ x' = 0)\n\nSpec == Init /\\ [][Next]_x /\\ WF_x(Next)\n\n(* Safety Invariants *)\nTypeInvariant == x \\in {0, 1, 2}\n\n(* Liveness Properties *)\n(* Eventually stabilize away from 1 *)\nEventuallyNotOne == <>[](x /= 1)\n\n(* Eventually stabilize away from 2 *)\nEventuallyNotTwo == <>[](x /= 2)\n\n(* Eventually repeatedly return to zero *)\nEventuallyAlwaysReturnToZero == []<>(x = 0)\n\n(* Negation of a temporal property - x does not always stay at 0 *)\nNotAlwaysZero == ~[](x = 0)\n\n(* Postcondition for TLC counterexample trace checking *)\n(* Encodes a trace as records, tuples, and sets for TLC verification *)\nTraceConstraint ==\n    LET \n        trace == <<[x |-> 0], [x |-> 1], [x |-> 0], [x |-> 2], [x |-> 0]>>\n        validStates == {0, 1, 2}\n    IN\n        \\A i \\in 1..Len(trace) : trace[i].x \\in validStates\n\n(* Alternative liveness: from any state, we can eventually reach 0 *)\nAlwaysEventuallyZero == [](x /= 0 => <>(x = 0))\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 449,
+    "totalTokens": 727,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8071
+  }
+}

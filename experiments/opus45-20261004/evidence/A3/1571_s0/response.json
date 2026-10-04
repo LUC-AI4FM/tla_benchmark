@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Naturals, Sequences, TLC\n\nCONSTANT N\n\nASSUME N > 1\n\nVARIABLES pc, forks\n\nvars == <<pc, forks>>\n\nPhilosophers == 0..(N-1)\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n    /\\ forks \\in [0..(N-1) -> 0..1]\n\nInit ==\n    /\\ pc = [i \\in Philosophers |-> \"thinking\"]\n    /\\ forks = [i \\in 0..(N-1) |-> 1]\n\nBecomeHungry(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ UNCHANGED forks\n\nAcquireFirstFork(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ IF i = 0\n       THEN /\\ forks[LeftFork(i)] = 1\n            /\\ forks' = [forks EXCEPT ![LeftFork(i)] = 0]\n       ELSE /\\ forks[RightFork(i)] = 1\n            /\\ forks' = [forks EXCEPT ![RightFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\nAcquireSecondFork(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ IF i = 0\n       THEN /\\ forks[RightFork(i)] = 1\n            /\\ forks' = [forks EXCEPT ![RightFork(i)] = 0]\n       ELSE /\\ forks[LeftFork(i)] = 1\n            /\\ forks' = [forks EXCEPT ![LeftFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\nFinishEating(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ forks' = [forks EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\nPhilosopherAction(i) ==\n    \\/ BecomeHungry(i)\n    \\/ AcquireFirstFork(i)\n    \\/ AcquireSecondFork(i)\n    \\/ FinishEating(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\nFairness == \\A i \\in Philosophers : SF_vars(PhilosopherAction(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nMutualExclusion ==\n    \\A i, j \\in Philosophers :\n        (i # j /\\ (j = (i + 1) % N \\/ i = (j + 1) % N)) =>\n            ~(pc[i] = \"eating\" /\\ pc[j] = \"eating\")\n\nForkExclusion ==\n    \\A f \\in 0..(N-1) :\n        LET users == {i \\in Philosophers : \n                        pc[i] = \"eating\" \\/ \n                        (pc[i] = \"hasFirst\" /\\ \n                            ((i = 0 /\\ LeftFork(i) = f) \\/ \n                             (i # 0 /\\ RightFork(i) = f)))}\n        IN Cardinality(users) <= 1\n\nCardinality(S) == \n    LET Card[T \\in SUBSET S] == \n        IF T = {} THEN 0\n        ELSE LET x == CHOOSE x \\in T : TRUE\n             IN 1 + Card[T \\ {x}]\n    IN Card[S]\n\nSafetyInvariant == TypeOK /\\ MutualExclusion\n\nStarvationFreedom == \\A i \\in Philosophers : (pc[i] = \"hungry\") ~> (pc[i] = \"eating\")\n\nEventuallyEats == \\A i \\in Philosophers : []<>(pc[i] = \"eating\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 260,
+    "outputTokens": 1090,
+    "totalTokens": 1350,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14929
+  }
+}

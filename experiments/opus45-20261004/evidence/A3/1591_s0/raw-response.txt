@@ -1,0 +1,117 @@
+```tla
+---------------------------- MODULE EvenOdd ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS N
+
+ASSUME N \in Nat
+
+VARIABLES pc, stack, xEven, xOdd, result
+
+vars == <<pc, stack, xEven, xOdd, result>>
+
+Init ==
+    /\ pc = "CallEvenMain"
+    /\ stack = <<>>
+    /\ xEven = 0
+    /\ xOdd = 0
+    /\ result = FALSE
+
+CallEvenMain ==
+    /\ pc = "CallEvenMain"
+    /\ xEven' = N
+    /\ stack' = Append(stack, [proc |-> "Main", retPC |-> "Done", localX |-> 0])
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<xOdd, result>>
+
+EvenCheck ==
+    /\ pc = "EvenCheck"
+    /\ IF xEven = 0
+       THEN /\ result' = TRUE
+            /\ IF Len(stack) > 0
+               THEN /\ pc' = (Head(stack)).retPC
+                    /\ stack' = Tail(stack)
+               ELSE /\ pc' = "Done"
+                    /\ UNCHANGED stack
+            /\ UNCHANGED <<xEven, xOdd>>
+       ELSE /\ pc' = "EvenCallOdd"
+            /\ UNCHANGED <<stack, xEven, xOdd, result>>
+
+EvenCallOdd ==
+    /\ pc = "EvenCallOdd"
+    /\ xOdd' = xEven - 1
+    /\ stack' = Append(stack, [proc |-> "Even", retPC |-> "EvenReturn", localX |-> xEven])
+    /\ pc' = "OddCheck"
+    /\ UNCHANGED <<xEven, result>>
+
+EvenReturn ==
+    /\ pc = "EvenReturn"
+    /\ IF Len(stack) > 0
+       THEN /\ pc' = (Head(stack)).retPC
+            /\ stack' = Tail(stack)
+       ELSE /\ pc' = "Done"
+            /\ UNCHANGED stack
+    /\ UNCHANGED <<xEven, xOdd, result>>
+
+OddCheck ==
+    /\ pc = "OddCheck"
+    /\ IF xOdd = 0
+       THEN /\ result' = FALSE
+            /\ IF Len(stack) > 0
+               THEN /\ pc' = (Head(stack)).retPC
+                    /\ stack' = Tail(stack)
+               ELSE /\ pc' = "Done"
+                    /\ UNCHANGED stack
+            /\ UNCHANGED <<xEven, xOdd>>
+       ELSE /\ pc' = "OddCallEven"
+            /\ UNCHANGED <<stack, xEven, xOdd, result>>
+
+OddCallEven ==
+    /\ pc = "OddCallEven"
+    /\ xEven' = xOdd - 1
+    /\ stack' = Append(stack, [proc |-> "Odd", retPC |-> "OddReturn", localX |-> xOdd])
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<xOdd, result>>
+
+OddReturn ==
+    /\ pc = "OddReturn"
+    /\ IF Len(stack) > 0
+       THEN /\ pc' = (Head(stack)).retPC
+            /\ stack' = Tail(stack)
+       ELSE /\ pc' = "Done"
+            /\ UNCHANGED stack
+    /\ UNCHANGED <<xEven, xOdd, result>>
+
+Terminating ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ CallEvenMain
+    \/ EvenCheck
+    \/ EvenCallOdd
+    \/ EvenReturn
+    \/ OddCheck
+    \/ OddCallEven
+    \/ OddReturn
+    \/ Terminating
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+TypeInvariant ==
+    /\ pc \in {"CallEvenMain", "EvenCheck", "EvenCallOdd", "EvenReturn", 
+               "OddCheck", "OddCallEven", "OddReturn", "Done"}
+    /\ xEven \in Nat
+    /\ xOdd \in Nat
+    /\ result \in BOOLEAN
+    /\ stack \in Seq([proc: {"Main", "Even", "Odd"}, 
+                      retPC: {"Done", "EvenReturn", "OddReturn"}, 
+                      localX: Nat])
+
+CorrectResult ==
+    pc = "Done" => (result = (N % 2 = 0))
+
+=========================================================================
+```

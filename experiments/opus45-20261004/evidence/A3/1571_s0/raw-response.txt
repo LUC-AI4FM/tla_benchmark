@@ -1,0 +1,94 @@
+```tla
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Naturals, Sequences, TLC
+
+CONSTANT N
+
+ASSUME N > 1
+
+VARIABLES pc, forks
+
+vars == <<pc, forks>>
+
+Philosophers == 0..(N-1)
+
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+TypeOK ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating"}]
+    /\ forks \in [0..(N-1) -> 0..1]
+
+Init ==
+    /\ pc = [i \in Philosophers |-> "thinking"]
+    /\ forks = [i \in 0..(N-1) |-> 1]
+
+BecomeHungry(i) ==
+    /\ pc[i] = "thinking"
+    /\ pc' = [pc EXCEPT ![i] = "hungry"]
+    /\ UNCHANGED forks
+
+AcquireFirstFork(i) ==
+    /\ pc[i] = "hungry"
+    /\ IF i = 0
+       THEN /\ forks[LeftFork(i)] = 1
+            /\ forks' = [forks EXCEPT ![LeftFork(i)] = 0]
+       ELSE /\ forks[RightFork(i)] = 1
+            /\ forks' = [forks EXCEPT ![RightFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "hasFirst"]
+
+AcquireSecondFork(i) ==
+    /\ pc[i] = "hasFirst"
+    /\ IF i = 0
+       THEN /\ forks[RightFork(i)] = 1
+            /\ forks' = [forks EXCEPT ![RightFork(i)] = 0]
+       ELSE /\ forks[LeftFork(i)] = 1
+            /\ forks' = [forks EXCEPT ![LeftFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "eating"]
+
+FinishEating(i) ==
+    /\ pc[i] = "eating"
+    /\ forks' = [forks EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]
+    /\ pc' = [pc EXCEPT ![i] = "thinking"]
+
+PhilosopherAction(i) ==
+    \/ BecomeHungry(i)
+    \/ AcquireFirstFork(i)
+    \/ AcquireSecondFork(i)
+    \/ FinishEating(i)
+
+Next == \E i \in Philosophers : PhilosopherAction(i)
+
+Fairness == \A i \in Philosophers : SF_vars(PhilosopherAction(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+MutualExclusion ==
+    \A i, j \in Philosophers :
+        (i # j /\ (j = (i + 1) % N \/ i = (j + 1) % N)) =>
+            ~(pc[i] = "eating" /\ pc[j] = "eating")
+
+ForkExclusion ==
+    \A f \in 0..(N-1) :
+        LET users == {i \in Philosophers : 
+                        pc[i] = "eating" \/ 
+                        (pc[i] = "hasFirst" /\ 
+                            ((i = 0 /\ LeftFork(i) = f) \/ 
+                             (i # 0 /\ RightFork(i) = f)))}
+        IN Cardinality(users) <= 1
+
+Cardinality(S) == 
+    LET Card[T \in SUBSET S] == 
+        IF T = {} THEN 0
+        ELSE LET x == CHOOSE x \in T : TRUE
+             IN 1 + Card[T \ {x}]
+    IN Card[S]
+
+SafetyInvariant == TypeOK /\ MutualExclusion
+
+StarvationFreedom == \A i \in Philosophers : (pc[i] = "hungry") ~> (pc[i] = "eating")
+
+EventuallyEats == \A i \in Philosophers : []<>(pc[i] = "eating")
+
+=============================================================================
+```

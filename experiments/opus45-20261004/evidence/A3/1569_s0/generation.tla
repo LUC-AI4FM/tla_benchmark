@@ -1,0 +1,174 @@
+---------------------------- MODULE BakeryAlgorithm ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT Procs
+
+VARIABLES num, flag, pc, localNum, localMax, nxt, readSet
+
+vars == <<num, flag, pc, localNum, localMax, nxt, readSet>>
+
+Max(S) == IF S = {} THEN 0 ELSE CHOOSE x \in S : \A y \in S : x >= y
+
+\* Lexicographic ordering: (a, i) << (b, j)
+\* Returns TRUE if (a, i) is less than (b, j) in lexicographic order
+LessThan(a, i, b, j) ==
+    \/ a < b
+    \/ (a = b /\ i < j)
+
+Init ==
+    /\ num = [p \in Procs |-> 0]
+    /\ flag = [p \in Procs |-> FALSE]
+    /\ pc = [p \in Procs |-> "ncs"]
+    /\ localNum = [p \in Procs |-> [q \in Procs |-> 0]]
+    /\ localMax = [p \in Procs |-> 0]
+    /\ nxt = [p \in Procs |-> CHOOSE p2 \in Procs : TRUE]
+    /\ readSet = [p \in Procs |-> {}]
+
+\* Non-critical section - process decides to enter CS
+NCS(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, nxt, readSet>>
+
+\* Start doorway - set flag and initialize read set
+Start(self) ==
+    /\ pc[self] = "start"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ readSet' = [readSet EXCEPT ![self] = Procs]
+    /\ localMax' = [localMax EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "readNum"]
+    /\ UNCHANGED <<num, localNum, nxt>>
+
+\* Read ticket numbers from other processes
+ReadNum(self) ==
+    /\ pc[self] = "readNum"
+    /\ IF readSet[self] # {}
+       THEN /\ LET p == CHOOSE q \in readSet[self] : TRUE
+            IN /\ localNum' = [localNum EXCEPT ![self][p] = num[p]]
+               /\ localMax' = [localMax EXCEPT ![self] = 
+                    IF num[p] > localMax[self] THEN num[p] ELSE localMax[self]]
+               /\ readSet' = [readSet EXCEPT ![self] = readSet[self] \ {p}]
+               /\ pc' = [pc EXCEPT ![self] = "readNum"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "chooseNum"]
+            /\ UNCHANGED <<localNum, localMax, readSet>>
+    /\ UNCHANGED <<num, flag, nxt>>
+
+\* Choose ticket number
+ChooseNum(self) ==
+    /\ pc[self] = "chooseNum"
+    /\ num' = [num EXCEPT ![self] = localMax[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "endFlag"]
+    /\ UNCHANGED <<flag, localNum, localMax, nxt, readSet>>
+
+\* End doorway - clear flag
+EndFlag(self) ==
+    /\ pc[self] = "endFlag"
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ readSet' = [readSet EXCEPT ![self] = Procs \ {self}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, localNum, localMax, nxt>>
+
+\* Wait loop - check each process
+Wait(self) ==
+    /\ pc[self] = "wait"
+    /\ IF readSet[self] # {}
+       THEN /\ nxt' = [nxt EXCEPT ![self] = CHOOSE q \in readSet[self] : TRUE]
+            /\ pc' = [pc EXCEPT ![self] = "waitFlag"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED nxt
+    /\ UNCHANGED <<num, flag, localNum, localMax, readSet>>
+
+\* Wait for other process to finish choosing
+WaitFlag(self) ==
+    /\ pc[self] = "waitFlag"
+    /\ ~flag[nxt[self]]
+    /\ pc' = [pc EXCEPT ![self] = "waitTurn"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, nxt, readSet>>
+
+\* Wait for our turn based on ticket comparison
+WaitTurn(self) ==
+    /\ pc[self] = "waitTurn"
+    /\ \/ num[nxt[self]] = 0
+       \/ LessThan(num[self], self, num[nxt[self]], nxt[self])
+    /\ readSet' = [readSet EXCEPT ![self] = readSet[self] \ {nxt[self]}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, nxt>>
+
+\* Critical section
+CS(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, nxt, readSet>>
+
+\* Exit critical section - reset ticket
+Exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, localNum, localMax, nxt, readSet>>
+
+\* Combined next state for a single process
+Proc(self) ==
+    \/ NCS(self)
+    \/ Start(self)
+    \/ ReadNum(self)
+    \/ ChooseNum(self)
+    \/ EndFlag(self)
+    \/ Wait(self)
+    \/ WaitFlag(self)
+    \/ WaitTurn(self)
+    \/ CS(self)
+    \/ Exit(self)
+
+Next == \E self \in Procs : Proc(self)
+
+\* Fairness: weak fairness for each process action
+Fairness == \A self \in Procs : WF_vars(Proc(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+--------------------------------------------------------------------------------
+\* Safety Invariants
+--------------------------------------------------------------------------------
+
+\* Type invariant
+TypeOK ==
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "start", "readNum", "chooseNum", "endFlag", 
+                         "wait", "waitFlag", "waitTurn", "cs", "exit"}]
+    /\ localNum \in [Procs -> [Procs -> Nat]]
+    /\ localMax \in [Procs -> Nat]
+    /\ nxt \in [Procs -> Procs]
+    /\ readSet \in [Procs -> SUBSET Procs]
+
+\* Mutual Exclusion: At most one process in critical section
+MutualExclusion ==
+    \A p, q \in Procs : (p # q) => ~(pc[p] = "cs" /\ pc[q] = "cs")
+
+\* Alternative formulation
+AtMostOneInCS ==
+    Cardinality({p \in Procs : pc[p] = "cs"}) <= 1
+
+--------------------------------------------------------------------------------
+\* Liveness Properties
+--------------------------------------------------------------------------------
+
+\* Every process that wants to enter CS eventually does
+StarvationFreedom ==
+    \A p \in Procs : (pc[p] = "start") ~> (pc[p] = "cs")
+
+\* A process trying to enter will eventually enter
+Liveness ==
+    \A p \in Procs : [](pc[p] = "start" => <>(pc[p] = "cs"))
+
+--------------------------------------------------------------------------------
+\* State Constraint for TLC Model Checking
+--------------------------------------------------------------------------------
+
+MaxTicketValue == 10
+
+StateConstraint ==
+    \A p \in Procs : num[p] <= MaxTicketValue
+
+================================================================================

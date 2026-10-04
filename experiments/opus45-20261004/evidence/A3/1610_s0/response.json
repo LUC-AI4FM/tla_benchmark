@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE Quicksort ------------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES A, S, pc\n\nvars == <<A, S, pc>>\n\n(* Helper: the set of all permutations of a sequence *)\nPerms(seq) ==\n    LET Domain == 1..Len(seq)\n        Bijections == {f \\in [Domain -> Domain] : \\A i, j \\in Domain : i # j => f[i] # f[j]}\n    IN {[i \\in Domain |-> seq[f[i]]] : f \\in Bijections}\n\n(* Helper: check if array arr satisfies partition property around pivot position p in interval [lo, hi] *)\nIsPartitioned(arr, lo, hi, p) ==\n    /\\ \\A i \\in lo..(p-1) : arr[i] <= arr[p]\n    /\\ \\A j \\in (p+1)..hi : arr[j] >= arr[p]\n\n(* Initial state *)\nInit ==\n    /\\ A \\in [1..N -> 1..N]\n    /\\ S = {<<1, N>>}\n    /\\ pc = \"qs1\"\n\n(* Main quicksort action at control location qs1 *)\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF S = {}\n       THEN /\\ pc' = \"Done\"\n            /\\ A' = A\n            /\\ S' = S\n       ELSE \\E interval \\in S :\n            LET lo == interval[1]\n                hi == interval[2]\n            IN\n            /\\ IF lo >= hi\n               THEN (* Trivial interval, just remove it *)\n                    /\\ S' = S \\ {interval}\n                    /\\ A' = A\n                    /\\ pc' = \"qs1\"\n               ELSE (* Non-trivial interval: pick pivot, partition *)\n                    \\E p \\in lo..hi :  (* Nondeterministically select pivot position *)\n                    \\E newA \\in Perms(A) :  (* Nondeterministically select a permutation *)\n                        (* The permutation must only change the interval [lo, hi] *)\n                        /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => newA[i] = A[i]\n                        (* The subarray [lo, hi] in newA is a permutation of [lo, hi] in A *)\n                        /\\ {newA[i] : i \\in lo..hi} = {A[i] : i \\in lo..hi}\n                        (* The partition property must hold *)\n                        /\\ IsPartitioned(newA, lo, hi, p)\n                        (* Update state *)\n                        /\\ A' = newA\n                        /\\ S' = (S \\ {interval}) \\cup \n                                (IF p > lo THEN {<<lo, p-1>>} ELSE {}) \\cup\n                                (IF p < hi THEN {<<p+1, hi>>} ELSE {})\n                        /\\ pc' = \"qs1\"\n\n(* Done state - stuttering *)\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\n(* Next-state relation *)\nNext == qs1 \\/ Done\n\n(* Specification with weak fairness *)\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Safety invariant: type correctness *)\nTypeInvariant ==\n    /\\ A \\in [1..N -> 1..N]\n    /\\ S \\subseteq {<<i, j>> : i \\in 1..N, j \\in 1..N}\n    /\\ pc \\in {\"qs1\", \"Done\"}\n\n(* Liveness property: eventual termination *)\nTermination == <>(pc = \"Done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 965,
+    "totalTokens": 1234,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15961
+  }
+}

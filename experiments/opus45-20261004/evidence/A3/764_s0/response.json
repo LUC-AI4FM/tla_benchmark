@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n\nInit ==\n    /\\ sem = [f \\in 0..(N-1) |-> 1]\n    /\\ pc = [p \\in Philosophers |-> \"thinking\"]\n\n\\* Philosopher 0: acquires left fork first, then right fork\nBecomeHungry0 ==\n    /\\ pc[0] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![0] = \"hungry\"]\n    /\\ sem' = sem\n\nAcquireFirst0 ==\n    /\\ pc[0] = \"hungry\"\n    /\\ sem[LeftFork(0)] = 1\n    /\\ sem' = [sem EXCEPT ![LeftFork(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"hasFirst\"]\n\nAcquireSecond0 ==\n    /\\ pc[0] = \"hasFirst\"\n    /\\ sem[RightFork(0)] = 1\n    /\\ sem' = [sem EXCEPT ![RightFork(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"eating\"]\n\nFinishEating0 ==\n    /\\ pc[0] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![LeftFork(0)] = 1, ![RightFork(0)] = 1]\n    /\\ pc' = [pc EXCEPT ![0] = \"thinking\"]\n\nPhilosopher0 ==\n    \\/ BecomeHungry0\n    \\/ AcquireFirst0\n    \\/ AcquireSecond0\n    \\/ FinishEating0\n\n\\* Philosophers 1 to N-1: acquire right fork first, then left fork\nBecomeHungryI(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ sem' = sem\n\nAcquireFirstI(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"hungry\"\n    /\\ sem[RightFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![RightFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\nAcquireSecondI(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"hasFirst\"\n    /\\ sem[LeftFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![LeftFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\nFinishEatingI(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\nPhilosopherI(i) ==\n    \\/ BecomeHungryI(i)\n    \\/ AcquireFirstI(i)\n    \\/ AcquireSecondI(i)\n    \\/ FinishEatingI(i)\n\nNext ==\n    \\/ Philosopher0\n    \\/ \\E i \\in 1..(N-1): PhilosopherI(i)\n\n\\* Strong fairness for each philosopher's actions\nFairness ==\n    /\\ SF_vars(Philosopher0)\n    /\\ \\A i \\in 1..(N-1): SF_vars(PhilosopherI(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: Mutual exclusion - adjacent philosophers never eat simultaneously\nMutualExclusion ==\n    \\A i \\in Philosophers:\n        ~(pc[i] = \"eating\" /\\ pc[(i + 1) % N] = \"eating\")\n\n\\* Liveness: Starvation freedom - every philosopher eats infinitely often\nStarvationFreedom ==\n    \\A i \\in Philosophers: []<>(pc[i] = \"eating\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 1202,
+    "totalTokens": 1471,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14389
+  }
+}

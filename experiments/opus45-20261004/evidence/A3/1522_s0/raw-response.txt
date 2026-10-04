@@ -1,0 +1,131 @@
+```tla+
+------------------------------ MODULE HuangTermination ------------------------------
+EXTENDS Integers, Sequences, FiniteSets, Reals
+
+CONSTANTS Procs, Leader
+
+ASSUME Leader \in Procs
+ASSUME Procs # {}
+
+VARIABLES active, weight, msgQ, terminated
+
+vars == <<active, weight, msgQ, terminated>>
+
+\* Helper: Sum of a set of real values represented as a function
+Sum(f, S) == LET RECURSIVE SumRec(_, _)
+                 SumRec(g, T) == IF T = {} THEN 0
+                                 ELSE LET x == CHOOSE y \in T : TRUE
+                                      IN g[x] + SumRec(g, T \ {x})
+             IN SumRec(f, S)
+
+\* Sum of all weights in message queues
+MsgWeightSum(q) == LET RECURSIVE SeqSum(_)
+                       SeqSum(s) == IF s = <<>> THEN 0
+                                    ELSE Head(s) + SeqSum(Tail(s))
+                   IN SeqSum(q)
+
+TotalMsgWeight == Sum([p \in Procs |-> MsgWeightSum(msgQ[p])], Procs)
+
+\* Total weight in the system (processes + messages)
+TotalWeight == Sum(weight, Procs) + TotalMsgWeight
+
+\* Type invariant
+TypeOK == /\ active \in [Procs -> BOOLEAN]
+          /\ \A p \in Procs : weight[p] >= 0
+          /\ msgQ \in [Procs -> Seq(Real)]
+          /\ terminated \in BOOLEAN
+
+\* Initial state: Leader is active with weight 1, others inactive with weight 0
+Init == /\ active = [p \in Procs |-> p = Leader]
+        /\ weight = [p \in Procs |-> IF p = Leader THEN 1 ELSE 0]
+        /\ msgQ = [p \in Procs |-> <<>>]
+        /\ terminated = FALSE
+
+\* Send action: active process p sends a message to process q
+\* Process p halves its weight and sends half to q
+Send(p, q) == /\ active[p]
+              /\ weight[p] > 0
+              /\ p # q
+              /\ ~terminated
+              /\ LET w == weight[p] / 2
+                 IN /\ weight' = [weight EXCEPT ![p] = w]
+                    /\ msgQ' = [msgQ EXCEPT ![q] = Append(@, w)]
+              /\ UNCHANGED <<active, terminated>>
+
+\* Receive action: process p receives a message
+\* Process becomes active and adds received weight to its own
+Receive(p) == /\ msgQ[p] # <<>>
+              /\ ~terminated
+              /\ LET w == Head(msgQ[p])
+                 IN /\ weight' = [weight EXCEPT ![p] = @ + w]
+                    /\ msgQ' = [msgQ EXCEPT ![p] = Tail(@)]
+                    /\ active' = [active EXCEPT ![p] = TRUE]
+              /\ UNCHANGED terminated
+
+\* Idle action: active process p becomes idle
+\* Non-leader processes send their weight to Leader when becoming idle
+Idle(p) == /\ active[p]
+           /\ ~terminated
+           /\ active' = [active EXCEPT ![p] = FALSE]
+           /\ IF p # Leader
+              THEN /\ msgQ' = [msgQ EXCEPT ![Leader] = Append(@, weight[p])]
+                   /\ weight' = [weight EXCEPT ![p] = 0]
+              ELSE /\ UNCHANGED <<msgQ, weight>>
+           /\ UNCHANGED terminated
+
+\* Termination detection: Leader detects termination when:
+\* - Leader is idle
+\* - Leader has weight 1 (meaning all other weights have been returned)
+\* - All message queues are empty
+DetectTermination == /\ ~active[Leader]
+                     /\ weight[Leader] = 1
+                     /\ \A p \in Procs : msgQ[p] = <<>>
+                     /\ ~terminated
+                     /\ terminated' = TRUE
+                     /\ UNCHANGED <<active, weight, msgQ>>
+
+\* Next state relation
+Next == \/ \E p, q \in Procs : Send(p, q)
+        \/ \E p \in Procs : Receive(p)
+        \/ \E p \in Procs : Idle(p)
+        \/ DetectTermination
+
+\* Fairness: weak fairness for all actions to ensure progress
+Fairness == /\ \A p, q \in Procs : WF_vars(Send(p, q))
+            /\ \A p \in Procs : WF_vars(Receive(p))
+            /\ \A p \in Procs : WF_vars(Idle(p))
+            /\ WF_vars(DetectTermination)
+
+\* Specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* -------------- Safety Properties --------------
+
+\* The total weight is always conserved at 1
+WeightConservation == TotalWeight = 1
+
+\* All processes are truly idle and no messages in transit
+AllIdle == /\ \A p \in Procs : ~active[p]
+           /\ \A p \in Procs : msgQ[p] = <<>>
+
+\* Safety: If termination is detected, all processes are idle and all messages delivered
+SafeTermination == terminated => AllIdle
+
+\* Safety: Once terminated, system stays terminated
+TerminationStable == terminated => [][terminated']_vars
+
+\* Combined safety invariant
+SafetyInvariant == /\ TypeOK
+                   /\ SafeTermination
+
+\* -------------- Liveness Properties --------------
+
+\* Liveness: If all processes eventually become idle and stay idle, termination is detected
+\* (This captures that the algorithm correctly detects termination)
+EventualTermination == AllIdle ~> terminated
+
+\* Alternative liveness: termination is eventually detected
+LivenessTerminationDetected == <>terminated
+
+================================================================================
+```

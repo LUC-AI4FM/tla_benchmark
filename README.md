@@ -123,11 +123,11 @@ kept as `reproduce_as_submitted.py`.
 
 ## Supplementary Opus 4.5 runs (2026-10-04)
 
-The [new evidence release](experiments/opus45-20261004/README.md) adds 600 experimental
+The [new evidence release](experiments/opus45-20261004/README.md) adds 700 experimental
 outputs with exact prompts, configurations, dependencies, and raw grading evidence.
-It reports diagnostic-aware SANY results separately from the retained historical flags,
-verified 300-second TLC nonpasses, matched A3 pass@4, and explicitly uncertified mixed
-baseline coverage. It preserves the historical tables above. Reproduce the supplement
+It reports `sany_semantic_ok` separately from retained flags, matched A3 pass@5,
+configuration/nonempty-check qualifications, independent reference checks, and evaluator
+regression controls. It preserves the historical tables above. Reproduce the supplement
 offline with `python3 experiments/opus45-20261004/reproduce.py --check`.
 
 ## Licensing and responsible use

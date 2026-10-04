@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE TerminationDetection ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Node\n\nASSUME NodeAssumption == Node # {} /\\ IsFiniteSet(Node)\n\nVARIABLES\n    active,\n    terminationDetected\n\nvars == <<active, terminationDetected>>\n\nTypeOK ==\n    /\\ active \\in [Node -> BOOLEAN]\n    /\\ terminationDetected \\in BOOLEAN\n\nInit ==\n    /\\ active \\in [Node -> BOOLEAN]\n    /\\ terminationDetected = FALSE\n\nTerminate(n) ==\n    /\\ active[n] = TRUE\n    /\\ active' = [active EXCEPT ![n] = FALSE]\n    /\\ terminationDetected' = terminationDetected\n\nWakeup(n, m) ==\n    /\\ active[n] = TRUE\n    /\\ n # m\n    /\\ active' = [active EXCEPT ![m] = TRUE]\n    /\\ terminationDetected' = terminationDetected\n\nAllInactive == \\A n \\in Node : active[n] = FALSE\n\nDetectTermination ==\n    /\\ AllInactive\n    /\\ terminationDetected = FALSE\n    /\\ terminationDetected' = TRUE\n    /\\ UNCHANGED active\n\nNext ==\n    \\/ \\E n \\in Node : Terminate(n)\n    \\/ \\E n, m \\in Node : Wakeup(n, m)\n    \\/ DetectTermination\n\nFairness == WF_vars(DetectTermination)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nSafety == terminationDetected => AllInactive\n\nQuiescence == AllInactive /\\ terminationDetected\n\nCorrectness == [](terminationDetected => AllInactive)\n\nLiveness == [](AllInactive => <>terminationDetected)\n\nStableTermination == [](terminationDetected => []terminationDetected)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 229,
+    "outputTokens": 467,
+    "totalTokens": 696,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8354
+  }
+}

@@ -1,0 +1,49 @@
+--------------------------- MODULE PlusCalIncrement ---------------------------
+EXTENDS Integers, TLC
+
+CONSTANTS ProcA, ProcB
+
+VARIABLES x, pc
+
+vars == <<x, pc>>
+
+Procs == {ProcA, ProcB}
+
+Init ==
+    /\ x = 0
+    /\ pc = [p \in Procs |-> "inc"]
+
+ProcAAction ==
+    /\ pc[ProcA] = "inc"
+    /\ x' = x + 1
+    /\ pc' = [pc EXCEPT ![ProcA] = "Done"]
+
+ProcBAction ==
+    /\ pc[ProcB] = "inc"
+    /\ x' = x + 1
+    /\ pc' = [pc EXCEPT ![ProcB] = "Done"]
+
+Terminating ==
+    /\ \A p \in Procs : pc[p] = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ ProcAAction
+    \/ ProcBAction
+    \/ Terminating
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: x is always between 0 and 2
+TypeInvariant ==
+    /\ x \in 0..2
+    /\ pc \in [Procs -> {"inc", "Done"}]
+
+\* Safety invariant: x equals the number of processes that are done
+CorrectCount ==
+    x = Cardinality({p \in Procs : pc[p] = "Done"})
+
+\* Liveness property: eventually all processes are done
+Termination == <>(\A p \in Procs : pc[p] = "Done")
+
+=============================================================================

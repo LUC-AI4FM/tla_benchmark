@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---- MODULE Outer ----\nEXTENDS Integers, Sequences\n\nCONSTANTS Input\n\nVARIABLES result, seq\n\n\\* Inner module defined inline, then instantiated with renamed variables\nInner_result == result\nInner_seq == seq\n\n\\* The filtering predicate for SelectSeq\nFilterPred(x) == x # result'\n\n\\* Inner action: changes result from 0 to 1 and filters out elements equal to new result\nInnerStep ==\n    /\\ result = 0\n    /\\ result' = 1\n    /\\ seq' = SelectSeq(seq, LAMBDA x: x # 1)\n\n\\* Initial state predicate\nInit ==\n    /\\ result = 0\n    /\\ seq = Input\n\n\\* Next state relation: either take the inner step or stutter when disabled\nNext ==\n    \\/ InnerStep\n    \\/ (ENABLED InnerStep = FALSE /\\ UNCHANGED <<result, seq>>)\n\n\\* Specification with weak fairness on InnerStep\nSpec == Init /\\ [][Next]_<<result, seq>> /\\ WF_<<result, seq>>(InnerStep)\n\n\\* Safety invariant: result is always 0 or 1\nTypeInvariant ==\n    /\\ result \\in {0, 1}\n\n\\* Liveness property: eventually InnerStep becomes permanently disabled\n\\* (i.e., eventually reaches a state after which InnerStep remains disabled forever)\nLiveness == <>[](~ENABLED InnerStep)\n\n====\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 238,
+    "outputTokens": 358,
+    "totalTokens": 596,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7900
+  }
+}

@@ -1,0 +1,214 @@
+```tla+
+-------------------------------- MODULE FastPaxos --------------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    Acceptors,      \* The set of acceptors
+    Values,         \* The set of proposable values
+    Quorum,         \* The set of classic quorums
+    FastQuorum,     \* The set of fast quorums
+    Coordinator     \* The unique coordinator
+
+VARIABLES
+    proposed,       \* The set of proposed values
+    votes,          \* votes[a][r] = the value acceptor a voted for in round r, or None
+    maxRound,       \* maxRound[a] = the highest round acceptor a has participated in
+    decision,       \* decision[v] = TRUE iff value v has been decided
+    cValue,         \* The value the coordinator is trying to get accepted
+    round,          \* The current round number
+    roundType,      \* roundType[r] = "fast" or "classic" for round r
+    msgs            \* The set of messages in the network
+
+None == CHOOSE v : v \notin Values
+
+Rounds == 0..10  \* Bounded set of rounds for model checking
+
+Message ==
+    [type: {"propose"}, val: Values]
+    \cup [type: {"1a"}, rnd: Rounds]
+    \cup [type: {"1b"}, acc: Acceptors, rnd: Rounds, 
+          maxVRnd: Rounds \cup {-1}, maxVVal: Values \cup {None}]
+    \cup [type: {"2a"}, rnd: Rounds, val: Values]
+    \cup [type: {"2b"}, acc: Acceptors, rnd: Rounds, val: Values]
+    \cup [type: {"decision"}, val: Values]
+
+vars == <<proposed, votes, maxRound, decision, cValue, round, roundType, msgs>>
+
+-----------------------------------------------------------------------------
+
+TypeInvariant ==
+    /\ proposed \subseteq Values
+    /\ votes \in [Acceptors -> [Rounds -> Values \cup {None}]]
+    /\ maxRound \in [Acceptors -> Rounds \cup {-1}]
+    /\ decision \in [Values -> BOOLEAN]
+    /\ cValue \in Values \cup {None}
+    /\ round \in Rounds
+    /\ roundType \in [Rounds -> {"fast", "classic"}]
+    /\ msgs \subseteq Message
+
+-----------------------------------------------------------------------------
+
+Init ==
+    /\ proposed = {}
+    /\ votes = [a \in Acceptors |-> [r \in Rounds |-> None]]
+    /\ maxRound = [a \in Acceptors |-> -1]
+    /\ decision = [v \in Values |-> FALSE]
+    /\ cValue = None
+    /\ round = 0
+    /\ roundType = [r \in Rounds |-> IF r % 2 = 0 THEN "fast" ELSE "classic"]
+    /\ msgs = {}
+
+-----------------------------------------------------------------------------
+
+Propose(v) ==
+    /\ v \notin proposed
+    /\ proposed' = proposed \cup {v}
+    /\ msgs' = msgs \cup {[type |-> "propose", val |-> v]}
+    /\ UNCHANGED <<votes, maxRound, decision, cValue, round, roundType>>
+
+Phase1a(r) ==
+    /\ r > round
+    /\ round' = r
+    /\ msgs' = msgs \cup {[type |-> "1a", rnd |-> r]}
+    /\ UNCHANGED <<proposed, votes, maxRound, decision, cValue, roundType>>
+
+Phase1b(a, r) ==
+    /\ [type |-> "1a", rnd |-> r] \in msgs
+    /\ maxRound[a] < r
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ LET maxVRnd == CHOOSE mr \in Rounds \cup {-1} :
+                        /\ (mr = -1 /\ \A rr \in Rounds : votes[a][rr] = None)
+                        \/ (mr \in Rounds /\ votes[a][mr] # None 
+                            /\ \A rr \in Rounds : rr > mr => votes[a][rr] = None)
+           maxVVal == IF maxVRnd = -1 THEN None ELSE votes[a][maxVRnd]
+       IN msgs' = msgs \cup {[type |-> "1b", acc |-> a, rnd |-> r,
+                              maxVRnd |-> maxVRnd, maxVVal |-> maxVVal]}
+    /\ UNCHANGED <<proposed, votes, decision, cValue, round, roundType>>
+
+HighestVotedValue(Q, r) ==
+    LET phase1bMsgs == {m \in msgs : m.type = "1b" /\ m.rnd = r /\ m.acc \in Q}
+        maxVRnd == CHOOSE mr \in Rounds \cup {-1} :
+                     \E m \in phase1bMsgs : m.maxVRnd = mr
+                     /\ \A m \in phase1bMsgs : m.maxVRnd <= mr
+    IN IF maxVRnd = -1 
+       THEN None
+       ELSE (CHOOSE m \in phase1bMsgs : m.maxVRnd = maxVRnd).maxVVal
+
+CoordinatorPicksValue(r) ==
+    /\ round = r
+    /\ \E Q \in Quorum :
+        /\ \A a \in Q : \E m \in msgs : m.type = "1b" /\ m.rnd = r /\ m.acc = a
+        /\ LET hvv == HighestVotedValue(Q, r)
+           IN cValue' = IF hvv = None 
+                        THEN (CHOOSE v \in proposed : TRUE)
+                        ELSE hvv
+    /\ UNCHANGED <<proposed, votes, maxRound, decision, round, roundType, msgs>>
+
+Phase2aClassic(r, v) ==
+    /\ roundType[r] = "classic"
+    /\ round = r
+    /\ cValue = v
+    /\ v # None
+    /\ msgs' = msgs \cup {[type |-> "2a", rnd |-> r, val |-> v]}
+    /\ UNCHANGED <<proposed, votes, maxRound, decision, cValue, round, roundType>>
+
+Phase2aFast(r) ==
+    /\ roundType[r] = "fast"
+    /\ round = r
+    /\ \E Q \in Quorum :
+        \A a \in Q : \E m \in msgs : m.type = "1b" /\ m.rnd = r /\ m.acc = a
+                     /\ m.maxVRnd = -1
+    /\ \A v \in proposed : msgs' = msgs \cup {[type |-> "2a", rnd |-> r, val |-> v]}
+    /\ UNCHANGED <<proposed, votes, maxRound, decision, cValue, round, roundType>>
+
+Phase2bFast(a, r, v) ==
+    /\ roundType[r] = "fast"
+    /\ [type |-> "propose", val |-> v] \in msgs
+    /\ maxRound[a] <= r
+    /\ votes[a][r] = None
+    /\ votes' = [votes EXCEPT ![a][r] = v]
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ msgs' = msgs \cup {[type |-> "2b", acc |-> a, rnd |-> r, val |-> v]}
+    /\ UNCHANGED <<proposed, decision, cValue, round, roundType>>
+
+Phase2bClassic(a, r, v) ==
+    /\ roundType[r] = "classic"
+    /\ [type |-> "2a", rnd |-> r, val |-> v] \in msgs
+    /\ maxRound[a] <= r
+    /\ votes[a][r] = None
+    /\ votes' = [votes EXCEPT ![a][r] = v]
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ msgs' = msgs \cup {[type |-> "2b", acc |-> a, rnd |-> r, val |-> v]}
+    /\ UNCHANGED <<proposed, decision, cValue, round, roundType>>
+
+DecideFast(r, v) ==
+    /\ roundType[r] = "fast"
+    /\ \E FQ \in FastQuorum :
+        \A a \in FQ : [type |-> "2b", acc |-> a, rnd |-> r, val |-> v] \in msgs
+    /\ decision' = [decision EXCEPT ![v] = TRUE]
+    /\ msgs' = msgs \cup {[type |-> "decision", val |-> v]}
+    /\ UNCHANGED <<proposed, votes, maxRound, cValue, round, roundType>>
+
+DecideClassic(r, v) ==
+    /\ roundType[r] = "classic"
+    /\ \E Q \in Quorum :
+        \A a \in Q : [type |-> "2b", acc |-> a, rnd |-> r, val |-> v] \in msgs
+    /\ decision' = [decision EXCEPT ![v] = TRUE]
+    /\ msgs' = msgs \cup {[type |-> "decision", val |-> v]}
+    /\ UNCHANGED <<proposed, votes, maxRound, cValue, round, roundType>>
+
+CollisionRecovery(r) ==
+    /\ roundType[r] = "fast"
+    /\ round = r
+    /\ \E Q \in Quorum :
+        /\ \A a \in Q : \E v \in Values : 
+             [type |-> "2b", acc |-> a, rnd |-> r, val |-> v] \in msgs
+        /\ ~\E FQ \in FastQuorum, v \in Values :
+             \A a \in FQ : [type |-> "2b", acc |-> a, rnd |-> r, val |-> v] \in msgs
+    /\ \E newR \in Rounds :
+        /\ newR > r
+        /\ roundType' = [roundType EXCEPT ![newR] = "classic"]
+        /\ round' = newR
+        /\ msgs' = msgs \cup {[type |-> "1a", rnd |-> newR]}
+    /\ UNCHANGED <<proposed, votes, maxRound, decision, cValue>>
+
+-----------------------------------------------------------------------------
+
+Next ==
+    \/ \E v \in Values : Propose(v)
+    \/ \E r \in Rounds : Phase1a(r)
+    \/ \E a \in Acceptors, r \in Rounds : Phase1b(a, r)
+    \/ \E r \in Rounds : CoordinatorPicksValue(r)
+    \/ \E r \in Rounds, v \in Values : Phase2aClassic(r, v)
+    \/ \E r \in Rounds : Phase2aFast(r)
+    \/ \E a \in Acceptors, r \in Rounds, v \in Values : Phase2bFast(a, r, v)
+    \/ \E a \in Acceptors, r \in Rounds, v \in Values : Phase2bClassic(a, r, v)
+    \/ \E r \in Rounds, v \in Values : DecideFast(r, v)
+    \/ \E r \in Rounds, v \in Values : DecideClassic(r, v)
+    \/ \E r \in Rounds : CollisionRecovery(r)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+-----------------------------------------------------------------------------
+
+NonTriviality ==
+    \A v \in Values : decision[v] => v \in proposed
+
+Agreement ==
+    \A v1, v2 \in Values : (decision[v1] /\ decision[v2]) => v1 = v2
+
+QuorumAssumption ==
+    /\ \A Q1, Q2 \in Quorum : Q1 \cap Q2 # {}
+    /\ \A FQ1, FQ2 \in FastQuorum : FQ1 \cap FQ2 # {}
+    /\ \A Q \in Quorum, FQ \in FastQuorum : Q \cap FQ # {}
+
+SafetyInvariant ==
+    /\ TypeInvariant
+    /\ NonTriviality
+    /\ Agreement
+
+EventualDecision ==
+    (proposed # {}) ~> (\E v \in Values : decision[v])
+
+=============================================================================
+```

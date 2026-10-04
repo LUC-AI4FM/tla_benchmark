@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n--------------------------- MODULE PlusCalIncrement ---------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS ProcA, ProcB\n\nVARIABLES x, pc\n\nvars == <<x, pc>>\n\nProcs == {ProcA, ProcB}\n\nInit ==\n    /\\ x = 0\n    /\\ pc = [p \\in Procs |-> \"inc\"]\n\nProcAAction ==\n    /\\ pc[ProcA] = \"inc\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcA] = \"Done\"]\n\nProcBAction ==\n    /\\ pc[ProcB] = \"inc\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcB] = \"Done\"]\n\nTerminating ==\n    /\\ \\A p \\in Procs : pc[p] = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ ProcAAction\n    \\/ ProcBAction\n    \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety invariant: x is always between 0 and 2\nTypeInvariant ==\n    /\\ x \\in 0..2\n    /\\ pc \\in [Procs -> {\"inc\", \"Done\"}]\n\n\\* Safety invariant: x equals the number of processes that are done\nCorrectCount ==\n    x = Cardinality({p \\in Procs : pc[p] = \"Done\"})\n\n\\* Liveness property: eventually all processes are done\nTermination == <>(\\A p \\in Procs : pc[p] = \"Done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 242,
+    "outputTokens": 418,
+    "totalTokens": 660,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 6964
+  }
+}

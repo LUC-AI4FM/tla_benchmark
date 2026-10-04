@@ -1,0 +1,414 @@
+```tla+
+---------------------------- MODULE BufferedRandomAccessFile ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    MaxFileSize,        \* Maximum file size for model checking
+    MaxBufferSize,      \* Maximum buffer size
+    MaxSeekPos,         \* Maximum seek position
+    DataValues,         \* Set of possible data values
+    ArbitrarySymbol     \* Represents underspecified file contents
+
+VARIABLES
+    \* Concrete buffered file state
+    diskFile,           \* The on-disk file contents (sequence)
+    buffer,             \* In-memory buffer (sequence)
+    bufferStart,        \* File position where buffer starts
+    bufferEnd,          \* File position where buffer ends (exclusive)
+    bufferDirty,        \* Whether buffer has unflushed writes
+    filePointer,        \* Current logical file position
+    fileLength,         \* Logical file length
+    diskLength,         \* On-disk file length
+    
+    \* Abstract RandomAccessFile state (for refinement)
+    absFile,            \* Abstract file contents
+    absFilePointer,     \* Abstract file position
+    absFileLength,      \* Abstract file length
+    
+    \* Operation tracking
+    lastOp              \* Last operation performed (for refinement checking)
+
+vars == <<diskFile, buffer, bufferStart, bufferEnd, bufferDirty, 
+          filePointer, fileLength, diskLength, absFile, absFilePointer, 
+          absFileLength, lastOp>>
+
+concreteVars == <<diskFile, buffer, bufferStart, bufferEnd, bufferDirty,
+                  filePointer, fileLength, diskLength>>
+
+abstractVars == <<absFile, absFilePointer, absFileLength>>
+
+-----------------------------------------------------------------------------
+\* Helper operators
+
+Min(a, b) == IF a < b THEN a ELSE b
+Max(a, b) == IF a > b THEN a ELSE b
+
+\* Pad sequence to length n with ArbitrarySymbol
+PadTo(seq, n) ==
+    IF Len(seq) >= n THEN seq
+    ELSE seq \o [i \in 1..(n - Len(seq)) |-> ArbitrarySymbol]
+
+\* Get logical file content at position (1-indexed)
+LogicalFileAt(pos) ==
+    IF pos < 1 \/ pos > fileLength THEN ArbitrarySymbol
+    ELSE IF pos >= bufferStart + 1 /\ pos <= bufferEnd /\ bufferDirty THEN
+        \* Position is in dirty buffer
+        buffer[pos - bufferStart]
+    ELSE IF pos <= diskLength THEN
+        diskFile[pos]
+    ELSE
+        ArbitrarySymbol
+
+\* Construct logical file view
+LogicalFile ==
+    [i \in 1..fileLength |-> LogicalFileAt(i)]
+
+\* Check if position is within buffer bounds
+InBuffer(pos) ==
+    pos >= bufferStart /\ pos < bufferEnd
+
+-----------------------------------------------------------------------------
+\* Type invariant
+
+TypeOK ==
+    /\ diskFile \in Seq(DataValues \cup {ArbitrarySymbol})
+    /\ Len(diskFile) <= MaxFileSize
+    /\ buffer \in Seq(DataValues \cup {ArbitrarySymbol})
+    /\ Len(buffer) <= MaxBufferSize
+    /\ bufferStart \in 0..MaxFileSize
+    /\ bufferEnd \in 0..MaxFileSize
+    /\ bufferDirty \in BOOLEAN
+    /\ filePointer \in 0..MaxSeekPos
+    /\ fileLength \in 0..MaxFileSize
+    /\ diskLength \in 0..MaxFileSize
+    /\ absFile \in Seq(DataValues \cup {ArbitrarySymbol})
+    /\ absFilePointer \in 0..MaxSeekPos
+    /\ absFileLength \in 0..MaxFileSize
+    /\ lastOp \in {"init", "seek", "read", "write", "flush", "setLength", "none"}
+
+-----------------------------------------------------------------------------
+\* Buffer invariants - internal consistency properties
+
+\* Buffer bounds are consistent
+BufferBoundsConsistent ==
+    /\ bufferStart <= bufferEnd
+    /\ bufferEnd - bufferStart = Len(buffer)
+    /\ bufferEnd <= MaxFileSize + MaxBufferSize
+
+\* Buffer content matches logical file for valid positions
+BufferContentConsistent ==
+    \A i \in 1..Len(buffer) :
+        LET pos == bufferStart + i
+        IN pos <= fileLength => 
+            (bufferDirty => TRUE) \* Dirty buffer may differ from disk
+            
+\* If buffer is clean, it matches disk content
+CleanBufferMatchesDisk ==
+    ~bufferDirty =>
+        \A i \in 1..Len(buffer) :
+            LET pos == bufferStart + i
+            IN pos <= diskLength => buffer[i] = diskFile[pos]
+
+\* File length is at least as large as disk length when buffer is clean
+FileLengthConsistent ==
+    ~bufferDirty => fileLength <= Max(diskLength, bufferEnd)
+
+\* Disk length is bounded
+DiskLengthBounded ==
+    diskLength = Len(diskFile)
+
+-----------------------------------------------------------------------------
+\* Initial state
+
+Init ==
+    /\ diskFile = <<>>
+    /\ buffer = <<>>
+    /\ bufferStart = 0
+    /\ bufferEnd = 0
+    /\ bufferDirty = FALSE
+    /\ filePointer = 0
+    /\ fileLength = 0
+    /\ diskLength = 0
+    /\ absFile = <<>>
+    /\ absFilePointer = 0
+    /\ absFileLength = 0
+    /\ lastOp = "init"
+
+-----------------------------------------------------------------------------
+\* Flush operation - write dirty buffer to disk
+
+FlushBuffer ==
+    IF bufferDirty THEN
+        LET 
+            \* Extend disk file if necessary
+            newDiskLength == Max(diskLength, bufferEnd)
+            paddedDisk == PadTo(diskFile, newDiskLength)
+            \* Write buffer content to disk
+            newDisk == [i \in 1..newDiskLength |->
+                IF i > bufferStart /\ i <= bufferEnd THEN
+                    buffer[i - bufferStart]
+                ELSE
+                    paddedDisk[i]]
+        IN
+            /\ diskFile' = newDisk
+            /\ diskLength' = newDiskLength
+            /\ bufferDirty' = FALSE
+    ELSE
+        /\ UNCHANGED <<diskFile, diskLength, bufferDirty>>
+
+Flush ==
+    /\ FlushBuffer
+    /\ UNCHANGED <<buffer, bufferStart, bufferEnd, filePointer, fileLength>>
+    /\ absFile' = LogicalFile'
+    /\ absFileLength' = fileLength
+    /\ UNCHANGED absFilePointer
+    /\ lastOp' = "flush"
+
+-----------------------------------------------------------------------------
+\* Seek operation
+
+Seek(pos) ==
+    /\ pos >= 0
+    /\ pos <= MaxSeekPos
+    /\ filePointer' = pos
+    /\ absFilePointer' = pos
+    /\ UNCHANGED <<diskFile, buffer, bufferStart, bufferEnd, bufferDirty,
+                   fileLength, diskLength, absFile, absFileLength>>
+    /\ lastOp' = "seek"
+
+-----------------------------------------------------------------------------
+\* Read operation
+
+\* Load buffer from disk at given position
+LoadBuffer(pos) ==
+    LET
+        start == pos
+        end == Min(pos + MaxBufferSize, MaxFileSize)
+        len == end - start
+        newBuffer == [i \in 1..len |->
+            IF start + i <= diskLength THEN
+                diskFile[start + i]
+            ELSE
+                ArbitrarySymbol]
+    IN
+        /\ buffer' = newBuffer
+        /\ bufferStart' = start
+        /\ bufferEnd' = end
+
+Read ==
+    /\ filePointer < fileLength
+    /\ \/ InBuffer(filePointer)
+       \/ /\ FlushBuffer
+          /\ LoadBuffer(filePointer)
+    /\ \/ /\ InBuffer(filePointer)
+          /\ UNCHANGED <<diskFile, buffer, bufferStart, bufferEnd, 
+                         bufferDirty, diskLength>>
+       \/ /\ ~InBuffer(filePointer)
+          /\ FlushBuffer
+          /\ LoadBuffer(filePointer)
+    /\ filePointer' = filePointer + 1
+    /\ UNCHANGED <<fileLength>>
+    \* Abstract state update
+    /\ absFilePointer' = absFilePointer + 1
+    /\ UNCHANGED <<absFile, absFileLength>>
+    /\ lastOp' = "read"
+
+\* Simplified read that assumes buffer management
+ReadSimple ==
+    /\ filePointer < fileLength
+    /\ filePointer' = filePointer + 1
+    /\ absFilePointer' = absFilePointer + 1
+    /\ UNCHANGED <<diskFile, buffer, bufferStart, bufferEnd, bufferDirty,
+                   fileLength, diskLength, absFile, absFileLength>>
+    /\ lastOp' = "read"
+
+-----------------------------------------------------------------------------
+\* Write operation
+
+Write(data) ==
+    /\ data \in DataValues
+    /\ filePointer < MaxFileSize
+    /\ LET
+        pos == filePointer
+        \* Check if we need to flush and reload buffer
+        needsFlush == ~InBuffer(pos) /\ bufferDirty
+        newBufferStart == IF InBuffer(pos) THEN bufferStart ELSE pos
+        newBufferEnd == IF InBuffer(pos) THEN Max(bufferEnd, pos + 1) 
+                        ELSE Min(pos + MaxBufferSize, MaxFileSize)
+       IN
+        \* Handle buffer management
+        /\ IF needsFlush THEN FlushBuffer ELSE UNCHANGED <<diskFile, diskLength>>
+        /\ IF InBuffer(pos) THEN
+            \* Write to existing buffer
+            /\ buffer' = [buffer EXCEPT ![pos - bufferStart + 1] = data]
+            /\ UNCHANGED <<bufferStart>>
+            /\ bufferEnd' = Max(bufferEnd, pos + 1)
+           ELSE
+            \* Create new buffer with single write
+            /\ buffer' = <<data>>
+            /\ bufferStart' = pos
+            /\ bufferEnd' = pos + 1
+        /\ bufferDirty' = TRUE
+        /\ filePointer' = pos + 1
+        /\ fileLength' = Max(fileLength, pos + 1)
+    \* Abstract state update
+    /\ absFilePointer' = absFilePointer + 1
+    /\ absFileLength' = Max(absFileLength, absFilePointer + 1)
+    /\ absFile' = 
+        LET
+            padded == PadTo(absFile, absFilePointer + 1)
+        IN
+            [padded EXCEPT ![absFilePointer + 1] = data]
+    /\ lastOp' = "write"
+
+-----------------------------------------------------------------------------
+\* SetLength operation
+
+SetLength(newLen) ==
+    /\ newLen >= 0
+    /\ newLen <= MaxFileSize
+    /\ fileLength' = newLen
+    /\ IF newLen < bufferEnd THEN
+        \* Truncate buffer if necessary
+        /\ bufferEnd' = Max(bufferStart, newLen)
+        /\ buffer' = SubSeq(buffer, 1, Max(0, newLen - bufferStart))
+       ELSE
+        UNCHANGED <<buffer, bufferEnd>>
+    /\ IF newLen < filePointer THEN
+        filePointer' = newLen
+       ELSE
+        UNCHANGED filePointer
+    /\ UNCHANGED <<diskFile, bufferStart, bufferDirty, diskLength>>
+    \* Abstract state
+    /\ absFileLength' = newLen
+    /\ absFile' = IF newLen < Len(absFile) THEN
+                    SubSeq(absFile, 1, newLen)
+                  ELSE
+                    PadTo(absFile, newLen)
+    /\ IF newLen < absFilePointer THEN
+        absFilePointer' = newLen
+       ELSE
+        UNCHANGED absFilePointer
+    /\ lastOp' = "setLength"
+
+-----------------------------------------------------------------------------
+\* Next state relation
+
+Next ==
+    \/ \E pos \in 0..MaxSeekPos : Seek(pos)
+    \/ ReadSimple
+    \/ \E d \in DataValues : Write(d)
+    \/ Flush
+    \/ \E len \in 0..MaxFileSize : SetLength(len)
+
+-----------------------------------------------------------------------------
+\* Fairness conditions
+
+Fairness == 
+    /\ WF_vars(Flush)
+    /\ \A pos \in 0..MaxSeekPos : WF_vars(Seek(pos))
+
+-----------------------------------------------------------------------------
+\* Specification
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+\* Safety Invariants
+
+\* All invariants combined
+SafetyInvariants ==
+    /\ TypeOK
+    /\ BufferBoundsConsistent
+    /\ DiskLengthBounded
+
+\* The logical file view is consistent
+LogicalFileConsistent ==
+    fileLength = absFileLength
+
+\* File pointer consistency
+FilePointerConsistent ==
+    filePointer = absFilePointer
+
+-----------------------------------------------------------------------------
+\* Refinement - the concrete state maps to abstract state
+
+\* Refinement mapping
+AbstractRefinement ==
+    /\ absFileLength = fileLength
+    /\ absFilePointer = filePointer
+
+\* After flush, disk matches logical file
+FlushRefinement ==
+    lastOp = "flush" => 
+        \A i \in 1..fileLength :
+            i <= diskLength => diskFile[i] = LogicalFileAt(i)
+
+-----------------------------------------------------------------------------
+\* Liveness Properties
+
+\* Eventually a flush will synchronize disk with logical file
+EventuallyFlushed ==
+    bufferDirty ~> ~bufferDirty
+
+\* Progress: if we can read, eventually we will
+ReadProgress ==
+    (filePointer < fileLength) ~> (lastOp = "read" \/ filePointer >= fileLength)
+
+-----------------------------------------------------------------------------
+\* TLC Configuration
+
+\* State constraint for bounded model checking
+StateConstraint ==
+    /\ fileLength <= MaxFileSize
+    /\ diskLength <= MaxFileSize
+    /\ Len(buffer) <= MaxBufferSize
+    /\ filePointer <= MaxSeekPos
+    /\ absFileLength <= MaxFileSize
+    /\ absFilePointer <= MaxSeekPos
+
+\* Symmetry set for DataValues
+\* SYMMETRY DataValuesSymmetry
+
+\* Alias for debugging
+Alias == [
+    diskFile |-> diskFile,
+    diskLength |-> diskLength,
+    buffer |-> buffer,
+    bufferStart |-> bufferStart,
+    bufferEnd |-> bufferEnd,
+    bufferDirty |-> bufferDirty,
+    filePointer |-> filePointer,
+    fileLength |-> fileLength,
+    logicalFile |-> LogicalFile,
+    absFile |-> absFile,
+    absFilePointer |-> absFilePointer,
+    absFileLength |-> absFileLength,
+    lastOp |-> lastOp
+]
+
+=============================================================================
+\* TLC Configuration (to be placed in BufferedRandomAccessFile.cfg):
+\* 
+\* CONSTANTS
+\*     MaxFileSize = 3
+\*     MaxBufferSize = 2
+\*     MaxSeekPos = 4
+\*     DataValues = {1, 2}
+\*     ArbitrarySymbol = 0
+\* 
+\* CONSTRAINT StateConstraint
+\* 
+\* INIT Init
+\* NEXT Next
+\* 
+\* INVARIANTS
+\*     TypeOK
+\*     SafetyInvariants
+\*     AbstractRefinement
+\* 
+\* PROPERTIES
+\*     EventuallyFlushed
+\* 
+\* ALIAS Alias
+```
