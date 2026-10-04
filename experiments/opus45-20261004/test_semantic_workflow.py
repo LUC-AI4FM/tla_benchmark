@@ -38,12 +38,11 @@ class IndependentWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "coverage differs|inventory differs"):
             R.reduce_evidence(data, allow_partial=True)
 
-    def test_fresh_sample_alias_cannot_be_dropped(self):
+    def test_completed_sample_alias_cannot_be_dropped(self):
         data = copy.deepcopy(self.evidence)
-        fresh = next(r for r in data["rows"] if r["run_id"].startswith("A3:")
-                     and r["run_id"].endswith(":s0:matched-20261004")
+        alias = next(r for r in data["rows"] if r["run_id"].startswith("A3:")
                      and r["execution_reused_from"] != r["run_id"])
-        data["rows"].remove(fresh)
+        data["rows"].remove(alias)
         with self.assertRaisesRegex(ValueError, "alias coverage differs"):
             R.reduce_evidence(data, allow_partial=True)
 
