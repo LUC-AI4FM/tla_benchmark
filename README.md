@@ -30,7 +30,9 @@ licensing and responsible use.
 Each record gives the specification id, the tier (gold or silver), a category (system or
 utility, for gold specifications), a difficulty label (basic, intermediate, or advanced),
 the source repository and its URL, the path the specification came from, the SHA-256 of
-the released `.tla` file, and the natural-language descriptions.
+the released `.tla` file, and the four natural-language descriptions:
+`desc_declarative_gpt`, `desc_declarative_claude`, `desc_intent_gpt` and `desc_intent_claude`.
+Each field holds the same text as the matching file in `descriptions/`.
 
 ## Code, grading tools, and reproduction
 
@@ -114,6 +116,13 @@ kept as `reproduce_as_submitted.py`.
   generated specifications with it and reproduces every released verdict, apart from the
   random item below. `code/analysis/check_gold_parse.py` confirms that all 403 gold
   references parse in the release layout.
+- **Manifest descriptions.** In the previous manifest, `desc_declarative_claude` was empty
+  for 994 specifications, and a single `desc_intent` field held the GPT-5 intent description
+  for 1,166 specifications and the Claude one for 134. The text in `descriptions/` was
+  complete and correct. The manifest now copies all four description sets from that folder,
+  with `desc_intent` replaced by `desc_intent_gpt` and `desc_intent_claude`. No experiment
+  read the old `desc_intent` field, and the 100 evaluation specifications already had their
+  Claude declarative text, so no result changes.
 - **Known limitation.** The July Opus configuration-aware run used a 4,096-token budget;
   the other runs used 16,000. Two Opus outputs (1009, 1578) reached that limit; both failed.
 - **Known limitation.** Specification 875 (`SpanTreeRandom`) uses TLC's `RandomElement`, so
