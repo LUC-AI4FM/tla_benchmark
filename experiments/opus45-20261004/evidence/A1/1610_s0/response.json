@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE quicksort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nVARIABLES A, S, pc\n\nvars == << A, S, pc >>\n\nPerms == { p \\in [1..N -> 1..N] : \\A i, j \\in 1..N : i # j => p[i] # p[j] }\n\nPartitioned(arr, lo, piv, hi) ==\n    /\\ \\A i \\in lo..(piv-1) : arr[i] <= arr[piv]\n    /\\ \\A j \\in (piv+1)..hi : arr[j] >= arr[piv]\n\nInit ==\n    /\\ A \\in [1..N -> 1..N]\n    /\\ S = {<<1, N>>}\n    /\\ pc = \"qs1\"\n\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF S # {}\n       THEN \\E interval \\in S :\n                LET lo == interval[1]\n                    hi == interval[2]\n                IN\n                /\\ lo < hi\n                /\\ \\E piv \\in lo..hi :\n                       \\E newA \\in [1..N -> 1..N] :\n                           /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => newA[i] = A[i]\n                           /\\ (\\E perm \\in Perms :\n                                   /\\ \\A i \\in lo..hi : newA[i] = A[perm[i]]\n                                   /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => perm[i] = i)\n                           /\\ Partitioned(newA, lo, piv, hi)\n                           /\\ A' = newA\n                           /\\ S' = (S \\ {interval}) \\cup \n                                   (IF piv - 1 > lo THEN {<<lo, piv - 1>>} ELSE {}) \\cup\n                                   (IF piv + 1 < hi THEN {<<piv + 1, hi>>} ELSE {})\n                           /\\ pc' = \"qs1\"\n       ELSE /\\ pc' = \"Done\"\n            /\\ UNCHANGED << A, S >>\n\nqs1Empty ==\n    /\\ pc = \"qs1\"\n    /\\ S # {}\n    /\\ \\A interval \\in S : interval[1] >= interval[2]\n    /\\ S' = {}\n    /\\ pc' = \"qs1\"\n    /\\ UNCHANGED A\n\nqs1SingletonRemove ==\n    /\\ pc = \"qs1\"\n    /\\ S # {}\n    /\\ \\E interval \\in S : interval[1] >= interval[2]\n    /\\ LET interval == CHOOSE i \\in S : i[1] >= i[2]\n       IN S' = S \\ {interval}\n    /\\ pc' = \"qs1\"\n    /\\ UNCHANGED A\n\nNext == qs1 \\/ qs1SingletonRemove \\/ qs1Empty\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 285,
+    "outputTokens": 807,
+    "totalTokens": 1092,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13446
+  }
+}

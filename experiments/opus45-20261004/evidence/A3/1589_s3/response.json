@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE EuclidGCD ----------------------------\nEXTENDS Integers, Naturals, TLC\n\nCONSTANT MaxNum\n\nASSUME MaxNumAssumption == MaxNum \\in Nat /\\ MaxNum >= 1\n\nVARIABLES pc, u_ini, v_ini, u, v\n\nvars == <<pc, u_ini, v_ini, u, v>>\n\n----------------------------------------------------------------------------\n(* Mathematical definition of GCD *)\n\nDivides(p, n) == \\E q \\in 1..n : n = p * q\n\nDivisorsOf(n) == {p \\in 1..n : Divides(p, n)}\n\nGCD(m, n) == CHOOSE p \\in DivisorsOf(m) \\cap DivisorsOf(n) :\n               \\A q \\in DivisorsOf(m) \\cap DivisorsOf(n) : q <= p\n\n----------------------------------------------------------------------------\n(* Type invariant *)\n\nTypeOK == /\\ pc \\in {\"start\", \"loop\", \"done\"}\n          /\\ u_ini \\in 1..MaxNum\n          /\\ v_ini \\in 1..MaxNum\n          /\\ u \\in 1..MaxNum\n          /\\ v \\in 1..MaxNum\n\n----------------------------------------------------------------------------\n(* Initial state *)\n\nInit == /\\ pc = \"start\"\n        /\\ u_ini \\in 1..MaxNum\n        /\\ v_ini \\in 1..MaxNum\n        /\\ u = u_ini\n        /\\ v = v_ini\n\n----------------------------------------------------------------------------\n(* Actions corresponding to PlusCal algorithm *)\n\nStart == /\\ pc = \"start\"\n         /\\ pc' = \"loop\"\n         /\\ UNCHANGED <<u_ini, v_ini, u, v>>\n\nLoop == /\\ pc = \"loop\"\n        /\\ IF u = v\n           THEN /\\ pc' = \"done\"\n                /\\ UNCHANGED <<u, v>>\n           ELSE /\\ IF u > v\n                   THEN /\\ u' = u - v\n                        /\\ UNCHANGED v\n                   ELSE /\\ v' = v - u\n                        /\\ UNCHANGED u\n                /\\ pc' = \"loop\"\n        /\\ UNCHANGED <<u_ini, v_ini>>\n\nDone == /\\ pc = \"done\"\n        /\\ UNCHANGED vars\n\n----------------------------------------------------------------------------\n(* Next state relation *)\n\nNext == Start \\/ Loop \\/ Done\n\n----------------------------------------------------------------------------\n(* Fairness and specification *)\n\nFairness == WF_vars(Next)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n----------------------------------------------------------------------------\n(* Safety invariants *)\n\n(* The GCD of u and v is preserved throughout the algorithm *)\nGCDInvariant == GCD(u, v) = GCD(u_ini, v_ini)\n\n(* Both u and v remain positive *)\nPositiveInvariant == u >= 1 /\\ v >= 1\n\n(* Combined safety invariant *)\nSafetyInvariant == TypeOK /\\ GCDInvariant /\\ PositiveInvariant\n\n----------------------------------------------------------------------------\n(* Correctness property: when done, u equals the GCD of the initial values *)\n\nCorrectness == pc = \"done\" => u = GCD(u_ini, v_ini)\n\n(* Partial correctness is a safety property *)\nPartialCorrectness == []Correctness\n\n----------------------------------------------------------------------------\n(* Liveness properties *)\n\n(* Termination: the algorithm eventually reaches the done state *)\nTermination == <>(pc = \"done\")\n\n(* Total correctness: eventually done with correct result *)\nTotalCorrectness == <>(pc = \"done\" /\\ u = GCD(u_ini, v_ini))\n\n----------------------------------------------------------------------------\n(* TLC counting expectations for named properties *)\n\nTerminationCount == TLCGet(\"distinct\") >= 0\n\nCorrectnessCount == TLCGet(\"distinct\") >= 0\n\n============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 229,
+    "outputTokens": 932,
+    "totalTokens": 1161,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14763
+  }
+}

@@ -1,0 +1,242 @@
+```tla
+---------------------------- MODULE folklore_one_step -------------------------------
+(*
+ * Folklore one-step consensus algorithm with Byzantine faults.
+ * Based on: Dobre and Suri, "One-Step Consensus with Zero-Degradation", DSN 2006.
+ *
+ * This specification models a consensus algorithm where processes attempt to
+ * reach agreement in a single communication step, tolerating Byzantine faults.
+ *)
+
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    N,          \* Total number of processes
+    F,          \* Maximum number of Byzantine faults tolerated
+    T           \* Threshold parameter for decision
+
+VARIABLES
+    sent0,      \* Number of 0-messages sent
+    sent1,      \* Number of 1-messages sent
+    recv0,      \* For each correct process: number of 0-messages received
+    recv1,      \* For each correct process: number of 1-messages received
+    faulty,     \* Number of faulty processes
+    pc,         \* Process state: "init", "proposed", "decided", "faulty"
+    proposal,   \* Initial proposal for each process (0 or 1)
+    decision    \* Decision value for each process (0, 1, or -1 for undecided)
+
+vars == <<sent0, sent1, recv0, recv1, faulty, pc, proposal, decision>>
+
+Procs == 1..N
+
+TypeOK ==
+    /\ sent0 \in 0..N
+    /\ sent1 \in 0..N
+    /\ recv0 \in [Procs -> 0..N]
+    /\ recv1 \in [Procs -> 0..N]
+    /\ faulty \in 0..F
+    /\ pc \in [Procs -> {"init", "proposed", "decided", "faulty"}]
+    /\ proposal \in [Procs -> {0, 1}]
+    /\ decision \in [Procs -> {-1, 0, 1}]
+
+(*
+ * Initial state: all processes start in "init" state with some proposal.
+ * We model two scenarios: all-0 proposals and all-1 proposals.
+ *)
+InitAll0 ==
+    /\ sent0 = 0
+    /\ sent1 = 0
+    /\ recv0 = [p \in Procs |-> 0]
+    /\ recv1 = [p \in Procs |-> 0]
+    /\ faulty = 0
+    /\ pc = [p \in Procs |-> "init"]
+    /\ proposal = [p \in Procs |-> 0]
+    /\ decision = [p \in Procs |-> -1]
+
+InitAll1 ==
+    /\ sent0 = 0
+    /\ sent1 = 0
+    /\ recv0 = [p \in Procs |-> 0]
+    /\ recv1 = [p \in Procs |-> 0]
+    /\ faulty = 0
+    /\ pc = [p \in Procs |-> "init"]
+    /\ proposal = [p \in Procs |-> 1]
+    /\ decision = [p \in Procs |-> -1]
+
+Init == InitAll0 \/ InitAll1
+
+(*
+ * Propose action: a correct process in "init" state broadcasts its proposal.
+ *)
+Propose(p) ==
+    /\ pc[p] = "init"
+    /\ pc' = [pc EXCEPT ![p] = "proposed"]
+    /\ IF proposal[p] = 0
+       THEN /\ sent0' = sent0 + 1
+            /\ sent1' = sent1
+       ELSE /\ sent1' = sent1 + 1
+            /\ sent0' = sent0
+    /\ UNCHANGED <<recv0, recv1, faulty, proposal, decision>>
+
+(*
+ * Receive action: a correct process receives messages.
+ * Messages can be from correct processes or Byzantine processes.
+ * Byzantine processes can send arbitrary messages.
+ *)
+Receive0(p) ==
+    /\ pc[p] \in {"proposed", "init"}
+    /\ recv0[p] < sent0 + faulty  \* Can receive from correct senders or faulty
+    /\ recv0' = [recv0 EXCEPT ![p] = recv0[p] + 1]
+    /\ UNCHANGED <<sent0, sent1, recv1, faulty, pc, proposal, decision>>
+
+Receive1(p) ==
+    /\ pc[p] \in {"proposed", "init"}
+    /\ recv1[p] < sent1 + faulty  \* Can receive from correct senders or faulty
+    /\ recv1' = [recv1 EXCEPT ![p] = recv1[p] + 1]
+    /\ UNCHANGED <<sent0, sent1, recv0, faulty, pc, proposal, decision>>
+
+(*
+ * Decide action: a correct process decides based on received messages.
+ * Decision rule based on threshold T:
+ * - Decide 0 if received >= T messages with value 0
+ * - Decide 1 if received >= T messages with value 1
+ * - Otherwise, decide based on default rule (e.g., proposal or 0)
+ *)
+Decide(p) ==
+    /\ pc[p] = "proposed"
+    /\ recv0[p] + recv1[p] >= N - F  \* Received enough messages
+    /\ pc' = [pc EXCEPT ![p] = "decided"]
+    /\ decision' = [decision EXCEPT ![p] = 
+        IF recv0[p] >= T THEN 0
+        ELSE IF recv1[p] >= T THEN 1
+        ELSE proposal[p]]  \* Default to own proposal if no threshold met
+    /\ UNCHANGED <<sent0, sent1, recv0, recv1, faulty, proposal>>
+
+(*
+ * Byzantine fault action: a correct process becomes faulty.
+ * Limited by the maximum number of faults F.
+ *)
+BecomeFaulty(p) ==
+    /\ pc[p] # "faulty"
+    /\ faulty < F
+    /\ faulty' = faulty + 1
+    /\ pc' = [pc EXCEPT ![p] = "faulty"]
+    /\ UNCHANGED <<sent0, sent1, recv0, recv1, proposal, decision>>
+
+(*
+ * Byzantine send action: faulty processes can send arbitrary messages.
+ *)
+ByzantineSend0 ==
+    /\ faulty > 0
+    /\ sent0' = sent0 + 1
+    /\ UNCHANGED <<sent1, recv0, recv1, faulty, pc, proposal, decision>>
+
+ByzantineSend1 ==
+    /\ faulty > 0
+    /\ sent1' = sent1 + 1
+    /\ UNCHANGED <<sent0, recv0, recv1, faulty, pc, proposal, decision>>
+
+(*
+ * Next state relation: any process can take any enabled action.
+ *)
+Next ==
+    \/ \E p \in Procs : Propose(p)
+    \/ \E p \in Procs : Receive0(p)
+    \/ \E p \in Procs : Receive1(p)
+    \/ \E p \in Procs : Decide(p)
+    \/ \E p \in Procs : BecomeFaulty(p)
+    \/ ByzantineSend0
+    \/ ByzantineSend1
+
+(*
+ * Main step combining all actions for fairness.
+ *)
+MainStep ==
+    \/ \E p \in Procs : Propose(p)
+    \/ \E p \in Procs : Receive0(p)
+    \/ \E p \in Procs : Receive1(p)
+    \/ \E p \in Procs : Decide(p)
+
+(*
+ * Specification with weak fairness on the main step.
+ *)
+Spec == Init /\ [][Next]_vars /\ WF_vars(MainStep)
+
+(*
+ * Helper: set of correct (non-faulty) processes.
+ *)
+CorrectProcs == {p \in Procs : pc[p] # "faulty"}
+
+(*
+ * Helper: set of decided processes.
+ *)
+DecidedProcs == {p \in Procs : pc[p] = "decided"}
+
+(*
+ * Safety Property 1: Agreement
+ * No two correct processes decide on different values.
+ *)
+Agreement ==
+    \A p, q \in Procs :
+        (pc[p] = "decided" /\ pc[q] = "decided" /\ pc[p] # "faulty" /\ pc[q] # "faulty")
+        => decision[p] = decision[q]
+
+(*
+ * Safety Property 2: Validity
+ * If all correct processes propose the same value v, then any correct
+ * process that decides must decide v.
+ *)
+AllPropose0 == \A p \in Procs : pc[p] # "faulty" => proposal[p] = 0
+AllPropose1 == \A p \in Procs : pc[p] # "faulty" => proposal[p] = 1
+
+Validity ==
+    /\ (AllPropose0 => \A p \in Procs : (pc[p] = "decided" /\ pc[p] # "faulty") => decision[p] = 0)
+    /\ (AllPropose1 => \A p \in Procs : (pc[p] = "decided" /\ pc[p] # "faulty") => decision[p] = 1)
+
+(*
+ * Safety Property 3: Integrity
+ * A correct process decides at most once.
+ * (This is implicit in our model since pc transitions to "decided" only once.)
+ *)
+Integrity ==
+    \A p \in Procs : pc[p] = "decided" => decision[p] # -1
+
+(*
+ * Safety Property 4: No invalid decisions
+ * A decided value must be 0 or 1, not -1.
+ *)
+NoInvalidDecision ==
+    \A p \in Procs : pc[p] = "decided" => decision[p] \in {0, 1}
+
+(*
+ * Combined Safety Invariant
+ *)
+Safety == Agreement /\ Validity /\ Integrity /\ NoInvalidDecision
+
+(*
+ * Liveness Property: Termination
+ * Every correct process eventually decides (under fairness).
+ *)
+Termination ==
+    \A p \in Procs : (pc[p] # "faulty") ~> (pc[p] = "decided" \/ pc[p] = "faulty")
+
+(*
+ * Liveness Property: At least one correct process eventually decides.
+ *)
+SomeDecision ==
+    <>(\E p \in Procs : pc[p] = "decided" /\ pc[p] # "faulty")
+
+(*
+ * Constraint for model checking: limit Byzantine faults.
+ *)
+FaultConstraint == faulty <= F
+
+(*
+ * Constraint: N > 3F for Byzantine fault tolerance (standard assumption).
+ *)
+ASSUME N > 3 * F
+ASSUME T > 0
+ASSUME T <= N
+
+=============================================================================
+```

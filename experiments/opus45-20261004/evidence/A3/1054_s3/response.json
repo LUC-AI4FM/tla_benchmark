@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals\n\nCONSTANTS N, M\n\nASSUME NAssumption == N >= 1\nASSUME MAssumption == M >= 1\nASSUME NMAssumption == N <= M + 1\n\nVARIABLES counter\n\nvars == <<counter>>\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nTypeInvariant == counter \\in [Nodes -> Values]\n\n\\* Node 0 has a token if its value equals the value of the last node (N-1)\nHasToken0 == counter[0] = counter[N-1]\n\n\\* Node i (i > 0) has a token if its value differs from its predecessor\nHasTokenI(i) == i > 0 /\\ counter[i] # counter[i-1]\n\n\\* Check if node i has a token\nHasToken(i) == IF i = 0 THEN HasToken0 ELSE HasTokenI(i)\n\n\\* Count the number of tokens in the system\nTokenCount == Cardinality({i \\in Nodes : HasToken(i)})\n\n\\* Helper function for Cardinality\nCardinality(S) == LET \n    CardinalityHelper[T \\in SUBSET S] == \n        IF T = {} THEN 0\n        ELSE 1 + CardinalityHelper[T \\ {CHOOSE x \\in T : TRUE}]\n    IN CardinalityHelper[S]\n\n\\* Initial state: any configuration\nInit == counter \\in [Nodes -> Values]\n\n\\* Node 0 moves: increments its counter modulo M (creates a new token)\nMove0 == \n    /\\ HasToken0\n    /\\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]\n\n\\* Node i (i > 0) moves: copies predecessor's value (passes the token)\nMoveI(i) == \n    /\\ i > 0\n    /\\ HasTokenI(i)\n    /\\ counter' = [counter EXCEPT ![i] = counter[i-1]]\n\n\\* Next state relation\nNext == \n    \\/ Move0\n    \\/ \\E i \\in 1..(N-1) : MoveI(i)\n\n\\* Fairness: weak fairness for all node actions\nFairness == \n    /\\ WF_vars(Move0)\n    /\\ \\A i \\in 1..(N-1) : WF_vars(MoveI(i))\n\n\\* The complete specification\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* A legitimate state has exactly one token\nLegitimate == \n    LET tokens == {i \\in Nodes : HasToken(i)}\n    IN Cardinality(tokens) = 1\n\n\\* Safety invariant: type correctness is always maintained\nSafety == TypeInvariant\n\n\\* Liveness property: eventually the system stabilizes (reaches and stays in legitimate state)\nStabilization == <>[]Legitimate\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 250,
+    "outputTokens": 740,
+    "totalTokens": 990,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13576
+  }
+}

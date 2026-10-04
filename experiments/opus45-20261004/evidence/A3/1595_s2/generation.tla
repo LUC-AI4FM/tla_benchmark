@@ -1,0 +1,47 @@
+------------------------------ MODULE Counter ------------------------------
+EXTENDS Naturals, TLC
+
+VARIABLES x, pc
+
+vars == << x, pc >>
+
+Init ==
+    /\ x = 0
+    /\ pc = "Loop"
+
+Loop ==
+    /\ pc = "Loop"
+    /\ IF x < 10
+       THEN /\ x' = x + 1
+            /\ pc' = "Loop"
+       ELSE /\ pc' = "Done"
+            /\ x' = x
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ Loop
+    \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+AtFive == x = 5
+
+FinishLoop == pc = "Done" /\ x = 10
+
+PossibleCounts == x \in 0..10
+
+TypeInvariant == 
+    /\ x \in 0..10
+    /\ pc \in {"Loop", "Done"}
+
+SafetyInvariant ==
+    /\ pc = "Done" => x = 10
+    /\ x >= 0
+    /\ x <= 10
+
+=============================================================================

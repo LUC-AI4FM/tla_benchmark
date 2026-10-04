@@ -1,0 +1,43 @@
+```tla+
+---------------------------- MODULE InnerCounter ----------------------------
+VARIABLE x
+
+TypeOK == x \in 0..3
+
+Init == x = 0
+
+Step == x < 3 /\ x' = x + 1
+
+Next == Step \/ (x >= 3 /\ UNCHANGED x)
+
+Spec == Init /\ [][Next]_x /\ WF_x(Step)
+
+EventuallyThree == <>(x = 3)
+
+=============================================================================
+
+---------------------------- MODULE OuterCounter ----------------------------
+EXTENDS Naturals
+
+VARIABLE outerX
+
+Inner == INSTANCE InnerCounter WITH x <- outerX
+
+TypeOK == outerX \in 0..3
+
+Init == outerX = 0
+
+Next == Inner!Step \/ (~ENABLED Inner!Step /\ UNCHANGED outerX)
+
+Fairness == WF_outerX(Inner!Step)
+
+Spec == Init /\ [][Next]_outerX /\ Fairness
+
+\* Safety invariant
+SafetyInvariant == outerX \in 0..3
+
+\* Liveness property: outerX eventually reaches 3
+EventuallyThree == <>(outerX = 3)
+
+=============================================================================
+```

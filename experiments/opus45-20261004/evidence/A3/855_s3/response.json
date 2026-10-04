@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PrisonersAndSwitches ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS NumPrisoners\n\nASSUME NumPrisoners >= 2\n\nVARIABLES\n    switchA,           \\* Boolean: TRUE = up, FALSE = down\n    switchB,           \\* Boolean: used for random flipping\n    count,             \\* Counter's count of switch A ups observed\n    timesFlippedA,     \\* Function mapping non-counter prisoners to times they've flipped A up\n    declared,          \\* Boolean: TRUE when counter declares all have visited\n    visited,           \\* Set of prisoners who have visited the room\n    currentPrisoner    \\* The prisoner currently in the room (for fairness)\n\nPrisoners == 1..NumPrisoners\nCounter == 1\nNonCounters == 2..NumPrisoners\n\nTypeOK ==\n    /\\ switchA \\in BOOLEAN\n    /\\ switchB \\in BOOLEAN\n    /\\ count \\in 0..(2 * (NumPrisoners - 1))\n    /\\ timesFlippedA \\in [NonCounters -> 0..2]\n    /\\ declared \\in BOOLEAN\n    /\\ visited \\subseteq Prisoners\n    /\\ currentPrisoner \\in Prisoners\n\nInit ==\n    /\\ switchA = FALSE\n    /\\ switchB = FALSE\n    /\\ count = 0\n    /\\ timesFlippedA = [p \\in NonCounters |-> 0]\n    /\\ declared = FALSE\n    /\\ visited = {}\n    /\\ currentPrisoner \\in Prisoners\n\n\\* Counter enters the room\nCounterAction ==\n    /\\ currentPrisoner = Counter\n    /\\ ~declared\n    /\\ visited' = visited \\cup {Counter}\n    /\\ IF switchA = TRUE\n       THEN /\\ switchA' = FALSE\n            /\\ count' = count + 1\n            /\\ IF count + 1 = 2 * (NumPrisoners - 1)\n               THEN declared' = TRUE\n               ELSE declared' = FALSE\n            /\\ switchB' = switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ switchA' = switchA\n            /\\ count' = count\n            /\\ declared' = declared\n    /\\ timesFlippedA' = timesFlippedA\n    /\\ currentPrisoner' \\in Prisoners\n\n\\* Non-counter prisoner enters the room\nNonCounterAction(p) ==\n    /\\ currentPrisoner = p\n    /\\ p \\in NonCounters\n    /\\ ~declared\n    /\\ visited' = visited \\cup {p}\n    /\\ IF switchA = FALSE /\\ timesFlippedA[p] < 2\n       THEN /\\ switchA' = TRUE\n            /\\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]\n            /\\ switchB' = switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ switchA' = switchA\n            /\\ timesFlippedA' = timesFlippedA\n    /\\ count' = count\n    /\\ declared' = declared\n    /\\ currentPrisoner' \\in Prisoners\n\n\\* Stutter step when declared (protocol finished)\nDone ==\n    /\\ declared\n    /\\ UNCHANGED <<switchA, switchB, count, timesFlippedA, declared, visited>>\n    /\\ currentPrisoner' \\in Prisoners\n\nNext ==\n    \\/ CounterAction\n    \\/ \\E p \\in NonCounters : NonCounterAction(p)\n    \\/ Done\n\n\\* Fairness: each prisoner is brought into the room infinitely often\n\\* We express this as weak fairness on choosing each prisoner\nCounterEnabled == currentPrisoner = Counter /\\ ~declared\nNonCounterEnabled(p) == currentPrisoner = p /\\ p \\in NonCounters /\\ ~declared\n\nFairness ==\n    /\\ WF_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>>(CounterAction)\n    /\\ \\A p \\in NonCounters : WF_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>>(NonCounterAction(p))\n\nSpec == Init /\\ [][Next]_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>> /\\ Fairness\n\n\\* Safety: If declared, then all prisoners have visited\nSafety == declared => (visited = Prisoners)\n\n\\* Liveness: Eventually the counter declares\nLiveness == <>(declared)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 249,
+    "outputTokens": 1126,
+    "totalTokens": 1375,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16258
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE PrisonersAndSwitches ------------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Prisoner, Counter\n\nASSUME Counter \\in Prisoner\nASSUME Cardinality(Prisoner) >= 2\n\nVARIABLES switchAUp, switchBUp, timesSwitched, count\n\nvars == <<switchAUp, switchBUp, timesSwitched, count>>\n\nNonCounters == Prisoner \\ {Counter}\n\nMaxCount == 2 * (Cardinality(Prisoner) - 1)\n\nTypeOK ==\n    /\\ switchAUp \\in BOOLEAN\n    /\\ switchBUp \\in BOOLEAN\n    /\\ timesSwitched \\in [NonCounters -> 0..2]\n    /\\ count \\in 0..MaxCount\n\nDone == count = MaxCount\n\nInit ==\n    /\\ switchAUp \\in BOOLEAN\n    /\\ switchBUp \\in BOOLEAN\n    /\\ timesSwitched = [p \\in NonCounters |-> 0]\n    /\\ count = 0\n\nCounterAction ==\n    /\\ ~Done\n    /\\ IF switchAUp\n       THEN /\\ switchAUp' = FALSE\n            /\\ count' = count + 1\n            /\\ switchBUp' = switchBUp\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ switchAUp' = switchAUp\n            /\\ count' = count\n    /\\ UNCHANGED timesSwitched\n\nNonCounterAction(p) ==\n    /\\ p \\in NonCounters\n    /\\ ~Done\n    /\\ IF ~switchAUp /\\ timesSwitched[p] < 2\n       THEN /\\ switchAUp' = TRUE\n            /\\ timesSwitched' = [timesSwitched EXCEPT ![p] = @ + 1]\n            /\\ switchBUp' = switchBUp\n       ELSE /\\ switchBUp' = ~switchBUp\n            /\\ switchAUp' = switchAUp\n            /\\ timesSwitched' = timesSwitched\n    /\\ UNCHANGED count\n\nNext ==\n    \\/ CounterAction\n    \\/ \\E p \\in NonCounters : NonCounterAction(p)\n\nFairness ==\n    /\\ WF_vars(CounterAction)\n    /\\ \\A p \\in NonCounters : WF_vars(NonCounterAction(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nTotalTimesSwitched == \n    LET Sum[S \\in SUBSET NonCounters] ==\n        IF S = {} THEN 0\n        ELSE LET p == CHOOSE p \\in S : TRUE\n             IN timesSwitched[p] + Sum[S \\ {p}]\n    IN Sum[NonCounters]\n\nCountInvariant ==\n    count = TotalTimesSwitched - IF switchAUp THEN 1 ELSE 0\n\nAllVisited == \\A p \\in NonCounters : timesSwitched[p] >= 1\n\nSafety == Done => AllVisited\n\nLiveness == <>Done\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 513,
+    "outputTokens": 738,
+    "totalTokens": 1251,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11298
+  }
+}

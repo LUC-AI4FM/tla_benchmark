@@ -1,0 +1,63 @@
+---------------------------- MODULE SpanningTree ----------------------------
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS Nodes, Edges, Root, MaxCardinality
+
+ASSUME Root \in Nodes
+ASSUME MaxCardinality \in Nat
+ASSUME MaxCardinality >= Cardinality(Nodes)
+ASSUME \A e \in Edges : e \subseteq Nodes /\ Cardinality(e) = 2
+
+VARIABLES mom, dist
+
+vars == <<mom, dist>>
+
+Neighbors(n) == {m \in Nodes : {n, m} \in Edges}
+
+TypeOK ==
+    /\ mom \in [Nodes -> Nodes]
+    /\ dist \in [Nodes -> 0..MaxCardinality]
+
+Init ==
+    /\ mom = [n \in Nodes |-> n]
+    /\ dist = [n \in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]
+
+Update(n, m) ==
+    /\ m \in Neighbors(n)
+    /\ dist[m] < dist[n]
+    /\ \E d \in (dist[m] + 1)..(dist[n] - 1) :
+        /\ dist' = [dist EXCEPT ![n] = d]
+        /\ mom' = [mom EXCEPT ![n] = m]
+
+Next ==
+    \E n \in Nodes : \E m \in Nodes : Update(n, m)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Terminated == ~ENABLED Next
+
+Reachable(n) ==
+    LET RECURSIVE ReachableFrom(_,_)
+        ReachableFrom(current, visited) ==
+            IF current = Root THEN TRUE
+            ELSE IF current \in visited THEN FALSE
+            ELSE IF mom[current] = current THEN FALSE
+            ELSE ReachableFrom(mom[current], visited \cup {current})
+    IN ReachableFrom(n, {})
+
+PostCondition ==
+    /\ dist[Root] = 0
+    /\ mom[Root] = Root
+    /\ \A n \in Nodes \ {Root} :
+        /\ mom[n] \in Neighbors(n)
+        /\ dist[n] = dist[mom[n]] + 1
+        /\ Reachable(n)
+
+Safety == Terminated => PostCondition
+
+Liveness == <>Terminated
+
+AllReachRoot == \A n \in Nodes : <>(Reachable(n))
+
+=============================================================================

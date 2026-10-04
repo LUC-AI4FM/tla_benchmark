@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals\n\nCONSTANTS N, K\n\nASSUME NPositive == N > 0\nASSUME KGreaterThanN == K > N\n\nVARIABLES x, pc\n\nvars == <<x, pc>>\n\nProcs == 0..(N-1)\n\n\\* A process i holds a token if:\n\\* - Process 0 holds a token when x[0] = x[N-1]\n\\* - Process i (i > 0) holds a token when x[i] # x[i-1]\nHasToken(i) == IF i = 0 THEN x[0] = x[N-1] ELSE x[i] # x[i-1]\n\n\\* Count the number of token holders\nTokenCount == Cardinality({i \\in Procs : HasToken(i)})\n\nCardinality(S) == \n    LET Card[T \\in SUBSET Procs] == \n        IF T = {} THEN 0 \n        ELSE 1 + Card[T \\ {CHOOSE t \\in T : TRUE}]\n    IN Card[S]\n\n\\* Someone holds a token\nSomeoneHoldsToken == \\E i \\in Procs : HasToken(i)\n\n\\* Exactly one process holds a token\nExactlyOneHoldsToken == TokenCount = 1\n\n\\* Eventually exactly one process holds a token (and always thereafter)\nEventuallyJustOneHoldsToken == <>[](ExactlyOneHoldsToken)\n\n\\* Initial state: all processes start with arbitrary values in 0..(K-1)\nInit == \n    /\\ x \\in [Procs -> 0..(K-1)]\n    /\\ pc = [self \\in Procs |-> \"P\"]\n\n\\* Process 0 action: increment value mod K when it matches the last process\nP0 == \n    /\\ pc[0] = \"P\"\n    /\\ x[0] = x[N-1]\n    /\\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]\n    /\\ pc' = pc\n\n\\* Process i (i > 0) action: copy predecessor when values differ\nPi(i) == \n    /\\ i > 0\n    /\\ pc[i] = \"P\"\n    /\\ x[i] # x[i-1]\n    /\\ x' = [x EXCEPT ![i] = x[i-1]]\n    /\\ pc' = pc\n\n\\* Next state relation\nNext == \n    \\/ P0\n    \\/ \\E i \\in 1..(N-1) : Pi(i)\n\n\\* Fairness condition: weak fairness for all process actions\nFairness == \n    /\\ WF_vars(P0)\n    /\\ \\A i \\in 1..(N-1) : WF_vars(Pi(i))\n\n\\* Complete specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Type invariant for verification\nTypeOK == \n    /\\ x \\in [Procs -> 0..(K-1)]\n    /\\ pc \\in [Procs -> {\"P\"}]\n\n\\* Safety property: someone always holds a token\nTHEOREM SafetyTheorem == Spec => []SomeoneHoldsToken\n\n\\* Liveness property: eventually exactly one holds token forever\nTHEOREM LivenessTheorem == Spec => EventuallyJustOneHoldsToken\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 289,
+    "outputTokens": 861,
+    "totalTokens": 1150,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13282
+  }
+}

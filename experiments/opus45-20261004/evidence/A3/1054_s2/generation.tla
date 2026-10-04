@@ -1,0 +1,113 @@
+---------------------------- MODULE DijkstraTokenRing ----------------------------
+(***************************************************************************)
+(* Dijkstra's self-stabilizing token ring algorithm from EWD426.           *)
+(* N nodes arranged in a ring, each storing a counter value in 0..M-1.     *)
+(* Node 0 creates a new token by incrementing relative to the last node.   *)
+(* Every other node passes the token by copying its predecessor when       *)
+(* their values differ.                                                    *)
+(***************************************************************************)
+
+EXTENDS Naturals, Sequences
+
+CONSTANTS N, M
+
+ASSUME NAssumption == N >= 1
+ASSUME MAssumption == M >= 1
+ASSUME NMAssumption == N <= M + 1
+
+VARIABLES counter
+
+vars == <<counter>>
+
+Nodes == 0..(N-1)
+Values == 0..(M-1)
+
+(***************************************************************************)
+(* Helper function: predecessor node in the ring                           *)
+(***************************************************************************)
+Pred(i) == IF i = 0 THEN N - 1 ELSE i - 1
+
+(***************************************************************************)
+(* A node has a token if it can make a move:                               *)
+(* - Node 0 has a token when its value equals its predecessor's value      *)
+(* - Other nodes have a token when their value differs from predecessor    *)
+(***************************************************************************)
+HasToken(i) ==
+    IF i = 0 
+    THEN counter[0] = counter[N-1]
+    ELSE counter[i] # counter[Pred(i)]
+
+(***************************************************************************)
+(* Count the number of tokens in the system                                *)
+(***************************************************************************)
+TokenCount == Cardinality({i \in Nodes : HasToken(i)})
+
+Cardinality(S) == 
+    LET CardinalityHelper[T \in SUBSET S] ==
+        IF T = {} THEN 0
+        ELSE 1 + CardinalityHelper[T \ {CHOOSE x \in T : TRUE}]
+    IN CardinalityHelper[S]
+
+(***************************************************************************)
+(* The system has a unique token                                           *)
+(***************************************************************************)
+UniqueToken == TokenCount = 1
+
+(***************************************************************************)
+(* Type invariant                                                          *)
+(***************************************************************************)
+TypeOK == counter \in [Nodes -> Values]
+
+(***************************************************************************)
+(* Initial state: arbitrary counter values (models any initial config)     *)
+(***************************************************************************)
+Init == counter \in [Nodes -> Values]
+
+(***************************************************************************)
+(* Node 0 action: if it has the token (same value as predecessor),         *)
+(* increment its counter modulo M                                          *)
+(***************************************************************************)
+Node0Action ==
+    /\ HasToken(0)
+    /\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]
+
+(***************************************************************************)
+(* Other node action: if node i has the token (different from predecessor),*)
+(* copy the predecessor's value                                            *)
+(***************************************************************************)
+NodeIAction(i) ==
+    /\ i > 0
+    /\ HasToken(i)
+    /\ counter' = [counter EXCEPT ![i] = counter[Pred(i)]]
+
+(***************************************************************************)
+(* Next state relation: some node with a token takes action                *)
+(***************************************************************************)
+Next == 
+    \/ Node0Action
+    \/ \E i \in 1..(N-1) : NodeIAction(i)
+
+(***************************************************************************)
+(* Fairness: weak fairness for all node actions                            *)
+(***************************************************************************)
+Fairness ==
+    /\ WF_vars(Node0Action)
+    /\ \A i \in 1..(N-1) : WF_vars(NodeIAction(i))
+
+(***************************************************************************)
+(* Complete specification with fairness                                    *)
+(***************************************************************************)
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(***************************************************************************)
+(* Safety invariant: type correctness is always maintained                 *)
+(***************************************************************************)
+SafetyInvariant == TypeOK
+
+(***************************************************************************)
+(* Liveness property: eventually the system stabilizes to unique token     *)
+(* and stays there forever                                                 *)
+(***************************************************************************)
+Stabilization == <>[]UniqueToken
+
+=============================================================================

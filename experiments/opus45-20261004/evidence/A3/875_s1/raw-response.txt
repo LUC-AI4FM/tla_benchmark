@@ -1,0 +1,112 @@
+```tla
+---------------------------- MODULE SpanningTree ----------------------------
+
+EXTENDS Integers, FiniteSets, TLC
+
+CONSTANTS Nodes, Root
+
+ASSUME Root \in Nodes
+
+\* Generate random edges using TLC's RandomElement
+\* For each node, choose a random subset of other nodes as neighbors
+EdgesFrom(n) == RandomElement(SUBSET (Nodes \ {n}))
+
+\* Edges is defined as a set of undirected edges (unordered pairs)
+\* We generate it by creating edges from each node to its random neighbors
+Edges == UNION { { {n, m} : m \in EdgesFrom(n) } : n \in Nodes }
+
+\* Neighbors of a node in the undirected graph
+Neighbors(n) == { m \in Nodes : {n, m} \in Edges }
+
+VARIABLES mom, dist
+
+vars == <<mom, dist>>
+
+\* Type correctness invariant
+TypeOK ==
+    /\ mom \in [Nodes -> Nodes]
+    /\ dist \in [Nodes -> Nat \cup {-1}]
+
+\* Initial state: every node points to itself, only root has distance 0
+\* Other nodes have distance -1 (representing infinity/unreachable initially,
+\* but we'll use a large number for comparison purposes)
+MaxDist == Cardinality(Nodes)
+
+Init ==
+    /\ mom = [n \in Nodes |-> n]
+    /\ dist = [n \in Nodes |-> IF n = Root THEN 0 ELSE MaxDist + 1]
+
+\* A node can adopt a neighbor with strictly smaller distance
+\* and choose an intermediate distance value
+Next ==
+    \E n \in Nodes :
+        \E m \in Neighbors(n) :
+            /\ dist[m] < dist[n]
+            /\ dist[m] + 1 < dist[n]
+            /\ \E d \in (dist[m] + 1)..(dist[n] - 1) :
+                /\ mom' = [mom EXCEPT ![n] = m]
+                /\ dist' = [dist EXCEPT ![n] = d]
+
+\* Check if the system is quiescent (no more moves possible)
+Quiescent ==
+    ~ENABLED Next
+
+\* A node is reachable if there's a path from root to it via edges
+\* We define reachability through the parent pointers forming a valid path
+\* A node is in the spanning tree if following mom pointers leads to Root
+
+\* Compute the ancestor chain from a node (limited to avoid infinite loops)
+RECURSIVE AncestorChain(_, _)
+AncestorChain(n, depth) ==
+    IF depth = 0 THEN {n}
+    ELSE IF n = mom[n] THEN {n}
+    ELSE {n} \cup AncestorChain(mom[n], depth - 1)
+
+ReachesRoot(n) ==
+    Root \in AncestorChain(n, Cardinality(Nodes))
+
+\* A node is connected to root in the original graph
+RECURSIVE GraphReachable(_, _)
+GraphReachable(visited, frontier) ==
+    IF frontier = {} THEN visited
+    ELSE LET newNodes == UNION { Neighbors(n) : n \in frontier } \ visited
+         IN GraphReachable(visited \cup frontier, newNodes)
+
+NodesReachableFromRoot == GraphReachable({}, {Root})
+
+\* Postcondition: characterizes a rooted spanning-tree or unreachable nodes
+\* - Every reachable node (from root via graph edges) has a valid parent leading to root
+\* - Every unreachable node points to itself
+\* - Distance values are correct (actual distance from root)
+Postcondition ==
+    \A n \in Nodes :
+        IF n \in NodesReachableFromRoot
+        THEN /\ ReachesRoot(n)
+             /\ (n = Root => mom[n] = Root /\ dist[n] = 0)
+             /\ (n # Root => 
+                    /\ mom[n] \in Neighbors(n)
+                    /\ dist[n] = dist[mom[n]] + 1)
+        ELSE /\ mom[n] = n
+             /\ dist[n] = MaxDist + 1
+
+\* Safety property: quiescence implies postcondition
+SafetyQuiescenceImpliesPostcondition ==
+    Quiescent => Postcondition
+
+\* Liveness property: eventually the postcondition holds
+LivenessEventuallyPostcondition ==
+    <>Postcondition
+
+\* Specification with weak fairness
+Spec ==
+    /\ Init
+    /\ [][Next]_vars
+    /\ WF_vars(Next)
+
+\* Invariants to check
+Invariants ==
+    /\ TypeOK
+    /\ SafetyQuiescenceImpliesPostcondition
+
+=============================================================================
+```

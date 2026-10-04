@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE RollingDeployment ----------------------------\nEXTENDS Integers, Sequences, TLC, FiniteSets\n\nCONSTANT UPDATING\n\nVARIABLES load_balancer, update_flag, updated, pc\n\nvars == <<load_balancer, update_flag, updated, pc>>\n\nServers == {\"s1\", \"s2\", \"s3\"}\n\nInit ==\n    /\\ load_balancer = Servers\n    /\\ update_flag = [s \\in Servers |-> FALSE]\n    /\\ updated = [s \\in Servers |-> FALSE]\n    /\\ pc = [p \\in {\"start_update\"} \\cup Servers |-> \n            IF p = \"start_update\" THEN \"phase1\" ELSE \"wait_flag\"]\n\n(* start_update process actions *)\nphase1 ==\n    /\\ pc[\"start_update\"] = \"phase1\"\n    /\\ load_balancer' = load_balancer \\ {\"s1\"}\n    /\\ update_flag' = [update_flag EXCEPT ![\"s2\"] = TRUE, ![\"s3\"] = TRUE]\n    /\\ pc' = [pc EXCEPT ![\"start_update\"] = \"phase2\"]\n    /\\ UNCHANGED <<updated>>\n\nphase2 ==\n    /\\ pc[\"start_update\"] = \"phase2\"\n    /\\ updated[\"s2\"] = TRUE\n    /\\ updated[\"s3\"] = TRUE\n    /\\ load_balancer' = {\"s2\", \"s3\"}\n    /\\ update_flag' = [update_flag EXCEPT ![\"s1\"] = TRUE]\n    /\\ pc' = [pc EXCEPT ![\"start_update\"] = \"phase3\"]\n    /\\ UNCHANGED <<updated>>\n\nphase3 ==\n    /\\ pc[\"start_update\"] = \"phase3\"\n    /\\ updated[\"s1\"] = TRUE\n    /\\ load_balancer' = load_balancer \\cup {\"s1\"}\n    /\\ pc' = [pc EXCEPT ![\"start_update\"] = \"done\"]\n    /\\ UNCHANGED <<update_flag, updated>>\n\nstart_update ==\n    \\/ phase1\n    \\/ phase2\n    \\/ phase3\n\n(* update_server process actions for each server s *)\nwait_flag(s) ==\n    /\\ pc[s] = \"wait_flag\"\n    /\\ update_flag[s] = TRUE\n    /\\ updated' = [updated EXCEPT ![s] = UPDATING]\n    /\\ pc' = [pc EXCEPT ![s] = \"updating\"]\n    /\\ UNCHANGED <<load_balancer, update_flag>>\n\nfinish_update(s) ==\n    /\\ pc[s] = \"updating\"\n    /\\ updated' = [updated EXCEPT ![s] = TRUE]\n    /\\ pc' = [pc EXCEPT ![s] = \"done\"]\n    /\\ UNCHANGED <<load_balancer, update_flag>>\n\nupdate_server(s) ==\n    \\/ wait_flag(s)\n    \\/ finish_update(s)\n\nNext ==\n    \\/ start_update\n    \\/ \\E s \\in Servers : update_server(s)\n\nFairness ==\n    /\\ WF_vars(start_update)\n    /\\ \\A s \\in Servers : WF_vars(update_server(s))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n(* Safety Invariants *)\n\n\\* All servers in the load balancer have the same version state\nSameVersion ==\n    \\A s1, s2 \\in load_balancer : updated[s1] = updated[s2]\n\n\\* At least one server in the load balancer is not in UPDATING state\nZeroDowntime ==\n    \\E s \\in load_balancer : updated[s] # UPDATING\n\nTypeOK ==\n    /\\ load_balancer \\subseteq Servers\n    /\\ update_flag \\in [Servers -> BOOLEAN]\n    /\\ updated \\in [Servers -> {FALSE, UPDATING, TRUE}]\n    /\\ pc \\in [{\"start_update\"} \\cup Servers -> {\"phase1\", \"phase2\", \"phase3\", \"wait_flag\", \"updating\", \"done\"}]\n\n(* Liveness Property *)\n\n\\* All processes eventually terminate\nTermination ==\n    <>(\\A p \\in {\"start_update\"} \\cup Servers : pc[p] = \"done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 444,
+    "outputTokens": 1050,
+    "totalTokens": 1494,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13487
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nLeft(i) == i\nRight(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"l0\", \"l1\", \"l2\", \"l3\", \"l4\", \"l01\", \"l02\", \"l03\", \"l04\"}]\n\nInit ==\n    /\\ sem = [i \\in 0..(N-1) |-> 1]\n    /\\ pc = [i \\in Philosophers |-> IF i = 0 THEN \"l01\" ELSE \"l1\"]\n\n\\* Philosophers 1 through N-1: acquire right fork first, then left fork\n\\* l1: try to acquire right fork\n\\* l2: try to acquire left fork\n\\* l3: eating, then release right fork\n\\* l4: release left fork, go back to l1\n\nAcquireRightFork(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"l1\"\n    /\\ sem[Right(i)] = 1\n    /\\ sem' = [sem EXCEPT ![Right(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"l2\"]\n\nAcquireLeftFork(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"l2\"\n    /\\ sem[Left(i)] = 1\n    /\\ sem' = [sem EXCEPT ![Left(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"l3\"]\n\nReleaseRightFork(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"l3\"\n    /\\ sem' = [sem EXCEPT ![Right(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"l4\"]\n\nReleaseLeftFork(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ pc[i] = \"l4\"\n    /\\ sem' = [sem EXCEPT ![Left(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"l1\"]\n\n\\* Philosopher 0: acquire left fork first, then right fork (reversed order)\n\\* l01: try to acquire left fork\n\\* l02: try to acquire right fork\n\\* l03: eating, then release left fork\n\\* l04: release right fork, go back to l01\n\nAcquireLeftForkP0 ==\n    /\\ pc[0] = \"l01\"\n    /\\ sem[Left(0)] = 1\n    /\\ sem' = [sem EXCEPT ![Left(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"l02\"]\n\nAcquireRightForkP0 ==\n    /\\ pc[0] = \"l02\"\n    /\\ sem[Right(0)] = 1\n    /\\ sem' = [sem EXCEPT ![Right(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"l03\"]\n\nReleaseLeftForkP0 ==\n    /\\ pc[0] = \"l03\"\n    /\\ sem' = [sem EXCEPT ![Left(0)] = 1]\n    /\\ pc' = [pc EXCEPT ![0] = \"l04\"]\n\nReleaseRightForkP0 ==\n    /\\ pc[0] = \"l04\"\n    /\\ sem' = [sem EXCEPT ![Right(0)] = 1]\n    /\\ pc' = [pc EXCEPT ![0] = \"l01\"]\n\nPhilosopherAction(i) ==\n    IF i = 0\n    THEN \\/ AcquireLeftForkP0\n         \\/ AcquireRightForkP0\n         \\/ ReleaseLeftForkP0\n         \\/ ReleaseRightForkP0\n    ELSE \\/ AcquireRightFork(i)\n         \\/ AcquireLeftFork(i)\n         \\/ ReleaseRightFork(i)\n         \\/ ReleaseLeftFork(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\n\\* Strong fairness for each philosopher\nFairness == \\A i \\in Philosophers : SF_vars(PhilosopherAction(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* A philosopher is eating if they are at l3 (for 1..N-1) or l03 (for philosopher 0)\nIsEating(i) == IF i = 0 THEN pc[i] = \"l03\" ELSE pc[i] = \"l3\"\n\n\\* Safety: No two adjacent philosophers eat simultaneously\nInvariant ==\n    \\A i \\in Philosophers :\n        ~(IsEating(i) /\\ IsEating((i + 1) % N))\n\n\\* Liveness: Every philosopher eats infinitely often\nStarvationFree ==\n    \\A i \\in Philosophers : []<>IsEating(i)\n\n=================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 411,
+    "outputTokens": 1363,
+    "totalTokens": 1774,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16287
+  }
+}

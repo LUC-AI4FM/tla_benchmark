@@ -1,0 +1,414 @@
+---------------------------- MODULE BufferedRandomAccessFile ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    MaxFileSize,        \* Maximum file size for model checking
+    MaxBufferSize,      \* Maximum buffer size
+    BufferCapacity,     \* Actual buffer capacity
+    MaxSeekPos,         \* Maximum seek position
+    DataValues,         \* Set of possible data values
+    ArbitrarySymbol     \* Symbol for uninitialized/underspecified content
+
+VARIABLES
+    \* Concrete buffered file state
+    filePointer,        \* Current position in the logical file
+    buffer,             \* In-memory buffer (sequence)
+    bufferStart,        \* File position where buffer starts
+    bufferEnd,          \* File position where buffer ends (exclusive)
+    bufferModified,     \* Whether buffer has been modified
+    diskContent,        \* On-disk file content (function from position to value)
+    diskLength,         \* Current length of file on disk
+    logicalLength,      \* Logical file length (may differ from disk during buffering)
+    
+    \* Abstract RandomAccessFile state (for refinement)
+    absFilePointer,     \* Abstract file pointer
+    absContent,         \* Abstract file content
+    absLength,          \* Abstract file length
+    
+    \* Operation tracking
+    lastOp              \* Last operation performed (for refinement checking)
+
+vars == <<filePointer, buffer, bufferStart, bufferEnd, bufferModified,
+          diskContent, diskLength, logicalLength,
+          absFilePointer, absContent, absLength, lastOp>>
+
+concreteVars == <<filePointer, buffer, bufferStart, bufferEnd, bufferModified,
+                  diskContent, diskLength, logicalLength>>
+
+abstractVars == <<absFilePointer, absContent, absLength>>
+
+-----------------------------------------------------------------------------
+(* Helper Operators *)
+
+\* Range of positions
+Positions == 0..MaxFileSize
+
+\* Valid data including arbitrary symbol
+AllData == DataValues \cup {ArbitrarySymbol}
+
+\* Get logical content at position (combining disk and buffer)
+LogicalContentAt(pos) ==
+    IF pos >= logicalLength THEN ArbitrarySymbol
+    ELSE IF pos >= bufferStart /\ pos < bufferEnd THEN
+        buffer[pos - bufferStart + 1]
+    ELSE IF pos < diskLength THEN
+        diskContent[pos]
+    ELSE ArbitrarySymbol
+
+\* Check if position is within buffer
+InBuffer(pos) == pos >= bufferStart /\ pos < bufferEnd
+
+\* Buffer length
+BufferLen == bufferEnd - bufferStart
+
+-----------------------------------------------------------------------------
+(* Type Invariant *)
+
+TypeOK ==
+    /\ filePointer \in 0..MaxFileSize
+    /\ buffer \in Seq(AllData)
+    /\ Len(buffer) <= BufferCapacity
+    /\ bufferStart \in 0..MaxFileSize
+    /\ bufferEnd \in 0..MaxFileSize
+    /\ bufferStart <= bufferEnd
+    /\ bufferModified \in BOOLEAN
+    /\ diskContent \in [0..MaxFileSize -> AllData]
+    /\ diskLength \in 0..MaxFileSize
+    /\ logicalLength \in 0..MaxFileSize
+    /\ absFilePointer \in 0..MaxFileSize
+    /\ absContent \in [0..MaxFileSize -> AllData]
+    /\ absLength \in 0..MaxFileSize
+    /\ lastOp \in {"init", "seek", "read", "write", "flush", "setLength", "none"}
+
+-----------------------------------------------------------------------------
+(* Buffer Invariants *)
+
+\* Buffer length matches bufferEnd - bufferStart
+BufferLengthConsistent ==
+    Len(buffer) = bufferEnd - bufferStart
+
+\* Buffer doesn't exceed capacity
+BufferCapacityRespected ==
+    Len(buffer) <= BufferCapacity
+
+\* Buffer start <= buffer end
+BufferBoundsValid ==
+    bufferStart <= bufferEnd
+
+\* Logical length >= disk length when buffer extends file
+LogicalLengthConsistent ==
+    /\ logicalLength >= 0
+    /\ (bufferModified /\ bufferEnd > diskLength) => logicalLength >= bufferEnd
+    /\ (~bufferModified) => logicalLength = diskLength
+
+\* Unmodified buffer matches disk content
+UnmodifiedBufferMatchesDisk ==
+    (~bufferModified) =>
+        \A i \in 0..(Len(buffer)-1) :
+            (bufferStart + i < diskLength) =>
+                buffer[i+1] = diskContent[bufferStart + i]
+
+\* File pointer is non-negative
+FilePointerValid ==
+    filePointer >= 0
+
+-----------------------------------------------------------------------------
+(* Refinement Mapping *)
+
+\* The abstract content should match the logical view
+RefinementMapping ==
+    /\ absFilePointer = filePointer
+    /\ absLength = logicalLength
+    /\ \A pos \in 0..(logicalLength-1) :
+        absContent[pos] = LogicalContentAt(pos)
+
+-----------------------------------------------------------------------------
+(* Initial State *)
+
+Init ==
+    /\ filePointer = 0
+    /\ buffer = <<>>
+    /\ bufferStart = 0
+    /\ bufferEnd = 0
+    /\ bufferModified = FALSE
+    /\ diskContent = [p \in 0..MaxFileSize |-> ArbitrarySymbol]
+    /\ diskLength = 0
+    /\ logicalLength = 0
+    /\ absFilePointer = 0
+    /\ absContent = [p \in 0..MaxFileSize |-> ArbitrarySymbol]
+    /\ absLength = 0
+    /\ lastOp = "init"
+
+-----------------------------------------------------------------------------
+(* Flush Operation - writes buffer to disk *)
+
+FlushBuffer ==
+    /\ bufferModified
+    /\ diskContent' = [p \in 0..MaxFileSize |->
+        IF p >= bufferStart /\ p < bufferEnd THEN buffer[p - bufferStart + 1]
+        ELSE diskContent[p]]
+    /\ diskLength' = IF bufferEnd > diskLength THEN bufferEnd ELSE diskLength
+    /\ bufferModified' = FALSE
+    /\ UNCHANGED <<filePointer, buffer, bufferStart, bufferEnd, logicalLength>>
+
+Flush ==
+    /\ (bufferModified => FlushBuffer)
+    /\ (~bufferModified => UNCHANGED concreteVars)
+    /\ absContent' = [p \in 0..MaxFileSize |->
+        IF p < logicalLength THEN LogicalContentAt(p) ELSE absContent[p]]
+    /\ UNCHANGED <<absFilePointer, absLength>>
+    /\ lastOp' = "flush"
+
+-----------------------------------------------------------------------------
+(* Seek Operation *)
+
+Seek(pos) ==
+    /\ pos \in 0..MaxSeekPos
+    /\ filePointer' = pos
+    /\ absFilePointer' = pos
+    /\ UNCHANGED <<buffer, bufferStart, bufferEnd, bufferModified,
+                   diskContent, diskLength, logicalLength,
+                   absContent, absLength>>
+    /\ lastOp' = "seek"
+
+-----------------------------------------------------------------------------
+(* Read Operation *)
+
+\* Load buffer from disk at position
+LoadBuffer(pos) ==
+    LET 
+        newStart == pos
+        newEnd == IF pos + BufferCapacity > MaxFileSize 
+                  THEN MaxFileSize 
+                  ELSE pos + BufferCapacity
+        newLen == newEnd - newStart
+    IN
+        /\ buffer' = [i \in 1..newLen |->
+            IF newStart + i - 1 < diskLength 
+            THEN diskContent[newStart + i - 1]
+            ELSE ArbitrarySymbol]
+        /\ bufferStart' = newStart
+        /\ bufferEnd' = newEnd
+        /\ bufferModified' = FALSE
+
+Read ==
+    /\ filePointer < logicalLength  \* Can only read within file
+    /\ LET value == LogicalContentAt(filePointer) IN
+        /\ filePointer' = filePointer + 1
+        /\ absFilePointer' = absFilePointer + 1
+        /\ UNCHANGED <<buffer, bufferStart, bufferEnd, bufferModified,
+                       diskContent, diskLength, logicalLength,
+                       absContent, absLength>>
+    /\ lastOp' = "read"
+
+\* Read with potential buffer reload
+ReadWithReload ==
+    /\ filePointer < logicalLength
+    /\ IF ~InBuffer(filePointer) THEN
+        \* Flush if modified, then reload
+        /\ (bufferModified => 
+            /\ diskContent' = [p \in 0..MaxFileSize |->
+                IF p >= bufferStart /\ p < bufferEnd THEN buffer[p - bufferStart + 1]
+                ELSE diskContent[p]]
+            /\ diskLength' = IF bufferEnd > diskLength THEN bufferEnd ELSE diskLength)
+        /\ (~bufferModified => UNCHANGED <<diskContent, diskLength>>)
+        /\ LET 
+            newStart == filePointer
+            newEnd == IF filePointer + BufferCapacity > MaxFileSize 
+                      THEN MaxFileSize 
+                      ELSE filePointer + BufferCapacity
+            newLen == newEnd - newStart
+           IN
+            /\ buffer' = [i \in 1..newLen |->
+                IF newStart + i - 1 < diskLength' 
+                THEN diskContent'[newStart + i - 1]
+                ELSE ArbitrarySymbol]
+            /\ bufferStart' = newStart
+            /\ bufferEnd' = newEnd
+            /\ bufferModified' = FALSE
+       ELSE UNCHANGED <<buffer, bufferStart, bufferEnd, bufferModified, diskContent, diskLength>>
+    /\ filePointer' = filePointer + 1
+    /\ absFilePointer' = absFilePointer + 1
+    /\ UNCHANGED <<logicalLength, absContent, absLength>>
+    /\ lastOp' = "read"
+
+-----------------------------------------------------------------------------
+(* Write Operation *)
+
+Write(value) ==
+    /\ value \in DataValues
+    /\ filePointer < MaxFileSize
+    /\ IF InBuffer(filePointer) /\ Len(buffer) < BufferCapacity THEN
+        \* Write to existing buffer
+        LET idx == filePointer - bufferStart + 1 IN
+        /\ buffer' = [buffer EXCEPT ![idx] = value]
+        /\ bufferModified' = TRUE
+        /\ IF filePointer >= bufferEnd THEN bufferEnd' = filePointer + 1
+           ELSE UNCHANGED bufferEnd
+        /\ UNCHANGED <<bufferStart, diskContent, diskLength>>
+       ELSE IF ~InBuffer(filePointer) /\ BufferLen < BufferCapacity THEN
+        \* Flush and create new buffer
+        /\ (bufferModified => 
+            /\ diskContent' = [p \in 0..MaxFileSize |->
+                IF p >= bufferStart /\ p < bufferEnd THEN buffer[p - bufferStart + 1]
+                ELSE diskContent[p]]
+            /\ diskLength' = IF bufferEnd > diskLength THEN bufferEnd ELSE diskLength)
+        /\ (~bufferModified => UNCHANGED <<diskContent, diskLength>>)
+        /\ buffer' = <<value>>
+        /\ bufferStart' = filePointer
+        /\ bufferEnd' = filePointer + 1
+        /\ bufferModified' = TRUE
+       ELSE
+        \* Direct write (simplified)
+        /\ diskContent' = [diskContent EXCEPT ![filePointer] = value]
+        /\ diskLength' = IF filePointer >= diskLength THEN filePointer + 1 ELSE diskLength
+        /\ UNCHANGED <<buffer, bufferStart, bufferEnd, bufferModified>>
+    /\ filePointer' = filePointer + 1
+    /\ logicalLength' = IF filePointer >= logicalLength THEN filePointer + 1 ELSE logicalLength
+    /\ absFilePointer' = absFilePointer + 1
+    /\ absContent' = [absContent EXCEPT ![filePointer] = value]
+    /\ absLength' = IF filePointer >= absLength THEN filePointer + 1 ELSE absLength
+    /\ lastOp' = "write"
+
+\* Simplified write that always works within buffer or flushes
+SimpleWrite(value) ==
+    /\ value \in DataValues
+    /\ filePointer < MaxFileSize
+    /\ filePointer' = filePointer + 1
+    /\ logicalLength' = IF filePointer >= logicalLength THEN filePointer + 1 ELSE logicalLength
+    /\ absFilePointer' = absFilePointer + 1
+    /\ absContent' = [absContent EXCEPT ![filePointer] = value]
+    /\ absLength' = IF filePointer >= absLength THEN filePointer + 1 ELSE absLength
+    /\ IF InBuffer(filePointer) THEN
+        LET idx == filePointer - bufferStart + 1 IN
+        /\ buffer' = IF idx <= Len(buffer) 
+                     THEN [buffer EXCEPT ![idx] = value]
+                     ELSE buffer \o <<value>>
+        /\ bufferEnd' = IF filePointer >= bufferEnd THEN filePointer + 1 ELSE bufferEnd
+        /\ bufferModified' = TRUE
+        /\ UNCHANGED <<bufferStart, diskContent, diskLength>>
+       ELSE
+        \* Flush then write to new buffer
+        /\ diskContent' = [p \in 0..MaxFileSize |->
+            IF bufferModified /\ p >= bufferStart /\ p < bufferEnd 
+            THEN buffer[p - bufferStart + 1]
+            ELSE IF p = filePointer THEN value
+            ELSE diskContent[p]]
+        /\ diskLength' = IF filePointer >= diskLength THEN filePointer + 1 
+                         ELSE IF bufferModified /\ bufferEnd > diskLength THEN bufferEnd
+                         ELSE diskLength
+        /\ buffer' = <<value>>
+        /\ bufferStart' = filePointer
+        /\ bufferEnd' = filePointer + 1
+        /\ bufferModified' = TRUE
+    /\ lastOp' = "write"
+
+-----------------------------------------------------------------------------
+(* SetLength Operation *)
+
+SetLength(newLen) ==
+    /\ newLen \in 0..MaxFileSize
+    /\ logicalLength' = newLen
+    /\ absLength' = newLen
+    /\ IF newLen < bufferEnd THEN
+        IF newLen <= bufferStart THEN
+            \* Buffer completely truncated
+            /\ buffer' = <<>>
+            /\ bufferStart' = 0
+            /\ bufferEnd' = 0
+            /\ bufferModified' = FALSE
+        ELSE
+            \* Buffer partially truncated
+            /\ buffer' = SubSeq(buffer, 1, newLen - bufferStart)
+            /\ bufferEnd' = newLen
+            /\ UNCHANGED <<bufferStart, bufferModified>>
+       ELSE UNCHANGED <<buffer, bufferStart, bufferEnd, bufferModified>>
+    /\ diskLength' = IF newLen < diskLength THEN newLen ELSE diskLength
+    /\ filePointer' = IF filePointer > newLen THEN newLen ELSE filePointer
+    /\ absFilePointer' = IF absFilePointer > newLen THEN newLen ELSE absFilePointer
+    /\ UNCHANGED <<diskContent, absContent>>
+    /\ lastOp' = "setLength"
+
+-----------------------------------------------------------------------------
+(* Next State Relation *)
+
+Next ==
+    \/ \E pos \in 0..MaxSeekPos : Seek(pos)
+    \/ Read
+    \/ \E v \in DataValues : SimpleWrite(v)
+    \/ Flush
+    \/ \E len \in 0..MaxFileSize : SetLength(len)
+
+-----------------------------------------------------------------------------
+(* Fairness and Specification *)
+
+Fairness == 
+    /\ WF_vars(Flush)
+    /\ \A pos \in 0..MaxSeekPos : WF_vars(Seek(pos))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+SafetyInvariants ==
+    /\ TypeOK
+    /\ BufferLengthConsistent
+    /\ BufferCapacityRespected
+    /\ BufferBoundsValid
+    /\ FilePointerValid
+
+\* Buffer content consistency with logical view
+BufferConsistency ==
+    \A i \in 1..Len(buffer) :
+        buffer[i] = LogicalContentAt(bufferStart + i - 1)
+
+\* Abstract and concrete file pointers match
+FilePointerRefinement ==
+    filePointer = absFilePointer
+
+\* Abstract and concrete lengths match
+LengthRefinement ==
+    logicalLength = absLength
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+\* Eventually all writes are flushed
+EventuallyFlushed ==
+    bufferModified ~> ~bufferModified
+
+\* After a write, data will eventually be on disk
+WriteEventuallyPersisted ==
+    \A pos \in 0..(MaxFileSize-1) :
+        \A v \in DataValues :
+            (absContent[pos] = v /\ pos < absLength) ~>
+                (diskContent[pos] = v \/ (InBuffer(pos) /\ buffer[pos - bufferStart + 1] = v))
+
+-----------------------------------------------------------------------------
+(* Refinement Properties *)
+
+\* Abstract RandomAccessFile specification
+AbstractNext ==
+    \/ \E pos \in 0..MaxSeekPos : absFilePointer' = pos /\ UNCHANGED <<absContent, absLength>>
+    \/ absFilePointer < absLength /\ absFilePointer' = absFilePointer + 1 /\ UNCHANGED <<absContent, absLength>>
+    \/ \E v \in DataValues : 
+        /\ absFilePointer < MaxFileSize
+        /\ absContent' = [absContent EXCEPT ![absFilePointer] = v]
+        /\ absLength' = IF absFilePointer >= absLength THEN absFilePointer + 1 ELSE absLength
+        /\ absFilePointer' = absFilePointer + 1
+    \/ \E len \in 0..MaxFileSize :
+        /\ absLength' = len
+        /\ absFilePointer' = IF absFilePointer > len THEN len ELSE absFilePointer
+        /\ UNCHANGED absContent
+
+AbstractSpec == 
+    /\ absFilePointer = 0 
+    /\ absLength = 0 
+    /\ absContent \in [0..MaxFileSize -> AllData]
+    /\ [][AbstractNext]_abstractVars
+
+\* Refinement theorem: concrete refines abstract
+Refinement == Spec => AbstractSpec
+
+=============================================================================

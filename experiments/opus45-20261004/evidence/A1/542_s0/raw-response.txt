@@ -1,0 +1,47 @@
+```tla
+---------------------------- MODULE Specification ----------------------------
+EXTENDS Integers, TLC
+
+CONSTANT ProcSet
+
+VARIABLES x, pc
+
+vars == <<x, pc>>
+
+ProcA == "ProcA"
+ProcB == "ProcB"
+
+Init == 
+    /\ x = 0
+    /\ pc = [p \in {ProcA, ProcB} |-> "start"]
+
+ActionA ==
+    /\ pc[ProcA] = "start"
+    /\ x' = x + 1
+    /\ pc' = [pc EXCEPT ![ProcA] = "Done"]
+
+ActionB ==
+    /\ pc[ProcB] = "start"
+    /\ x' = x + 1
+    /\ pc' = [pc EXCEPT ![ProcB] = "Done"]
+
+Terminating ==
+    /\ pc[ProcA] = "Done"
+    /\ pc[ProcB] = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ ActionA
+    \/ ActionB
+    \/ Terminating
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc[ProcA] = "Done" /\ pc[ProcB] = "Done")
+
+TypeInvariant ==
+    /\ x \in Nat
+    /\ pc \in [{ProcA, ProcB} -> {"start", "Done"}]
+
+=============================================================================
+```

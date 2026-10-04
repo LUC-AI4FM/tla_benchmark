@@ -1,0 +1,71 @@
+---------------------------- MODULE StoneWeighing ----------------------------
+
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS W, N
+
+RECURSIVE SumSeq(_)
+SumSeq(s) == IF s = <<>> THEN 0 ELSE Head(s) + SumSeq(Tail(s))
+
+RECURSIVE OrderedPartitions(_, _)
+OrderedPartitions(total, parts) ==
+    IF parts = 0 THEN
+        IF total = 0 THEN {<<>>} ELSE {}
+    ELSE IF parts = 1 THEN
+        IF total >= 1 THEN {<<total>>} ELSE {}
+    ELSE
+        UNION {
+            {<<w>> \o rest : rest \in OrderedPartitions(total - w, parts - 1)}
+            : w \in 1..total - (parts - 1)
+        }
+
+CanWeigh(weights, target) ==
+    LET n == Len(weights)
+        Coefficients == [1..n -> {-1, 0, 1}]
+    IN \E coeff \in Coefficients :
+        LET weighted == [i \in 1..n |-> coeff[i] * weights[i]]
+            weightSeq == [i \in DOMAIN weighted |-> weighted[i]]
+        IN SumSeq([i \in 1..n |-> coeff[i] * weights[i]]) = target
+
+RECURSIVE SumWithCoeff(_, _, _)
+SumWithCoeff(weights, coeff, i) ==
+    IF i > Len(weights) THEN 0
+    ELSE coeff[i] * weights[i] + SumWithCoeff(weights, coeff, i + 1)
+
+CanWeighTarget(weights, target) ==
+    LET n == Len(weights)
+    IN \E coeff \in [1..n -> {-1, 0, 1}] :
+        SumWithCoeff(weights, coeff, 1) = target
+
+IsSolution(weights) ==
+    /\ SumSeq(weights) = W
+    /\ Len(weights) = N
+    /\ \A i \in 1..N : weights[i] >= 1
+    /\ \A t \in 1..W : CanWeighTarget(weights, t)
+
+Solutions == {p \in OrderedPartitions(W, N) : IsSolution(p)}
+
+ASSUME
+    LET sols == Solutions
+    IN IF sols = {} THEN
+        PrintT("No solution exists for the given W and N")
+       ELSE
+        PrintT(<<"Solution found:", CHOOSE s \in sols : TRUE>>)
+
+VARIABLE dummy
+
+Init == dummy = 0
+
+Next == UNCHANGED dummy
+
+Spec == Init /\ [][Next]_dummy
+
+TypeOK == dummy \in {0}
+
+SolutionExists == Solutions /= {}
+
+AllWeightsReachable ==
+    \A sol \in Solutions :
+        \A t \in 1..W : CanWeighTarget(sol, t)
+
+=============================================================================

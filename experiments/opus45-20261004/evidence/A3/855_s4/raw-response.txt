@@ -1,0 +1,149 @@
+```tla+
+----------------------------- MODULE PrisonersAndSwitches -----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS NumPrisoners, Counter
+
+ASSUME NumPrisoners \in Nat /\ NumPrisoners > 0
+ASSUME Counter \in 1..NumPrisoners
+
+VARIABLES 
+    switchA,        \* Boolean: TRUE = up, FALSE = down
+    switchB,        \* Boolean: used for dummy flips
+    count,          \* Counter's count of switch A movements
+    timesMovedA,    \* Function mapping each non-counter prisoner to times they moved A up
+    visited,        \* Set of prisoners who have visited
+    declared,       \* TRUE when counter declares completion
+    currentPrisoner \* The prisoner currently in the room (for fairness)
+
+vars == <<switchA, switchB, count, timesMovedA, visited, declared, currentPrisoner>>
+
+NonCounterPrisoners == (1..NumPrisoners) \ {Counter}
+
+TypeOK ==
+    /\ switchA \in BOOLEAN
+    /\ switchB \in BOOLEAN
+    /\ count \in 0..(2 * NumPrisoners)
+    /\ timesMovedA \in [NonCounterPrisoners -> 0..2]
+    /\ visited \subseteq 1..NumPrisoners
+    /\ declared \in BOOLEAN
+    /\ currentPrisoner \in 1..NumPrisoners
+
+Init ==
+    /\ switchA = FALSE
+    /\ switchB = FALSE
+    /\ count = 0
+    /\ timesMovedA = [p \in NonCounterPrisoners |-> 0]
+    /\ visited = {}
+    /\ declared = FALSE
+    /\ currentPrisoner \in 1..NumPrisoners
+
+\* Counter's action when brought into the room
+CounterAction ==
+    /\ currentPrisoner = Counter
+    /\ ~declared
+    /\ visited' = visited \cup {Counter}
+    /\ IF switchA = TRUE
+       THEN /\ switchA' = FALSE
+            /\ count' = count + 1
+            /\ IF count + 1 = 2 * (NumPrisoners - 1)
+               THEN declared' = TRUE
+               ELSE declared' = FALSE
+            /\ switchB' = switchB
+       ELSE /\ switchB' = ~switchB
+            /\ switchA' = switchA
+            /\ count' = count
+            /\ declared' = FALSE
+    /\ UNCHANGED timesMovedA
+
+\* Non-counter prisoner's action when brought into the room
+NonCounterAction(p) ==
+    /\ currentPrisoner = p
+    /\ p \in NonCounterPrisoners
+    /\ ~declared
+    /\ visited' = visited \cup {p}
+    /\ IF switchA = FALSE /\ timesMovedA[p] < 2
+       THEN /\ switchA' = TRUE
+            /\ timesMovedA' = [timesMovedA EXCEPT ![p] = @ + 1]
+            /\ switchB' = switchB
+       ELSE /\ switchB' = ~switchB
+            /\ switchA' = switchA
+            /\ UNCHANGED timesMovedA
+    /\ UNCHANGED <<count, declared>>
+
+\* Select next prisoner to enter the room
+SelectPrisoner ==
+    /\ currentPrisoner' \in 1..NumPrisoners
+
+\* Combined next action: select a prisoner and they perform their action
+CounterStep ==
+    /\ SelectPrisoner
+    /\ currentPrisoner' = Counter
+    /\ CounterAction
+
+NonCounterStep(p) ==
+    /\ SelectPrisoner
+    /\ currentPrisoner' = p
+    /\ NonCounterAction(p)
+
+Next ==
+    \/ /\ SelectPrisoner
+       /\ currentPrisoner' = Counter
+       /\ ~declared
+       /\ visited' = visited \cup {Counter}
+       /\ IF switchA = TRUE
+          THEN /\ switchA' = FALSE
+               /\ count' = count + 1
+               /\ IF count + 1 = 2 * (NumPrisoners - 1)
+                  THEN declared' = TRUE
+                  ELSE declared' = FALSE
+               /\ switchB' = switchB
+          ELSE /\ switchB' = ~switchB
+               /\ switchA' = switchA
+               /\ count' = count
+               /\ declared' = FALSE
+       /\ UNCHANGED timesMovedA
+    \/ \E p \in NonCounterPrisoners :
+       /\ SelectPrisoner
+       /\ currentPrisoner' = p
+       /\ ~declared
+       /\ visited' = visited \cup {p}
+       /\ IF switchA = FALSE /\ timesMovedA[p] < 2
+          THEN /\ switchA' = TRUE
+               /\ timesMovedA' = [timesMovedA EXCEPT ![p] = @ + 1]
+               /\ switchB' = switchB
+          ELSE /\ switchB' = ~switchB
+               /\ switchA' = switchA
+               /\ UNCHANGED timesMovedA
+       /\ UNCHANGED <<count, declared>>
+    \/ /\ declared
+       /\ UNCHANGED vars
+
+\* Fairness: Counter is selected infinitely often
+CounterFairness == WF_vars(currentPrisoner' = Counter /\ ~declared)
+
+\* Fairness: Each non-counter prisoner is selected infinitely often
+NonCounterFairness == \A p \in NonCounterPrisoners : WF_vars(currentPrisoner' = p /\ ~declared)
+
+\* Full fairness condition
+Fairness ==
+    /\ WF_vars(Next)
+    /\ \A p \in 1..NumPrisoners : 
+       WF_vars(\E v \in [switchA : BOOLEAN, switchB : BOOLEAN, count : 0..(2*NumPrisoners),
+                         timesMovedA : [NonCounterPrisoners -> 0..2], 
+                         visited : SUBSET (1..NumPrisoners), declared : BOOLEAN] :
+               currentPrisoner' = p /\ ~declared)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety: When declared, all prisoners have visited
+Safety == declared => (visited = 1..NumPrisoners)
+
+\* Liveness: Eventually the declaration is made
+Liveness == <>(declared)
+
+\* Main invariant combining type correctness and safety
+Invariant == TypeOK /\ Safety
+
+=============================================================================
+```

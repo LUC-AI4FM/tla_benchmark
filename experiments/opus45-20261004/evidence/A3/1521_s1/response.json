@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CoffeeCanBeans ----------------------------\nEXTENDS Naturals\n\nCONSTANTS MaxBeans\n\nVARIABLES beans, initialWhiteParity\n\nTypeOK ==\n    /\\ beans \\in [black: 0..MaxBeans, white: 0..MaxBeans]\n    /\\ initialWhiteParity \\in {0, 1}\n\nTotalBeans == beans.black + beans.white\n\nTerminated == TotalBeans = 1\n\n\\* Remove two black beans, put one black bean back\n\\* Net effect: remove one black bean\nRemoveTwoBlack ==\n    /\\ beans.black >= 2\n    /\\ beans' = [beans EXCEPT !.black = @ - 1]\n    /\\ UNCHANGED initialWhiteParity\n\n\\* Remove two white beans, put one black bean back\n\\* Net effect: remove two white beans, add one black bean\nRemoveTwoWhite ==\n    /\\ beans.white >= 2\n    /\\ beans' = [black |-> beans.black + 1, white |-> beans.white - 2]\n    /\\ UNCHANGED initialWhiteParity\n\n\\* Remove one black and one white bean, put the white bean back\n\\* Net effect: remove one black bean\nRemoveOneEach ==\n    /\\ beans.black >= 1\n    /\\ beans.white >= 1\n    /\\ beans' = [beans EXCEPT !.black = @ - 1]\n    /\\ UNCHANGED initialWhiteParity\n\n\\* Stuttering when terminated\nStutter ==\n    /\\ Terminated\n    /\\ UNCHANGED <<beans, initialWhiteParity>>\n\nInit ==\n    /\\ beans \\in [black: 0..MaxBeans, white: 0..MaxBeans]\n    /\\ beans.black + beans.white >= 1\n    /\\ initialWhiteParity = beans.white % 2\n\nNext ==\n    \\/ RemoveTwoBlack\n    \\/ RemoveTwoWhite\n    \\/ RemoveOneEach\n    \\/ Stutter\n\nSpec == Init /\\ [][Next]_<<beans, initialWhiteParity>> /\\ WF_<<beans, initialWhiteParity>>(Next)\n\n\\* Safety: Total bean count monotonically decreases (or stays same when terminated)\nMonotonicDecrease ==\n    [][TotalBeans' <= TotalBeans]_<<beans, initialWhiteParity>>\n\n\\* Liveness: Eventually terminates\nEventualTermination == <>(Terminated)\n\n\\* Loop invariant: Parity of white beans is preserved\n\\* The number of white beans mod 2 equals the initial white bean parity\nWhiteParityInvariant == beans.white % 2 = initialWhiteParity\n\n\\* Hypothesis: If initial white count was odd, final bean is white\n\\* If initial white count was even, final bean is black\nFinalBeanHypothesis ==\n    Terminated => \n        IF initialWhiteParity = 1 \n        THEN beans.white = 1 /\\ beans.black = 0\n        ELSE beans.white = 0 /\\ beans.black = 1\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 280,
+    "outputTokens": 755,
+    "totalTokens": 1035,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11852
+  }
+}

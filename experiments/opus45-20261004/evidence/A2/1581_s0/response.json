@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Naturals, Sequences\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nPhilosophers == 0..(N-1)\n\nTypeOK == \n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"think\", \"hungry1\", \"hungry2\", \"eat\", \"release1\", \"release2\"}]\n\nInit ==\n    /\\ sem = [i \\in 0..(N-1) |-> 1]\n    /\\ pc = [p \\in Philosophers |-> \"think\"]\n\n\\* Right fork index for philosopher p\nRightFork(p) == p\n\n\\* Left fork index for philosopher p\nLeftFork(p) == (p - 1) % N\n\n\\* Philosopher 0 acquires forks in opposite order (left then right) to break symmetry\n\\* First fork for philosopher 0 is left fork (N-1), for others it's right fork (self)\nFirstFork(p) == IF p = 0 THEN LeftFork(p) ELSE RightFork(p)\n\n\\* Second fork for philosopher 0 is right fork (0), for others it's left fork\nSecondFork(p) == IF p = 0 THEN RightFork(p) ELSE LeftFork(p)\n\n\\* Transition: start thinking -> try to acquire first fork\nTryFirstFork(p) ==\n    /\\ pc[p] = \"think\"\n    /\\ pc' = [pc EXCEPT ![p] = \"hungry1\"]\n    /\\ UNCHANGED sem\n\n\\* Transition: acquire first fork (blocks until available)\nAcquireFirstFork(p) ==\n    /\\ pc[p] = \"hungry1\"\n    /\\ sem[FirstFork(p)] = 1\n    /\\ sem' = [sem EXCEPT ![FirstFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"hungry2\"]\n\n\\* Transition: acquire second fork (blocks until available)\nAcquireSecondFork(p) ==\n    /\\ pc[p] = \"hungry2\"\n    /\\ sem[SecondFork(p)] = 1\n    /\\ sem' = [sem EXCEPT ![SecondFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"eat\"]\n\n\\* Transition: eating -> release first fork\nReleaseFirstFork(p) ==\n    /\\ pc[p] = \"eat\"\n    /\\ sem' = [sem EXCEPT ![FirstFork(p)] = 1]\n    /\\ pc' = [pc EXCEPT ![p] = \"release1\"]\n\n\\* Transition: release second fork\nReleaseSecondFork(p) ==\n    /\\ pc[p] = \"release1\"\n    /\\ sem' = [sem EXCEPT ![SecondFork(p)] = 1]\n    /\\ pc' = [pc EXCEPT ![p] = \"release2\"]\n\n\\* Transition: back to thinking\nBackToThink(p) ==\n    /\\ pc[p] = \"release2\"\n    /\\ pc' = [pc EXCEPT ![p] = \"think\"]\n    /\\ UNCHANGED sem\n\n\\* All actions for philosopher p\nPhil(p) ==\n    \\/ TryFirstFork(p)\n    \\/ AcquireFirstFork(p)\n    \\/ AcquireSecondFork(p)\n    \\/ ReleaseFirstFork(p)\n    \\/ ReleaseSecondFork(p)\n    \\/ BackToThink(p)\n\nNext == \\E p \\in Philosophers : Phil(p)\n\n\\* Strong fairness for each philosopher's actions\nFairness == \\A p \\in Philosophers : SF_vars(Phil(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: No two adjacent philosophers eat simultaneously\nInvariant ==\n    \\A p \\in Philosophers : \n        ~(pc[p] = \"eat\" /\\ pc[(p + 1) % N] = \"eat\")\n\n\\* Liveness: Every philosopher eats infinitely often (starvation freedom)\nStarvationFree == \\A p \\in Philosophers : []<>(pc[p] = \"eat\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 416,
+    "outputTokens": 1091,
+    "totalTokens": 1507,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13754
+  }
+}

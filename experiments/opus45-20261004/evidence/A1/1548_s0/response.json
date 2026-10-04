@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE OneStepConsensus ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N, T, F\n\nVARIABLES sentMsgs, rcvdMsgs, faulty, pc, decision\n\nvars == <<sentMsgs, rcvdMsgs, faulty, pc, decision>>\n\nProcs == 1..N\n\nValues == {0, 1}\n\nTypeOK ==\n    /\\ sentMsgs \\in [Procs -> SUBSET (Procs \\times Values)]\n    /\\ rcvdMsgs \\in [Procs -> SUBSET (Procs \\times Values)]\n    /\\ faulty \\in SUBSET Procs\n    /\\ pc \\in [Procs -> {\"init\", \"proposed\", \"decided\", \"faulty\"}]\n    /\\ decision \\in [Procs -> Values \\cup {-1}]\n\nInit0 ==\n    /\\ sentMsgs = [p \\in Procs |-> {}]\n    /\\ rcvdMsgs = [p \\in Procs |-> {}]\n    /\\ faulty = {}\n    /\\ pc = [p \\in Procs |-> \"init\"]\n    /\\ decision = [p \\in Procs |-> 0]\n\nInit1 ==\n    /\\ sentMsgs = [p \\in Procs |-> {}]\n    /\\ rcvdMsgs = [p \\in Procs |-> {}]\n    /\\ faulty = {}\n    /\\ pc = [p \\in Procs |-> \"init\"]\n    /\\ decision = [p \\in Procs |-> 1]\n\nInit == Init0 \\/ Init1\n\nPropose(p, v) ==\n    /\\ pc[p] = \"init\"\n    /\\ p \\notin faulty\n    /\\ sentMsgs' = [sentMsgs EXCEPT ![p] = sentMsgs[p] \\cup {<<p, v>>}]\n    /\\ pc' = [pc EXCEPT ![p] = \"proposed\"]\n    /\\ UNCHANGED <<rcvdMsgs, faulty, decision>>\n\nReceive(p, q, v) ==\n    /\\ pc[p] \\in {\"init\", \"proposed\"}\n    /\\ p \\notin faulty\n    /\\ <<q, v>> \\in sentMsgs[q]\n    /\\ <<q, v>> \\notin rcvdMsgs[p]\n    /\\ rcvdMsgs' = [rcvdMsgs EXCEPT ![p] = rcvdMsgs[p] \\cup {<<q, v>>}]\n    /\\ UNCHANGED <<sentMsgs, faulty, pc, decision>>\n\nReceiveByzantine(p, q, v) ==\n    /\\ pc[p] \\in {\"init\", \"proposed\"}\n    /\\ p \\notin faulty\n    /\\ q \\in faulty\n    /\\ <<q, v>> \\notin rcvdMsgs[p]\n    /\\ rcvdMsgs' = [rcvdMsgs EXCEPT ![p] = rcvdMsgs[p] \\cup {<<q, v>>}]\n    /\\ UNCHANGED <<sentMsgs, faulty, pc, decision>>\n\nCountValue(p, v) ==\n    Cardinality({m \\in rcvdMsgs[p] : m[2] = v})\n\nDecide(p) ==\n    /\\ pc[p] = \"proposed\"\n    /\\ p \\notin faulty\n    /\\ Cardinality({m[1] : m \\in rcvdMsgs[p]}) >= N - T\n    /\\ \\/ /\\ CountValue(p, 1) >= N - T\n          /\\ decision' = [decision EXCEPT ![p] = 1]\n       \\/ /\\ CountValue(p, 0) >= N - T\n          /\\ decision' = [decision EXCEPT ![p] = 0]\n       \\/ /\\ CountValue(p, 1) < N - T\n          /\\ CountValue(p, 0) < N - T\n          /\\ UNCHANGED decision\n    /\\ pc' = [pc EXCEPT ![p] = \"decided\"]\n    /\\ UNCHANGED <<sentMsgs, rcvdMsgs, faulty>>\n\nBecomeFaulty(p) ==\n    /\\ p \\notin faulty\n    /\\ Cardinality(faulty) < F\n    /\\ faulty' = faulty \\cup {p}\n    /\\ pc' = [pc EXCEPT ![p] = \"faulty\"]\n    /\\ UNCHANGED <<sentMsgs, rcvdMsgs, decision>>\n\nFaultySend(p, v) ==\n    /\\ p \\in faulty\n    /\\ sentMsgs' = [sentMsgs EXCEPT ![p] = sentMsgs[p] \\cup {<<p, v>>}]\n    /\\ UNCHANGED <<rcvdMsgs, faulty, pc, decision>>\n\nStep ==\n    \\/ \\E p \\in Procs : \\E v \\in Values : Propose(p, v)\n    \\/ \\E p \\in Procs : \\E q \\in Procs : \\E v \\in Values : Receive(p, q, v)\n    \\/ \\E p \\in Procs : \\E q \\in Procs : \\E v \\in Values : ReceiveByzantine(p, q, v)\n    \\/ \\E p \\in Procs : Decide(p)\n    \\/ \\E p \\in Procs : BecomeFaulty(p)\n    \\/ \\E p \\in Procs : \\E v \\in Values : FaultySend(p, v)\n\nNext == Step \\/ UNCHANGED vars\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Step)\n\nAgreement ==\n    \\A p, q \\in Procs :\n        /\\ p \\notin faulty\n        /\\ q \\notin faulty\n        /\\ pc[p] = \"decided\"\n        /\\ pc[q] = \"decided\"\n        /\\ decision[p] \\in Values\n        /\\ decision[q] \\in Values\n        => decision[p] = decision[q]\n\nValidity ==\n    \\A p \\in Procs :\n        /\\ p \\notin faulty\n        /\\ pc[p] = \"decided\"\n        /\\ decision[p] \\in Values\n        => \\E q \\in Procs : q \\notin faulty /\\ decision[p] \\in {m[2] : m \\in sentMsgs[q]}\n\nAllDecideOne ==\n    \\A p \\in Procs : p \\notin faulty => (pc[p] = \"decided\" /\\ decision[p] = 1)\n\nAllDecideZero ==\n    \\A p \\in Procs : p \\notin faulty => (pc[p] = \"decided\" /\\ decision[p] = 0)\n\nOneStep0_Ltl == <>[](AllDecideZero)\n\nOneStep1_Ltl == <>[](AllDecideOne)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 317,
+    "outputTokens": 1726,
+    "totalTokens": 2043,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19298
+  }
+}

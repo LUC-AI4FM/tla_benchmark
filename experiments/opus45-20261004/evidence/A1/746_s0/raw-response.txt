@@ -1,0 +1,96 @@
+```tla
+---------------------------- MODULE Chameneos ----------------------------
+
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N, Creatures, Colors
+
+VARIABLES color, met, place, total, faded
+
+vars == <<color, met, place, total, faded>>
+
+-----------------------------------------------------------------------------
+
+Complement(c1, c2) ==
+    IF c1 = c2 THEN c1
+    ELSE 
+        LET other == Colors \ {c1, c2}
+        IN IF other = {} THEN c1 ELSE CHOOSE c \in other : TRUE
+
+SumMet == 
+    LET Sum[S \in SUBSET Creatures] ==
+        IF S = {} THEN 0
+        ELSE LET c == CHOOSE x \in S : TRUE
+             IN met[c] + Sum[S \ {c}]
+    IN Sum[Creatures]
+
+-----------------------------------------------------------------------------
+
+TypeOK ==
+    /\ color \in [Creatures -> Colors]
+    /\ met \in [Creatures -> Nat]
+    /\ place \in [waiting: SUBSET Creatures, first: Creatures \cup {<<>>}]
+    /\ total \in Nat
+    /\ faded \in SUBSET Creatures
+
+Init ==
+    /\ color \in [Creatures -> Colors]
+    /\ met = [c \in Creatures |-> 0]
+    /\ place = [waiting |-> {}, first |-> <<>>]
+    /\ total = 0
+    /\ faded = {}
+
+-----------------------------------------------------------------------------
+
+Enter(c) ==
+    /\ c \notin faded
+    /\ c \notin place.waiting
+    /\ place.first = <<>>
+    /\ total < N
+    /\ place' = [waiting |-> place.waiting \cup {c}, first |-> c]
+    /\ UNCHANGED <<color, met, total, faded>>
+
+Meet(c) ==
+    /\ c \notin faded
+    /\ c \notin place.waiting
+    /\ place.first # <<>>
+    /\ place.first # c
+    /\ total < N
+    /\ LET other == place.first
+           newColor == Complement(color[c], color[other])
+       IN /\ color' = [color EXCEPT ![c] = newColor, ![other] = newColor]
+          /\ met' = [met EXCEPT ![c] = @ + 1, ![other] = @ + 1]
+          /\ total' = total + 1
+          /\ place' = [waiting |-> place.waiting \ {other}, first |-> <<>>]
+    /\ UNCHANGED <<faded>>
+
+Fade(c) ==
+    /\ c \notin faded
+    /\ total >= N
+    /\ faded' = faded \cup {c}
+    /\ UNCHANGED <<color, met, place, total>>
+
+Leave(c) ==
+    /\ c \in place.waiting
+    /\ place.first = c
+    /\ c \notin faded
+    /\ place' = [waiting |-> place.waiting \ {c}, first |-> <<>>]
+    /\ UNCHANGED <<color, met, total, faded>>
+
+-----------------------------------------------------------------------------
+
+Next ==
+    \E c \in Creatures : 
+        \/ Enter(c)
+        \/ Meet(c)
+        \/ Fade(c)
+        \/ Leave(c)
+
+Spec == Init /\ [][Next]_vars
+
+-----------------------------------------------------------------------------
+
+Safety == (total = N) => (SumMet = 2 * N)
+
+=============================================================================
+```

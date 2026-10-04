@@ -1,0 +1,69 @@
+```tla+
+---------------------------- MODULE quicksort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+VARIABLES A, S, pc
+
+vars == << A, S, pc >>
+
+Perms == { p \in [1..N -> 1..N] : \A i, j \in 1..N : i # j => p[i] # p[j] }
+
+Partitioned(arr, lo, piv, hi) ==
+    /\ \A i \in lo..(piv-1) : arr[i] <= arr[piv]
+    /\ \A j \in (piv+1)..hi : arr[j] >= arr[piv]
+
+Init ==
+    /\ A \in [1..N -> 1..N]
+    /\ S = {<<1, N>>}
+    /\ pc = "qs1"
+
+qs1 ==
+    /\ pc = "qs1"
+    /\ IF S # {}
+       THEN \E interval \in S :
+                LET lo == interval[1]
+                    hi == interval[2]
+                IN
+                /\ lo < hi
+                /\ \E piv \in lo..hi :
+                       \E newA \in [1..N -> 1..N] :
+                           /\ \A i \in 1..N : (i < lo \/ i > hi) => newA[i] = A[i]
+                           /\ (\E perm \in Perms :
+                                   /\ \A i \in lo..hi : newA[i] = A[perm[i]]
+                                   /\ \A i \in 1..N : (i < lo \/ i > hi) => perm[i] = i)
+                           /\ Partitioned(newA, lo, piv, hi)
+                           /\ A' = newA
+                           /\ S' = (S \ {interval}) \cup 
+                                   (IF piv - 1 > lo THEN {<<lo, piv - 1>>} ELSE {}) \cup
+                                   (IF piv + 1 < hi THEN {<<piv + 1, hi>>} ELSE {})
+                           /\ pc' = "qs1"
+       ELSE /\ pc' = "Done"
+            /\ UNCHANGED << A, S >>
+
+qs1Empty ==
+    /\ pc = "qs1"
+    /\ S # {}
+    /\ \A interval \in S : interval[1] >= interval[2]
+    /\ S' = {}
+    /\ pc' = "qs1"
+    /\ UNCHANGED A
+
+qs1SingletonRemove ==
+    /\ pc = "qs1"
+    /\ S # {}
+    /\ \E interval \in S : interval[1] >= interval[2]
+    /\ LET interval == CHOOSE i \in S : i[1] >= i[2]
+       IN S' = S \ {interval}
+    /\ pc' = "qs1"
+    /\ UNCHANGED A
+
+Next == qs1 \/ qs1SingletonRemove \/ qs1Empty
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+==========================================================================
+```

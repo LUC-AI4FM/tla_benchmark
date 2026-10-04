@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE TwoPhaseCommit ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS RM\n\nVARIABLES rmState\n\nvars == <<rmState>>\n\nRMStates == {\"working\", \"prepared\", \"committed\", \"aborted\"}\n\nTypeOK == rmState \\in [RM -> RMStates]\n\ncanCommit == \\A r \\in RM : rmState[r] \\in {\"prepared\", \"committed\"}\n\nnotCommitted == \\A r \\in RM : rmState[r] /= \"committed\"\n\nPrepare(r) ==\n    /\\ rmState[r] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![r] = \"prepared\"]\n\nDecide(r) ==\n    \\/ /\\ rmState[r] = \"prepared\"\n       /\\ canCommit\n       /\\ rmState' = [rmState EXCEPT ![r] = \"committed\"]\n    \\/ /\\ rmState[r] \\in {\"working\", \"prepared\"}\n       /\\ notCommitted\n       /\\ rmState' = [rmState EXCEPT ![r] = \"aborted\"]\n\nInit ==\n    rmState = [r \\in RM |-> \"working\"]\n\nNext ==\n    \\E r \\in RM : Prepare(r) \\/ Decide(r)\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\nConsistency ==\n    \\A r1, r2 \\in RM : ~(rmState[r1] = \"committed\" /\\ rmState[r2] = \"aborted\")\n\nAllCommittedOrAllAborted ==\n    \\/ \\A r \\in RM : rmState[r] /= \"committed\"\n    \\/ \\A r \\in RM : rmState[r] /= \"aborted\"\n\nTHEOREM Spec => []TypeOK\n\nTHEOREM Spec => []Consistency\n\nTHEOREM Spec => []AllCommittedOrAllAborted\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 481,
+    "totalTokens": 759,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7861
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, Integers, FiniteSets, TLC\n\nCONSTANTS N, K\n\nASSUME KGreaterThanN == K > N /\\ N > 0\n\nVARIABLES M, pc\n\nvars == << M, pc >>\n\nProcSet == (0..(N-1))\n\n\\* Definition of when a process holds a token\nHasToken(i) == IF i = 0 \n               THEN M[0] = M[N-1]\n               ELSE M[i] # M[i-1]\n\n\\* Count of tokens in the system\nTokenCount == Cardinality({i \\in 0..(N-1) : HasToken(i)})\n\nInit == \n    /\\ M \\in [0..(N-1) -> 0..(K-1)]\n    /\\ pc = [self \\in ProcSet |-> \"Check\"]\n\n\\* Process 0 (bottom process): holds token when M[0] = M[N-1]\n\\* Responds by incrementing its value modulo K\nBottom_Check == \n    /\\ pc[0] = \"Check\"\n    /\\ M[0] = M[N-1]\n    /\\ pc' = [pc EXCEPT ![0] = \"Act\"]\n    /\\ M' = M\n\nBottom_Act ==\n    /\\ pc[0] = \"Act\"\n    /\\ M' = [M EXCEPT ![0] = (M[0] + 1) % K]\n    /\\ pc' = [pc EXCEPT ![0] = \"Check\"]\n\nBottom == Bottom_Check \\/ Bottom_Act\n\n\\* Other processes i > 0: hold token when M[i] # M[i-1]\n\\* Respond by copying neighbor's value\nOther_Check(self) ==\n    /\\ self \\in 1..(N-1)\n    /\\ pc[self] = \"Check\"\n    /\\ M[self] # M[self-1]\n    /\\ pc' = [pc EXCEPT ![self] = \"Act\"]\n    /\\ M' = M\n\nOther_Act(self) ==\n    /\\ self \\in 1..(N-1)\n    /\\ pc[self] = \"Act\"\n    /\\ M' = [M EXCEPT ![self] = M[self-1]]\n    /\\ pc' = [pc EXCEPT ![self] = \"Check\"]\n\nOther(self) == Other_Check(self) \\/ Other_Act(self)\n\n\\* Combined next-state relation\nNext == \n    \\/ Bottom\n    \\/ \\E self \\in 1..(N-1): Other(self)\n\n\\* Fairness: weak fairness for all processes\nFairness == \n    /\\ WF_vars(Bottom)\n    /\\ \\A self \\in 1..(N-1): WF_vars(Other(self))\n\n\\* Temporal specification\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariant: at least one process always holds a token\nSomeoneHoldsToken == TokenCount >= 1\n\n\\* State where exactly one token exists\nSingleToken == TokenCount = 1\n\n\\* Token passes: some process (other than 0 in initial check position) holds token\nTokenPasses == \\E i \\in 0..(N-1) : HasToken(i)\n\n\\* Liveness property: eventually exactly one process holds the token forever\nEventuallyJustOneHoldsToken == <>[]SingleToken\n\n\\* Type invariant for verification\nTypeOK == \n    /\\ M \\in [0..(N-1) -> 0..(K-1)]\n    /\\ pc \\in [ProcSet -> {\"Check\", \"Act\"}]\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 472,
+    "outputTokens": 905,
+    "totalTokens": 1377,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13326
+  }
+}

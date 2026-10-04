@@ -1,0 +1,154 @@
+---------------------------- MODULE AsyncTerminationDetection ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES
+    active,         \* active[i] = TRUE iff node i is active
+    pending,        \* pending[i] = count of pending messages for node i
+    terminated,     \* TRUE iff termination has been detected
+
+vars == <<active, pending, terminated>>
+
+Nodes == 0..(N-1)
+
+-----------------------------------------------------------------------------
+(* Type Invariant *)
+
+TypeOK ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending \in [Nodes -> Nat]
+    /\ terminated \in BOOLEAN
+
+-----------------------------------------------------------------------------
+(* Initial State *)
+
+Init ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending = [i \in Nodes |-> 0]
+    /\ terminated = FALSE
+
+-----------------------------------------------------------------------------
+(* Actual Termination Predicate *)
+(* The system has actually terminated when all nodes are inactive and no messages are pending *)
+
+ActuallyTerminated ==
+    /\ \A i \in Nodes : ~active[i]
+    /\ \A i \in Nodes : pending[i] = 0
+
+-----------------------------------------------------------------------------
+(* Actions *)
+
+(* A node becomes inactive (terminates) *)
+Terminate(i) ==
+    /\ active[i]
+    /\ active' = [active EXCEPT ![i] = FALSE]
+    /\ UNCHANGED <<pending, terminated>>
+
+(* An active node sends a message to another node *)
+SendMessage(i, j) ==
+    /\ active[i]
+    /\ i # j
+    /\ pending' = [pending EXCEPT ![j] = pending[j] + 1]
+    /\ UNCHANGED <<active, terminated>>
+
+(* A node receives a pending message and becomes active *)
+ReceiveMessage(i) ==
+    /\ pending[i] > 0
+    /\ pending' = [pending EXCEPT ![i] = pending[i] - 1]
+    /\ active' = [active EXCEPT ![i] = TRUE]
+    /\ UNCHANGED <<terminated>>
+
+(* Termination detection occurs when all nodes are inactive and no messages pending *)
+DetectTermination ==
+    /\ ~terminated
+    /\ ActuallyTerminated
+    /\ terminated' = TRUE
+    /\ UNCHANGED <<active, pending>>
+
+-----------------------------------------------------------------------------
+(* Next State Relation *)
+
+Next ==
+    \/ \E i \in Nodes : Terminate(i)
+    \/ \E i, j \in Nodes : SendMessage(i, j)
+    \/ \E i \in Nodes : ReceiveMessage(i)
+    \/ DetectTermination
+
+-----------------------------------------------------------------------------
+(* Fairness and Specification *)
+
+Fairness == WF_vars(DetectTermination)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+(* If termination is detected, the system has actually terminated *)
+DetectionImpliesTermination ==
+    terminated => ActuallyTerminated
+
+(* Main safety invariant *)
+Safety == DetectionImpliesTermination
+
+-----------------------------------------------------------------------------
+(* Stability Property *)
+(* Once actually terminated, the system remains terminated (without new external activation) *)
+(* This is captured by showing that if terminated flag is set, it stays set *)
+
+TerminationStable ==
+    [][terminated => terminated']_vars
+
+(* Actually terminated is stable - if all nodes inactive and no pending, they stay that way *)
+(* unless a message is sent, but inactive nodes can't send *)
+ActualTerminationStable ==
+    [](ActuallyTerminated => []ActuallyTerminated)
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* If the system actually terminates, termination will eventually be detected *)
+TerminationEventuallyDetected ==
+    ActuallyTerminated ~> terminated
+
+(* Alternative formulation: if we reach actual termination, detection eventually happens *)
+EventualDetection ==
+    [](ActuallyTerminated => <>terminated)
+
+-----------------------------------------------------------------------------
+(* Auxiliary Invariants *)
+
+(* Pending counts are always non-negative (implied by type but useful for checking) *)
+PendingNonNegative ==
+    \A i \in Nodes : pending[i] >= 0
+
+(* If terminated flag is set, it was correctly detected *)
+DetectionCorrectness ==
+    terminated => ActuallyTerminated
+
+(* Combined auxiliary invariant *)
+AuxiliaryInvariant ==
+    /\ TypeOK
+    /\ PendingNonNegative
+    /\ DetectionCorrectness
+
+-----------------------------------------------------------------------------
+(* State Constraint for Bounded Model Checking *)
+
+MaxPending == 3
+
+StateConstraint ==
+    \A i \in Nodes : pending[i] <= MaxPending
+
+-----------------------------------------------------------------------------
+(* Theorems to Check *)
+
+THEOREM Spec => []TypeOK
+THEOREM Spec => []Safety
+THEOREM Spec => []DetectionImpliesTermination
+THEOREM Spec => TerminationEventuallyDetected
+
+=============================================================================

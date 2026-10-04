@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CigaretteSmokers ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Ingredients, Offers\n\nVARIABLES smoking, offer\n\nvars == <<smoking, offer>>\n\n\\* Structural assumption: each offer is a subset of Ingredients missing exactly one ingredient\nASSUME \\A o \\in Offers : o \\subseteq Ingredients /\\ Cardinality(o) = Cardinality(Ingredients) - 1\n\n\\* The missing ingredient for a given offer\nMissingIngredient(o) == CHOOSE i \\in Ingredients : i \\notin o\n\n\\* Initially no one is smoking and no offer has been made\nInit == \n    /\\ smoking = [i \\in Ingredients |-> FALSE]\n    /\\ offer = {}\n\n\\* Dealer makes an offer (only when no current offer and no one smoking)\nDealerOffer == \n    /\\ offer = {}\n    /\\ \\A i \\in Ingredients : smoking[i] = FALSE\n    /\\ \\E o \\in Offers : offer' = o\n    /\\ UNCHANGED smoking\n\n\\* Smoker with the missing ingredient starts smoking\nSmokerSmoke(i) ==\n    /\\ offer /= {}\n    /\\ i = MissingIngredient(offer)\n    /\\ smoking[i] = FALSE\n    /\\ smoking' = [smoking EXCEPT ![i] = TRUE]\n    /\\ offer' = {}\n\n\\* Smoker finishes smoking\nSmokerFinish(i) ==\n    /\\ smoking[i] = TRUE\n    /\\ smoking' = [smoking EXCEPT ![i] = FALSE]\n    /\\ UNCHANGED offer\n\n\\* Next state relation\nNext ==\n    \\/ DealerOffer\n    \\/ \\E i \\in Ingredients : SmokerSmoke(i)\n    \\/ \\E i \\in Ingredients : SmokerFinish(i)\n\n\\* Basic temporal specification\nSpec == Init /\\ [][Next]_vars\n\n\\* Specification with weak fairness\nFairSpec == Spec /\\ WF_vars(Next)\n\n\\* Safety invariant: at most one smoker is smoking at any time\nAtMostOne == Cardinality({i \\in Ingredients : smoking[i] = TRUE}) <= 1\n\n\\* Type invariant\nTypeOK ==\n    /\\ smoking \\in [Ingredients -> BOOLEAN]\n    /\\ offer \\subseteq Ingredients\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 263,
+    "outputTokens": 581,
+    "totalTokens": 844,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11660
+  }
+}

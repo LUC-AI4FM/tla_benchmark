@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE mergesort ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS ArrayLen, defaultInitValue\n\nVARIABLES a, b, pc, stack, lo, hi, mid\n\nvars == <<a, b, pc, stack, lo, hi, mid>>\n\n\\* Helper function to check if array segment is sorted\nIsSorted(arr, from, to) ==\n    \\A i, j \\in from..to : i <= j => arr[i] <= arr[j]\n\n\\* Helper function to check if entire array is sorted\nArrayIsSorted ==\n    \\A i, j \\in 1..Len(a) : i <= j => a[i] <= a[j]\n\n\\* Generate all possible arrays of length len with values in 1..ArrayLen\nPossibleArrays(len) ==\n    [1..len -> 1..ArrayLen]\n\n\\* All possible initial arrays (lengths 0 to ArrayLen)\nAllArrays ==\n    UNION {PossibleArrays(len) : len \\in 1..ArrayLen} \\cup {<<>>}\n\nInit ==\n    /\\ a \\in AllArrays\n    /\\ b = [i \\in 1..ArrayLen |-> defaultInitValue]\n    /\\ pc = \"mergesort\"\n    /\\ stack = <<>>\n    /\\ lo = 1\n    /\\ hi = Len(a)\n    /\\ mid = defaultInitValue\n\n\\* Merge procedure: merge a[lo..mid] and a[mid+1..hi] using buffer b\nMerge(loVal, midVal, hiVal) ==\n    LET leftPart == SubSeq(a, loVal, midVal)\n        rightPart == SubSeq(a, midVal + 1, hiVal)\n        MergeSeqs[l \\in Seq(1..ArrayLen), r \\in Seq(1..ArrayLen)] ==\n            IF l = <<>> THEN r\n            ELSE IF r = <<>> THEN l\n            ELSE IF Head(l) <= Head(r) \n                 THEN <<Head(l)>> \\o MergeSeqs[Tail(l), r]\n                 ELSE <<Head(r)>> \\o MergeSeqs[l, Tail(r)]\n        merged == MergeSeqs[leftPart, rightPart]\n        newA == [i \\in 1..Len(a) |-> \n                    IF i >= loVal /\\ i <= hiVal \n                    THEN merged[i - loVal + 1]\n                    ELSE a[i]]\n    IN newA\n\n\\* MergeSort procedure start\nMergeSortStart ==\n    /\\ pc = \"mergesort\"\n    /\\ IF lo >= hi\n       THEN \\* Base case: already sorted\n            /\\ IF stack = <<>>\n               THEN pc' = \"Done\"\n               ELSE \n                    /\\ pc' = stack[1].pc\n                    /\\ lo' = stack[1].lo\n                    /\\ hi' = stack[1].hi\n                    /\\ mid' = stack[1].mid\n                    /\\ stack' = Tail(stack)\n            /\\ UNCHANGED <<a, b>>\n       ELSE \\* Recursive case: compute mid and recurse on left half\n            /\\ mid' = (lo + hi) \\div 2\n            /\\ stack' = <<[pc |-> \"ms_after_left\", lo |-> lo, hi |-> hi, mid |-> (lo + hi) \\div 2]>> \\o stack\n            /\\ hi' = (lo + hi) \\div 2\n            /\\ pc' = \"mergesort\"\n            /\\ UNCHANGED <<a, b, lo>>\n\n\\* After returning from left recursive call\nAfterLeftCall ==\n    /\\ pc = \"ms_after_left\"\n    /\\ stack' = <<[pc |-> \"ms_after_right\", lo |-> lo, hi |-> hi, mid |-> mid]>> \\o stack\n    /\\ lo' = mid + 1\n    /\\ pc' = \"mergesort\"\n    /\\ UNCHANGED <<a, b, hi, mid>>\n\n\\* After returning from right recursive call\nAfterRightCall ==\n    /\\ pc = \"ms_after_right\"\n    /\\ a' = Merge(lo, mid, hi)\n    /\\ IF Tail(stack) = <<>>\n       THEN \n            /\\ pc' = \"Done\"\n            /\\ stack' = <<>>\n            /\\ lo' = lo\n            /\\ hi' = hi\n            /\\ mid' = mid\n       ELSE\n            /\\ pc' = Tail(stack)[1].pc\n            /\\ lo' = Tail(stack)[1].lo\n            /\\ hi' = Tail(stack)[1].hi\n            /\\ mid' = Tail(stack)[1].mid\n            /\\ stack' = Tail(Tail(stack))\n    /\\ UNCHANGED b\n\nTerminated ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ MergeSortStart\n    \\/ AfterLeftCall\n    \\/ AfterRightCall\n    \\/ Terminated\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n\\* Safety invariant: when done, array is sorted\nInvariant ==\n    pc = \"Done\" => (Len(a) <= 1 \\/ ArrayIsSorted)\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 241,
+    "outputTokens": 1325,
+    "totalTokens": 1566,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18798
+  }
+}

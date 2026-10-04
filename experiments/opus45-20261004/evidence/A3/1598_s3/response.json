@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n-------------------------------- MODULE FastMutex --------------------------------\nEXTENDS Integers, FiniteSets, TLAPS\n\nCONSTANTS N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nProcs == 1..N\n\nVARIABLES pc, x, y, b, S\n\nvars == <<pc, x, y, b, S>>\n\nLabels == {\"ncs\", \"start\", \"l1\", \"l2\", \"l3\", \"l4\", \"l5\", \"l6\", \"cs\", \"l7\", \"l8\"}\n\nTypeOK ==\n    /\\ pc \\in [Procs -> Labels]\n    /\\ x \\in Procs \\cup {0}\n    /\\ y \\in Procs \\cup {0}\n    /\\ b \\in [Procs -> BOOLEAN]\n    /\\ S \\in [Procs -> SUBSET Procs]\n\nInit ==\n    /\\ pc = [p \\in Procs |-> \"ncs\"]\n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [p \\in Procs |-> FALSE]\n    /\\ S = [p \\in Procs |-> {}]\n\n(* Non-critical section - process decides to enter critical section *)\nncs(p) ==\n    /\\ pc[p] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Start of protocol - set b[p] to TRUE *)\nstart(p) ==\n    /\\ pc[p] = \"start\"\n    /\\ b' = [b EXCEPT ![p] = TRUE]\n    /\\ pc' = [pc EXCEPT ![p] = \"l1\"]\n    /\\ UNCHANGED <<x, y, S>>\n\n(* l1: Read x and check if 0 *)\nl1(p) ==\n    /\\ pc[p] = \"l1\"\n    /\\ x = 0\n    /\\ x' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"l2\"]\n    /\\ UNCHANGED <<y, b, S>>\n\nl1_retry(p) ==\n    /\\ pc[p] = \"l1\"\n    /\\ x /= 0\n    /\\ pc' = [pc EXCEPT ![p] = \"l5\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l2: Check if y is 0 *)\nl2(p) ==\n    /\\ pc[p] = \"l2\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"l3\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\nl2_wait(p) ==\n    /\\ pc[p] = \"l2\"\n    /\\ y /= 0\n    /\\ pc' = [pc EXCEPT ![p] = \"l5\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l3: Set y to p *)\nl3(p) ==\n    /\\ pc[p] = \"l3\"\n    /\\ y' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"l4\"]\n    /\\ UNCHANGED <<x, b, S>>\n\n(* l4: Check if x = p, if so enter CS, else go to slow path *)\nl4_fast(p) ==\n    /\\ pc[p] = \"l4\"\n    /\\ x = p\n    /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\nl4_slow(p) ==\n    /\\ pc[p] = \"l4\"\n    /\\ x /= p\n    /\\ pc' = [pc EXCEPT ![p] = \"l5\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l5: Set b[p] to FALSE and collect waiting set *)\nl5(p) ==\n    /\\ pc[p] = \"l5\"\n    /\\ b' = [b EXCEPT ![p] = FALSE]\n    /\\ S' = [S EXCEPT ![p] = {q \\in Procs : b[q]}]\n    /\\ pc' = [pc EXCEPT ![p] = \"l6\"]\n    /\\ UNCHANGED <<x, y>>\n\n(* l6: Wait for all processes in S to have b = FALSE, then check y *)\nl6_wait(p) ==\n    /\\ pc[p] = \"l6\"\n    /\\ \\E q \\in S[p] : b[q]\n    /\\ S' = [S EXCEPT ![p] = {q \\in S[p] : b[q]}]\n    /\\ UNCHANGED <<pc, x, y, b>>\n\nl6_check(p) ==\n    /\\ pc[p] = \"l6\"\n    /\\ \\A q \\in S[p] : ~b[q]\n    /\\ IF y = p\n       THEN pc' = [pc EXCEPT ![p] = \"cs\"]\n       ELSE pc' = [pc EXCEPT ![p] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Critical section - process is in CS *)\ncs(p) ==\n    /\\ pc[p] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"l7\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l7: Set y to 0 when leaving CS *)\nl7(p) ==\n    /\\ pc[p] = \"l7\"\n    /\\ y' = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"l8\"]\n    /\\ UNCHANGED <<x, b, S>>\n\n(* l8: Set b[p] to FALSE and return to ncs *)\nl8(p) ==\n    /\\ pc[p] = \"l8\"\n    /\\ b' = [b EXCEPT ![p] = FALSE]\n    /\\ pc' = [pc EXCEPT ![p] = \"ncs\"]\n    /\\ UNCHANGED <<x, y, S>>\n\n(* Process action - all possible actions for process p *)\nproc(p) ==\n    \\/ ncs(p)\n    \\/ start(p)\n    \\/ l1(p)\n    \\/ l1_retry(p)\n    \\/ l2(p)\n    \\/ l2_wait(p)\n    \\/ l3(p)\n    \\/ l4_fast(p)\n    \\/ l4_slow(p)\n    \\/ l5(p)\n    \\/ l6_wait(p)\n    \\/ l6_check(p)\n    \\/ cs(p)\n    \\/ l7(p)\n    \\/ l8(p)\n\nNext == \\E p \\in Procs : proc(p)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Safety: Mutual Exclusion - no two distinct processes in CS simultaneously *)\nMutualExclusion ==\n    \\A p, q \\in Procs : (p /= q) => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\n(* Liveness: Infinitely often some process is in the critical section *)\nLiveness == []<>(\\E p \\in Procs : pc[p] = \"cs\")\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 253,
+    "outputTokens": 1811,
+    "totalTokens": 2064,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 20489
+  }
+}

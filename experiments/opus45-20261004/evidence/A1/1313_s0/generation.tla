@@ -1,0 +1,69 @@
+---------------------------- MODULE die_hard ----------------------------
+
+EXTENDS Integers, TLC
+
+CONSTANTS SmallCap, BigCap
+
+VARIABLES small, big, waterUsed
+
+vars == <<small, big, waterUsed>>
+
+TypeOK == /\ small \in 0..SmallCap
+          /\ big \in 0..BigCap
+          /\ waterUsed \in Nat
+
+Init == /\ small = 0
+        /\ big = 0
+        /\ waterUsed = 0
+
+FillSmall == /\ small' = SmallCap
+             /\ big' = big
+             /\ waterUsed' = waterUsed + (SmallCap - small)
+
+FillBig == /\ big' = BigCap
+           /\ small' = small
+           /\ waterUsed' = waterUsed + (BigCap - big)
+
+EmptySmall == /\ small' = 0
+              /\ big' = big
+              /\ waterUsed' = waterUsed
+
+EmptyBig == /\ big' = 0
+            /\ small' = small
+            /\ waterUsed' = waterUsed
+
+SmallToBig == LET amount == IF small + big <= BigCap THEN small ELSE BigCap - big
+              IN /\ small' = small - amount
+                 /\ big' = big + amount
+                 /\ waterUsed' = waterUsed
+
+BigToSmall == LET amount == IF small + big <= SmallCap THEN big ELSE SmallCap - small
+              IN /\ small' = small + amount
+                 /\ big' = big - amount
+                 /\ waterUsed' = waterUsed
+
+Next == \/ FillSmall
+        \/ FillBig
+        \/ EmptySmall
+        \/ EmptyBig
+        \/ SmallToBig
+        \/ BigToSmall
+
+Spec == Init /\ [][Next]_vars
+
+NotSolved == big /= 4
+
+Solved == big = 4
+
+StateCount == TLCGet("distinct")
+
+ActionCount == TLCGet("generated")
+
+CheckStateSpace == TLCGet("distinct") > 0
+
+CheckActionCount == TLCGet("generated") > 0
+
+PostCondition == /\ PrintT(<<"States:", TLCGet("distinct")>>)
+                 /\ PrintT(<<"Actions:", TLCGet("generated")>>)
+
+==========================================================================

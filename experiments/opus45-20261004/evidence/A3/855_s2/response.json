@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PrisonersAndSwitches ----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS NumPrisoners\n\nASSUME NumPrisoners >= 2\n\nVARIABLES\n    switchA,          \\* Boolean: TRUE means up, FALSE means down\n    switchB,          \\* Boolean: used for random flipping by others\n    count,            \\* Counter prisoner's count of switch A flips seen\n    timesFlippedA,    \\* Function: timesFlippedA[p] = number of times prisoner p has flipped A up\n    visited,          \\* Set of prisoners who have visited the room at least once\n    declared,         \\* Boolean: TRUE when counter declares all have visited\n    currentPrisoner   \\* The prisoner currently in the room (for fairness modeling)\n\nPrisoners == 1..NumPrisoners\n\nCounterPrisoner == 1  \\* Prisoner 1 is designated as the counter\n\nNonCounterPrisoners == Prisoners \\ {CounterPrisoner}\n\nvars == <<switchA, switchB, count, timesFlippedA, visited, declared, currentPrisoner>>\n\nTypeOK ==\n    /\\ switchA \\in BOOLEAN\n    /\\ switchB \\in BOOLEAN\n    /\\ count \\in 0..(2 * (NumPrisoners - 1))\n    /\\ timesFlippedA \\in [NonCounterPrisoners -> 0..2]\n    /\\ visited \\subseteq Prisoners\n    /\\ declared \\in BOOLEAN\n    /\\ currentPrisoner \\in Prisoners\n\nInit ==\n    /\\ switchA = FALSE\n    /\\ switchB = FALSE\n    /\\ count = 0\n    /\\ timesFlippedA = [p \\in NonCounterPrisoners |-> 0]\n    /\\ visited = {}\n    /\\ declared = FALSE\n    /\\ currentPrisoner = 1  \\* arbitrary initial value\n\n\\* Counter prisoner enters the room\nCounterEnters ==\n    /\\ currentPrisoner' = CounterPrisoner\n    /\\ visited' = visited \\cup {CounterPrisoner}\n    /\\ IF switchA = TRUE\n       THEN /\\ switchA' = FALSE\n            /\\ count' = count + 1\n            /\\ IF count + 1 = 2 * (NumPrisoners - 1)\n               THEN declared' = TRUE\n               ELSE declared' = declared\n            /\\ UNCHANGED switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ UNCHANGED <<switchA, count, declared>>\n    /\\ UNCHANGED timesFlippedA\n\n\\* Non-counter prisoner p enters the room\nNonCounterEnters(p) ==\n    /\\ p \\in NonCounterPrisoners\n    /\\ currentPrisoner' = p\n    /\\ visited' = visited \\cup {p}\n    /\\ IF switchA = FALSE /\\ timesFlippedA[p] < 2\n       THEN /\\ switchA' = TRUE\n            /\\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]\n            /\\ UNCHANGED switchB\n       ELSE /\\ switchB' = ~switchB\n            /\\ UNCHANGED <<switchA, timesFlippedA>>\n    /\\ UNCHANGED <<count, declared>>\n\n\\* Next state: randomly select a prisoner to enter\nNext ==\n    \\/ CounterEnters\n    \\/ \\E p \\in NonCounterPrisoners : NonCounterEnters(p)\n\n\\* Fairness: each prisoner must be selected infinitely often\n\\* We use weak fairness on each prisoner's action\nCounterFairness == WF_vars(CounterEnters)\n\nNonCounterFairness == \\A p \\in NonCounterPrisoners : WF_vars(NonCounterEnters(p))\n\nFairness == CounterFairness /\\ NonCounterFairness\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: If declared, then all prisoners have visited\nSafety == declared => (visited = Prisoners)\n\n\\* Liveness: Eventually the counter declares\nLiveness == <>(declared = TRUE)\n\n\\* Invariant combining type correctness and safety\nInvariant == TypeOK /\\ Safety\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 249,
+    "outputTokens": 1030,
+    "totalTokens": 1279,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15610
+  }
+}

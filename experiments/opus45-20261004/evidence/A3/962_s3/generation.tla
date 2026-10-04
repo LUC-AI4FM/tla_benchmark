@@ -1,0 +1,74 @@
+---------------------------- MODULE AlternatingBit ----------------------------
+
+EXTENDS Integers, Sequences
+
+CONSTANTS Data
+
+VARIABLES sbit,      \* Sender's current bit
+          abit,      \* Sender's acknowledgement bit
+          rbit,      \* Receiver's bit
+          sent,      \* Data value being sent
+          rcvd       \* Data value received
+
+vars == <<sbit, abit, rbit, sent, rcvd>>
+
+TypeInvariant ==
+    /\ sbit \in {0, 1}
+    /\ abit \in {0, 1}
+    /\ rbit \in {0, 1}
+    /\ sent \in Data
+    /\ rcvd \in Data \union {<<>>}
+
+-----------------------------------------------------------------------------
+
+Init ==
+    /\ sbit = 0
+    /\ abit = 0
+    /\ rbit = 1
+    /\ sent \in Data
+    /\ rcvd = <<>>
+
+\* Sender sends a new value when acknowledgement bit matches send bit
+SendNew(d) ==
+    /\ abit = sbit
+    /\ sent' = d
+    /\ sbit' = 1 - sbit
+    /\ UNCHANGED <<abit, rbit, rcvd>>
+
+\* Receiver accepts message when receive bit differs from sender bit
+ReceiveMsg ==
+    /\ rbit /= sbit
+    /\ rcvd' = sent
+    /\ rbit' = sbit
+    /\ UNCHANGED <<sbit, abit, sent>>
+
+\* Sender accepts acknowledgement when receiver bit differs from sender acknowledgement bit
+ReceiveAck ==
+    /\ rbit /= abit
+    /\ abit' = rbit
+    /\ UNCHANGED <<sbit, rbit, sent, rcvd>>
+
+Next ==
+    \/ \E d \in Data : SendNew(d)
+    \/ ReceiveMsg
+    \/ ReceiveAck
+
+-----------------------------------------------------------------------------
+
+\* Fairness assumptions for message reception and acknowledgement reception
+Fairness ==
+    /\ WF_vars(ReceiveMsg)
+    /\ WF_vars(ReceiveAck)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+
+\* Safety invariant: type correctness
+Safety == TypeInvariant
+
+\* Temporal property: sender bit and acknowledgement bit are infinitely often out of sync
+BitsOutOfSync == [](sbit /= abit)
+InfinitelyOftenOutOfSync == []<>(sbit /= abit)
+
+=============================================================================

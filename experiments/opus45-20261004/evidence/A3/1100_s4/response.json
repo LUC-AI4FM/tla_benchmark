@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE MutualExclusion ------------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS Proc\n\nVARIABLES pc, lock\n\nvars == <<pc, lock>>\n\nProcs == {1, 2}\n\nInit == \n    /\\ pc = [p \\in Procs |-> \"ncs\"]\n    /\\ lock = 0\n\nTypeOK ==\n    /\\ pc \\in [Procs -> {\"ncs\", \"l1\", \"cs\"}]\n    /\\ lock \\in {0, 1, 2}\n\nMutualExclusion ==\n    ~(pc[1] = \"cs\" /\\ pc[2] = \"cs\")\n\n(* Process actions *)\n\n(* Process p moves from non-critical section to waiting location l1 *)\nEnterWait(p) ==\n    /\\ pc[p] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"l1\"]\n    /\\ UNCHANGED lock\n\n(* Process p acquires the lock when it is free and enters critical section *)\nAcquireLock(p) ==\n    /\\ pc[p] = \"l1\"\n    /\\ lock = 0\n    /\\ lock' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n\n(* Process p releases the lock and returns to non-critical section *)\nReleaseLock(p) ==\n    /\\ pc[p] = \"cs\"\n    /\\ lock = p\n    /\\ lock' = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"ncs\"]\n\n(* Next state relation *)\nproc(p) == EnterWait(p) \\/ AcquireLock(p) \\/ ReleaseLock(p)\n\nNext == \\E p \\in Procs : proc(p)\n\n(* Fairness conditions - weak fairness for all process actions *)\nFairness == \\A p \\in Procs : WF_vars(proc(p))\n\n(* Specification with fairness *)\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n(* Liveness property: process 1 at l1 leads to eventually reaching cs *)\nLiveness == pc[1] = \"l1\" ~> pc[1] = \"cs\"\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 243,
+    "outputTokens": 558,
+    "totalTokens": 801,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10034
+  }
+}

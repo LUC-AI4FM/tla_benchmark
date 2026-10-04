@@ -1,0 +1,28 @@
+---------------------------- MODULE specification ----------------------------
+
+VARIABLES clock
+
+\* Recursive operator that checks if a value is a Boolean
+RECURSIVE Check(_)
+Check(x) == IF x = TRUE THEN TRUE
+            ELSE IF x = FALSE THEN TRUE
+            ELSE FALSE
+
+\* Recursive operator that flips a Boolean value
+RECURSIVE Flip(_)
+Flip(x) == IF x = TRUE THEN FALSE
+           ELSE IF x = FALSE THEN TRUE
+           ELSE x
+
+\* Type invariant: clock must be a Boolean value
+TypeOK == clock \in BOOLEAN
+
+\* Initial state predicate
+\* Note: TLC coverage behavior for the recursive operator call Check appearing here
+Init == /\ clock \in BOOLEAN
+        /\ Check(clock)
+
+\* Next state relation: flip the Boolean value of clock
+Next == clock' = Flip(clock)
+
+=============================================================================

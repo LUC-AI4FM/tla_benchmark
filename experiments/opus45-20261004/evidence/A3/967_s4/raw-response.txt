@@ -1,0 +1,60 @@
+```tla
+---------------------------- MODULE StoneCutting ----------------------------
+
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS W, N
+
+RECURSIVE Sum(_)
+Sum(seq) ==
+    IF seq = << >>
+    THEN 0
+    ELSE Head(seq) + Sum(Tail(seq))
+
+RECURSIVE Partitions(_, _)
+Partitions(total, parts) ==
+    IF parts = 1
+    THEN IF total >= 1 THEN {<<total>>} ELSE {}
+    ELSE UNION {
+        {<<i>> \o p : p \in Partitions(total - i, parts - 1)}
+        : i \in 1..total - (parts - 1)
+    }
+
+RECURSIVE CanWeigh(_, _, _, _)
+CanWeigh(target, weights, idx, currentSum) ==
+    IF idx > Len(weights)
+    THEN currentSum = target
+    ELSE \/ CanWeigh(target, weights, idx + 1, currentSum)
+         \/ CanWeigh(target, weights, idx + 1, currentSum + weights[idx])
+         \/ CanWeigh(target, weights, idx + 1, currentSum - weights[idx])
+
+IsValidPartition(partition) ==
+    /\ Len(partition) = N
+    /\ Sum(partition) = W
+    /\ \A i \in 1..Len(partition) : partition[i] >= 1
+    /\ \A t \in 1..W : CanWeigh(t, partition, 1, 0)
+
+AllPartitions == Partitions(W, N)
+
+Solutions == {p \in AllPartitions : IsValidPartition(p)}
+
+ASSUME
+    LET result == Solutions
+    IN IF result = {}
+       THEN PrintT("No solution exists")
+       ELSE PrintT(<<"Solution found:", CHOOSE s \in result : TRUE>>)
+
+VARIABLES dummy
+
+Init == dummy = 0
+
+Next == UNCHANGED dummy
+
+Spec == Init /\ [][Next]_dummy
+
+TypeOK == dummy \in {0}
+
+SolutionExists == Solutions /= {}
+
+=============================================================================
+```

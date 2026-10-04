@@ -1,0 +1,210 @@
+---------------------------- MODULE MergeSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS ArrayLen, N
+
+ASSUME ArrayLen \in Nat /\ ArrayLen >= 0
+ASSUME N \in Nat /\ N >= 1
+
+VARIABLES a, b, pc, stack
+
+vars == <<a, b, pc, stack>>
+
+\* Helper function to check if array segment is sorted
+IsSorted(arr, lo, hi) ==
+    \A i, j \in lo..hi : i <= j => arr[i] <= arr[j]
+
+\* Helper function to check if entire array is sorted
+ArrayIsSorted ==
+    IF Len(a) = 0 THEN TRUE
+    ELSE \A i, j \in 1..Len(a) : i <= j => a[i] <= a[j]
+
+\* All possible arrays of length len with values in 1..N
+Arrays(len) ==
+    [1..len -> 1..N]
+
+\* All possible initial arrays (all lengths from 0 to ArrayLen)
+AllArrays ==
+    UNION {Arrays(len) : len \in 0..ArrayLen}
+
+\* Stack frame for recursive calls: [lo |-> ..., hi |-> ..., phase |-> ...]
+\* phase: "call1" = about to call first recursive call
+\*        "call2" = about to call second recursive call
+\*        "merge" = about to merge
+\*        "return" = about to return
+
+StackFrame == [lo : Int, hi : Int, mid : Int, phase : {"call1", "call2", "merge", "return"}]
+
+Init ==
+    /\ a \in AllArrays
+    /\ b = [i \in 1..ArrayLen |-> 0]
+    /\ pc = IF Len(a) <= 1 THEN "Done" ELSE "Working"
+    /\ stack = IF Len(a) <= 1 
+               THEN <<>> 
+               ELSE <<[lo |-> 1, hi |-> Len(a), mid |-> (1 + Len(a)) \div 2, phase |-> "call1"]>>
+
+\* Make a recursive call for mergesort(lo, hi)
+MakeCall(lo, hi) ==
+    IF hi - lo < 1
+    THEN <<>>  \* Base case: nothing to do
+    ELSE <<[lo |-> lo, hi |-> hi, mid |-> (lo + hi) \div 2, phase |-> "call1"]>>
+
+\* Merge operation: merge a[lo..mid] and a[mid+1..hi] into a[lo..hi]
+Merge(arr, buf, lo, mid, hi) ==
+    LET 
+        \* Copy to buffer
+        buf1 == [buf EXCEPT ![i] = arr[i] : i \in lo..hi]
+        \* Merge from buffer back to array
+        MergeHelper[state \in [i : lo..(hi+1), j : (mid+1)..(hi+2), k : lo..(hi+1), arr : [1..Len(arr) -> 1..N]]] ==
+            IF state.k > hi 
+            THEN state.arr
+            ELSE IF state.i > mid
+                 THEN MergeHelper[[i |-> state.i, j |-> state.j + 1, k |-> state.k + 1, 
+                                   arr |-> [state.arr EXCEPT ![state.k] = buf1[state.j]]]]
+                 ELSE IF state.j > hi
+                      THEN MergeHelper[[i |-> state.i + 1, j |-> state.j, k |-> state.k + 1,
+                                        arr |-> [state.arr EXCEPT ![state.k] = buf1[state.i]]]]
+                      ELSE IF buf1[state.i] <= buf1[state.j]
+                           THEN MergeHelper[[i |-> state.i + 1, j |-> state.j, k |-> state.k + 1,
+                                             arr |-> [state.arr EXCEPT ![state.k] = buf1[state.i]]]]
+                           ELSE MergeHelper[[i |-> state.i, j |-> state.j + 1, k |-> state.k + 1,
+                                             arr |-> [state.arr EXCEPT ![state.k] = buf1[state.j]]]]
+    IN MergeHelper[[i |-> lo, j |-> mid + 1, k |-> lo, arr |-> arr]]
+
+\* Iterative merge without recursion
+DoMerge(lo, mid, hi) ==
+    LET 
+        \* First copy relevant portion to buffer b
+        newB == [i \in DOMAIN b |-> IF i >= lo /\ i <= hi THEN a[i] ELSE b[i]]
+    IN
+    \* Now merge from buffer back to array
+    LET 
+        MergeLoop(i, j, k, currentA) ==
+            LET 
+                Step[s \in [i : Nat, j : Nat, k : Nat, arr : DOMAIN a -> 1..N]] ==
+                    IF s.k > hi THEN s.arr
+                    ELSE IF s.i > mid THEN
+                        Step[[i |-> s.i, j |-> s.j + 1, k |-> s.k + 1, 
+                              arr |-> [s.arr EXCEPT ![s.k] = newB[s.j]]]]
+                    ELSE IF s.j > hi THEN
+                        Step[[i |-> s.i + 1, j |-> s.j, k |-> s.k + 1,
+                              arr |-> [s.arr EXCEPT ![s.k] = newB[s.i]]]]
+                    ELSE IF newB[s.i] <= newB[s.j] THEN
+                        Step[[i |-> s.i + 1, j |-> s.j, k |-> s.k + 1,
+                              arr |-> [s.arr EXCEPT ![s.k] = newB[s.i]]]]
+                    ELSE
+                        Step[[i |-> s.i, j |-> s.j + 1, k |-> s.k + 1,
+                              arr |-> [s.arr EXCEPT ![s.k] = newB[s.j]]]]
+            IN Step[[i |-> i, j |-> j, k |-> k, arr |-> currentA]]
+    IN MergeLoop(lo, mid + 1, lo, a)
+
+\* Simple iterative merge
+SimpleMerge(lo, mid, hi) ==
+    LET 
+        buf == [i \in DOMAIN b |-> IF i >= lo /\ i <= hi THEN a[i] ELSE b[i]]
+        len == hi - lo + 1
+        leftLen == mid - lo + 1
+        rightLen == hi - mid
+        
+        \* Define merge result position by position
+        ResultAt(pos) ==
+            LET 
+                \* Count how many elements from left side appear before position pos
+                LeftCount(p) == 
+                    LET pairs == {<<lc, rc>> \in (0..leftLen) \X (0..rightLen) : 
+                                   lc + rc = p - lo}
+                    IN IF pairs = {} THEN 0
+                       ELSE LET valid == {<<lc, rc>> \in pairs :
+                                /\ (lc = 0 \/ rc = rightLen \/ 
+                                    (lc <= leftLen /\ buf[lo + lc - 1] <= buf[mid + 1 + rc]))}
+                            IN 0 \* Placeholder
+            IN buf[lo] \* Placeholder
+    IN a \* This approach is getting complex, let's use a different method
+
+\* Working step when stack is non-empty
+Working ==
+    /\ pc = "Working"
+    /\ stack # <<>>
+    /\ LET frame == Head(stack)
+           lo == frame.lo
+           hi == frame.hi  
+           mid == frame.mid
+       IN
+       CASE frame.phase = "call1" ->
+            \* First recursive call: sort left half
+            IF mid - lo < 1
+            THEN \* Base case for left half, move to call2
+                 /\ stack' = <<[frame EXCEPT !.phase = "call2"]>> \o Tail(stack)
+                 /\ UNCHANGED <<a, b, pc>>
+            ELSE \* Push frame for left half
+                 /\ stack' = <<[lo |-> lo, hi |-> mid, mid |-> (lo + mid) \div 2, phase |-> "call1"],
+                              [frame EXCEPT !.phase = "call2"]>> \o Tail(stack)
+                 /\ UNCHANGED <<a, b, pc>>
+                 
+         [] frame.phase = "call2" ->
+            \* Second recursive call: sort right half
+            IF hi - (mid + 1) < 1
+            THEN \* Base case for right half, move to merge
+                 /\ stack' = <<[frame EXCEPT !.phase = "merge"]>> \o Tail(stack)
+                 /\ UNCHANGED <<a, b, pc>>
+            ELSE \* Push frame for right half
+                 /\ stack' = <<[lo |-> mid + 1, hi |-> hi, mid |-> (mid + 1 + hi) \div 2, phase |-> "call1"],
+                              [frame EXCEPT !.phase = "merge"]>> \o Tail(stack)
+                 /\ UNCHANGED <<a, b, pc>>
+                 
+         [] frame.phase = "merge" ->
+            \* Merge the two sorted halves
+            /\ b' = [i \in DOMAIN b |-> IF i >= lo /\ i <= hi THEN a[i] ELSE b[i]]
+            /\ stack' = <<[frame EXCEPT !.phase = "return"]>> \o Tail(stack)
+            /\ UNCHANGED <<a, pc>>
+            
+         [] frame.phase = "return" ->
+            \* Complete the merge using values in b
+            LET 
+                \* Compute merged result
+                MergedArray ==
+                    LET 
+                        Merge2[state \in [i : Int, j : Int, k : Int, result : Seq(Int)]] ==
+                            IF state.k > hi THEN state.result
+                            ELSE IF state.i > mid THEN
+                                Merge2[[i |-> state.i, j |-> state.j + 1, k |-> state.k + 1,
+                                       result |-> state.result \o <<b[state.j]>>]]
+                            ELSE IF state.j > hi THEN
+                                Merge2[[i |-> state.i + 1, j |-> state.j, k |-> state.k + 1,
+                                       result |-> state.result \o <<b[state.i]>>]]
+                            ELSE IF b[state.i] <= b[state.j] THEN
+                                Merge2[[i |-> state.i + 1, j |-> state.j, k |-> state.k + 1,
+                                       result |-> state.result \o <<b[state.i]>>]]
+                            ELSE
+                                Merge2[[i |-> state.i, j |-> state.j + 1, k |-> state.k + 1,
+                                       result |-> state.result \o <<b[state.j]>>]]
+                        merged == Merge2[[i |-> lo, j |-> mid + 1, k |-> lo, result |-> <<>>]]
+                    IN [i \in DOMAIN a |-> IF i >= lo /\ i <= hi 
+                                           THEN merged[i - lo + 1]
+                                           ELSE a[i]]
+            IN
+            /\ a' = MergedArray
+            /\ stack' = Tail(stack)
+            /\ pc' = IF Tail(stack) = <<>> THEN "Done" ELSE "Working"
+            /\ UNCHANGED b
+
+\* Terminal state
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == Working \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: when done, array is sorted
+TypeOK ==
+    /\ a \in [1..Len(a) -> 1..N] \/ a = <<>>
+    /\ pc \in {"Working", "Done"}
+
+Sorted == pc = "Done" => ArrayIsSorted
+
+\* Liveness: the algorithm eventually terminates
+Termination == <>(pc = "Done")
+
+==========================================================================

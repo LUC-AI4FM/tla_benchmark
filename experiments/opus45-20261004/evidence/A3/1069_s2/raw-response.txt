@@ -1,0 +1,156 @@
+```tla+
+---------------------------- MODULE AsyncTerminationDetection ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES
+    active,         \* active[i] = TRUE iff node i is active
+    pending,        \* pending[i] = count of pending messages for node i
+    terminated,     \* TRUE iff global termination has been detected
+
+vars == <<active, pending, terminated>>
+
+Nodes == 0..(N-1)
+
+TypeOK ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending \in [Nodes -> Nat]
+    /\ terminated \in BOOLEAN
+
+-----------------------------------------------------------------------------
+(* Initial state: all nodes are active, no pending messages, termination not detected *)
+
+Init ==
+    /\ active = [i \in Nodes |-> TRUE]
+    /\ pending = [i \in Nodes |-> 0]
+    /\ terminated = FALSE
+
+-----------------------------------------------------------------------------
+(* A node terminates (becomes inactive) *)
+(* A node can only terminate if it is currently active *)
+
+Terminate(i) ==
+    /\ active[i] = TRUE
+    /\ active' = [active EXCEPT ![i] = FALSE]
+    /\ UNCHANGED <<pending, terminated>>
+
+(* An active node sends a message to another node *)
+(* This increments the pending count of the receiver *)
+
+SendMsg(i, j) ==
+    /\ active[i] = TRUE
+    /\ pending' = [pending EXCEPT ![j] = pending[j] + 1]
+    /\ UNCHANGED <<active, terminated>>
+
+(* A node receives a pending message *)
+(* This decrements its pending count and activates the node *)
+
+ReceiveMsg(i) ==
+    /\ pending[i] > 0
+    /\ pending' = [pending EXCEPT ![i] = pending[i] - 1]
+    /\ active' = [active EXCEPT ![i] = TRUE]
+    /\ UNCHANGED <<terminated>>
+
+(* Actual termination: all nodes are inactive and no pending messages *)
+
+ActuallyTerminated ==
+    /\ \A i \in Nodes : active[i] = FALSE
+    /\ \A i \in Nodes : pending[i] = 0
+
+(* Detection of termination *)
+(* Can only detect termination if actual termination has occurred *)
+
+DetectTermination ==
+    /\ ActuallyTerminated
+    /\ terminated = FALSE
+    /\ terminated' = TRUE
+    /\ UNCHANGED <<active, pending>>
+
+-----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ \E i \in Nodes : Terminate(i)
+    \/ \E i, j \in Nodes : SendMsg(i, j)
+    \/ \E i \in Nodes : ReceiveMsg(i)
+    \/ DetectTermination
+
+-----------------------------------------------------------------------------
+(* Fairness: weak fairness on DetectTermination *)
+
+Fairness == WF_vars(DetectTermination)
+
+(* Complete specification with fairness *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Properties *)
+
+(* Safety: Detection implies actual termination *)
+(* If terminated is TRUE, then all nodes must be inactive with no pending messages *)
+
+Safe == terminated => ActuallyTerminated
+
+(* Stability of termination: once actually terminated with no external activity,
+   termination remains stable. This is expressed as: if we're actually terminated
+   and terminated flag is set, it stays set *)
+
+StableTermination ==
+    [](terminated => []terminated)
+
+(* Alternative expression for stability within the TLA+ invariant style:
+   Once terminated is TRUE, it remains TRUE *)
+
+StableTerminatedFlag ==
+    [][terminated => terminated']_vars
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* Liveness: Actual termination leads to eventual detection *)
+
+LivenessProperty == ActuallyTerminated ~> terminated
+
+-----------------------------------------------------------------------------
+(* Auxiliary Invariants *)
+
+(* Pending counts are non-negative - implied by type but useful for verification *)
+
+PendingNonNegative == \A i \in Nodes : pending[i] >= 0
+
+(* If termination is detected, it was valid at detection time *)
+
+DetectionValid == terminated => ActuallyTerminated
+
+(* Combined type and safety invariant *)
+
+Invariant ==
+    /\ TypeOK
+    /\ Safe
+
+-----------------------------------------------------------------------------
+(* State Constraint for Bounded Model Checking *)
+(* Limits the total number of pending messages to enable finite state exploration *)
+
+CONSTANTS MaxPending
+
+StateConstraint ==
+    \A i \in Nodes : pending[i] <= MaxPending
+
+(* Alternative: bound on total pending messages *)
+
+TotalPendingBound ==
+    LET TotalPending == 
+        LET Sum[S \in SUBSET Nodes] ==
+            IF S = {} THEN 0
+            ELSE LET x == CHOOSE x \in S : TRUE
+                 IN pending[x] + Sum[S \ {x}]
+        IN Sum[Nodes]
+    IN TotalPending <= N * MaxPending
+
+=============================================================================
+```

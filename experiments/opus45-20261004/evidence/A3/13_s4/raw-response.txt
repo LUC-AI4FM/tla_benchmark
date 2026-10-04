@@ -1,0 +1,171 @@
+```tla+
+---------------------------- MODULE RollingDeployment ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Servers
+
+ASSUME Servers # {}
+
+VARIABLES
+    serverVersion,      \* serverVersion[s] \in {"old", "new"} - current software version on server s
+    serverStatus,       \* serverStatus[s] \in {"in_service", "out_of_service"} - load balancer status
+    updateState,        \* updateState[s] \in {"idle", "updating", "updated"} - update process state
+    coordState,         \* coordinator state
+    coordServer,        \* current server being processed by coordinator (or a dummy value)
+    pendingServers,     \* set of servers not yet processed
+    pc_updater,         \* program counter for each server's update process
+    pc_coord            \* program counter for coordinator
+
+vars == <<serverVersion, serverStatus, updateState, coordState, coordServer, pendingServers, pc_updater, pc_coord>>
+
+\* Type invariant
+TypeOK ==
+    /\ serverVersion \in [Servers -> {"old", "new"}]
+    /\ serverStatus \in [Servers -> {"in_service", "out_of_service"}]
+    /\ updateState \in [Servers -> {"idle", "updating", "updated"}]
+    /\ coordState \in {"init", "selecting", "removing", "triggering", "waiting", "restoring", "done"}
+    /\ (coordServer \in Servers \/ coordServer = "none")
+    /\ pendingServers \subseteq Servers
+    /\ pc_updater \in [Servers -> {"ready", "do_update", "finish_update", "done"}]
+    /\ pc_coord \in {"start", "select", "remove", "trigger", "wait", "restore", "complete", "terminated"}
+
+\* At least one server should always be in service (availability invariant)
+\* This should hold whenever we're not in the middle of a transition
+AvailabilityInvariant ==
+    \E s \in Servers : serverStatus[s] = "in_service"
+
+\* Safety: A server should not be in service while being updated
+NoServiceWhileUpdating ==
+    \A s \in Servers : updateState[s] = "updating" => serverStatus[s] = "out_of_service"
+
+\* Initialization
+Init ==
+    /\ serverVersion = [s \in Servers |-> "old"]
+    /\ serverStatus = [s \in Servers |-> "in_service"]
+    /\ updateState = [s \in Servers |-> "idle"]
+    /\ coordState = "init"
+    /\ coordServer = "none"
+    /\ pendingServers = Servers
+    /\ pc_updater = [s \in Servers |-> "ready"]
+    /\ pc_coord = "start"
+
+\* Server update process actions
+\* Each server has an update process that waits for trigger, performs update, then signals completion
+
+UpdaterReady(s) ==
+    /\ pc_updater[s] = "ready"
+    /\ updateState[s] = "updating"  \* triggered by coordinator
+    /\ pc_updater' = [pc_updater EXCEPT ![s] = "do_update"]
+    /\ UNCHANGED <<serverVersion, serverStatus, updateState, coordState, coordServer, pendingServers, pc_coord>>
+
+UpdaterDoUpdate(s) ==
+    /\ pc_updater[s] = "do_update"
+    /\ serverVersion' = [serverVersion EXCEPT ![s] = "new"]
+    /\ pc_updater' = [pc_updater EXCEPT ![s] = "finish_update"]
+    /\ UNCHANGED <<serverStatus, updateState, coordState, coordServer, pendingServers, pc_coord>>
+
+UpdaterFinishUpdate(s) ==
+    /\ pc_updater[s] = "finish_update"
+    /\ updateState' = [updateState EXCEPT ![s] = "updated"]
+    /\ pc_updater' = [pc_updater EXCEPT ![s] = "done"]
+    /\ UNCHANGED <<serverVersion, serverStatus, coordState, coordServer, pendingServers, pc_coord>>
+
+\* Coordinator process actions
+
+CoordStart ==
+    /\ pc_coord = "start"
+    /\ coordState' = "selecting"
+    /\ pc_coord' = "select"
+    /\ UNCHANGED <<serverVersion, serverStatus, updateState, coordServer, pendingServers, pc_updater>>
+
+CoordSelect ==
+    /\ pc_coord = "select"
+    /\ pendingServers # {}
+    /\ \E s \in pendingServers :
+        /\ coordServer' = s
+        /\ pendingServers' = pendingServers \ {s}
+        /\ coordState' = "removing"
+        /\ pc_coord' = "remove"
+    /\ UNCHANGED <<serverVersion, serverStatus, updateState, pc_updater>>
+
+CoordSelectDone ==
+    /\ pc_coord = "select"
+    /\ pendingServers = {}
+    /\ coordState' = "done"
+    /\ pc_coord' = "terminated"
+    /\ UNCHANGED <<serverVersion, serverStatus, updateState, coordServer, pendingServers, pc_updater>>
+
+CoordRemove ==
+    /\ pc_coord = "remove"
+    /\ coordServer # "none"
+    /\ serverStatus' = [serverStatus EXCEPT ![coordServer] = "out_of_service"]
+    /\ coordState' = "triggering"
+    /\ pc_coord' = "trigger"
+    /\ UNCHANGED <<serverVersion, updateState, coordServer, pendingServers, pc_updater>>
+
+CoordTrigger ==
+    /\ pc_coord = "trigger"
+    /\ coordServer # "none"
+    /\ updateState[coordServer] = "idle"
+    /\ updateState' = [updateState EXCEPT ![coordServer] = "updating"]
+    /\ coordState' = "waiting"
+    /\ pc_coord' = "wait"
+    /\ UNCHANGED <<serverVersion, serverStatus, coordServer, pendingServers, pc_updater>>
+
+CoordWait ==
+    /\ pc_coord = "wait"
+    /\ coordServer # "none"
+    /\ updateState[coordServer] = "updated"
+    /\ coordState' = "restoring"
+    /\ pc_coord' = "restore"
+    /\ UNCHANGED <<serverVersion, serverStatus, updateState, coordServer, pendingServers, pc_updater>>
+
+CoordRestore ==
+    /\ pc_coord = "restore"
+    /\ coordServer # "none"
+    /\ serverStatus' = [serverStatus EXCEPT ![coordServer] = "in_service"]
+    /\ coordServer' = "none"
+    /\ coordState' = "selecting"
+    /\ pc_coord' = "select"
+    /\ UNCHANGED <<serverVersion, updateState, pendingServers, pc_updater>>
+
+\* Next state relation
+UpdaterAction(s) ==
+    \/ UpdaterReady(s)
+    \/ UpdaterDoUpdate(s)
+    \/ UpdaterFinishUpdate(s)
+
+CoordAction ==
+    \/ CoordStart
+    \/ CoordSelect
+    \/ CoordSelectDone
+    \/ CoordRemove
+    \/ CoordTrigger
+    \/ CoordWait
+    \/ CoordRestore
+
+Next ==
+    \/ \E s \in Servers : UpdaterAction(s)
+    \/ CoordAction
+
+\* Fairness conditions
+UpdaterFairness == \A s \in Servers : WF_vars(UpdaterAction(s))
+CoordFairness == WF_vars(CoordAction)
+
+\* Full specification with fairness
+Spec == Init /\ [][Next]_vars /\ UpdaterFairness /\ CoordFairness
+
+\* Termination: eventually all processes complete
+AllUpdatersTerminated == \A s \in Servers : pc_updater[s] = "done"
+CoordTerminated == pc_coord = "terminated"
+
+Termination == <>(AllUpdatersTerminated /\ CoordTerminated)
+
+\* All servers eventually updated to new version
+AllServersUpdated == <>((\A s \in Servers : serverVersion[s] = "new"))
+
+\* Eventually all servers back in service
+AllServersInService == <>((\A s \in Servers : serverStatus[s] = "in_service"))
+
+===============================================================================
+```

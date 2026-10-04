@@ -1,0 +1,168 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLAPS
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, b, pc, j, failed
+
+vars == <<x, y, b, pc, j, failed>>
+
+Procs == 1..N
+
+ProcSet == Procs
+
+Init == 
+    /\ x = 0
+    /\ y = 0
+    /\ b = [i \in Procs |-> FALSE]
+    /\ pc = [self \in Procs |-> "ncs"]
+    /\ j = [self \in Procs |-> 1]
+    /\ failed = [self \in Procs |-> FALSE]
+
+(* Non-critical section - process decides to try for critical section *)
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b, j, failed>>
+
+(* Start - set intent flag b[self] to TRUE *)
+start(self) ==
+    /\ pc[self] = "start"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "setx"]
+    /\ UNCHANGED <<x, y, j, failed>>
+
+(* Set x to self *)
+setx(self) ==
+    /\ pc[self] = "setx"
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "checky"]
+    /\ UNCHANGED <<y, b, j, failed>>
+
+(* Check if y is 0 *)
+checky(self) ==
+    /\ pc[self] = "checky"
+    /\ IF y # 0
+       THEN /\ pc' = [pc EXCEPT ![self] = "slowpath"]
+            /\ failed' = [failed EXCEPT ![self] = TRUE]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "sety"]
+            /\ failed' = [failed EXCEPT ![self] = FALSE]
+    /\ UNCHANGED <<x, y, b, j>>
+
+(* Set y to self (fast path) *)
+sety(self) ==
+    /\ pc[self] = "sety"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkx"]
+    /\ UNCHANGED <<x, b, j, failed>>
+
+(* Check if x equals self *)
+checkx(self) ==
+    /\ pc[self] = "checkx"
+    /\ IF x # self
+       THEN /\ pc' = [pc EXCEPT ![self] = "slowpath"]
+            /\ failed' = [failed EXCEPT ![self] = TRUE]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED failed
+    /\ UNCHANGED <<x, y, b, j>>
+
+(* Slow path - clear own flag and scan others *)
+slowpath(self) ==
+    /\ pc[self] = "slowpath"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ j' = [j EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "loop"]
+    /\ UNCHANGED <<x, y, failed>>
+
+(* Loop through all processes checking their b flags *)
+loop(self) ==
+    /\ pc[self] = "loop"
+    /\ IF j[self] <= N
+       THEN /\ IF b[j[self]]
+               THEN /\ pc' = [pc EXCEPT ![self] = "wait"]
+               ELSE /\ j' = [j EXCEPT ![self] = j[self] + 1]
+                    /\ pc' = pc
+            /\ UNCHANGED <<x, y, b, failed>>
+       ELSE /\ pc' = [pc EXCEPT ![self] = "checky2"]
+            /\ UNCHANGED <<x, y, b, j, failed>>
+
+(* Wait for b[j] to become FALSE *)
+wait(self) ==
+    /\ pc[self] = "wait"
+    /\ b[j[self]] = FALSE
+    /\ j' = [j EXCEPT ![self] = j[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "loop"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+(* Second check of y after scanning *)
+checky2(self) ==
+    /\ pc[self] = "checky2"
+    /\ IF y = self
+       THEN /\ pc' = [pc EXCEPT ![self] = "cs"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "retry"]
+    /\ UNCHANGED <<x, y, b, j, failed>>
+
+(* Retry - wait for y to become 0 and restart *)
+retry(self) ==
+    /\ pc[self] = "retry"
+    /\ y = 0
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b, j, failed>>
+
+(* Critical section *)
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<x, y, b, j, failed>>
+
+(* Exit critical section *)
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ y' = 0
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<x, j, failed>>
+
+(* Individual process action *)
+proc(self) ==
+    \/ ncs(self)
+    \/ start(self)
+    \/ setx(self)
+    \/ checky(self)
+    \/ sety(self)
+    \/ checkx(self)
+    \/ slowpath(self)
+    \/ loop(self)
+    \/ wait(self)
+    \/ checky2(self)
+    \/ retry(self)
+    \/ cs(self)
+    \/ exit(self)
+
+Next == \E self \in Procs : proc(self)
+
+Spec == Init /\ [][Next]_vars /\ \A self \in Procs : WF_vars(proc(self))
+
+(* Type invariant *)
+TypeOK ==
+    /\ x \in 0..N
+    /\ y \in 0..N
+    /\ b \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "start", "setx", "checky", "sety", 
+                         "checkx", "slowpath", "loop", "wait", 
+                         "checky2", "retry", "cs", "exit"}]
+    /\ j \in [Procs -> 1..(N+1)]
+    /\ failed \in [Procs -> BOOLEAN]
+
+(* Mutual exclusion: at most one process in critical section *)
+MutualExclusion == \A i, k \in Procs : (i # k) => ~(pc[i] = "cs" /\ pc[k] = "cs")
+
+(* Helper: some process is in critical section *)
+InCS == \E self \in Procs : pc[self] = "cs"
+
+(* Liveness: some process enters critical section infinitely often *)
+Liveness == []<>InCS
+
+==========================================================================

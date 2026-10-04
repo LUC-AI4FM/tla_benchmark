@@ -1,0 +1,117 @@
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+ASSUME N >= 2
+
+Philosophers == 0..(N-1)
+
+(* Each philosopher can be in one of these states:
+   "thinking" - initial state
+   "hungry" - wants to eat, trying to acquire forks
+   "hasFirst" - acquired first fork, waiting for second
+   "eating" - has both forks, eating
+   "releasing" - releasing forks after eating
+*)
+
+VARIABLES
+    pc,      \* program counter for each philosopher
+    forks    \* semaphore array: forks[i] = TRUE means fork i is available
+
+vars == <<pc, forks>>
+
+\* Fork indices: philosopher i uses forks i (left) and (i+1) % N (right)
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+\* For philosopher 0: acquire left first, then right (opposite order)
+\* For philosophers 1..N-1: acquire right first, then left
+FirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)
+SecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)
+
+TypeOK ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating", "releasing"}]
+    /\ forks \in [0..(N-1) -> BOOLEAN]
+
+Init ==
+    /\ pc = [i \in Philosophers |-> "thinking"]
+    /\ forks = [i \in 0..(N-1) |-> TRUE]
+
+\* Philosopher becomes hungry and wants to eat
+BecomeHungry(i) ==
+    /\ pc[i] = "thinking"
+    /\ pc' = [pc EXCEPT ![i] = "hungry"]
+    /\ UNCHANGED forks
+
+\* Philosopher acquires first fork
+AcquireFirst(i) ==
+    /\ pc[i] = "hungry"
+    /\ forks[FirstFork(i)] = TRUE
+    /\ forks' = [forks EXCEPT ![FirstFork(i)] = FALSE]
+    /\ pc' = [pc EXCEPT ![i] = "hasFirst"]
+
+\* Philosopher acquires second fork and starts eating
+AcquireSecond(i) ==
+    /\ pc[i] = "hasFirst"
+    /\ forks[SecondFork(i)] = TRUE
+    /\ forks' = [forks EXCEPT ![SecondFork(i)] = FALSE]
+    /\ pc' = [pc EXCEPT ![i] = "eating"]
+
+\* Philosopher finishes eating and starts releasing forks
+FinishEating(i) ==
+    /\ pc[i] = "eating"
+    /\ pc' = [pc EXCEPT ![i] = "releasing"]
+    /\ UNCHANGED forks
+
+\* Philosopher releases both forks and goes back to thinking
+ReleaseForks(i) ==
+    /\ pc[i] = "releasing"
+    /\ forks' = [forks EXCEPT ![FirstFork(i)] = TRUE, ![SecondFork(i)] = TRUE]
+    /\ pc' = [pc EXCEPT ![i] = "thinking"]
+
+\* Action for philosopher i
+PhilosopherAction(i) ==
+    \/ BecomeHungry(i)
+    \/ AcquireFirst(i)
+    \/ AcquireSecond(i)
+    \/ FinishEating(i)
+    \/ ReleaseForks(i)
+
+Next == \E i \in Philosophers : PhilosopherAction(i)
+
+\* Strong fairness for each philosopher's actions
+Fairness == \A i \in Philosophers : SF_vars(PhilosopherAction(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety: Mutual exclusion for eating - adjacent philosophers cannot eat simultaneously
+\* Two philosophers are adjacent if they share a fork
+MutualExclusion ==
+    \A i \in Philosophers :
+        ~(pc[i] = "eating" /\ pc[(i + 1) % N] = "eating")
+
+\* Alternative formulation: no two philosophers eating share a fork
+NoForkConflict ==
+    \A i, j \in Philosophers :
+        (i # j /\ pc[i] = "eating" /\ pc[j] = "eating") =>
+            (LeftFork(i) # LeftFork(j) /\ LeftFork(i) # RightFork(j) /\
+             RightFork(i) # LeftFork(j) /\ RightFork(i) # RightFork(j))
+
+\* Liveness: Starvation freedom - every hungry philosopher eventually eats
+StarvationFreedom == \A i \in Philosophers : (pc[i] = "hungry") ~> (pc[i] = "eating")
+
+\* Additional liveness: every philosopher who wants to eat will eventually eat
+EventuallyEats == \A i \in Philosophers : [](pc[i] = "hungry" => <>(pc[i] = "eating"))
+
+\* Invariant: forks consistency - a fork is unavailable iff some philosopher holds it
+ForkConsistency ==
+    \A f \in 0..(N-1) :
+        forks[f] = FALSE <=>
+            \E i \in Philosophers :
+                /\ (FirstFork(i) = f \/ SecondFork(i) = f)
+                /\ (pc[i] = "hasFirst" /\ FirstFork(i) = f) \/
+                   (pc[i] = "eating") \/
+                   (pc[i] = "releasing")
+
+===============================================================================

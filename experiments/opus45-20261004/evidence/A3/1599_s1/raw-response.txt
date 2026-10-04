@@ -1,0 +1,181 @@
+```tla+
+------------------------------ MODULE FastMutex ------------------------------
+
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+ASSUME N \in Nat /\ N > 0
+
+Procs == 1..N
+
+VARIABLES x, y, b, pc
+
+vars == <<x, y, b, pc>>
+
+\* Process states/control locations:
+\* "ncs"   - noncritical section
+\* "start" - beginning of entry protocol, set b[self] := TRUE
+\* "setx"  - set x := self
+\* "checkY" - check if y = 0
+\* "setY"  - set y := self
+\* "checkX" - check if x = self
+\* "cs"    - critical section
+\* "exit1" - first exit step: y := 0
+\* "exit2" - second exit step: b[self] := FALSE
+\* "wait"  - waiting loop when y # self
+\* "checkB" - check b[j] for all j
+
+TypeOK ==
+    /\ x \in Procs \cup {0}
+    /\ y \in Procs \cup {0}
+    /\ b \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "start", "setx", "checkY", "setY", "checkX", "wait", "checkB", "cs", "exit1", "exit2"}]
+
+Init ==
+    /\ x = 0
+    /\ y = 0
+    /\ b = [i \in Procs |-> FALSE]
+    /\ pc = [i \in Procs |-> "ncs"]
+
+\* Noncritical section - process decides to enter
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b>>
+
+\* Start entry: set intent flag
+start(self) ==
+    /\ pc[self] = "start"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "setx"]
+    /\ UNCHANGED <<x, y>>
+
+\* Set x to self
+setx(self) ==
+    /\ pc[self] = "setx"
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkY"]
+    /\ UNCHANGED <<y, b>>
+
+\* Check if y = 0
+checkY(self) ==
+    /\ pc[self] = "checkY"
+    /\ IF y = 0
+       THEN pc' = [pc EXCEPT ![self] = "setY"]
+       ELSE pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<x, y, b>>
+
+\* Set y to self
+setY(self) ==
+    /\ pc[self] = "setY"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkX"]
+    /\ UNCHANGED <<x, b>>
+
+\* Check if x = self (fast path)
+checkX(self) ==
+    /\ pc[self] = "checkX"
+    /\ IF x = self
+       THEN pc' = [pc EXCEPT ![self] = "cs"]
+       ELSE pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<x, y, b>>
+
+\* Wait loop: wait until y = self or y = 0, then proceed
+wait(self) ==
+    /\ pc[self] = "wait"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "checkB"]
+    /\ UNCHANGED <<x, y>>
+
+\* Check b array - wait for y, then check all b[j]
+checkB(self) ==
+    /\ pc[self] = "checkB"
+    /\ IF y # self
+       THEN \* Need to wait for y to become 0 or self
+            /\ y \in {0, self}
+            /\ IF y = 0
+               THEN pc' = [pc EXCEPT ![self] = "start"]
+               ELSE \* y = self, check if all b[j] = FALSE for j # self
+                    IF \A j \in Procs \ {self} : b[j] = FALSE
+                    THEN pc' = [pc EXCEPT ![self] = "cs"]
+                    ELSE pc' = [pc EXCEPT ![self] = "checkB"]
+            /\ UNCHANGED <<x, y, b>>
+       ELSE \* y = self, check if all b[j] = FALSE for j # self
+            /\ IF \A j \in Procs \ {self} : b[j] = FALSE
+               THEN pc' = [pc EXCEPT ![self] = "cs"]
+               ELSE pc' = [pc EXCEPT ![self] = "checkB"]
+            /\ UNCHANGED <<x, y, b>>
+
+\* Critical section - process can exit
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit1"]
+    /\ UNCHANGED <<x, y, b>>
+
+\* Exit step 1: clear y
+exit1(self) ==
+    /\ pc[self] = "exit1"
+    /\ y' = 0
+    /\ pc' = [pc EXCEPT ![self] = "exit2"]
+    /\ UNCHANGED <<x, b>>
+
+\* Exit step 2: clear intent flag
+exit2(self) ==
+    /\ pc[self] = "exit2"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<x, y>>
+
+\* Individual process actions
+Proc(self) ==
+    \/ ncs(self)
+    \/ start(self)
+    \/ setx(self)
+    \/ checkY(self)
+    \/ setY(self)
+    \/ checkX(self)
+    \/ wait(self)
+    \/ checkB(self)
+    \/ cs(self)
+    \/ exit1(self)
+    \/ exit2(self)
+
+Next == \E self \in Procs : Proc(self)
+
+\* Safety Invariant: Mutual Exclusion
+MutualExclusion ==
+    \A i, j \in Procs : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* A process trying to enter will eventually enter (unconditional liveness)
+Trying(self) == pc[self] \in {"start", "setx", "checkY", "setY", "checkX", "wait", "checkB"}
+InCS(self) == pc[self] = "cs"
+
+\* Liveness: Every process that starts trying eventually enters CS
+Liveness == \A self \in Procs : Trying(self) ~> InCS(self)
+
+\* Conditional Liveness: If a process is trying and other processes eventually leave CS, it enters
+ConditionalLiveness ==
+    \A self \in Procs :
+        (Trying(self) /\ <>(\A j \in Procs \ {self} : pc[j] # "cs")) ~> InCS(self)
+
+\* Weak fairness for control-location actions except ncs and cs skip steps
+FairSpec ==
+    /\ Init
+    /\ [][Next]_vars
+    /\ \A self \in Procs :
+        /\ WF_vars(start(self))
+        /\ WF_vars(setx(self))
+        /\ WF_vars(checkY(self))
+        /\ WF_vars(setY(self))
+        /\ WF_vars(checkX(self))
+        /\ WF_vars(wait(self))
+        /\ WF_vars(checkB(self))
+        /\ WF_vars(exit1(self))
+        /\ WF_vars(exit2(self))
+
+\* Basic specification without fairness
+Spec == Init /\ [][Next]_vars
+
+==============================================================================
+```

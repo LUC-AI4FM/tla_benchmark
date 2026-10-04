@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------- MODULE MutualExclusion -------------------------------\nEXTENDS Integers\n\nCONSTANTS Proc\n\nVARIABLES pc, lock\n\nvars == <<pc, lock>>\n\nLocations == {\"ncs\", \"l1\", \"cs\", \"l2\"}\n\nTypeOK == /\\ pc \\in [Proc -> Locations]\n          /\\ lock \\in Proc \\union {NULL}\n\nNULL == CHOOSE x : x \\notin Proc\n\nInit == /\\ pc = [p \\in Proc |-> \"ncs\"]\n        /\\ lock = NULL\n\nncs(p) == /\\ pc[p] = \"ncs\"\n          /\\ pc' = [pc EXCEPT ![p] = \"l1\"]\n          /\\ lock' = lock\n\nl1(p) == /\\ pc[p] = \"l1\"\n         /\\ lock = NULL\n         /\\ lock' = p\n         /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n\ncs(p) == /\\ pc[p] = \"cs\"\n         /\\ pc' = [pc EXCEPT ![p] = \"l2\"]\n         /\\ lock' = lock\n\nl2(p) == /\\ pc[p] = \"l2\"\n         /\\ lock' = NULL\n         /\\ pc' = [pc EXCEPT ![p] = \"ncs\"]\n\nproc(p) == ncs(p) \\/ l1(p) \\/ cs(p) \\/ l2(p)\n\nNext == \\E p \\in Proc : proc(p)\n\nSpec == Init /\\ [][Next]_vars /\\ \\A p \\in Proc : WF_vars(proc(p))\n\nMutualExclusion == \\A p, q \\in Proc : (p # q) => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\nProc1 == CHOOSE p \\in Proc : TRUE\n\nLiveness == (pc[Proc1] = \"l1\") ~> (pc[Proc1] = \"cs\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 243,
+    "outputTokens": 490,
+    "totalTokens": 733,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8401
+  }
+}

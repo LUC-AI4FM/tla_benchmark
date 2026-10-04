@@ -1,0 +1,193 @@
+```tla+
+---------------------------- MODULE NBAC ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    Proc,           \* Set of processes
+    Majority        \* Majority threshold for the failure detector
+
+VARIABLES
+    vote,           \* vote[p] = the vote of process p (YES or NO)
+    crashed,        \* crashed[p] = TRUE iff process p has crashed
+    suspected,      \* suspected[p] = TRUE iff process p is suspected by the failure detector
+    decision,       \* decision[p] = the decision of process p (COMMIT, ABORT, or NONE)
+    sent,           \* sent[p] = set of message types sent by process p
+    received,       \* received[p] = set of (sender, message type) pairs received by process p
+    pc              \* pc[p] = program counter of process p
+
+ASSUME Majority \in Nat /\ Majority > Cardinality(Proc) \div 2
+
+Vote == {"YES", "NO"}
+Decision == {"COMMIT", "ABORT", "NONE"}
+MsgType == {"VOTE", "DECIDED"}
+PC == {"init", "voted", "decided", "crashed"}
+
+vars == <<vote, crashed, suspected, decision, sent, received, pc>>
+
+TypeOK ==
+    /\ vote \in [Proc -> Vote]
+    /\ crashed \in [Proc -> BOOLEAN]
+    /\ suspected \in [Proc -> BOOLEAN]
+    /\ decision \in [Proc -> Decision]
+    /\ sent \in [Proc -> SUBSET MsgType]
+    /\ received \in [Proc -> SUBSET (Proc \times MsgType)]
+    /\ pc \in [Proc -> PC]
+
+\* Initial condition: all processes vote YES or all vote NO
+Init ==
+    /\ \/ vote = [p \in Proc |-> "YES"]
+       \/ vote = [p \in Proc |-> "NO"]
+    /\ crashed = [p \in Proc |-> FALSE]
+    /\ suspected = [p \in Proc |-> FALSE]
+    /\ decision = [p \in Proc |-> "NONE"]
+    /\ sent = [p \in Proc |-> {}]
+    /\ received = [p \in Proc |-> {}]
+    /\ pc = [p \in Proc |-> "init"]
+
+\* Process p sends its vote
+SendVote(p) ==
+    /\ pc[p] = "init"
+    /\ ~crashed[p]
+    /\ sent' = [sent EXCEPT ![p] = sent[p] \cup {"VOTE"}]
+    /\ pc' = [pc EXCEPT ![p] = "voted"]
+    /\ UNCHANGED <<vote, crashed, suspected, decision, received>>
+
+\* Process p receives a vote message from process q
+ReceiveVote(p, q) ==
+    /\ pc[p] \in {"init", "voted"}
+    /\ ~crashed[p]
+    /\ "VOTE" \in sent[q]
+    /\ <<q, "VOTE">> \notin received[p]
+    /\ received' = [received EXCEPT ![p] = received[p] \cup {<<q, "VOTE">>}]
+    /\ UNCHANGED <<vote, crashed, suspected, decision, sent, pc>>
+
+\* Process p receives a decision message from process q
+ReceiveDecision(p, q) ==
+    /\ pc[p] \in {"init", "voted"}
+    /\ ~crashed[p]
+    /\ "DECIDED" \in sent[q]
+    /\ <<q, "DECIDED">> \notin received[p]
+    /\ received' = [received EXCEPT ![p] = received[p] \cup {<<q, "DECIDED">>}]
+    /\ UNCHANGED <<vote, crashed, suspected, decision, sent, pc>>
+
+\* Count of votes received by process p
+VotesReceived(p) == Cardinality({q \in Proc : <<q, "VOTE">> \in received[p]})
+
+\* Check if any suspected process exists
+AnySuspected == \E q \in Proc : suspected[q]
+
+\* Check if process p received a decision from any process
+ReceivedDecision(p) == \E q \in Proc : <<q, "DECIDED">> \in received[p]
+
+\* Process p decides to commit
+DecideCommit(p) ==
+    /\ pc[p] = "voted"
+    /\ ~crashed[p]
+    /\ decision[p] = "NONE"
+    /\ \/ \* Received votes from all processes and all voted YES and none suspected
+          /\ VotesReceived(p) = Cardinality(Proc)
+          /\ \A q \in Proc : <<q, "VOTE">> \in received[p] => vote[q] = "YES"
+          /\ ~AnySuspected
+       \/ \* Received a commit decision from another process
+          /\ ReceivedDecision(p)
+          /\ \E q \in Proc : <<q, "DECIDED">> \in received[p] /\ decision[q] = "COMMIT"
+    /\ decision' = [decision EXCEPT ![p] = "COMMIT"]
+    /\ sent' = [sent EXCEPT ![p] = sent[p] \cup {"DECIDED"}]
+    /\ pc' = [pc EXCEPT ![p] = "decided"]
+    /\ UNCHANGED <<vote, crashed, suspected, received>>
+
+\* Process p decides to abort
+DecideAbort(p) ==
+    /\ pc[p] = "voted"
+    /\ ~crashed[p]
+    /\ decision[p] = "NONE"
+    /\ \/ \* Own vote is NO
+          vote[p] = "NO"
+       \/ \* Some process is suspected
+          AnySuspected
+       \/ \* Received a NO vote
+          \E q \in Proc : <<q, "VOTE">> \in received[p] /\ vote[q] = "NO"
+       \/ \* Received an abort decision from another process
+          /\ ReceivedDecision(p)
+          /\ \E q \in Proc : <<q, "DECIDED">> \in received[p] /\ decision[q] = "ABORT"
+    /\ decision' = [decision EXCEPT ![p] = "ABORT"]
+    /\ sent' = [sent EXCEPT ![p] = sent[p] \cup {"DECIDED"}]
+    /\ pc' = [pc EXCEPT ![p] = "decided"]
+    /\ UNCHANGED <<vote, crashed, suspected, received>>
+
+\* Process p crashes
+Crash(p) ==
+    /\ ~crashed[p]
+    /\ pc[p] # "crashed"
+    /\ crashed' = [crashed EXCEPT ![p] = TRUE]
+    /\ pc' = [pc EXCEPT ![p] = "crashed"]
+    /\ UNCHANGED <<vote, suspected, decision, sent, received>>
+
+\* Failure detector suspects process p (can only suspect crashed processes for accuracy)
+Suspect(p) ==
+    /\ crashed[p]
+    /\ ~suspected[p]
+    /\ suspected' = [suspected EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, crashed, decision, sent, received, pc>>
+
+\* A process action (for fairness)
+ProcessAction(p) ==
+    \/ SendVote(p)
+    \/ \E q \in Proc : ReceiveVote(p, q)
+    \/ \E q \in Proc : ReceiveDecision(p, q)
+    \/ DecideCommit(p)
+    \/ DecideAbort(p)
+
+\* Environment action
+EnvAction ==
+    \/ \E p \in Proc : Crash(p)
+    \/ \E p \in Proc : Suspect(p)
+
+Next ==
+    \/ \E p \in Proc : ProcessAction(p)
+    \/ EnvAction
+
+\* Fairness: weak fairness for each non-crashed process action
+Fairness ==
+    /\ \A p \in Proc : WF_vars(SendVote(p))
+    /\ \A p \in Proc : WF_vars(DecideCommit(p))
+    /\ \A p \in Proc : WF_vars(DecideAbort(p))
+    /\ \A p \in Proc : \A q \in Proc : WF_vars(ReceiveVote(p, q))
+    /\ \A p \in Proc : \A q \in Proc : WF_vars(ReceiveDecision(p, q))
+    /\ \A p \in Proc : WF_vars(Suspect(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety: Agreement - no two processes decide differently
+Agreement ==
+    \A p, q \in Proc :
+        (decision[p] # "NONE" /\ decision[q] # "NONE") =>
+        decision[p] = decision[q]
+
+\* Safety: Abort Validity - if a process decides ABORT, then some process voted NO or crashed
+AbortValidity ==
+    \A p \in Proc :
+        decision[p] = "ABORT" =>
+        (\E q \in Proc : vote[q] = "NO" \/ crashed[q])
+
+\* Safety: Commit Validity - if a process decides COMMIT, then all processes voted YES
+CommitValidity ==
+    \A p \in Proc :
+        decision[p] = "COMMIT" =>
+        (\A q \in Proc : vote[q] = "YES")
+
+\* Liveness: Termination - every non-crashed process eventually decides
+Termination ==
+    \A p \in Proc :
+        (pc[p] # "crashed") ~> (decision[p] # "NONE" \/ crashed[p])
+
+\* Liveness: Eventual Commit - if all processes vote YES and no process crashes, eventually all decide COMMIT
+EventualCommit ==
+    ((\A p \in Proc : vote[p] = "YES") /\ [](\A p \in Proc : ~crashed[p])) =>
+    <>(\A p \in Proc : decision[p] = "COMMIT")
+
+\* Combined invariant
+Inv == TypeOK /\ Agreement /\ AbortValidity /\ CommitValidity
+
+=========================================================================
+```

@@ -1,0 +1,158 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLAPS
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, b, pc
+
+vars == <<x, y, b, pc>>
+
+Procs == 1..N
+
+(* Process states/locations:
+   "ncs"  - noncritical section
+   "start" - begin trying to enter critical section
+   "setb" - set b[self] to TRUE
+   "setx" - set x to self
+   "checkx" - check if y = 0
+   "sety" - set y to self
+   "checky" - check if x = self
+   "wait1" - waiting for others to clear b
+   "cs"   - critical section
+   "exit1" - exiting: clear y
+   "exit2" - exiting: clear b[self]
+*)
+
+TypeOK == /\ x \in Procs \cup {0}
+          /\ y \in Procs \cup {0}
+          /\ b \in [Procs -> BOOLEAN]
+          /\ pc \in [Procs -> {"ncs", "start", "setb", "setx", "checkx", 
+                               "sety", "checky", "wait1", "cs", "exit1", "exit2"}]
+
+Init == /\ x = 0
+        /\ y = 0
+        /\ b = [i \in Procs |-> FALSE]
+        /\ pc = [i \in Procs |-> "ncs"]
+
+(* Noncritical section - process decides to try entering CS *)
+ncs(self) == /\ pc[self] = "ncs"
+             /\ pc' = [pc EXCEPT ![self] = "start"]
+             /\ UNCHANGED <<x, y, b>>
+
+(* Start: set b[self] to TRUE *)
+start(self) == /\ pc[self] = "start"
+               /\ b' = [b EXCEPT ![self] = TRUE]
+               /\ pc' = [pc EXCEPT ![self] = "setx"]
+               /\ UNCHANGED <<x, y>>
+
+(* Set x to self *)
+setx(self) == /\ pc[self] = "setx"
+              /\ x' = self
+              /\ pc' = [pc EXCEPT ![self] = "checkx"]
+              /\ UNCHANGED <<y, b>>
+
+(* Check if y = 0 *)
+checkx(self) == /\ pc[self] = "checkx"
+                /\ IF y = 0
+                   THEN pc' = [pc EXCEPT ![self] = "sety"]
+                   ELSE pc' = [pc EXCEPT ![self] = "wait1"]
+                /\ UNCHANGED <<x, y, b>>
+
+(* Set y to self *)
+sety(self) == /\ pc[self] = "sety"
+              /\ y' = self
+              /\ pc' = [pc EXCEPT ![self] = "checky"]
+              /\ UNCHANGED <<x, b>>
+
+(* Check if x = self (fast path) *)
+checky(self) == /\ pc[self] = "checky"
+                /\ IF x = self
+                   THEN pc' = [pc EXCEPT ![self] = "cs"]
+                   ELSE pc' = [pc EXCEPT ![self] = "wait1"]
+                /\ UNCHANGED <<x, y, b>>
+
+(* Wait for all other processes to have b[j] = FALSE, then check y *)
+wait1(self) == /\ pc[self] = "wait1"
+               /\ b' = [b EXCEPT ![self] = FALSE]
+               /\ pc' = [pc EXCEPT ![self] = "wait2"]
+               /\ UNCHANGED <<x, y>>
+
+(* Additional waiting state - await y = self or restart *)
+wait2(self) == /\ pc[self] = "wait2"
+               /\ IF y = self
+                  THEN pc' = [pc EXCEPT ![self] = "wait3"]
+                  ELSE pc' = [pc EXCEPT ![self] = "start"]
+               /\ UNCHANGED <<x, y, b>>
+
+(* Wait for all b[j] = FALSE for j # self *)
+wait3(self) == /\ pc[self] = "wait3"
+               /\ \A j \in Procs \ {self} : b[j] = FALSE
+               /\ pc' = [pc EXCEPT ![self] = "cs"]
+               /\ UNCHANGED <<x, y, b>>
+
+(* Critical section - process is in CS, then decides to exit *)
+cs(self) == /\ pc[self] = "cs"
+            /\ pc' = [pc EXCEPT ![self] = "exit1"]
+            /\ UNCHANGED <<x, y, b>>
+
+(* Exit: clear y *)
+exit1(self) == /\ pc[self] = "exit1"
+               /\ y' = 0
+               /\ pc' = [pc EXCEPT ![self] = "exit2"]
+               /\ UNCHANGED <<x, b>>
+
+(* Exit: clear b[self] *)
+exit2(self) == /\ pc[self] = "exit2"
+               /\ b' = [b EXCEPT ![self] = FALSE]
+               /\ pc' = [pc EXCEPT ![self] = "ncs"]
+               /\ UNCHANGED <<x, y>>
+
+(* Actions for each process *)
+proc(self) == \/ ncs(self)
+              \/ start(self)
+              \/ setx(self)
+              \/ checkx(self)
+              \/ sety(self)
+              \/ checky(self)
+              \/ wait1(self)
+              \/ wait2(self)
+              \/ wait3(self)
+              \/ cs(self)
+              \/ exit1(self)
+              \/ exit2(self)
+
+Next == \E self \in Procs : proc(self)
+
+(* Base specification without fairness *)
+Spec == Init /\ [][Next]_vars
+
+(* Mutual Exclusion Safety Invariant *)
+MutualExclusion == \A i, j \in Procs : 
+                     (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+(* Liveness: Every process that wants to enter CS eventually does *)
+Liveness == \A self \in Procs : 
+              (pc[self] = "start") ~> (pc[self] = "cs")
+
+(* Conditional Liveness: If a process is trying, it eventually enters CS *)
+ConditionalLiveness == \A self \in Procs :
+                         (pc[self] \in {"start", "setx", "checkx", "sety", 
+                                        "checky", "wait1", "wait2", "wait3"}) 
+                         ~> (pc[self] = "cs")
+
+(* Weak fairness for control-location actions except ncs and cs *)
+FairSpec == Spec /\ \A self \in Procs :
+              /\ WF_vars(start(self))
+              /\ WF_vars(setx(self))
+              /\ WF_vars(checkx(self))
+              /\ WF_vars(sety(self))
+              /\ WF_vars(checky(self))
+              /\ WF_vars(wait1(self))
+              /\ WF_vars(wait2(self))
+              /\ WF_vars(wait3(self))
+              /\ WF_vars(exit1(self))
+              /\ WF_vars(exit2(self))
+
+==========================================================================

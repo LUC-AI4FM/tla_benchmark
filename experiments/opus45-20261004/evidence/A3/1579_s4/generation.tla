@@ -1,0 +1,60 @@
+---------------------------- MODULE DijkstraTokenRing ----------------------------
+EXTENDS Naturals, TLAPS
+
+CONSTANT N, K
+
+ASSUME NAssumption == N > 0
+ASSUME KAssumption == K > N
+
+VARIABLE x
+
+vars == <<x>>
+
+Proc == 0..(N-1)
+
+Init == x \in [Proc -> 0..(K-1)]
+
+HasToken(i) ==
+    IF i = 0
+    THEN x[0] = x[N-1]
+    ELSE x[i] # x[i-1]
+
+Process0 ==
+    /\ HasToken(0)
+    /\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]
+
+ProcessI(i) ==
+    /\ i > 0
+    /\ HasToken(i)
+    /\ x' = [x EXCEPT ![i] = x[i-1]]
+
+Next ==
+    \/ Process0
+    \/ \E i \in 1..(N-1) : ProcessI(i)
+
+Fairness ==
+    /\ WF_vars(Process0)
+    /\ \A i \in 1..(N-1) : WF_vars(ProcessI(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+TokenCount == Cardinality({i \in Proc : HasToken(i)})
+
+TypeOK == x \in [Proc -> 0..(K-1)]
+
+AtLeastOneToken == \E i \in Proc : HasToken(i)
+
+ExactlyOneToken == TokenCount = 1
+
+Stabilization == <>[]ExactlyOneToken
+
+THEOREM TypeCorrect == Spec => []TypeOK
+PROOF OMITTED
+
+THEOREM Safety == Spec => []AtLeastOneToken
+PROOF OMITTED
+
+THEOREM Liveness == Spec => Stabilization
+PROOF OMITTED
+
+=============================================================================

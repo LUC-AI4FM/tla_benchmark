@@ -1,0 +1,118 @@
+```tla+
+---------------------------- MODULE QuickSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS ArrayLen
+
+ASSUME ArrayLen \in Nat /\ ArrayLen > 0
+
+VARIABLES arr, arr0, pc, stack, lo, hi
+
+vars == <<arr, arr0, pc, stack, lo, hi>>
+
+\* Helper definitions
+
+Range(f) == {f[i] : i \in DOMAIN f}
+
+\* Check if sequence s is sorted in nondecreasing order
+IsSorted(s) == \A i, j \in DOMAIN s : i < j => s[i] <= s[j]
+
+\* Check if two sequences are permutations of each other
+IsPermutation(s1, s2) ==
+    /\ DOMAIN s1 = DOMAIN s2
+    /\ \A v \in Range(s1) : 
+        Cardinality({i \in DOMAIN s1 : s1[i] = v}) = 
+        Cardinality({i \in DOMAIN s2 : s2[i] = v})
+
+\* All permutations of elements in a set applied to indices lo..hi in sequence s
+Permutations(s, l, h) ==
+    LET indices == l..h
+        elems == [i \in indices |-> s[i]]
+    IN {t \in [1..ArrayLen -> Int] :
+        /\ \A i \in 1..ArrayLen : 
+            IF i < l \/ i > h 
+            THEN t[i] = s[i]
+            ELSE t[i] \in {s[j] : j \in indices}
+        /\ \A v \in {s[j] : j \in indices} :
+            Cardinality({i \in indices : t[i] = v}) = 
+            Cardinality({i \in indices : s[i] = v})}
+
+\* Check if array is partitioned around pivot position p within lo..hi
+IsPartitioned(a, l, p, h) ==
+    /\ \A i \in l..p : \A j \in (p+1)..h : a[i] <= a[j]
+
+\* Initial values for array (nondeterministic)
+InitArray == [i \in 1..ArrayLen -> i]  \* Could be any permutation
+
+\* Type invariant
+TypeOK ==
+    /\ arr \in [1..ArrayLen -> Int]
+    /\ arr0 \in [1..ArrayLen -> Int]
+    /\ pc \in {"QS", "QS_recurse", "QS_return", "Done"}
+    /\ stack \in Seq([lo : Int, hi : Int])
+    /\ lo \in Int
+    /\ hi \in Int
+
+\* Initial state
+Init ==
+    /\ arr \in [1..ArrayLen -> 1..ArrayLen]
+    /\ arr0 = arr
+    /\ pc = "QS"
+    /\ stack = <<>>
+    /\ lo = 1
+    /\ hi = ArrayLen
+
+\* QS procedure: if lo < hi, choose pivot and partition
+QS ==
+    /\ pc = "QS"
+    /\ IF lo < hi
+       THEN \E p \in lo..hi :  \* Nondeterministically choose pivot position
+            \E newArr \in Permutations(arr, lo, hi) :  \* Nondeterministically permute
+                /\ IsPartitioned(newArr, lo, p, hi)
+                /\ arr' = newArr
+                /\ stack' = Append(stack, [lo |-> p+1, hi |-> hi])
+                /\ hi' = p
+                /\ lo' = lo
+                /\ pc' = "QS"
+                /\ UNCHANGED arr0
+       ELSE /\ pc' = "QS_return"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* Return from QS: pop frame or finish
+QS_return ==
+    /\ pc = "QS_return"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+       ELSE /\ lo' = Head(stack).lo
+            /\ hi' = Head(stack).hi
+            /\ stack' = Tail(stack)
+            /\ pc' = "QS"
+            /\ UNCHANGED <<arr, arr0>>
+
+\* Termination state
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+\* Next state relation
+Next == QS \/ QS_return \/ Done
+
+\* Specification with weak fairness
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: array is always a permutation of initial array
+PermutationInvariant == IsPermutation(arr, arr0)
+
+\* Termination property
+Termination == <>(pc = "Done")
+
+\* Final state check: sorted and permutation of initial
+FinalStateCorrect ==
+    pc = "Done" => (IsSorted(arr) /\ IsPermutation(arr, arr0))
+
+\* Combined invariant
+Invariant == PermutationInvariant /\ FinalStateCorrect
+
+==========================================================================
+```

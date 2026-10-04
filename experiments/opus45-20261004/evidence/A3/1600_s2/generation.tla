@@ -1,0 +1,139 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, TLAPS, TLC, FiniteSets
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, b, pc, j, failed
+
+vars == <<x, y, b, pc, j, failed>>
+
+ProcSet == 1..N
+
+Labels == {"ncs", "start", "l1", "l2", "l3", "l4", "l5", "l6", "cs", "l7", "l8"}
+
+TypeOK == /\ x \in (ProcSet \cup {0})
+          /\ y \in (ProcSet \cup {0})
+          /\ b \in [ProcSet -> BOOLEAN]
+          /\ pc \in [ProcSet -> Labels]
+          /\ j \in [ProcSet -> ProcSet]
+          /\ failed \in [ProcSet -> BOOLEAN]
+
+Init == /\ x = 0
+        /\ y = 0
+        /\ b = [i \in ProcSet |-> FALSE]
+        /\ pc = [self \in ProcSet |-> "ncs"]
+        /\ j = [self \in ProcSet |-> 1]
+        /\ failed = [self \in ProcSet |-> FALSE]
+
+\* Non-critical section - process decides to try entering CS
+ncs(self) == /\ pc[self] = "ncs"
+             /\ pc' = [pc EXCEPT ![self] = "start"]
+             /\ UNCHANGED <<x, y, b, j, failed>>
+
+\* Start: set b[self] to TRUE to indicate intent
+start(self) == /\ pc[self] = "start"
+               /\ b' = [b EXCEPT ![self] = TRUE]
+               /\ pc' = [pc EXCEPT ![self] = "l1"]
+               /\ UNCHANGED <<x, y, j, failed>>
+
+\* L1: set x to self
+l1(self) == /\ pc[self] = "l1"
+            /\ x' = self
+            /\ pc' = [pc EXCEPT ![self] = "l2"]
+            /\ UNCHANGED <<y, b, j, failed>>
+
+\* L2: check if y is 0, if not mark as failed
+l2(self) == /\ pc[self] = "l2"
+            /\ IF y # 0
+               THEN /\ failed' = [failed EXCEPT ![self] = TRUE]
+                    /\ pc' = [pc EXCEPT ![self] = "l5"]
+               ELSE /\ failed' = [failed EXCEPT ![self] = FALSE]
+                    /\ pc' = [pc EXCEPT ![self] = "l3"]
+            /\ UNCHANGED <<x, y, b, j>>
+
+\* L3: set y to self
+l3(self) == /\ pc[self] = "l3"
+            /\ y' = self
+            /\ pc' = [pc EXCEPT ![self] = "l4"]
+            /\ UNCHANGED <<x, b, j, failed>>
+
+\* L4: check if x equals self
+l4(self) == /\ pc[self] = "l4"
+            /\ IF x # self
+               THEN /\ pc' = [pc EXCEPT ![self] = "l5"]
+                    /\ failed' = [failed EXCEPT ![self] = TRUE]
+               ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+                    /\ failed' = [failed EXCEPT ![self] = FALSE]
+            /\ UNCHANGED <<x, y, b, j>>
+
+\* L5: scan loop - initialize j to 1
+l5(self) == /\ pc[self] = "l5"
+            /\ j' = [j EXCEPT ![self] = 1]
+            /\ pc' = [pc EXCEPT ![self] = "l6"]
+            /\ UNCHANGED <<x, y, b, failed>>
+
+\* L6: scan all processes to ensure none has b set (except self)
+l6(self) == /\ pc[self] = "l6"
+            /\ IF j[self] <= N
+               THEN /\ IF j[self] # self /\ b[j[self]]
+                       THEN /\ pc' = [pc EXCEPT ![self] = "l6"]
+                            /\ UNCHANGED j  \* spin wait
+                       ELSE /\ j' = [j EXCEPT ![self] = j[self] + 1]
+                            /\ pc' = [pc EXCEPT ![self] = "l6"]
+               ELSE /\ IF failed[self]
+                       THEN /\ pc' = [pc EXCEPT ![self] = "l7"]
+                       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+                    /\ UNCHANGED j
+            /\ UNCHANGED <<x, y, b, failed>>
+
+\* L7: check if y equals self after failed fast path
+l7(self) == /\ pc[self] = "l7"
+            /\ IF y # self
+               THEN /\ pc' = [pc EXCEPT ![self] = "l8"]
+               ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<x, y, b, j, failed>>
+
+\* L8: reset and retry
+l8(self) == /\ pc[self] = "l8"
+            /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "start"]
+            /\ UNCHANGED <<x, y, j, failed>>
+
+\* CS: critical section - process is in CS
+cs(self) == /\ pc[self] = "cs"
+            /\ TRUE  \* do critical section work
+            /\ y' = 0
+            /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "ncs"]
+            /\ UNCHANGED <<x, j, failed>>
+
+\* All actions for a single process
+proc(self) == \/ ncs(self)
+              \/ start(self)
+              \/ l1(self)
+              \/ l2(self)
+              \/ l3(self)
+              \/ l4(self)
+              \/ l5(self)
+              \/ l6(self)
+              \/ l7(self)
+              \/ l8(self)
+              \/ cs(self)
+
+Next == \E self \in ProcSet : proc(self)
+
+\* Specification with weak fairness for each process action
+Spec == Init /\ [][Next]_vars /\ \A self \in ProcSet : WF_vars(proc(self))
+
+\* Safety: Mutual Exclusion - at most one process in critical section
+MutualExclusion == \A i, k \in ProcSet : (i # k) => ~(pc[i] = "cs" /\ pc[k] = "cs")
+
+\* Alternative formulation of mutual exclusion
+AtMostOneInCS == Cardinality({i \in ProcSet : pc[i] = "cs"}) <= 1
+
+\* Liveness: Some process enters CS infinitely often
+SomeoneEntersCS == []<>(\E self \in ProcSet : pc[self] = "cs")
+
+==========================================================================

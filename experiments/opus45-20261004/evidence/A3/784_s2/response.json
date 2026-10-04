@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n-------------------------------- MODULE GameOfLife --------------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nPositions == (0 .. N-1) \\X (0 .. N-1)\n\nVARIABLES grid\n\nTypeOK == grid \\in [Positions -> BOOLEAN]\n\nRECURSIVE SumSet(_, _)\nSumSet(f, S) ==\n    IF S = {} THEN 0\n    ELSE LET x == CHOOSE x \\in S : TRUE\n         IN f[x] + SumSet(f, S \\ {x})\n\nNeighbors(x, y) ==\n    { <<x + dx, y + dy>> : dx \\in {-1, 0, 1}, dy \\in {-1, 0, 1} }\n    \\ { <<x, y>> }\n\nIsAlive(pos) ==\n    IF pos \\in Positions THEN grid[pos] ELSE FALSE\n\nLiveNeighborCount(x, y) ==\n    LET neighborSet == Neighbors(x, y)\n        aliveFunc == [p \\in neighborSet |-> IF IsAlive(p) THEN 1 ELSE 0]\n    IN SumSet(aliveFunc, neighborSet)\n\nNextCellState(x, y) ==\n    LET count == LiveNeighborCount(x, y)\n        alive == grid[<<x, y>>]\n    IN IF alive\n       THEN count \\in {2, 3}\n       ELSE count = 3\n\nInit ==\n    grid \\in [Positions -> BOOLEAN]\n\nNext ==\n    grid' = [pos \\in Positions |-> NextCellState(pos[1], pos[2])]\n\nSpec == Init /\\ [][Next]_grid\n\nAllDead == \\A pos \\in Positions : grid[pos] = FALSE\nAllAlive == \\A pos \\in Positions : grid[pos] = TRUE\n\nLiveCellCount == Cardinality({pos \\in Positions : grid[pos]})\n\nGridBounded == LiveCellCount >= 0 /\\ LiveCellCount <= N * N\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 252,
+    "outputTokens": 517,
+    "totalTokens": 769,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9843
+  }
+}

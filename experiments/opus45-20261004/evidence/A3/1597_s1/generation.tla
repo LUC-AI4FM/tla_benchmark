@@ -1,0 +1,271 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, TLAPS
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+(* 
+--algorithm FastMutex
+variables x = 0, y = 0, b = [i \in 1..N |-> FALSE];
+
+fair process Proc1 = 1
+variables failed1 = FALSE;
+begin
+start1:
+    b[1] := TRUE;
+test1x:
+    x := 1;
+test1y:
+    if y # 0 then
+        b[1] := FALSE;
+wait1:
+        await y = 0;
+        goto start1;
+    end if;
+setY1:
+    y := 1;
+checkX1:
+    if x # 1 then
+        b[1] := FALSE;
+wait1b:
+        await \A j \in 2..N : ~b[j];
+checkY1:
+        if y # 1 then
+wait1c:
+            await y = 0;
+            goto start1;
+        end if;
+    end if;
+cs1:
+    skip;
+exit1:
+    y := 0;
+    b[1] := FALSE;
+    goto start1;
+end process;
+
+fair process ProcN \in 2..N
+variables failedN = FALSE;
+begin
+startN:
+    b[self] := TRUE;
+testNx:
+    x := self;
+testNy:
+    if y # 0 then
+        b[self] := FALSE;
+waitN:
+        await y = 0;
+        goto startN;
+    end if;
+setYN:
+    y := self;
+checkXN:
+    if x # self then
+        b[self] := FALSE;
+waitNb:
+        await \A j \in (1..N) \ {self} : ~b[j];
+checkYN:
+        if y # self then
+waitNc:
+            await y = 0;
+            goto startN;
+        end if;
+    end if;
+csN:
+    skip;
+exitN:
+    y := 0;
+    b[self] := FALSE;
+    goto startN;
+end process;
+
+end algorithm;
+*)
+
+\* BEGIN TRANSLATION
+VARIABLES x, y, b, pc, failed1, failedN
+
+vars == << x, y, b, pc, failed1, failedN >>
+
+ProcSet == {1} \cup (2..N)
+
+Init == (* Global variables *)
+        /\ x = 0
+        /\ y = 0
+        /\ b = [i \in 1..N |-> FALSE]
+        (* Process Proc1 *)
+        /\ failed1 = FALSE
+        (* Process ProcN *)
+        /\ failedN = [self \in 2..N |-> FALSE]
+        /\ pc = [self \in ProcSet |-> CASE self = 1 -> "start1"
+                                        [] self \in 2..N -> "startN"]
+
+start1 == /\ pc[1] = "start1"
+          /\ b' = [b EXCEPT ![1] = TRUE]
+          /\ pc' = [pc EXCEPT ![1] = "test1x"]
+          /\ UNCHANGED << x, y, failed1, failedN >>
+
+test1x == /\ pc[1] = "test1x"
+          /\ x' = 1
+          /\ pc' = [pc EXCEPT ![1] = "test1y"]
+          /\ UNCHANGED << y, b, failed1, failedN >>
+
+test1y == /\ pc[1] = "test1y"
+          /\ IF y # 0
+                THEN /\ b' = [b EXCEPT ![1] = FALSE]
+                     /\ pc' = [pc EXCEPT ![1] = "wait1"]
+                ELSE /\ pc' = [pc EXCEPT ![1] = "setY1"]
+                     /\ b' = b
+          /\ UNCHANGED << x, y, failed1, failedN >>
+
+wait1 == /\ pc[1] = "wait1"
+         /\ y = 0
+         /\ pc' = [pc EXCEPT ![1] = "start1"]
+         /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+setY1 == /\ pc[1] = "setY1"
+         /\ y' = 1
+         /\ pc' = [pc EXCEPT ![1] = "checkX1"]
+         /\ UNCHANGED << x, b, failed1, failedN >>
+
+checkX1 == /\ pc[1] = "checkX1"
+           /\ IF x # 1
+                 THEN /\ b' = [b EXCEPT ![1] = FALSE]
+                      /\ pc' = [pc EXCEPT ![1] = "wait1b"]
+                 ELSE /\ pc' = [pc EXCEPT ![1] = "cs1"]
+                      /\ b' = b
+           /\ UNCHANGED << x, y, failed1, failedN >>
+
+wait1b == /\ pc[1] = "wait1b"
+          /\ \A j \in 2..N : ~b[j]
+          /\ pc' = [pc EXCEPT ![1] = "checkY1"]
+          /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+checkY1 == /\ pc[1] = "checkY1"
+           /\ IF y # 1
+                 THEN /\ pc' = [pc EXCEPT ![1] = "wait1c"]
+                 ELSE /\ pc' = [pc EXCEPT ![1] = "cs1"]
+           /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+wait1c == /\ pc[1] = "wait1c"
+          /\ y = 0
+          /\ pc' = [pc EXCEPT ![1] = "start1"]
+          /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+cs1 == /\ pc[1] = "cs1"
+       /\ TRUE
+       /\ pc' = [pc EXCEPT ![1] = "exit1"]
+       /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+exit1 == /\ pc[1] = "exit1"
+         /\ y' = 0
+         /\ b' = [b EXCEPT ![1] = FALSE]
+         /\ pc' = [pc EXCEPT ![1] = "start1"]
+         /\ UNCHANGED << x, failed1, failedN >>
+
+Proc1 == start1 \/ test1x \/ test1y \/ wait1 \/ setY1 \/ checkX1 
+            \/ wait1b \/ checkY1 \/ wait1c \/ cs1 \/ exit1
+
+startN(self) == /\ pc[self] = "startN"
+                /\ b' = [b EXCEPT ![self] = TRUE]
+                /\ pc' = [pc EXCEPT ![self] = "testNx"]
+                /\ UNCHANGED << x, y, failed1, failedN >>
+
+testNx(self) == /\ pc[self] = "testNx"
+                /\ x' = self
+                /\ pc' = [pc EXCEPT ![self] = "testNy"]
+                /\ UNCHANGED << y, b, failed1, failedN >>
+
+testNy(self) == /\ pc[self] = "testNy"
+                /\ IF y # 0
+                      THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                           /\ pc' = [pc EXCEPT ![self] = "waitN"]
+                      ELSE /\ pc' = [pc EXCEPT ![self] = "setYN"]
+                           /\ b' = b
+                /\ UNCHANGED << x, y, failed1, failedN >>
+
+waitN(self) == /\ pc[self] = "waitN"
+               /\ y = 0
+               /\ pc' = [pc EXCEPT ![self] = "startN"]
+               /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+setYN(self) == /\ pc[self] = "setYN"
+               /\ y' = self
+               /\ pc' = [pc EXCEPT ![self] = "checkXN"]
+               /\ UNCHANGED << x, b, failed1, failedN >>
+
+checkXN(self) == /\ pc[self] = "checkXN"
+                 /\ IF x # self
+                       THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                            /\ pc' = [pc EXCEPT ![self] = "waitNb"]
+                       ELSE /\ pc' = [pc EXCEPT ![self] = "csN"]
+                            /\ b' = b
+                 /\ UNCHANGED << x, y, failed1, failedN >>
+
+waitNb(self) == /\ pc[self] = "waitNb"
+                /\ \A j \in (1..N) \ {self} : ~b[j]
+                /\ pc' = [pc EXCEPT ![self] = "checkYN"]
+                /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+checkYN(self) == /\ pc[self] = "checkYN"
+                 /\ IF y # self
+                       THEN /\ pc' = [pc EXCEPT ![self] = "waitNc"]
+                       ELSE /\ pc' = [pc EXCEPT ![self] = "csN"]
+                 /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+waitNc(self) == /\ pc[self] = "waitNc"
+                /\ y = 0
+                /\ pc' = [pc EXCEPT ![self] = "startN"]
+                /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+csN(self) == /\ pc[self] = "csN"
+             /\ TRUE
+             /\ pc' = [pc EXCEPT ![self] = "exitN"]
+             /\ UNCHANGED << x, y, b, failed1, failedN >>
+
+exitN(self) == /\ pc[self] = "exitN"
+               /\ y' = 0
+               /\ b' = [b EXCEPT ![self] = FALSE]
+               /\ pc' = [pc EXCEPT ![self] = "startN"]
+               /\ UNCHANGED << x, failed1, failedN >>
+
+ProcN(self) == startN(self) \/ testNx(self) \/ testNy(self) \/ waitN(self)
+                  \/ setYN(self) \/ checkXN(self) \/ waitNb(self) 
+                  \/ checkYN(self) \/ waitNc(self) \/ csN(self) \/ exitN(self)
+
+Next == Proc1
+           \/ (\E self \in 2..N: ProcN(self))
+
+Spec == /\ Init /\ [][Next]_vars
+        /\ WF_vars(Proc1)
+        /\ \A self \in 2..N : WF_vars(ProcN(self))
+
+\* END TRANSLATION
+
+-----------------------------------------------------------------------------
+(* Safety: Mutual Exclusion Invariant *)
+(* No two distinct processes are simultaneously in the critical section *)
+
+InCS(i) == IF i = 1 THEN pc[1] = "cs1" ELSE pc[i] = "csN"
+
+MutualExclusion == \A i, j \in 1..N : (i # j) => ~(InCS(i) /\ InCS(j))
+
+TypeOK == /\ x \in 0..N
+          /\ y \in 0..N
+          /\ b \in [1..N -> BOOLEAN]
+          /\ pc[1] \in {"start1", "test1x", "test1y", "wait1", "setY1", 
+                        "checkX1", "wait1b", "checkY1", "wait1c", "cs1", "exit1"}
+          /\ \A i \in 2..N : pc[i] \in {"startN", "testNx", "testNy", "waitN", 
+                                         "setYN", "checkXN", "waitNb", "checkYN", 
+                                         "waitNc", "csN", "exitN"}
+
+-----------------------------------------------------------------------------
+(* Liveness: Infinitely often some process is in the critical section *)
+
+SomeoneInCS == \E i \in 1..N : InCS(i)
+
+Liveness == []<>SomeoneInCS
+
+=============================================================================

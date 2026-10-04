@@ -1,0 +1,69 @@
+```tla
+---------------------------- MODULE AlternatingBit ----------------------------
+
+EXTENDS Naturals, Sequences
+
+CONSTANTS Data
+
+VARIABLES sbit,      \* sender's current send bit
+          abit,      \* sender's acknowledgement bit
+          rbit,      \* receiver's receive bit
+          sent,      \* data value sent by sender
+          rcvd       \* data value received by receiver
+
+vars == <<sbit, abit, rbit, sent, rcvd>>
+
+TypeInvariant ==
+    /\ sbit \in {0, 1}
+    /\ abit \in {0, 1}
+    /\ rbit \in {0, 1}
+    /\ sent \in Data
+    /\ rcvd \in Data
+
+Init ==
+    /\ sbit = 0
+    /\ abit = 0
+    /\ rbit = 1
+    /\ sent \in Data
+    /\ rcvd \in Data
+
+\* Sender sends a new value when ack bit matches send bit
+SendNew ==
+    /\ abit = sbit
+    /\ \E d \in Data :
+        /\ sent' = d
+        /\ sbit' = 1 - sbit
+    /\ UNCHANGED <<abit, rbit, rcvd>>
+
+\* Receiver accepts a message when receive bit differs from sender bit
+ReceiveMsg ==
+    /\ rbit # sbit
+    /\ rcvd' = sent
+    /\ rbit' = sbit
+    /\ UNCHANGED <<sbit, abit, sent>>
+
+\* Sender accepts an acknowledgement when receiver bit differs from sender ack bit
+ReceiveAck ==
+    /\ rbit # abit
+    /\ abit' = rbit
+    /\ UNCHANGED <<sbit, rbit, sent, rcvd>>
+
+Next ==
+    \/ SendNew
+    \/ ReceiveMsg
+    \/ ReceiveAck
+
+Fairness ==
+    /\ WF_vars(ReceiveMsg)
+    /\ WF_vars(ReceiveAck)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariant
+Safety == TypeInvariant
+
+\* Liveness property: sender bit and ack bit are infinitely often out of sync
+InfinitelyOftenOutOfSync == []<>(sbit # abit)
+
+=============================================================================
+```

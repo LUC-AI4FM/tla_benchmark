@@ -1,0 +1,144 @@
+```tla+
+---------------------------- MODULE AsyncTerminationDetection ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES
+    active,      \* active[i] = TRUE iff node i is active
+    pending,     \* pending[i] = number of pending messages for node i
+    detected     \* TRUE iff termination has been detected
+
+vars == <<active, pending, detected>>
+
+Nodes == 0..(N-1)
+
+-----------------------------------------------------------------------------
+(* Type invariant *)
+
+TypeOK ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending \in [Nodes -> Nat]
+    /\ detected \in BOOLEAN
+
+-----------------------------------------------------------------------------
+(* Initial state *)
+
+Init ==
+    /\ active \in [Nodes -> BOOLEAN]
+    /\ pending = [i \in Nodes |-> 0]
+    /\ detected = FALSE
+
+-----------------------------------------------------------------------------
+(* Actual termination predicate - all nodes inactive and no pending messages *)
+
+Terminated ==
+    /\ \A i \in Nodes : ~active[i]
+    /\ \A i \in Nodes : pending[i] = 0
+
+-----------------------------------------------------------------------------
+(* Actions *)
+
+(* A node becomes inactive (terminates) *)
+Terminate(i) ==
+    /\ active[i]
+    /\ active' = [active EXCEPT ![i] = FALSE]
+    /\ UNCHANGED <<pending, detected>>
+
+(* An active node sends a message to another node *)
+SendMsg(i, j) ==
+    /\ active[i]
+    /\ pending' = [pending EXCEPT ![j] = pending[j] + 1]
+    /\ UNCHANGED <<active, detected>>
+
+(* A node receives a pending message and becomes active *)
+ReceiveMsg(i) ==
+    /\ pending[i] > 0
+    /\ pending' = [pending EXCEPT ![i] = pending[i] - 1]
+    /\ active' = [active EXCEPT ![i] = TRUE]
+    /\ UNCHANGED <<detected>>
+
+(* Termination detection occurs when all nodes are inactive and no messages pending *)
+DetectTermination ==
+    /\ ~detected
+    /\ Terminated
+    /\ detected' = TRUE
+    /\ UNCHANGED <<active, pending>>
+
+-----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ \E i \in Nodes : Terminate(i)
+    \/ \E i, j \in Nodes : SendMsg(i, j)
+    \/ \E i \in Nodes : ReceiveMsg(i)
+    \/ DetectTermination
+
+-----------------------------------------------------------------------------
+(* Fairness conditions *)
+
+Fairness == WF_vars(DetectTermination)
+
+-----------------------------------------------------------------------------
+(* Specification *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Properties *)
+
+(* Detection implies actual termination *)
+DetectionSafety == detected => Terminated
+
+(* Once termination is reached (all inactive, no pending), it remains so 
+   unless a message arrives - but since no active nodes can send, 
+   termination is stable *)
+TerminationStable == Terminated => [][Terminated]_vars
+
+(* Alternative formulation: if terminated and no action changes state, 
+   termination persists *)
+TerminationStableAlt == [](Terminated => []Terminated)
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* Actual termination leads to eventual detection *)
+TerminationLeadsToDetection == Terminated ~> detected
+
+-----------------------------------------------------------------------------
+(* Auxiliary Invariants *)
+
+(* Pending counts are non-negative (implied by type but useful for checking) *)
+PendingNonNegative == \A i \in Nodes : pending[i] >= 0
+
+(* Detection is monotonic - once detected, stays detected *)
+DetectionMonotonic == [][detected => detected']_vars
+
+(* If detected, then terminated (same as DetectionSafety, auxiliary form) *)
+DetectedImpliesTerminated == detected => Terminated
+
+(* Combined auxiliary invariant *)
+AuxiliaryInvariant ==
+    /\ TypeOK
+    /\ DetectionSafety
+    /\ PendingNonNegative
+
+-----------------------------------------------------------------------------
+(* State constraint for bounded model checking *)
+
+MaxPending == 3
+
+StateConstraint ==
+    \A i \in Nodes : pending[i] <= MaxPending
+
+-----------------------------------------------------------------------------
+(* Invariants to check *)
+
+Safety ==
+    /\ TypeOK
+    /\ DetectionSafety
+
+=============================================================================
+```

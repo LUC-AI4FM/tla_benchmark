@@ -1,0 +1,83 @@
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N
+
+ASSUME N >= 2
+
+Philosophers == 0..(N-1)
+
+VARIABLES pc, forks
+
+vars == <<pc, forks>>
+
+LeftFork(p) == p
+RightFork(p) == (p + 1) % N
+
+TypeOK ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating"}]
+    /\ forks \in [0..(N-1) -> 0..1]
+
+Init ==
+    /\ pc = [p \in Philosophers |-> "thinking"]
+    /\ forks = [f \in 0..(N-1) |-> 1]
+
+StartThinking(p) ==
+    /\ pc[p] = "thinking"
+    /\ pc' = [pc EXCEPT ![p] = "hungry"]
+    /\ forks' = forks
+
+AcquireFirstFork(p) ==
+    /\ pc[p] = "hungry"
+    /\ IF p = 0
+       THEN /\ forks[LeftFork(p)] = 1
+            /\ forks' = [forks EXCEPT ![LeftFork(p)] = 0]
+       ELSE /\ forks[RightFork(p)] = 1
+            /\ forks' = [forks EXCEPT ![RightFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "hasFirst"]
+
+AcquireSecondFork(p) ==
+    /\ pc[p] = "hasFirst"
+    /\ IF p = 0
+       THEN /\ forks[RightFork(p)] = 1
+            /\ forks' = [forks EXCEPT ![RightFork(p)] = 0]
+       ELSE /\ forks[LeftFork(p)] = 1
+            /\ forks' = [forks EXCEPT ![LeftFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "eating"]
+
+FinishEating(p) ==
+    /\ pc[p] = "eating"
+    /\ forks' = [forks EXCEPT ![LeftFork(p)] = 1, ![RightFork(p)] = 1]
+    /\ pc' = [pc EXCEPT ![p] = "thinking"]
+
+PhilosopherAction(p) ==
+    \/ StartThinking(p)
+    \/ AcquireFirstFork(p)
+    \/ AcquireSecondFork(p)
+    \/ FinishEating(p)
+
+Next == \E p \in Philosophers : PhilosopherAction(p)
+
+Fairness == \A p \in Philosophers : SF_vars(PhilosopherAction(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+MutualExclusion ==
+    \A p1, p2 \in Philosophers :
+        (p1 # p2 /\ pc[p1] = "eating" /\ pc[p2] = "eating") =>
+            (LeftFork(p1) # LeftFork(p2) /\ LeftFork(p1) # RightFork(p2) /\
+             RightFork(p1) # LeftFork(p2) /\ RightFork(p1) # RightFork(p2))
+
+AdjacentNotEating ==
+    \A p \in Philosophers :
+        pc[p] = "eating" => 
+            /\ pc[(p + N - 1) % N] # "eating"
+            /\ pc[(p + 1) % N] # "eating"
+
+StarvationFreedom == \A p \in Philosophers : (pc[p] = "hungry") ~> (pc[p] = "eating")
+
+EventuallyEats == \A p \in Philosophers : []<>(pc[p] = "eating")
+
+NoDeadlock == [](\E p \in Philosophers : ENABLED PhilosopherAction(p))
+
+===================================================================================

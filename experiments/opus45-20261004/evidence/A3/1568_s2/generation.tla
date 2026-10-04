@@ -1,0 +1,141 @@
+---------------------------- MODULE Bakery ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N, MaxTicket
+
+ASSUME N \in Nat /\ N > 0
+ASSUME MaxTicket \in Nat /\ MaxTicket > 0
+
+Procs == 1..N
+
+VARIABLES pc, num, flag, nxt, previous
+
+vars == <<pc, num, flag, nxt, previous>>
+
+TypeOK ==
+    /\ pc \in [Procs -> {"ncs", "e1", "e2", "e3", "e4", "cs", "exit"}]
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ nxt \in [Procs -> Procs]
+    /\ previous \in [Procs -> Nat]
+
+Init ==
+    /\ pc = [p \in Procs |-> "ncs"]
+    /\ num = [p \in Procs |-> 0]
+    /\ flag = [p \in Procs |-> FALSE]
+    /\ nxt = [p \in Procs |-> 1]
+    /\ previous = [p \in Procs |-> 0]
+
+Max(S) == CHOOSE x \in S : \A y \in S : x >= y
+
+MaxNum == Max({num[p] : p \in Procs})
+
+\* Non-critical section - process decides to enter
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "e1"]
+    /\ UNCHANGED <<num, flag, nxt, previous>>
+
+\* Entry phase 1: Set flag to true
+e1(self) ==
+    /\ pc[self] = "e1"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "e2"]
+    /\ UNCHANGED <<num, nxt, previous>>
+
+\* Entry phase 2: Take a ticket number
+e2(self) ==
+    /\ pc[self] = "e2"
+    /\ num' = [num EXCEPT ![self] = MaxNum + 1]
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ nxt' = [nxt EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "e3"]
+    /\ UNCHANGED <<previous>>
+
+\* Entry phase 3: Wait for other processes
+\* Check if we've examined all processes
+e3(self) ==
+    /\ pc[self] = "e3"
+    /\ IF nxt[self] > N
+       THEN /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<num, flag, nxt, previous>>
+       ELSE /\ previous' = [previous EXCEPT ![self] = num[nxt[self]]]
+            /\ pc' = [pc EXCEPT ![self] = "e4"]
+            /\ UNCHANGED <<num, flag, nxt>>
+
+\* Entry phase 4: Wait condition for current nxt process
+e4(self) ==
+    /\ pc[self] = "e4"
+    /\ IF nxt[self] = self
+       THEN \* Skip self
+            /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+            /\ pc' = [pc EXCEPT ![self] = "e3"]
+            /\ UNCHANGED <<num, flag, previous>>
+       ELSE \* Wait until flag[nxt[self]] is FALSE
+            /\ ~flag[nxt[self]]
+            \* Wait until num[nxt[self]] = 0 OR we have priority
+            /\ \/ num[nxt[self]] = 0
+               \/ num[self] < num[nxt[self]]
+               \/ (num[self] = num[nxt[self]] /\ self < nxt[self])
+            /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+            /\ pc' = [pc EXCEPT ![self] = "e3"]
+            /\ UNCHANGED <<num, flag, previous>>
+
+\* Critical section - process is in CS
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, nxt, previous>>
+
+\* Exit: Release ticket
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, nxt, previous>>
+
+\* Process actions
+proc(self) ==
+    \/ ncs(self)
+    \/ e1(self)
+    \/ e2(self)
+    \/ e3(self)
+    \/ e4(self)
+    \/ cs(self)
+    \/ exit(self)
+
+Next == \E self \in Procs : proc(self)
+
+\* Fairness: Weak fairness for all process actions
+Fairness == \A self \in Procs : WF_vars(proc(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+
+\* Safety: Mutual Exclusion - no two processes in CS simultaneously
+MutualExclusion ==
+    \A p1, p2 \in Procs : (p1 # p2) => ~(pc[p1] = "cs" /\ pc[p2] = "cs")
+
+\* Alternative formulation
+InCS == {p \in Procs : pc[p] = "cs"}
+MutualExclusionAlt == Cardinality(InCS) <= 1
+
+\* Constraint for TLC model checking - bound ticket numbers
+TicketConstraint == \A p \in Procs : num[p] <= MaxTicket
+
+\* State constraint for model checking
+StateConstraint == \A p \in Procs : num[p] <= MaxTicket
+
+\* Liveness: Every process that wants to enter CS eventually does
+\* (Starvation freedom)
+Liveness == \A p \in Procs : (pc[p] = "e1") ~> (pc[p] = "cs")
+
+\* Liveness: A process in e1 will eventually reach CS
+StarvationFreedom == \A p \in Procs : (pc[p] \in {"e1", "e2", "e3", "e4"}) ~> (pc[p] = "cs")
+
+\* Deadlock freedom: If some process wants to enter, some process will enter
+DeadlockFreedom == 
+    (\E p \in Procs : pc[p] \in {"e1", "e2", "e3", "e4"}) ~> (\E p \in Procs : pc[p] = "cs")
+
+=============================================================================

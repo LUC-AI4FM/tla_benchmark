@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n--------------------------- MODULE AlternatingBit ---------------------------\n\nEXTENDS Naturals, Sequences\n\nCONSTANTS Data\n\nVARIABLES sbit,      \\* Sender's current bit\n          abit,      \\* Sender's acknowledgement bit\n          rbit,      \\* Receiver's bit\n          sent,      \\* Data value being sent\n          rcvd       \\* Data value received\n\nvars == <<sbit, abit, rbit, sent, rcvd>>\n\nTypeInvariant == /\\ sbit \\in {0, 1}\n                 /\\ abit \\in {0, 1}\n                 /\\ rbit \\in {0, 1}\n                 /\\ sent \\in Data\n                 /\\ rcvd \\in Data \\cup {<<>>}\n\nInit == /\\ sbit = 0\n        /\\ abit = 0\n        /\\ rbit = 1\n        /\\ sent \\in Data\n        /\\ rcvd = <<>>\n\n\\* Sender sends a new value when acknowledgement bit matches send bit\nSendNew == /\\ abit = sbit\n           /\\ \\E d \\in Data : sent' = d\n           /\\ sbit' = 1 - sbit\n           /\\ UNCHANGED <<abit, rbit, rcvd>>\n\n\\* Receiver accepts a message when receive bit differs from sender bit\nReceiveMsg == /\\ rbit /= sbit\n              /\\ rcvd' = sent\n              /\\ rbit' = sbit\n              /\\ UNCHANGED <<sbit, abit, sent>>\n\n\\* Sender accepts acknowledgement when receiver bit differs from sender acknowledgement bit\nReceiveAck == /\\ rbit /= abit\n              /\\ abit' = rbit\n              /\\ UNCHANGED <<sbit, rbit, sent, rcvd>>\n\nNext == \\/ SendNew\n        \\/ ReceiveMsg\n        \\/ ReceiveAck\n\n\\* Fairness conditions for message reception and acknowledgement reception\nFairness == /\\ WF_vars(ReceiveMsg)\n            /\\ WF_vars(ReceiveAck)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariant: Type correctness\nSafety == TypeInvariant\n\n\\* Temporal property: sender bit and acknowledgement bit are infinitely often out of sync\nLiveness == []<>(sbit /= abit)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 248,
+    "outputTokens": 575,
+    "totalTokens": 823,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9066
+  }
+}

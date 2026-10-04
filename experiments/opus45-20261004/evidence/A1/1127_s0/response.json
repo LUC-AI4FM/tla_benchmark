@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE TwoPhaseCommit ----------------------------\nCONSTANT RM\n\nVARIABLE rmState\n\nr2 == CHOOSE r \\in RM : TRUE\n\nTypeOK == rmState \\in [RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]\n\nTCTypeOK == TypeOK\n\nConsistent == \n    \\A rm1, rm2 \\in RM : ~(rmState[rm1] = \"committed\" /\\ rmState[rm2] = \"aborted\")\n\nTCConsistent == Consistent\n\nInit == rmState = [rm \\in RM |-> \"working\"]\n\ncanCommit == \\A rm \\in RM : rmState[rm] \\in {\"prepared\", \"committed\"}\n\ncanAbort == \\E rm \\in RM : rmState[rm] \\in {\"working\", \"aborted\"}\n\nPrepare(rm) == \n    /\\ rmState[rm] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![rm] = \"prepared\"]\n\nDecide(rm) ==\n    \\/ /\\ rmState[rm] = \"prepared\"\n       /\\ canCommit\n       /\\ rmState' = [rmState EXCEPT ![rm] = \"committed\"]\n    \\/ /\\ rmState[rm] \\in {\"working\", \"prepared\"}\n       /\\ canAbort\n       /\\ rmState' = [rmState EXCEPT ![rm] = \"aborted\"]\n\nNext == \\E rm \\in RM : Prepare(rm) \\/ Decide(rm)\n\nTCSpec == Init /\\ [][Next]_rmState\n\nTHEOREM TCSpec => [](TCTypeOK /\\ TCConsistent)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 303,
+    "outputTokens": 399,
+    "totalTokens": 702,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7765
+  }
+}

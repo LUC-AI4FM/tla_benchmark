@@ -1,0 +1,218 @@
+---------------------------- MODULE NBAC ----------------------------
+(***************************************************************************)
+(* Non-Blocking Atomic Commitment (NBAC) with crash failures               *)
+(* Based on Raynal 1997                                                    *)
+(* Processes vote YES or NO, exchange messages, may crash, and observe     *)
+(* a local failure detector that can nondeterministically report crashes.  *)
+(***************************************************************************)
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    Proc,           \* Set of processes
+    YES,            \* Vote value: yes
+    NO              \* Vote value: no
+
+VARIABLES
+    vote,           \* vote[p] = the vote of process p (YES or NO)
+    decision,       \* decision[p] = the decision of process p (COMMIT, ABORT, or NONE)
+    crashed,        \* crashed[p] = TRUE if process p has crashed
+    failureDetector,\* failureDetector[p] = TRUE if p's failure detector suspects a crash
+    received,       \* received[p] = set of processes from which p has received votes
+    votesReceived,  \* votesReceived[p] = function mapping sender to vote received by p
+    msgs            \* Set of messages in transit
+
+(***************************************************************************)
+(* Constants for decisions                                                 *)
+(***************************************************************************)
+COMMIT == "COMMIT"
+ABORT == "ABORT"
+NONE == "NONE"
+
+(***************************************************************************)
+(* Type definitions                                                        *)
+(***************************************************************************)
+Vote == {YES, NO}
+Decision == {COMMIT, ABORT, NONE}
+
+Message == [type : {"VOTE"}, sender : Proc, vote : Vote]
+         \cup [type : {"DECISION"}, sender : Proc, decision : {COMMIT, ABORT}]
+
+TypeOK ==
+    /\ vote \in [Proc -> Vote]
+    /\ decision \in [Proc -> Decision]
+    /\ crashed \in [Proc -> BOOLEAN]
+    /\ failureDetector \in [Proc -> BOOLEAN]
+    /\ received \in [Proc -> SUBSET Proc]
+    /\ votesReceived \in [Proc -> [Proc -> Vote \cup {NONE}]]
+    /\ msgs \subseteq Message
+
+(***************************************************************************)
+(* Initial state                                                           *)
+(***************************************************************************)
+Init ==
+    /\ vote \in [Proc -> Vote]  \* Each process starts with some vote
+    /\ decision = [p \in Proc |-> NONE]
+    /\ crashed = [p \in Proc |-> FALSE]
+    /\ failureDetector = [p \in Proc |-> FALSE]
+    /\ received = [p \in Proc |-> {}]
+    /\ votesReceived = [p \in Proc |-> [q \in Proc |-> NONE]]
+    /\ msgs = {}
+
+(***************************************************************************)
+(* Process p broadcasts its vote                                           *)
+(***************************************************************************)
+BroadcastVote(p) ==
+    /\ ~crashed[p]
+    /\ [type |-> "VOTE", sender |-> p, vote |-> vote[p]] \notin msgs
+    /\ msgs' = msgs \cup {[type |-> "VOTE", sender |-> p, vote |-> vote[p]]}
+    /\ UNCHANGED <<vote, decision, crashed, failureDetector, received, votesReceived>>
+
+(***************************************************************************)
+(* Process p receives a vote message from process q                        *)
+(***************************************************************************)
+ReceiveVote(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = NONE
+    /\ \E m \in msgs :
+        /\ m.type = "VOTE"
+        /\ m.sender \notin received[p]
+        /\ received' = [received EXCEPT ![p] = received[p] \cup {m.sender}]
+        /\ votesReceived' = [votesReceived EXCEPT ![p][m.sender] = m.vote]
+        /\ UNCHANGED <<vote, decision, crashed, failureDetector, msgs>>
+
+(***************************************************************************)
+(* Process p receives a decision message                                   *)
+(***************************************************************************)
+ReceiveDecision(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = NONE
+    /\ \E m \in msgs :
+        /\ m.type = "DECISION"
+        /\ decision' = [decision EXCEPT ![p] = m.decision]
+        /\ UNCHANGED <<vote, crashed, failureDetector, received, votesReceived, msgs>>
+
+(***************************************************************************)
+(* Process p's failure detector updates (nondeterministically)             *)
+(***************************************************************************)
+UpdateFailureDetector(p) ==
+    /\ ~crashed[p]
+    /\ \E suspectCrash \in BOOLEAN :
+        \* Failure detector can suspect crash if some process actually crashed
+        \* or can be inaccurate (nondeterministic)
+        /\ failureDetector' = [failureDetector EXCEPT ![p] = suspectCrash]
+        /\ UNCHANGED <<vote, decision, crashed, received, votesReceived, msgs>>
+
+(***************************************************************************)
+(* Process p decides based on received votes and failure detector          *)
+(***************************************************************************)
+Decide(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = NONE
+    /\ \/ \* Decide COMMIT: received all votes, all are YES, no failure suspected
+          /\ received[p] = Proc
+          /\ \A q \in Proc : votesReceived[p][q] = YES
+          /\ ~failureDetector[p]
+          /\ decision' = [decision EXCEPT ![p] = COMMIT]
+          /\ msgs' = msgs \cup {[type |-> "DECISION", sender |-> p, decision |-> COMMIT]}
+       \/ \* Decide ABORT: received a NO vote or failure detector suspects crash
+          /\ \/ \E q \in received[p] : votesReceived[p][q] = NO
+             \/ failureDetector[p]
+          /\ decision' = [decision EXCEPT ![p] = ABORT]
+          /\ msgs' = msgs \cup {[type |-> "DECISION", sender |-> p, decision |-> ABORT]}
+    /\ UNCHANGED <<vote, crashed, failureDetector, received, votesReceived>>
+
+(***************************************************************************)
+(* Process p crashes                                                       *)
+(***************************************************************************)
+Crash(p) ==
+    /\ ~crashed[p]
+    /\ crashed' = [crashed EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, decision, failureDetector, received, votesReceived, msgs>>
+
+(***************************************************************************)
+(* Combined step for process p                                             *)
+(***************************************************************************)
+ProcessStep(p) ==
+    \/ BroadcastVote(p)
+    \/ ReceiveVote(p)
+    \/ ReceiveDecision(p)
+    \/ UpdateFailureDetector(p)
+    \/ Decide(p)
+    \/ Crash(p)
+
+(***************************************************************************)
+(* Next state relation                                                     *)
+(***************************************************************************)
+Next == \E p \in Proc : ProcessStep(p)
+
+(***************************************************************************)
+(* Fairness conditions                                                     *)
+(***************************************************************************)
+Fairness ==
+    /\ \A p \in Proc : WF_<<vote, decision, crashed, failureDetector, received, votesReceived, msgs>>(BroadcastVote(p))
+    /\ \A p \in Proc : WF_<<vote, decision, crashed, failureDetector, received, votesReceived, msgs>>(ReceiveVote(p))
+    /\ \A p \in Proc : WF_<<vote, decision, crashed, failureDetector, received, votesReceived, msgs>>(ReceiveDecision(p))
+    /\ \A p \in Proc : WF_<<vote, decision, crashed, failureDetector, received, votesReceived, msgs>>(Decide(p))
+
+(***************************************************************************)
+(* Specification                                                           *)
+(***************************************************************************)
+Spec == Init /\ [][Next]_<<vote, decision, crashed, failureDetector, received, votesReceived, msgs>> /\ Fairness
+
+(***************************************************************************)
+(* Safety Invariants                                                       *)
+(***************************************************************************)
+
+\* Agreement: No two processes decide differently
+Agreement ==
+    \A p, q \in Proc :
+        (decision[p] # NONE /\ decision[q] # NONE) => decision[p] = decision[q]
+
+\* Validity: If all processes vote YES and no process crashes, 
+\* then the only possible decision is COMMIT
+\* (If someone decides COMMIT, all must have voted YES)
+ValidityCommit ==
+    \A p \in Proc :
+        decision[p] = COMMIT =>
+            \A q \in Proc : vote[q] = YES
+
+\* Validity: If some process votes NO, then the only possible decision is ABORT
+ValidityAbort ==
+    \A p \in Proc :
+        (vote[p] = NO /\ \E q \in Proc : decision[q] # NONE) =>
+            \A q \in Proc : decision[q] # COMMIT
+
+\* Integrity: A process decides at most once
+Integrity ==
+    \A p \in Proc :
+        decision[p] # NONE =>
+            [][decision[p] = decision'[p]]_<<decision>>
+
+\* Non-triviality: COMMIT is possible only if all vote YES and no crash
+NonTriviality ==
+    \A p \in Proc :
+        decision[p] = COMMIT =>
+            /\ \A q \in Proc : vote[q] = YES
+
+\* Combined validity property
+Validity ==
+    /\ ValidityCommit
+    /\ ValidityAbort
+
+(***************************************************************************)
+(* Liveness Properties                                                     *)
+(***************************************************************************)
+
+\* Termination: Every correct (non-crashed) process eventually decides
+\* (assuming fair scheduling and accurate failure detector)
+Termination ==
+    \A p \in Proc :
+        (~crashed[p]) ~> (decision[p] # NONE \/ crashed[p])
+
+\* Non-Blocking: If all correct processes can communicate and failure 
+\* detector is eventually accurate, then every correct process decides
+NonBlocking ==
+    <>(\A p \in Proc : crashed[p] \/ decision[p] # NONE)
+
+==========================================================================

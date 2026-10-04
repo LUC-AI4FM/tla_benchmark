@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE QuickSort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANT ArrayLen\n\nASSUME ArrayLen \\in Nat /\\ ArrayLen >= 0\n\nArrayRange == 1..ArrayLen\n\nPermsOf(S) == {f \\in [S -> S] : \\A y \\in S : \\E x \\in S : f[x] = y}\n\nIsSorted(arr, lo, hi) == \\A i, j \\in lo..hi : i <= j => arr[i] <= arr[j]\n\nIsPermutation(arr1, arr2) == \n    /\\ DOMAIN arr1 = DOMAIN arr2\n    /\\ \\A v \\in ArrayRange : \n        Cardinality({i \\in DOMAIN arr1 : arr1[i] = v}) = \n        Cardinality({i \\in DOMAIN arr2 : arr2[i] = v})\n\nVARIABLES Ainit, A, pc, stack, qlo, qhi, pivot\n\nvars == <<Ainit, A, pc, stack, qlo, qhi, pivot>>\n\nInit ==\n    /\\ Ainit \\in [1..ArrayLen -> ArrayRange]\n    /\\ A = Ainit\n    /\\ pc = \"main\"\n    /\\ stack = <<>>\n    /\\ qlo = 1\n    /\\ qhi = 1\n    /\\ pivot = 1\n\nmain ==\n    /\\ pc = \"main\"\n    /\\ IF ArrayLen > 0\n       THEN /\\ stack' = <<[procedure |-> \"QS\", \n                           qlo |-> qlo, \n                           qhi |-> qhi, \n                           pivot |-> pivot,\n                           pc |-> \"test\"]>> \\o stack\n            /\\ qlo' = 1\n            /\\ qhi' = ArrayLen\n            /\\ pivot' = 1\n            /\\ pc' = \"qs1\"\n       ELSE /\\ pc' = \"test\"\n            /\\ UNCHANGED <<stack, qlo, qhi, pivot>>\n    /\\ UNCHANGED <<Ainit, A>>\n\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF qhi > qlo\n       THEN \\E p \\in qlo..(qhi-1) :\n            \\E newA \\in [1..ArrayLen -> ArrayRange] :\n                /\\ (\\A i \\in 1..ArrayLen : (i < qlo \\/ i > qhi) => newA[i] = A[i])\n                /\\ (\\A i \\in qlo..p, j \\in (p+1)..qhi : newA[i] <= newA[j])\n                /\\ (\\A v \\in ArrayRange : \n                    Cardinality({i \\in qlo..qhi : A[i] = v}) = \n                    Cardinality({i \\in qlo..qhi : newA[i] = v}))\n                /\\ A' = newA\n                /\\ pivot' = p\n                /\\ pc' = \"qs2\"\n       ELSE /\\ pc' = \"qs4\"\n            /\\ UNCHANGED <<A, pivot>>\n    /\\ UNCHANGED <<Ainit, stack, qlo, qhi>>\n\nqs2 ==\n    /\\ pc = \"qs2\"\n    /\\ stack' = <<[procedure |-> \"QS\",\n                   qlo |-> qlo,\n                   qhi |-> qhi,\n                   pivot |-> pivot,\n                   pc |-> \"qs3\"]>> \\o stack\n    /\\ qhi' = pivot\n    /\\ pivot' = 1\n    /\\ pc' = \"qs1\"\n    /\\ UNCHANGED <<Ainit, A, qlo>>\n\nqs3 ==\n    /\\ pc = \"qs3\"\n    /\\ stack' = <<[procedure |-> \"QS\",\n                   qlo |-> qlo,\n                   qhi |-> qhi,\n                   pivot |-> pivot,\n                   pc |-> \"qs4\"]>> \\o stack\n    /\\ qlo' = pivot + 1\n    /\\ pivot' = 1\n    /\\ pc' = \"qs1\"\n    /\\ UNCHANGED <<Ainit, A, qhi>>\n\nqs4 ==\n    /\\ pc = \"qs4\"\n    /\\ IF stack # <<>>\n       THEN /\\ qlo' = Head(stack).qlo\n            /\\ qhi' = Head(stack).qhi\n            /\\ pivot' = Head(stack).pivot\n            /\\ pc' = Head(stack).pc\n            /\\ stack' = Tail(stack)\n       ELSE /\\ pc' = \"test\"\n            /\\ UNCHANGED <<stack, qlo, qhi, pivot>>\n    /\\ UNCHANGED <<Ainit, A>>\n\ntest ==\n    /\\ pc = \"test\"\n    /\\ IsPermutation(A, Ainit)\n    /\\ IsSorted(A, 1, ArrayLen)\n    /\\ pc' = \"Done\"\n    /\\ UNCHANGED <<Ainit, A, stack, qlo, qhi, pivot>>\n\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == main \\/ qs1 \\/ qs2 \\/ qs3 \\/ qs4 \\/ test \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\nTypeInvariant ==\n    /\\ Ainit \\in [1..ArrayLen -> ArrayRange]\n    /\\ A \\in [1..ArrayLen -> ArrayRange]\n    /\\ pc \\in {\"main\", \"qs1\", \"qs2\", \"qs3\", \"qs4\", \"test\", \"Done\"}\n    /\\ qlo \\in 1..ArrayLen \\/ (ArrayLen = 0 /\\ qlo = 1)\n    /\\ qhi \\in 1..ArrayLen \\/ (ArrayLen = 0 /\\ qhi = 1)\n    /\\ pivot \\in 1..ArrayLen \\/ (ArrayLen = 0 /\\ pivot = 1)\n\nPermutationInvariant == IsPermutation(A, Ainit)\n\nSortedWhenDone == pc = \"Done\" => IsSorted(A, 1, ArrayLen)\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 534,
+    "outputTokens": 1550,
+    "totalTokens": 2084,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 20952
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE AlternatingBit ----------------------------\nEXTENDS Naturals, Sequences\n\nCONSTANTS Data\n\nVARIABLES sbit,      \\* sender's current bit\n          abit,      \\* sender's acknowledgement bit\n          rbit,      \\* receiver's bit\n          sent,      \\* data value being sent\n          rcvd       \\* data value received\n\nvars == <<sbit, abit, rbit, sent, rcvd>>\n\nTypeInvariant ==\n    /\\ sbit \\in {0, 1}\n    /\\ abit \\in {0, 1}\n    /\\ rbit \\in {0, 1}\n    /\\ sent \\in Data\n    /\\ rcvd \\in Data\n\nInit ==\n    /\\ sbit = 0\n    /\\ abit = 0\n    /\\ rbit = 1\n    /\\ sent \\in Data\n    /\\ rcvd \\in Data\n\n\\* Sender sends a new value when acknowledgement bit matches send bit\nSendNew ==\n    /\\ abit = sbit\n    /\\ sent' \\in Data\n    /\\ sbit' = 1 - sbit\n    /\\ UNCHANGED <<abit, rbit, rcvd>>\n\n\\* Receiver accepts a message when receive bit differs from sender bit\nRcvMsg ==\n    /\\ rbit /= sbit\n    /\\ rcvd' = sent\n    /\\ rbit' = sbit\n    /\\ UNCHANGED <<sbit, abit, sent>>\n\n\\* Sender accepts an acknowledgement when receiver bit differs from sender acknowledgement bit\nRcvAck ==\n    /\\ rbit /= abit\n    /\\ abit' = rbit\n    /\\ UNCHANGED <<sbit, rbit, sent, rcvd>>\n\nNext ==\n    \\/ SendNew\n    \\/ RcvMsg\n    \\/ RcvAck\n\nFairness ==\n    /\\ WF_vars(RcvMsg)\n    /\\ WF_vars(RcvAck)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariant: type correctness\nSafety == TypeInvariant\n\n\\* Liveness property: sender and acknowledgement bits are infinitely often out of sync\nLiveness == []<>(sbit /= abit)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 248,
+    "outputTokens": 558,
+    "totalTokens": 806,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8316
+  }
+}

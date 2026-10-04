@@ -1,0 +1,100 @@
+```tla+
+---------------------------- MODULE RollingDeployment ----------------------------
+EXTENDS Integers, Sequences, TLC, FiniteSets
+
+CONSTANT UPDATING
+
+VARIABLES load_balancer, update_flag, updated, pc
+
+vars == <<load_balancer, update_flag, updated, pc>>
+
+Servers == {"s1", "s2", "s3"}
+
+Init ==
+    /\ load_balancer = Servers
+    /\ update_flag = [s \in Servers |-> FALSE]
+    /\ updated = [s \in Servers |-> FALSE]
+    /\ pc = [p \in {"start_update"} \cup Servers |-> 
+            IF p = "start_update" THEN "phase1" ELSE "wait_flag"]
+
+(* start_update process actions *)
+phase1 ==
+    /\ pc["start_update"] = "phase1"
+    /\ load_balancer' = load_balancer \ {"s1"}
+    /\ update_flag' = [update_flag EXCEPT !["s2"] = TRUE, !["s3"] = TRUE]
+    /\ pc' = [pc EXCEPT !["start_update"] = "phase2"]
+    /\ UNCHANGED <<updated>>
+
+phase2 ==
+    /\ pc["start_update"] = "phase2"
+    /\ updated["s2"] = TRUE
+    /\ updated["s3"] = TRUE
+    /\ load_balancer' = {"s2", "s3"}
+    /\ update_flag' = [update_flag EXCEPT !["s1"] = TRUE]
+    /\ pc' = [pc EXCEPT !["start_update"] = "phase3"]
+    /\ UNCHANGED <<updated>>
+
+phase3 ==
+    /\ pc["start_update"] = "phase3"
+    /\ updated["s1"] = TRUE
+    /\ load_balancer' = load_balancer \cup {"s1"}
+    /\ pc' = [pc EXCEPT !["start_update"] = "done"]
+    /\ UNCHANGED <<update_flag, updated>>
+
+start_update ==
+    \/ phase1
+    \/ phase2
+    \/ phase3
+
+(* update_server process actions for each server s *)
+wait_flag(s) ==
+    /\ pc[s] = "wait_flag"
+    /\ update_flag[s] = TRUE
+    /\ updated' = [updated EXCEPT ![s] = UPDATING]
+    /\ pc' = [pc EXCEPT ![s] = "updating"]
+    /\ UNCHANGED <<load_balancer, update_flag>>
+
+finish_update(s) ==
+    /\ pc[s] = "updating"
+    /\ updated' = [updated EXCEPT ![s] = TRUE]
+    /\ pc' = [pc EXCEPT ![s] = "done"]
+    /\ UNCHANGED <<load_balancer, update_flag>>
+
+update_server(s) ==
+    \/ wait_flag(s)
+    \/ finish_update(s)
+
+Next ==
+    \/ start_update
+    \/ \E s \in Servers : update_server(s)
+
+Fairness ==
+    /\ WF_vars(start_update)
+    /\ \A s \in Servers : WF_vars(update_server(s))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(* Safety Invariants *)
+
+\* All servers in the load balancer have the same version state
+SameVersion ==
+    \A s1, s2 \in load_balancer : updated[s1] = updated[s2]
+
+\* At least one server in the load balancer is not in UPDATING state
+ZeroDowntime ==
+    \E s \in load_balancer : updated[s] # UPDATING
+
+TypeOK ==
+    /\ load_balancer \subseteq Servers
+    /\ update_flag \in [Servers -> BOOLEAN]
+    /\ updated \in [Servers -> {FALSE, UPDATING, TRUE}]
+    /\ pc \in [{"start_update"} \cup Servers -> {"phase1", "phase2", "phase3", "wait_flag", "updating", "done"}]
+
+(* Liveness Property *)
+
+\* All processes eventually terminate
+Termination ==
+    <>(\A p \in {"start_update"} \cup Servers : pc[p] = "done")
+
+=============================================================================
+```

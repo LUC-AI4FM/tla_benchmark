@@ -1,0 +1,97 @@
+-------------------------------- MODULE Chameneos --------------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS
+    Creatures,      \* Set of creature identifiers
+    Colors,         \* Set of possible colors (e.g., {Blue, Red, Yellow})
+    N,              \* Maximum number of meetings
+    Complement      \* Symmetric complement function: Colors × Colors -> Colors
+
+VARIABLES
+    color,          \* color[c] = current color of creature c
+    meetingCount,   \* meetingCount[c] = number of meetings creature c has participated in
+    meetingPlace,   \* Either <<>> (empty) or <<c, col>> where c is waiting creature with color col
+    totalMeetings,  \* Total number of completed meetings
+    faded           \* faded[c] = TRUE if creature c has faded
+
+vars == <<color, meetingCount, meetingPlace, totalMeetings, faded>>
+
+\* Type invariant
+TypeOK ==
+    /\ color \in [Creatures -> Colors]
+    /\ meetingCount \in [Creatures -> Nat]
+    /\ meetingPlace \in {<<>>} \cup (Creatures \times Colors)
+    /\ totalMeetings \in Nat
+    /\ faded \in [Creatures -> BOOLEAN]
+
+\* Initial state
+Init ==
+    /\ color \in [Creatures -> Colors]      \* Each creature starts with some color
+    /\ meetingCount = [c \in Creatures |-> 0]
+    /\ meetingPlace = <<>>
+    /\ totalMeetings = 0
+    /\ faded = [c \in Creatures |-> FALSE]
+
+\* A creature enters an empty meeting place to wait
+EnterEmpty(c) ==
+    /\ ~faded[c]
+    /\ totalMeetings < N
+    /\ meetingPlace = <<>>
+    /\ meetingPlace' = <<c, color[c]>>
+    /\ UNCHANGED <<color, meetingCount, totalMeetings, faded>>
+
+\* A creature meets another creature waiting in the meeting place
+Meet(c) ==
+    /\ ~faded[c]
+    /\ totalMeetings < N
+    /\ meetingPlace # <<>>
+    /\ meetingPlace[1] # c                  \* Can't meet yourself
+    /\ LET waiter == meetingPlace[1]
+           waiterColor == meetingPlace[2]
+           newColor == Complement[color[c]][waiterColor]
+       IN
+       /\ color' = [color EXCEPT ![c] = newColor, ![waiter] = newColor]
+       /\ meetingCount' = [meetingCount EXCEPT ![c] = @ + 1, ![waiter] = @ + 1]
+       /\ meetingPlace' = <<>>
+       /\ totalMeetings' = totalMeetings + 1
+       /\ UNCHANGED faded
+
+\* A creature tries to meet but the limit is reached, so it fades
+Fade(c) ==
+    /\ ~faded[c]
+    /\ totalMeetings >= N
+    /\ faded' = [faded EXCEPT ![c] = TRUE]
+    /\ UNCHANGED <<color, meetingCount, meetingPlace, totalMeetings>>
+
+\* Next state relation
+Next ==
+    \E c \in Creatures :
+        \/ EnterEmpty(c)
+        \/ Meet(c)
+        \/ Fade(c)
+
+\* Specification without fairness
+Spec == Init /\ [][Next]_vars
+
+\* Sum of all individual meeting counters
+SumMeetingCounts ==
+    LET Sum[S \in SUBSET Creatures] ==
+        IF S = {} THEN 0
+        ELSE LET c == CHOOSE x \in S : TRUE
+             IN meetingCount[c] + Sum[S \ {c}]
+    IN Sum[Creatures]
+
+\* Safety invariant: when total meetings reaches N, sum of individual counts equals 2*N
+\* (Each meeting involves exactly 2 creatures, so each meeting adds 2 to the sum)
+MeetingCountInvariant ==
+    totalMeetings = N => SumMeetingCounts = 2 * N
+
+\* General invariant: the sum of meeting counts always equals 2 * totalMeetings
+SumInvariant ==
+    SumMeetingCounts = 2 * totalMeetings
+
+\* Total meetings never exceeds N
+MeetingLimitInvariant ==
+    totalMeetings <= N
+
+================================================================================

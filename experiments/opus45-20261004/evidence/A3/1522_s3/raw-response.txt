@@ -1,0 +1,180 @@
+```tla+
+---------------------------- MODULE HuangTermination ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, Reals
+
+CONSTANTS Procs, Leader
+
+ASSUME Leader \in Procs
+ASSUME Procs # {}
+
+VARIABLES active,     \* active[p] = TRUE iff process p is active
+          weight,     \* weight[p] = weight held by process p (dyadic rational)
+          msgQueue,   \* msgQueue[p] = sequence of messages (weights) in transit to p
+          terminated  \* terminated = TRUE when leader detects termination
+
+vars == <<active, weight, msgQueue, terminated>>
+
+\* Sum of all weights in a sequence of messages
+SeqWeightSum(seq) == 
+    IF seq = <<>> THEN 0
+    ELSE LET RECURSIVE Sum(_)
+             Sum(s) == IF s = <<>> THEN 0 ELSE Head(s) + Sum(Tail(s))
+         IN Sum(seq)
+
+\* Total weight of all messages in transit
+TotalMsgWeight == 
+    LET procSeq == CHOOSE s \in [1..Cardinality(Procs) -> Procs] : 
+                       \A p \in Procs : \E i \in 1..Cardinality(Procs) : s[i] = p
+        RECURSIVE SumOverProcs(_)
+        SumOverProcs(i) == 
+            IF i > Cardinality(Procs) THEN 0
+            ELSE SeqWeightSum(msgQueue[procSeq[i]]) + SumOverProcs(i+1)
+    IN SumOverProcs(1)
+
+\* Total weight held by all processes
+TotalProcWeight == 
+    LET procSeq == CHOOSE s \in [1..Cardinality(Procs) -> Procs] : 
+                       \A p \in Procs : \E i \in 1..Cardinality(Procs) : s[i] = p
+        RECURSIVE SumOverProcs(_)
+        SumOverProcs(i) == 
+            IF i > Cardinality(Procs) THEN 0
+            ELSE weight[procSeq[i]] + SumOverProcs(i+1)
+    IN SumOverProcs(1)
+
+\* Check if all message queues are empty
+AllQueuesEmpty == \A p \in Procs : msgQueue[p] = <<>>
+
+\* Check if all processes are idle
+AllIdle == \A p \in Procs : ~active[p]
+
+\* Initialize the system
+Init == 
+    /\ active = [p \in Procs |-> IF p = Leader THEN TRUE ELSE FALSE]
+    /\ weight = [p \in Procs |-> IF p = Leader THEN 1 ELSE 0]
+    /\ msgQueue = [p \in Procs |-> <<>>]
+    /\ terminated = FALSE
+
+\* Send action: active process p sends a message to process q
+\* The sender halves its weight and sends half with the message
+Send(p, q) ==
+    /\ active[p]
+    /\ ~terminated
+    /\ weight[p] > 0
+    /\ p # q
+    /\ LET halfWeight == weight[p] / 2
+       IN /\ weight' = [weight EXCEPT ![p] = halfWeight]
+          /\ msgQueue' = [msgQueue EXCEPT ![q] = Append(@, halfWeight)]
+    /\ active' = [active EXCEPT ![q] = TRUE]  \* Receiving a message activates the recipient
+    /\ UNCHANGED terminated
+
+\* Receive action: process p receives a message from its queue
+\* Process adds the message weight to its own weight
+Receive(p) ==
+    /\ msgQueue[p] # <<>>
+    /\ ~terminated
+    /\ LET msg == Head(msgQueue[p])
+       IN /\ weight' = [weight EXCEPT ![p] = @ + msg]
+          /\ msgQueue' = [msgQueue EXCEPT ![p] = Tail(@)]
+    /\ active' = [active EXCEPT ![p] = TRUE]  \* Receiving activates the process
+    /\ UNCHANGED terminated
+
+\* Idle action: active process p becomes idle and returns weight to leader
+\* If process is not the leader, it sends its weight back to the leader
+ReturnWeight(p) ==
+    /\ active[p]
+    /\ ~terminated
+    /\ p # Leader
+    /\ active' = [active EXCEPT ![p] = FALSE]
+    /\ msgQueue' = [msgQueue EXCEPT ![Leader] = Append(@, weight[p])]
+    /\ weight' = [weight EXCEPT ![p] = 0]
+    /\ UNCHANGED terminated
+
+\* Leader becomes idle without returning weight (keeps its weight)
+LeaderIdle ==
+    /\ active[Leader]
+    /\ ~terminated
+    /\ active' = [active EXCEPT ![Leader] = FALSE]
+    /\ UNCHANGED <<weight, msgQueue, terminated>>
+
+\* Leader detects termination when:
+\* - Leader is idle
+\* - Leader has weight = 1 (all weight returned)
+\* - Leader's message queue is empty
+DetectTermination ==
+    /\ ~terminated
+    /\ ~active[Leader]
+    /\ weight[Leader] = 1
+    /\ msgQueue[Leader] = <<>>
+    /\ terminated' = TRUE
+    /\ UNCHANGED <<active, weight, msgQueue>>
+
+\* Stuttering step (for fairness reasoning)
+Stutter ==
+    /\ terminated
+    /\ UNCHANGED vars
+
+Next ==
+    \/ \E p, q \in Procs : Send(p, q)
+    \/ \E p \in Procs : Receive(p)
+    \/ \E p \in Procs : ReturnWeight(p)
+    \/ LeaderIdle
+    \/ DetectTermination
+    \/ Stutter
+
+\* Fairness: all enabled actions eventually happen
+Fairness ==
+    /\ \A p, q \in Procs : WF_vars(Send(p, q))
+    /\ \A p \in Procs : WF_vars(Receive(p))
+    /\ \A p \in Procs : WF_vars(ReturnWeight(p))
+    /\ WF_vars(LeaderIdle)
+    /\ WF_vars(DetectTermination)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Type invariant
+TypeOK ==
+    /\ active \in [Procs -> BOOLEAN]
+    /\ weight \in [Procs -> Real]
+    /\ \A p \in Procs : weight[p] >= 0
+    /\ msgQueue \in [Procs -> Seq(Real)]
+    /\ terminated \in BOOLEAN
+
+\* Safety: weight conservation - sum of all weights always equals 1
+\* This is the key invariant of Huang's algorithm
+WeightConservation ==
+    LET procSeq == CHOOSE s \in [1..Cardinality(Procs) -> Procs] : 
+                       \A p \in Procs : \E i \in 1..Cardinality(Procs) : s[i] = p
+        RECURSIVE ProcSum(_)
+        ProcSum(i) == 
+            IF i > Cardinality(Procs) THEN 0
+            ELSE weight[procSeq[i]] + SeqWeightSum(msgQueue[procSeq[i]]) + ProcSum(i+1)
+    IN ProcSum(1) = 1
+
+\* Safety: when termination is detected, all processes are idle
+TerminationImpliesIdle ==
+    terminated => AllIdle
+
+\* Safety: when termination is detected, all message queues are empty
+TerminationImpliesNoMessages ==
+    terminated => AllQueuesEmpty
+
+\* Safety: Combined termination safety property
+TerminationSafety ==
+    terminated => (AllIdle /\ AllQueuesEmpty)
+
+\* Safety invariant combining all safety properties
+SafetyInvariant ==
+    /\ TypeOK
+    /\ WeightConservation
+    /\ TerminationSafety
+
+\* Liveness: If all processes eventually become and stay idle with no messages,
+\* termination is eventually detected
+TerminationDetected ==
+    (AllIdle /\ AllQueuesEmpty) ~> terminated
+
+\* Liveness: termination is eventually detected (assuming the system eventually quiesces)
+EventualTermination == <>(terminated)
+
+=============================================================================
+```

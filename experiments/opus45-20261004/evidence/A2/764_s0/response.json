@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, TLC, FiniteSets\n\nCONSTANTS NP\n\nASSUME NP \\in Nat /\\ NP >= 2\n\nPhilosophers == 1..NP\n\nLeftFork(p) == p\nRightFork(p) == IF p = NP THEN 1 ELSE p + 1\n\nLeftNeighbor(p) == IF p = 1 THEN NP ELSE p - 1\nRightNeighbor(p) == IF p = NP THEN 1 ELSE p + 1\n\nVARIABLES forks, hungry, pc\n\nvars == <<forks, hungry, pc>>\n\nForkType == [holder: Philosophers, clean: BOOLEAN]\n\nTypeOK ==\n    /\\ forks \\in [1..NP -> ForkType]\n    /\\ hungry \\in [Philosophers -> BOOLEAN]\n    /\\ pc \\in [Philosophers -> {\"Loop\", \"Eat\", \"Think\"}]\n\nInitForkHolder(f) ==\n    IF f = 2 THEN 1\n    ELSE IF f = 1 THEN 1\n    ELSE f - 1\n\nInit ==\n    /\\ forks = [f \\in 1..NP |-> [holder |-> InitForkHolder(f), clean |-> FALSE]]\n    /\\ hungry = [p \\in Philosophers |-> TRUE]\n    /\\ pc = [p \\in Philosophers |-> \"Loop\"]\n\nHoldsLeftFork(p) == forks[LeftFork(p)].holder = p\nHoldsRightFork(p) == forks[RightFork(p)].holder = p\nHoldsBothForks(p) == HoldsLeftFork(p) /\\ HoldsRightFork(p)\n\nLeftForkClean(p) == forks[LeftFork(p)].clean\nRightForkClean(p) == forks[RightFork(p)].clean\nBothForksClean(p) == LeftForkClean(p) /\\ RightForkClean(p)\n\nCanEat(p) == HoldsBothForks(p) /\\ BothForksClean(p)\n\nPassLeftFork(p) ==\n    forks' = [forks EXCEPT ![LeftFork(p)] = [holder |-> LeftNeighbor(p), clean |-> TRUE]]\n\nPassRightFork(p) ==\n    forks' = [forks EXCEPT ![RightFork(p)] = [holder |-> RightNeighbor(p), clean |-> TRUE]]\n\nLoopStep(p) ==\n    /\\ pc[p] = \"Loop\"\n    /\\ \\/ /\\ HoldsLeftFork(p)\n          /\\ ~LeftForkClean(p)\n          /\\ PassLeftFork(p)\n          /\\ pc' = [pc EXCEPT ![p] = \"Loop\"]\n          /\\ UNCHANGED hungry\n       \\/ /\\ HoldsRightFork(p)\n          /\\ ~RightForkClean(p)\n          /\\ ~(HoldsLeftFork(p) /\\ ~LeftForkClean(p))\n          /\\ PassRightFork(p)\n          /\\ pc' = [pc EXCEPT ![p] = \"Loop\"]\n          /\\ UNCHANGED hungry\n       \\/ /\\ hungry[p]\n          /\\ CanEat(p)\n          /\\ pc' = [pc EXCEPT ![p] = \"Eat\"]\n          /\\ UNCHANGED <<forks, hungry>>\n       \\/ /\\ ~hungry[p]\n          /\\ pc' = [pc EXCEPT ![p] = \"Think\"]\n          /\\ UNCHANGED <<forks, hungry>>\n       \\/ /\\ hungry[p]\n          /\\ ~CanEat(p)\n          /\\ ~(HoldsLeftFork(p) /\\ ~LeftForkClean(p))\n          /\\ ~(HoldsRightFork(p) /\\ ~RightForkClean(p))\n          /\\ pc' = [pc EXCEPT ![p] = \"Loop\"]\n          /\\ UNCHANGED <<forks, hungry>>\n\nEatStep(p) ==\n    /\\ pc[p] = \"Eat\"\n    /\\ hungry' = [hungry EXCEPT ![p] = FALSE]\n    /\\ forks' = [forks EXCEPT \n                    ![LeftFork(p)].clean = FALSE,\n                    ![RightFork(p)].clean = FALSE]\n    /\\ pc' = [pc EXCEPT ![p] = \"Loop\"]\n\nThinkStep(p) ==\n    /\\ pc[p] = \"Think\"\n    /\\ hungry' = [hungry EXCEPT ![p] = TRUE]\n    /\\ pc' = [pc EXCEPT ![p] = \"Loop\"]\n    /\\ UNCHANGED forks\n\nPhilosopherStep(p) ==\n    \\/ LoopStep(p)\n    \\/ EatStep(p)\n    \\/ ThinkStep(p)\n\nNext == \\E p \\in Philosophers : PhilosopherStep(p)\n\nFairness == \\A p \\in Philosophers : WF_vars(PhilosopherStep(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nExclusiveAccess ==\n    \\A p \\in Philosophers :\n        ~(pc[p] = \"Eat\" /\\ pc[RightNeighbor(p)] = \"Eat\")\n\nEating(p) == pc[p] = \"Eat\"\n\nNobodyStarves == \\A p \\in Philosophers : []<>Eating(p)\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 448,
+    "outputTokens": 1396,
+    "totalTokens": 1844,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 17938
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE CounterSystem ----------------------------\n\nEXTENDS Naturals\n\nVARIABLES outerX\n\n-----------------------------------------------------------------------------\n(* Inner module defined inline, then instantiated with outerX substituted for x *)\n\nInner(x) ==\n    /\\ x < 3\n    /\\ x' = x + 1\n\nInnerEnabled(x) ==\n    x < 3\n\n-----------------------------------------------------------------------------\n(* Outer module specification *)\n\nInit ==\n    outerX = 0\n\nInnerStep ==\n    Inner(outerX)\n\nNext ==\n    \\/ InnerStep\n    \\/ (~InnerEnabled(outerX) /\\ UNCHANGED outerX)\n\n-----------------------------------------------------------------------------\n(* Fairness: Weak fairness on the inner step *)\n\nFairness ==\n    WF_outerX(InnerStep)\n\n-----------------------------------------------------------------------------\n(* Full specification with fairness *)\n\nSpec ==\n    Init /\\ [][Next]_outerX /\\ Fairness\n\n-----------------------------------------------------------------------------\n(* Safety invariant: outerX is always in valid range *)\n\nTypeInvariant ==\n    outerX \\in 0..3\n\nSafetyInvariant ==\n    outerX >= 0 /\\ outerX <= 3\n\n-----------------------------------------------------------------------------\n(* Liveness property: outerX eventually reaches 3 *)\n\nLivenessProperty ==\n    <>(outerX = 3)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 228,
+    "outputTokens": 331,
+    "totalTokens": 559,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 6337
+  }
+}

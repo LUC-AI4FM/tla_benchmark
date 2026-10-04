@@ -1,0 +1,93 @@
+---------------------------- MODULE DieHard ----------------------------
+EXTENDS Integers, TLC
+
+CONSTANTS SmallCapacity, BigCapacity
+
+VARIABLES small, big, waterUsed
+
+vars == <<small, big, waterUsed>>
+
+TypeOK == /\ small \in 0..SmallCapacity
+          /\ big \in 0..BigCapacity
+          /\ waterUsed \in Nat
+
+Min(a, b) == IF a < b THEN a ELSE b
+
+Init == /\ small = 0
+        /\ big = 0
+        /\ waterUsed = 0
+
+FillSmall == /\ small' = SmallCapacity
+             /\ big' = big
+             /\ waterUsed' = waterUsed + (SmallCapacity - small)
+
+FillBig == /\ big' = BigCapacity
+           /\ small' = small
+           /\ waterUsed' = waterUsed + (BigCapacity - big)
+
+EmptySmall == /\ small' = 0
+              /\ big' = big
+              /\ waterUsed' = waterUsed
+
+EmptyBig == /\ big' = 0
+            /\ small' = small
+            /\ waterUsed' = waterUsed
+
+SmallToBig == LET amount == Min(small, BigCapacity - big)
+              IN /\ small' = small - amount
+                 /\ big' = big + amount
+                 /\ waterUsed' = waterUsed
+
+BigToSmall == LET amount == Min(big, SmallCapacity - small)
+              IN /\ big' = big - amount
+                 /\ small' = small + amount
+                 /\ waterUsed' = waterUsed
+
+Next == \/ FillSmall
+        \/ FillBig
+        \/ EmptySmall
+        \/ EmptyBig
+        \/ SmallToBig
+        \/ BigToSmall
+
+Spec == Init /\ [][Next]_vars
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+NotFourGallons == big # 4
+
+SmallInRange == small >= 0 /\ small <= SmallCapacity
+BigInRange == big >= 0 /\ big <= BigCapacity
+
+-----------------------------------------------------------------------------
+(* TLC Statistics and Model Checking Inspection *)
+
+StateCount == TLCGet("distinct")
+ActionCount == TLCGet("generated")
+
+BigHasFour == big = 4
+
+FourGallonsReachable == 
+    TLCGet("distinct") > 0 => 
+        \E s \in 0..SmallCapacity, b \in 0..BigCapacity : b = 4
+
+CheckStateSpaceSize == TLCGet("distinct") >= 1
+
+CheckActionCount == TLCGet("generated") >= 1
+
+PostCondition == 
+    /\ PrintT(<<"Distinct states:", TLCGet("distinct")>>)
+    /\ PrintT(<<"Generated states:", TLCGet("generated")>>)
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+EventuallyFourGallons == <>(big = 4)
+
+-----------------------------------------------------------------------------
+(* Fairness Conditions *)
+
+FairSpec == Spec /\ WF_vars(Next)
+
+=============================================================================

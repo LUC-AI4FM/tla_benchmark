@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE EuclidGCD ----------------------------\nEXTENDS Integers, Naturals, TLC\n\nCONSTANT MaxNum\n\nASSUME MaxNumAssumption == MaxNum \\in Nat /\\ MaxNum >= 1\n\nVARIABLES pc, u_ini, v_ini, u, v\n\nvars == <<pc, u_ini, v_ini, u, v>>\n\n----------------------------------------------------------------------------\n(* Mathematical definition of GCD *)\n\nDivides(p, n) == \\E q \\in Int : n = p * q\n\nDivisorsOf(n) == {p \\in 1..n : Divides(p, n)}\n\nSetMax(S) == CHOOSE x \\in S : \\A y \\in S : x >= y\n\nGCD(m, n) == SetMax(DivisorsOf(m) \\cap DivisorsOf(n))\n\n----------------------------------------------------------------------------\n(* PlusCal Algorithm (conceptual):\n--algorithm Euclid\nvariables u_ini \\in 1..MaxNum, v_ini \\in 1..MaxNum, u = u_ini, v = v_ini;\nbegin\n    loop:\n        while u /= v do\n            if u > v then\n                u := u - v;\n            else\n                v := v - u;\n            end if;\n        end while;\n    done:\n        skip;\nend algorithm;\n*)\n\n----------------------------------------------------------------------------\n(* TLA+ Translation of PlusCal Algorithm *)\n\nInit ==\n    /\\ u_ini \\in 1..MaxNum\n    /\\ v_ini \\in 1..MaxNum\n    /\\ u = u_ini\n    /\\ v = v_ini\n    /\\ pc = \"loop\"\n\nLoop ==\n    /\\ pc = \"loop\"\n    /\\ IF u /= v\n       THEN /\\ IF u > v\n               THEN /\\ u' = u - v\n                    /\\ v' = v\n               ELSE /\\ v' = v - u\n                    /\\ u' = u\n            /\\ pc' = \"loop\"\n            /\\ UNCHANGED <<u_ini, v_ini>>\n       ELSE /\\ pc' = \"done\"\n            /\\ UNCHANGED <<u_ini, v_ini, u, v>>\n\nDone ==\n    /\\ pc = \"done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ Loop\n    \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n----------------------------------------------------------------------------\n(* Safety Invariants *)\n\nTypeOK ==\n    /\\ u_ini \\in 1..MaxNum\n    /\\ v_ini \\in 1..MaxNum\n    /\\ u \\in 1..MaxNum\n    /\\ v \\in 1..MaxNum\n    /\\ pc \\in {\"loop\", \"done\"}\n\n(* GCD is preserved as an invariant *)\nGCDInvariant ==\n    GCD(u, v) = GCD(u_ini, v_ini)\n\n(* Values remain positive *)\nPositiveInvariant ==\n    /\\ u >= 1\n    /\\ v >= 1\n\n----------------------------------------------------------------------------\n(* Correctness Property *)\n\nCorrectness ==\n    pc = \"done\" => u = GCD(u_ini, v_ini)\n\nPartialCorrectness ==\n    [](pc = \"done\" => u = GCD(u_ini, v_ini))\n\n----------------------------------------------------------------------------\n(* Liveness Properties *)\n\nTermination ==\n    <>(pc = \"done\")\n\n(* The algorithm eventually terminates with the correct result *)\nTerminationWithCorrectness ==\n    <>(pc = \"done\" /\\ u = v /\\ u = GCD(u_ini, v_ini))\n\n----------------------------------------------------------------------------\n(* TLC Counting Expectations *)\n\nCountTerminated ==\n    pc = \"done\"\n\nCountUGreaterThanV ==\n    pc = \"loop\" /\\ u > v\n\nCountVGreaterThanU ==\n    pc = \"loop\" /\\ v > u\n\nCountEqual ==\n    u = v\n\n----------------------------------------------------------------------------\n(* Additional Properties for TLC *)\n\nAlwaysPositive ==\n    [](u >= 1 /\\ v >= 1)\n\nEventuallyEqual ==\n    <>(u = v)\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 229,
+    "outputTokens": 1011,
+    "totalTokens": 1240,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15887
+  }
+}

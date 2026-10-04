@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE Chameneos ----------------------------\n\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N, Creatures, Colors\n\nVARIABLES color, met, place, total, faded\n\nvars == <<color, met, place, total, faded>>\n\n-----------------------------------------------------------------------------\n\nComplement(c1, c2) ==\n    IF c1 = c2 THEN c1\n    ELSE \n        LET other == Colors \\ {c1, c2}\n        IN IF other = {} THEN c1 ELSE CHOOSE c \\in other : TRUE\n\nSumMet == \n    LET Sum[S \\in SUBSET Creatures] ==\n        IF S = {} THEN 0\n        ELSE LET c == CHOOSE x \\in S : TRUE\n             IN met[c] + Sum[S \\ {c}]\n    IN Sum[Creatures]\n\n-----------------------------------------------------------------------------\n\nTypeOK ==\n    /\\ color \\in [Creatures -> Colors]\n    /\\ met \\in [Creatures -> Nat]\n    /\\ place \\in [waiting: SUBSET Creatures, first: Creatures \\cup {<<>>}]\n    /\\ total \\in Nat\n    /\\ faded \\in SUBSET Creatures\n\nInit ==\n    /\\ color \\in [Creatures -> Colors]\n    /\\ met = [c \\in Creatures |-> 0]\n    /\\ place = [waiting |-> {}, first |-> <<>>]\n    /\\ total = 0\n    /\\ faded = {}\n\n-----------------------------------------------------------------------------\n\nEnter(c) ==\n    /\\ c \\notin faded\n    /\\ c \\notin place.waiting\n    /\\ place.first = <<>>\n    /\\ total < N\n    /\\ place' = [waiting |-> place.waiting \\cup {c}, first |-> c]\n    /\\ UNCHANGED <<color, met, total, faded>>\n\nMeet(c) ==\n    /\\ c \\notin faded\n    /\\ c \\notin place.waiting\n    /\\ place.first # <<>>\n    /\\ place.first # c\n    /\\ total < N\n    /\\ LET other == place.first\n           newColor == Complement(color[c], color[other])\n       IN /\\ color' = [color EXCEPT ![c] = newColor, ![other] = newColor]\n          /\\ met' = [met EXCEPT ![c] = @ + 1, ![other] = @ + 1]\n          /\\ total' = total + 1\n          /\\ place' = [waiting |-> place.waiting \\ {other}, first |-> <<>>]\n    /\\ UNCHANGED <<faded>>\n\nFade(c) ==\n    /\\ c \\notin faded\n    /\\ total >= N\n    /\\ faded' = faded \\cup {c}\n    /\\ UNCHANGED <<color, met, place, total>>\n\nLeave(c) ==\n    /\\ c \\in place.waiting\n    /\\ place.first = c\n    /\\ c \\notin faded\n    /\\ place' = [waiting |-> place.waiting \\ {c}, first |-> <<>>]\n    /\\ UNCHANGED <<color, met, total, faded>>\n\n-----------------------------------------------------------------------------\n\nNext ==\n    \\E c \\in Creatures : \n        \\/ Enter(c)\n        \\/ Meet(c)\n        \\/ Fade(c)\n        \\/ Leave(c)\n\nSpec == Init /\\ [][Next]_vars\n\n-----------------------------------------------------------------------------\n\nSafety == (total = N) => (SumMet = 2 * N)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 280,
+    "outputTokens": 847,
+    "totalTokens": 1127,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13303
+  }
+}

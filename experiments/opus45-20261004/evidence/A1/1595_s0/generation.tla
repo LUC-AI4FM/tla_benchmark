@@ -1,0 +1,38 @@
+---------------------------- MODULE spec ----------------------------
+EXTENDS Integers, TLC
+
+VARIABLES pc, x
+
+vars == <<pc, x>>
+
+Init ==
+    /\ pc = "loop"
+    /\ x = 0
+
+Increment ==
+    /\ pc = "loop"
+    /\ x < 10
+    /\ x' = x + 1
+    /\ pc' = "loop"
+
+Finish ==
+    /\ pc = "loop"
+    /\ x = 10
+    /\ pc' = "Done"
+    /\ x' = x
+
+Next ==
+    \/ Increment
+    \/ Finish
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+AtFive == x = 5
+
+FinishLoop == pc = "Done"
+
+PossibleCounts == TLCGet("distinct") >= 0
+
+=========================================================================

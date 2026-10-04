@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE RootedSpanningTree ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME MaxCardinality \\in Nat\nASSUME MaxCardinality >= Cardinality(Nodes)\n\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges \\/ {m, n} \\in Edges}\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\nUpdate(n, m, d) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n]\n    /\\ d > dist[m]\n    /\\ d < dist[n]\n    /\\ mom' = [mom EXCEPT ![n] = m]\n    /\\ dist' = [dist EXCEPT ![n] = d]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes : \\E d \\in 0..MaxCardinality :\n        Update(n, m, d)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTerminated ==\n    ~ENABLED Next\n\nReachableFromRoot ==\n    LET RECURSIVE Reachable(_)\n        Reachable(S) ==\n            LET NewNodes == {n \\in Nodes : \\E m \\in S : n \\in Neighbors(m)}\n            IN IF NewNodes \\ S = {} THEN S\n               ELSE Reachable(S \\cup NewNodes)\n    IN Reachable({Root})\n\nIsTree ==\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes \\ {Root} : \n        /\\ mom[n] \\in Neighbors(n)\n        /\\ dist[n] = dist[mom[n]] + 1\n\nPostcondition ==\n    /\\ \\A n \\in ReachableFromRoot : dist[n] < MaxCardinality\n    /\\ \\A n \\in Nodes \\ ReachableFromRoot : dist[n] = MaxCardinality\n    /\\ \\A n \\in ReachableFromRoot \\ {Root} : mom[n] \\in Neighbors(n)\n    /\\ \\A n \\in ReachableFromRoot \\ {Root} : dist[n] > dist[mom[n]]\n    /\\ mom[Root] = Root\n    /\\ dist[Root] = 0\n\nSafety == Terminated => Postcondition\n\nLiveness == <>Terminated\n\nEventuallyRootParent == \\A n \\in Nodes : <>(mom[n] = Root)\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 729,
+    "totalTokens": 1022,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11338
+  }
+}

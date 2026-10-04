@@ -1,0 +1,147 @@
+```tla+
+---------------------------- MODULE OneStepByzantine ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS N, F, T
+
+VARIABLES
+    sent,           \* sent[v] = number of messages sent with value v
+    rcvd,           \* rcvd[p][v] = number of messages received by process p with value v
+    faulty,         \* set of faulty (Byzantine) processes
+    pc,             \* pc[p] = program counter of process p ("init", "proposed", "decided")
+    proposal,       \* proposal[p] = initial proposal of process p (0 or 1)
+    decision        \* decision[p] = decision value of process p (0, 1, or -1 for undecided)
+
+ASSUME N \in Nat /\ N > 0
+ASSUME F \in Nat /\ F >= 0
+ASSUME T \in Nat /\ T >= 0
+
+Procs == 1..N
+Values == {0, 1}
+
+TypeOK ==
+    /\ sent \in [Values -> 0..N]
+    /\ rcvd \in [Procs -> [Values -> 0..N]]
+    /\ faulty \subseteq Procs
+    /\ pc \in [Procs -> {"init", "proposed", "decided", "faulty"}]
+    /\ proposal \in [Procs -> Values]
+    /\ decision \in [Procs -> {-1, 0, 1}]
+
+\* Initial state where all processes propose 0
+InitAll0 ==
+    /\ sent = [v \in Values |-> 0]
+    /\ rcvd = [p \in Procs |-> [v \in Values |-> 0]]
+    /\ faulty = {}
+    /\ pc = [p \in Procs |-> "init"]
+    /\ proposal = [p \in Procs |-> 0]
+    /\ decision = [p \in Procs |-> -1]
+
+\* Initial state where all processes propose 1
+InitAll1 ==
+    /\ sent = [v \in Values |-> 0]
+    /\ rcvd = [p \in Procs |-> [v \in Values |-> 0]]
+    /\ faulty = {}
+    /\ pc = [p \in Procs |-> "init"]
+    /\ proposal = [p \in Procs |-> 1]
+    /\ decision = [p \in Procs |-> -1]
+
+\* General initial state with arbitrary proposals
+Init ==
+    /\ sent = [v \in Values |-> 0]
+    /\ rcvd = [p \in Procs |-> [v \in Values |-> 0]]
+    /\ faulty = {}
+    /\ pc = [p \in Procs |-> "init"]
+    /\ proposal \in [Procs -> Values]
+    /\ decision = [p \in Procs |-> -1]
+
+\* Process p proposes its value by sending a message
+Propose(p) ==
+    /\ pc[p] = "init"
+    /\ p \notin faulty
+    /\ sent' = [sent EXCEPT ![proposal[p]] = @ + 1]
+    /\ pc' = [pc EXCEPT ![p] = "proposed"]
+    /\ UNCHANGED <<rcvd, faulty, proposal, decision>>
+
+\* Process p receives a message with value v
+Receive(p, v) ==
+    /\ pc[p] \in {"proposed", "init"}
+    /\ p \notin faulty
+    /\ rcvd[p][v] < sent[v] + Cardinality(faulty)  \* Can receive from sent or Byzantine
+    /\ rcvd' = [rcvd EXCEPT ![p][v] = @ + 1]
+    /\ UNCHANGED <<sent, faulty, pc, proposal, decision>>
+
+\* Byzantine process sends arbitrary message
+ByzantineSend(p, v) ==
+    /\ p \in faulty
+    /\ sent' = [sent EXCEPT ![v] = @ + 1]
+    /\ UNCHANGED <<rcvd, faulty, pc, proposal, decision>>
+
+\* Process p decides based on received messages
+Decide(p) ==
+    /\ pc[p] = "proposed"
+    /\ p \notin faulty
+    /\ LET total == rcvd[p][0] + rcvd[p][1]
+       IN total >= N - F  \* Received enough messages
+    /\ \/ /\ rcvd[p][0] >= N - T  \* Threshold for deciding 0
+          /\ decision' = [decision EXCEPT ![p] = 0]
+       \/ /\ rcvd[p][1] >= N - T  \* Threshold for deciding 1
+          /\ decision' = [decision EXCEPT ![p] = 1]
+       \/ /\ rcvd[p][0] < N - T
+          /\ rcvd[p][1] < N - T
+          /\ decision' = [decision EXCEPT ![p] = -1]  \* No decision possible
+    /\ pc' = [pc EXCEPT ![p] = "decided"]
+    /\ UNCHANGED <<sent, rcvd, faulty, proposal>>
+
+\* A correct process becomes faulty (Byzantine)
+BecomeFaulty(p) ==
+    /\ Cardinality(faulty) < F
+    /\ p \notin faulty
+    /\ pc[p] # "decided"
+    /\ faulty' = faulty \cup {p}
+    /\ pc' = [pc EXCEPT ![p] = "faulty"]
+    /\ UNCHANGED <<sent, rcvd, proposal, decision>>
+
+\* Next state relation
+Next ==
+    \/ \E p \in Procs : Propose(p)
+    \/ \E p \in Procs, v \in Values : Receive(p, v)
+    \/ \E p \in Procs : Decide(p)
+    \/ \E p \in Procs : BecomeFaulty(p)
+    \/ \E p \in Procs, v \in Values : ByzantineSend(p, v)
+
+\* Specification with weak fairness
+Spec == Init /\ [][Next]_<<sent, rcvd, faulty, pc, proposal, decision>> 
+        /\ WF_<<sent, rcvd, faulty, pc, proposal, decision>>(Next)
+
+\* Safety: Agreement - no two correct processes decide differently
+Agreement ==
+    \A p, q \in Procs :
+        /\ p \notin faulty
+        /\ q \notin faulty
+        /\ decision[p] \in {0, 1}
+        /\ decision[q] \in {0, 1}
+        => decision[p] = decision[q]
+
+\* Safety: Validity - if all correct processes propose v, then any correct decision is v
+Validity ==
+    \A v \in Values :
+        (\A p \in Procs : p \notin faulty => proposal[p] = v)
+        => (\A p \in Procs : 
+                (p \notin faulty /\ decision[p] \in {0, 1}) => decision[p] = v)
+
+\* Safety: No Byzantine decisions from correct processes
+NoByzantineInfluence ==
+    Cardinality(faulty) <= F
+
+\* Liveness: Termination - every correct process eventually decides
+Termination ==
+    \A p \in Procs : p \notin faulty => <>(pc[p] = "decided")
+
+\* Combined safety invariant
+Safety == TypeOK /\ Agreement /\ Validity /\ NoByzantineInfluence
+
+\* Invariant: Number of faulty processes never exceeds F
+FaultyBound == Cardinality(faulty) <= F
+
+=============================================================================
+```

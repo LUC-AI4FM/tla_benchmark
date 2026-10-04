@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE InnerCounter ----------------------------\nVARIABLE x\n\nTypeOK == x \\in 0..3\n\nInit == x = 0\n\nStep == x < 3 /\\ x' = x + 1\n\nNext == Step \\/ (x >= 3 /\\ UNCHANGED x)\n\nSpec == Init /\\ [][Next]_x /\\ WF_x(Step)\n\nEventuallyThree == <>(x = 3)\n\n=============================================================================\n\n---------------------------- MODULE OuterCounter ----------------------------\nEXTENDS Naturals\n\nVARIABLE outerX\n\nInner == INSTANCE InnerCounter WITH x <- outerX\n\nTypeOK == outerX \\in 0..3\n\nInit == outerX = 0\n\nNext == Inner!Step \\/ (~ENABLED Inner!Step /\\ UNCHANGED outerX)\n\nFairness == WF_outerX(Inner!Step)\n\nSpec == Init /\\ [][Next]_outerX /\\ Fairness\n\n\\* Safety invariant\nSafetyInvariant == outerX \\in 0..3\n\n\\* Liveness property: outerX eventually reaches 3\nEventuallyThree == <>(outerX = 3)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 228,
+    "outputTokens": 290,
+    "totalTokens": 518,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 5960
+  }
+}

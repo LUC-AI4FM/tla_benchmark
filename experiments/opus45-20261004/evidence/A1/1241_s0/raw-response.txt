@@ -1,0 +1,268 @@
+```tla
+---------------------------- MODULE AST ----------------------------
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Object, Any
+
+(* 
+ * This module specifies the translation from the abstract syntax tree 
+ * of a global-naming PlusCal (+CAL) algorithm into a TLA+ specification.
+ *)
+
+(* Fairness options for generated specification *)
+CONSTANTS 
+    NoFairness,
+    WeakFairnessOfProcessActions,
+    WeakFairnessOfNext,
+    StrongFairnessOfProcessActions
+
+(* Basic AST node types *)
+CONSTANTS
+    AlgorithmNode,
+    ProcedureNode,
+    ProcessNode,
+    LabeledStmtNode,
+    AssignNode,
+    IfNode,
+    WhileNode,
+    EitherNode,
+    WithNode,
+    AwaitNode,
+    PrintNode,
+    AssertNode,
+    SkipNode,
+    ReturnNode,
+    CallNode,
+    GotoNode,
+    MacroCallNode
+
+(* Type checking predicate - checks if x is a valid Object *)
+IsObject(x) == x \in Object \/ x = Any
+
+(* AST Node representation *)
+(* An AST node is represented as a record with a "type" field and additional fields *)
+
+IsRecord(r) == DOMAIN r \subseteq STRING
+
+(* Lexeme sequences for TLA+ output *)
+Lexeme == STRING
+LexemeSeq == Seq(Lexeme)
+
+(* Empty lexeme sequence *)
+EmptyLexSeq == << >>
+
+(* Concatenation helper *)
+Concat(s1, s2) == s1 \o s2
+
+(* Variable declarations representation *)
+(* A VarDecl is [name: STRING, init: Object] *)
+IsVarDecl(v) == 
+    /\ IsRecord(v)
+    /\ "name" \in DOMAIN v
+    /\ "init" \in DOMAIN v
+
+(* Expression representation - expressions are Objects in abstract form *)
+IsExpr(e) == IsObject(e)
+
+(* Statement types *)
+StmtTypes == {
+    AssignNode, IfNode, WhileNode, EitherNode, WithNode,
+    AwaitNode, PrintNode, AssertNode, SkipNode, ReturnNode,
+    CallNode, GotoNode, MacroCallNode
+}
+
+(* Check if something is a valid statement node *)
+IsStmt(s) == 
+    /\ IsRecord(s)
+    /\ "type" \in DOMAIN s
+    /\ s.type \in StmtTypes
+
+(* Labeled statement: a label followed by a sequence of statements *)
+IsLabeledStmt(ls) ==
+    /\ IsRecord(ls)
+    /\ "type" \in DOMAIN ls
+    /\ ls.type = LabeledStmtNode
+    /\ "label" \in DOMAIN ls
+    /\ "stmts" \in DOMAIN ls
+
+(* Procedure definition *)
+IsProcedure(p) ==
+    /\ IsRecord(p)
+    /\ "type" \in DOMAIN p
+    /\ p.type = ProcedureNode
+    /\ "name" \in DOMAIN p
+    /\ "params" \in DOMAIN p
+    /\ "decls" \in DOMAIN p
+    /\ "body" \in DOMAIN p
+
+(* Process definition *)
+IsProcess(p) ==
+    /\ IsRecord(p)
+    /\ "type" \in DOMAIN p
+    /\ p.type = ProcessNode
+    /\ "name" \in DOMAIN p
+    /\ "id" \in DOMAIN p
+    /\ "decls" \in DOMAIN p
+    /\ "body" \in DOMAIN p
+    /\ "fairness" \in DOMAIN p
+
+(* Algorithm definition - the root AST node *)
+IsAlgorithm(a) ==
+    /\ IsRecord(a)
+    /\ "type" \in DOMAIN a
+    /\ a.type = AlgorithmNode
+    /\ "name" \in DOMAIN a
+    /\ "decls" \in DOMAIN a
+    /\ "procedures" \in DOMAIN a
+    /\ "processes" \in DOMAIN a
+    /\ "fairness" \in DOMAIN a
+
+(* -------------------------------------------------------------------------- *)
+(* Translation operators - these translate AST nodes to TLA+ lexeme sequences *)
+(* -------------------------------------------------------------------------- *)
+
+(* Translate an expression to lexemes *)
+RECURSIVE TranslateExpr(_)
+TranslateExpr(e) ==
+    IF e = Any THEN <<"TRUE">>
+    ELSE <<ToString(e)>>
+
+(* Translate a variable declaration *)
+TranslateVarDecl(v) ==
+    IF IsVarDecl(v) THEN
+        <<v.name, " = ">> \o TranslateExpr(v.init)
+    ELSE EmptyLexSeq
+
+(* Translate a sequence of variable declarations *)
+RECURSIVE TranslateVarDecls(_)
+TranslateVarDecls(decls) ==
+    IF decls = << >> THEN EmptyLexSeq
+    ELSE IF Len(decls) = 1 THEN TranslateVarDecl(Head(decls))
+    ELSE TranslateVarDecl(Head(decls)) \o <<" /\\ ">> \o TranslateVarDecls(Tail(decls))
+
+(* Translate a statement *)
+RECURSIVE TranslateStmt(_)
+TranslateStmt(s) ==
+    IF ~IsRecord(s) THEN EmptyLexSeq
+    ELSE IF s.type = SkipNode THEN <<"TRUE">>
+    ELSE IF s.type = AssignNode THEN 
+        <<s.var, "' = ">> \o TranslateExpr(s.expr)
+    ELSE IF s.type = AwaitNode THEN
+        TranslateExpr(s.cond)
+    ELSE IF s.type = PrintNode THEN
+        <<"PrintT(">> \o TranslateExpr(s.expr) \o <<")">>
+    ELSE IF s.type = AssertNode THEN
+        <<"Assert(">> \o TranslateExpr(s.expr) \o <<", \"Assertion failed\")">>
+    ELSE EmptyLexSeq
+
+(* Translate a sequence of statements *)
+RECURSIVE TranslateStmts(_)
+TranslateStmts(stmts) ==
+    IF stmts = << >> THEN <<"TRUE">>
+    ELSE IF Len(stmts) = 1 THEN TranslateStmt(Head(stmts))
+    ELSE TranslateStmt(Head(stmts)) \o <<" /\\ ">> \o TranslateStmts(Tail(stmts))
+
+(* Translate a labeled statement *)
+TranslateLabeledStmt(ls) ==
+    IF IsLabeledStmt(ls) THEN
+        <<ls.label, " == ">> \o TranslateStmts(ls.stmts)
+    ELSE EmptyLexSeq
+
+(* Translate a procedure *)
+TranslateProcedure(p) ==
+    IF IsProcedure(p) THEN
+        <<p.name, " == ">> \o <<"\\E self \\in ProcSet: ">> \o 
+        TranslateStmts(p.body)
+    ELSE EmptyLexSeq
+
+(* Translate a process *)
+TranslateProcess(p) ==
+    IF IsProcess(p) THEN
+        <<p.name, "(self) == ">> \o TranslateStmts(p.body)
+    ELSE EmptyLexSeq
+
+(* Generate Init predicate *)
+GenerateInit(alg) ==
+    IF IsAlgorithm(alg) THEN
+        <<"Init == ">> \o TranslateVarDecls(alg.decls)
+    ELSE <<"Init == TRUE">>
+
+(* Generate Next predicate *)
+GenerateNext(alg) ==
+    IF IsAlgorithm(alg) THEN
+        <<"Next == ", "\\/ ", "(\\E self \\in ProcSet: ", "Step(self))">> 
+    ELSE <<"Next == FALSE">>
+
+(* Generate fairness condition based on fairness option *)
+GenerateFairness(alg) ==
+    IF ~IsAlgorithm(alg) THEN EmptyLexSeq
+    ELSE IF alg.fairness = NoFairness THEN EmptyLexSeq
+    ELSE IF alg.fairness = WeakFairnessOfNext THEN 
+        <<"WF_vars(Next)">>
+    ELSE IF alg.fairness = WeakFairnessOfProcessActions THEN
+        <<"\\A self \\in ProcSet: WF_vars(Step(self))">>
+    ELSE IF alg.fairness = StrongFairnessOfProcessActions THEN
+        <<"\\A self \\in ProcSet: SF_vars(Step(self))">>
+    ELSE EmptyLexSeq
+
+(* Generate Spec predicate *)
+GenerateSpec(alg) ==
+    LET fair == GenerateFairness(alg)
+    IN IF fair = EmptyLexSeq THEN
+        <<"Spec == Init /\\ [][Next]_vars">>
+    ELSE
+        <<"Spec == Init /\\ [][Next]_vars /\\ ">> \o fair
+
+(* Generate Termination property *)
+GenerateTermination(alg) ==
+    <<"Termination == <>(\\A self \\in ProcSet: pc[self] = \"Done\")">>
+
+(* Main translation operator - translates full algorithm to TLA+ *)
+TranslateAlgorithm(alg) ==
+    IF IsAlgorithm(alg) THEN
+        GenerateInit(alg) \o <<"\n\n">> \o
+        GenerateNext(alg) \o <<"\n\n">> \o
+        GenerateSpec(alg) \o <<"\n\n">> \o
+        GenerateTermination(alg)
+    ELSE <<"(* Invalid algorithm AST *)">>
+
+(* -------------------------------------------------------------------------- *)
+(* Grammar predicates - define legal abstract syntax trees *)
+(* -------------------------------------------------------------------------- *)
+
+(* Set of all valid AST node types *)
+NodeTypes == {
+    AlgorithmNode, ProcedureNode, ProcessNode, LabeledStmtNode
+} \cup StmtTypes
+
+(* Check if an AST is well-formed *)
+RECURSIVE IsWellFormedAST(_)
+IsWellFormedAST(ast) ==
+    IF ~IsRecord(ast) THEN FALSE
+    ELSE IF "type" \notin DOMAIN ast THEN FALSE
+    ELSE IF ast.type = AlgorithmNode THEN IsAlgorithm(ast)
+    ELSE IF ast.type = ProcedureNode THEN IsProcedure(ast)
+    ELSE IF ast.type = ProcessNode THEN IsProcess(ast)
+    ELSE IF ast.type = LabeledStmtNode THEN IsLabeledStmt(ast)
+    ELSE IF ast.type \in StmtTypes THEN IsStmt(ast)
+    ELSE FALSE
+
+(* Validation - check that translation produces valid output *)
+ValidTranslation(alg) ==
+    /\ IsWellFormedAST(alg)
+    /\ TranslateAlgorithm(alg) # EmptyLexSeq
+
+(* -------------------------------------------------------------------------- *)
+(* Representation notes and limitations (as comments in the actual spec):
+ * 
+ * - Expressions are represented abstractly as Object values
+ * - Any represents an unconstrained expression
+ * - Formatting details (indentation, line breaks) are omitted
+ * - Error cases in translation return empty lexeme sequences
+ * - Macro expansion is not fully modeled
+ * - Some PlusCal constructs (like 'either' branches) simplified
+ * -------------------------------------------------------------------------- *)
+
+=============================================================================
+```

@@ -1,0 +1,59 @@
+```tla
+---------------------------- MODULE FairCounter ----------------------------
+
+EXTENDS Integers, TLC
+
+VARIABLES x, pc
+
+vars == <<x, pc>>
+
+Init ==
+    /\ x = 0
+    /\ pc = "loop"
+
+Loop ==
+    /\ pc = "loop"
+    /\ x < 10
+    /\ x' = x + 1
+    /\ pc' = "loop"
+
+Done ==
+    /\ pc = "loop"
+    /\ x >= 10
+    /\ pc' = "Done"
+    /\ x' = x
+
+Terminated ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ Loop
+    \/ Done
+    \/ Terminated
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+(* Safety Invariant: x is always within valid range *)
+TypeInvariant ==
+    /\ x \in 0..10
+    /\ pc \in {"loop", "Done"}
+
+(* Safety Invariant: when done, x equals 10 *)
+DoneImpliesXIs10 ==
+    pc = "Done" => x = 10
+
+(* Liveness Property: termination - eventually pc = "Done" *)
+Termination == <>(pc = "Done")
+
+(* Auxiliary predicate: true when x equals 5 *)
+AtFive == x = 5
+
+(* Auxiliary predicate: true when the loop has finished *)
+FinishLoop == pc = "Done"
+
+(* TLC-based check about named-state counts *)
+PossibleCounts == x \in 0..10
+
+=============================================================================
+```

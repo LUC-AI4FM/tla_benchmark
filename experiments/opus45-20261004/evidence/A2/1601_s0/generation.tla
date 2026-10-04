@@ -1,0 +1,128 @@
+---------------------------- MODULE Fischer ----------------------------
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N, Delta, Epsilon
+
+ASSUME N \in Nat /\ N > 0
+ASSUME Delta \in Nat /\ Delta > 0
+ASSUME Epsilon \in Nat /\ Epsilon > 0
+
+VARIABLES x, timer, pc
+
+vars == <<x, timer, pc>>
+
+Procs == 1..N
+
+Labels == {"a", "b", "c", "d", "e", "cs", "f"}
+
+TypeOK ==
+    /\ x \in 0..N
+    /\ timer \in [Procs -> Nat \cup {-1}]
+    /\ pc \in [Procs -> Labels]
+
+Init ==
+    /\ x = 0
+    /\ timer = [i \in Procs |-> 0]
+    /\ pc = [i \in Procs |-> "a"]
+
+(* Label a: Start of loop, go to b *)
+a(self) ==
+    /\ pc[self] = "a"
+    /\ pc' = [pc EXCEPT ![self] = "b"]
+    /\ UNCHANGED <<x, timer>>
+
+(* Label b: Check if x = 0, if so go to c, else go back to a *)
+b(self) ==
+    /\ pc[self] = "b"
+    /\ IF x = 0
+       THEN pc' = [pc EXCEPT ![self] = "c"]
+       ELSE pc' = [pc EXCEPT ![self] = "a"]
+    /\ UNCHANGED <<x, timer>>
+
+(* Label c: Wait until x = 0 *)
+c(self) ==
+    /\ pc[self] = "c"
+    /\ x = 0
+    /\ pc' = [pc EXCEPT ![self] = "d"]
+    /\ UNCHANGED <<x, timer>>
+
+(* Label d: Set timer to Delta and write own identity into x *)
+d(self) ==
+    /\ pc[self] = "d"
+    /\ x' = self
+    /\ timer' = [timer EXCEPT ![self] = Delta]
+    /\ pc' = [pc EXCEPT ![self] = "e"]
+
+(* Label e: Set timer to Epsilon and wait until timer expires, then go to b to recheck *)
+e(self) ==
+    /\ pc[self] = "e"
+    /\ timer[self] = 0
+    /\ IF x = self
+       THEN pc' = [pc EXCEPT ![self] = "cs"]
+       ELSE pc' = [pc EXCEPT ![self] = "a"]
+    /\ UNCHANGED <<x, timer>>
+
+(* Label cs: Critical section *)
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "f"]
+    /\ UNCHANGED <<x, timer>>
+
+(* Label f: Exit critical section and reset x to 0 *)
+f(self) ==
+    /\ pc[self] = "f"
+    /\ x' = 0
+    /\ pc' = [pc EXCEPT ![self] = "a"]
+    /\ UNCHANGED timer
+
+(* Process actions *)
+proc(self) ==
+    \/ a(self)
+    \/ b(self)
+    \/ c(self)
+    \/ d(self)
+    \/ e(self)
+    \/ cs(self)
+    \/ f(self)
+
+(* Tick process: Decrements all positive timers by one atomically *)
+(* Only fires when all timers are strictly positive *)
+AllTimersPositive ==
+    \A i \in Procs : timer[i] > 0
+
+Tick ==
+    /\ AllTimersPositive
+    /\ timer' = [i \in Procs |-> timer[i] - 1]
+    /\ UNCHANGED <<x, pc>>
+
+(* Next state relation *)
+Next ==
+    \/ \E self \in Procs : proc(self)
+    \/ Tick
+
+(* Fairness conditions *)
+Fairness ==
+    /\ \A self \in Procs : WF_vars(proc(self))
+    /\ WF_vars(Tick)
+
+(* Specification *)
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(* Safety Invariant: Mutual Exclusion *)
+SomeInCS == {i \in Procs : pc[i] = "cs"}
+
+Invariant == Cardinality(SomeInCS) <= 1
+
+MutualExclusion == \A i, j \in Procs : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+(* Liveness Property: Some process is in CS infinitely often *)
+Liveness == []<>(\E i \in Procs : pc[i] = "cs")
+
+(* ClaimLock: A process that sets x to itself will eventually enter CS *)
+ClaimLock == \A i \in Procs : (x = i /\ pc[i] = "e") ~> (pc[i] = "cs")
+
+(* Correctness condition: Delta < Epsilon is required for mutual exclusion *)
+CorrectnessCondition == Delta < Epsilon
+
+=============================================================================

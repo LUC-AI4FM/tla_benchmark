@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n--------------------------- MODULE TwoPhaseCommit ---------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS RM\n\nVARIABLES rmState\n\nvars == <<rmState>>\n\nRMStates == {\"working\", \"prepared\", \"committed\", \"aborted\"}\n\nTypeOK ==\n    rmState \\in [RM -> RMStates]\n\nInit ==\n    rmState = [r \\in RM |-> \"working\"]\n\nPrepare(r) ==\n    /\\ rmState[r] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![r] = \"prepared\"]\n\nCanCommit ==\n    \\A r \\in RM : rmState[r] \\in {\"prepared\", \"committed\"}\n\nCanAbort ==\n    \\E r \\in RM : rmState[r] \\in {\"working\", \"aborted\"}\n\nDecideCommit(r) ==\n    /\\ rmState[r] = \"prepared\"\n    /\\ CanCommit\n    /\\ rmState' = [rmState EXCEPT ![r] = \"committed\"]\n\nDecideAbort(r) ==\n    /\\ rmState[r] \\in {\"working\", \"prepared\"}\n    /\\ CanAbort\n    /\\ rmState' = [rmState EXCEPT ![r] = \"aborted\"]\n\nDecide(r) ==\n    \\/ DecideCommit(r)\n    \\/ DecideAbort(r)\n\nNext ==\n    \\E r \\in RM :\n        \\/ Prepare(r)\n        \\/ Decide(r)\n\nFairness ==\n    \\A r \\in RM :\n        /\\ WF_vars(Prepare(r))\n        /\\ WF_vars(Decide(r))\n\nSpec ==\n    Init /\\ [][Next]_vars /\\ Fairness\n\nConsistency ==\n    ~(\\E r1, r2 \\in RM : rmState[r1] = \"committed\" /\\ rmState[r2] = \"aborted\")\n\nAllCommitted ==\n    \\A r \\in RM : rmState[r] = \"committed\"\n\nAllAborted ==\n    \\A r \\in RM : rmState[r] = \"aborted\"\n\nTerminated ==\n    \\A r \\in RM : rmState[r] \\in {\"committed\", \"aborted\"}\n\nEventuallyTerminated ==\n    <>Terminated\n\nConsistentTermination ==\n    [](Terminated => (AllCommitted \\/ AllAborted))\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 595,
+    "totalTokens": 873,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8672
+  }
+}

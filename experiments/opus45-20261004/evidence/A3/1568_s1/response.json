@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n------------------------------ MODULE Bakery ------------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS N, MaxTicket\n\nASSUME N \\in Nat /\\ N > 0\nASSUME MaxTicket \\in Nat /\\ MaxTicket > 0\n\nProcs == 1..N\n\nVARIABLES pc, num, flag, nxt, previous\n\nvars == <<pc, num, flag, nxt, previous>>\n\nTypeOK ==\n    /\\ pc \\in [Procs -> {\"ncs\", \"e1\", \"e2\", \"e3\", \"e4\", \"cs\", \"exit\"}]\n    /\\ num \\in [Procs -> Nat]\n    /\\ flag \\in [Procs -> BOOLEAN]\n    /\\ nxt \\in [Procs -> Procs]\n    /\\ previous \\in [Procs -> Nat]\n\nInit ==\n    /\\ pc = [p \\in Procs |-> \"ncs\"]\n    /\\ num = [p \\in Procs |-> 0]\n    /\\ flag = [p \\in Procs |-> FALSE]\n    /\\ nxt = [p \\in Procs |-> 1]\n    /\\ previous = [p \\in Procs |-> 0]\n\nMax(S) == CHOOSE x \\in S : \\A y \\in S : x >= y\n\nMaxNum == Max({num[p] : p \\in Procs})\n\n\\* Non-critical section - process decides to enter\nncs(self) ==\n    /\\ pc[self] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"e1\"]\n    /\\ UNCHANGED <<num, flag, nxt, previous>>\n\n\\* Entry phase 1: raise flag\ne1(self) ==\n    /\\ pc[self] = \"e1\"\n    /\\ flag' = [flag EXCEPT ![self] = TRUE]\n    /\\ pc' = [pc EXCEPT ![self] = \"e2\"]\n    /\\ UNCHANGED <<num, nxt, previous>>\n\n\\* Entry phase 2: take a ticket number\ne2(self) ==\n    /\\ pc[self] = \"e2\"\n    /\\ num' = [num EXCEPT ![self] = MaxNum + 1]\n    /\\ flag' = [flag EXCEPT ![self] = FALSE]\n    /\\ nxt' = [nxt EXCEPT ![self] = 1]\n    /\\ pc' = [pc EXCEPT ![self] = \"e3\"]\n    /\\ UNCHANGED <<previous>>\n\n\\* Entry phase 3: check if done waiting for all processes\ne3(self) ==\n    /\\ pc[self] = \"e3\"\n    /\\ IF nxt[self] > N\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n            /\\ UNCHANGED <<num, flag, nxt, previous>>\n       ELSE /\\ previous' = [previous EXCEPT ![self] = num[nxt[self]]]\n            /\\ pc' = [pc EXCEPT ![self] = \"e4\"]\n            /\\ UNCHANGED <<num, flag, nxt>>\n\n\\* Entry phase 4: wait for process nxt[self]\ne4(self) ==\n    /\\ pc[self] = \"e4\"\n    /\\ \\/ flag[nxt[self]] = FALSE /\\ \n          (num[nxt[self]] = 0 \\/ \n           num[self] < num[nxt[self]] \\/ \n           (num[self] = num[nxt[self]] /\\ self < nxt[self]))\n       \\/ /\\ flag[nxt[self]] = FALSE\n          /\\ previous[self] # num[nxt[self]]\n    /\\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]\n    /\\ pc' = [pc EXCEPT ![self] = \"e3\"]\n    /\\ UNCHANGED <<num, flag, previous>>\n\n\\* Critical section\ncs(self) ==\n    /\\ pc[self] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"exit\"]\n    /\\ UNCHANGED <<num, flag, nxt, previous>>\n\n\\* Exit: reset ticket number\nexit(self) ==\n    /\\ pc[self] = \"exit\"\n    /\\ num' = [num EXCEPT ![self] = 0]\n    /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n    /\\ UNCHANGED <<flag, nxt, previous>>\n\n\\* Process action\nproc(self) ==\n    \\/ ncs(self)\n    \\/ e1(self)\n    \\/ e2(self)\n    \\/ e3(self)\n    \\/ e4(self)\n    \\/ cs(self)\n    \\/ exit(self)\n\nNext == \\E self \\in Procs : proc(self)\n\n\\* Fairness: weak fairness for each process action\nFairness == \\A self \\in Procs : WF_vars(proc(self))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Mutual Exclusion: no two processes in critical section simultaneously\nMutualExclusion == \\A p, q \\in Procs : (p # q) => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\n\\* At most one process in critical section\nAtMostOneInCS == Cardinality({p \\in Procs : pc[p] = \"cs\"}) <= 1\n\n\\* Constraint for TLC: bound ticket numbers\nTicketConstraint == \\A p \\in Procs : num[p] <= MaxTicket\n\n\\* Liveness: if a process wants to enter, it eventually enters CS\nLiveness == \\A p \\in Procs : (pc[p] = \"e1\") ~> (pc[p] = \"cs\")\n\n\\* Starvation freedom: a process trying to enter will eventually enter\nStarvationFreedom == \\A p \\in Procs : (pc[p] \\in {\"e1\", \"e2\", \"e3\", \"e4\"}) ~> (pc[p] = \"cs\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 259,
+    "outputTokens": 1502,
+    "totalTokens": 1761,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19286
+  }
+}

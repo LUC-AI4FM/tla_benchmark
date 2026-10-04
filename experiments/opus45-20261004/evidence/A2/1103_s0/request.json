@@ -1,0 +1,16 @@
+{
+  "modelId": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "You are a TLA+ specification engineer. You will receive a natural language description of a system. Produce a complete, syntactically correct TLA+ specification that faithfully captures the described behavior. The output must be a valid TLA+ module that passes the SANY parser. Include the MODULE declaration, EXTENDS, CONSTANTS, VARIABLES, Init, Next and Spec. Include all safety invariants and liveness properties described, and any fairness conditions mentioned. Output only the TLA+ specification.\n\nSystem description: The module specifies the Non-Blocking Atomic Commitment (NBAC) protocol with crash failures, based on Raynal's 1997 algorithm. It models N processes (parameterized by the constant N) that must reach a commit or abort decision in a distributed system where processes may crash.\n\nEach process has a program counter (`pc`) ranging over states `\"YES\"`, `\"NO\"`, `\"SENT\"`, `\"ABORT\"`, `\"COMMIT\"`, and `\"CRASH\"`. Supporting variables track the global set of sent messages (`sent`), each process's received messages (`rcvd`), and a per-process failure detector flag (`fd`) that nondeterministically reports whether any process has crashed.\n\nInitially, each process votes either YES or NO (or all YES under `InitAllYes`), with no messages sent or received. In each step, a process nondeterministically receives a subset of sent messages, updates its failure detector reading, and then takes one of several actions: broadcast its vote (`UponYes` or `UponNo`), transition to a decision state (`UponSent`), crash (`UponCrash`), or do nothing. The `UponSent` action commits only if the failure detector reports no crashes and YES messages have been received from all processes; otherwise it aborts.\n\nThe temporal specification `Spec` uses `Init` and the next-state relation `Next`, augmented with a weak fairness condition ensuring that non-crashed processes eventually send their votes and attempt decisions. The model is checked at `N = 2` with the `TypeOK` invariant enforcing well-typed state. The `Validity` property asserts that a commit decision is only possible when all processes initially voted YES."
+        }
+      ]
+    }
+  ],
+  "inferenceConfig": {
+    "maxTokens": 16000
+  }
+}

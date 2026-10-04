@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS N\n\nASSUME N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES pc, forks\n\nvars == <<pc, forks>>\n\nLeftFork(p) == p\nRightFork(p) == (p + 1) % N\n\nTypeOK ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n    /\\ forks \\in [0..(N-1) -> 0..1]\n\nInit ==\n    /\\ pc = [p \\in Philosophers |-> \"thinking\"]\n    /\\ forks = [f \\in 0..(N-1) |-> 1]\n\nStartThinking(p) ==\n    /\\ pc[p] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![p] = \"hungry\"]\n    /\\ forks' = forks\n\nAcquireFirstFork(p) ==\n    /\\ pc[p] = \"hungry\"\n    /\\ IF p = 0\n       THEN /\\ forks[LeftFork(p)] = 1\n            /\\ forks' = [forks EXCEPT ![LeftFork(p)] = 0]\n       ELSE /\\ forks[RightFork(p)] = 1\n            /\\ forks' = [forks EXCEPT ![RightFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"hasFirst\"]\n\nAcquireSecondFork(p) ==\n    /\\ pc[p] = \"hasFirst\"\n    /\\ IF p = 0\n       THEN /\\ forks[RightFork(p)] = 1\n            /\\ forks' = [forks EXCEPT ![RightFork(p)] = 0]\n       ELSE /\\ forks[LeftFork(p)] = 1\n            /\\ forks' = [forks EXCEPT ![LeftFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"eating\"]\n\nFinishEating(p) ==\n    /\\ pc[p] = \"eating\"\n    /\\ forks' = [forks EXCEPT ![LeftFork(p)] = 1, ![RightFork(p)] = 1]\n    /\\ pc' = [pc EXCEPT ![p] = \"thinking\"]\n\nPhilosopherAction(p) ==\n    \\/ StartThinking(p)\n    \\/ AcquireFirstFork(p)\n    \\/ AcquireSecondFork(p)\n    \\/ FinishEating(p)\n\nNext == \\E p \\in Philosophers : PhilosopherAction(p)\n\nFairness == \\A p \\in Philosophers : SF_vars(PhilosopherAction(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nMutualExclusion ==\n    \\A p1, p2 \\in Philosophers :\n        (p1 # p2 /\\ pc[p1] = \"eating\" /\\ pc[p2] = \"eating\") =>\n            (LeftFork(p1) # LeftFork(p2) /\\ LeftFork(p1) # RightFork(p2) /\\\n             RightFork(p1) # LeftFork(p2) /\\ RightFork(p1) # RightFork(p2))\n\nAdjacentNotEating ==\n    \\A p \\in Philosophers :\n        pc[p] = \"eating\" => \n            /\\ pc[(p + N - 1) % N] # \"eating\"\n            /\\ pc[(p + 1) % N] # \"eating\"\n\nStarvationFreedom == \\A p \\in Philosophers : (pc[p] = \"hungry\") ~> (pc[p] = \"eating\")\n\nEventuallyEats == \\A p \\in Philosophers : []<>(pc[p] = \"eating\")\n\nNoDeadlock == [](\\E p \\in Philosophers : ENABLED PhilosopherAction(p))\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 260,
+    "outputTokens": 1027,
+    "totalTokens": 1287,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14237
+  }
+}

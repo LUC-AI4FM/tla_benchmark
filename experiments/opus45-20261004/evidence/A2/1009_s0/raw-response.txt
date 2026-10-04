@@ -1,0 +1,244 @@
+```tla+
+---------------------------- MODULE BufferedRandomAccessFile ----------------------------
+EXTENDS Integers, Sequences, TLC, FiniteSets
+
+CONSTANTS MaxOffset, BuffSz, Sym
+
+ASSUME MaxOffset \in Nat /\ MaxOffset > 0
+ASSUME BuffSz \in Nat /\ BuffSz > 0
+
+Offsets == 0..MaxOffset
+BufferOffsets == 0..(BuffSz - 1)
+Bytes == Sym \cup {0}
+
+VARIABLES dirty, length, curr, lo, buff, diskPos, file_content, file_pointer
+
+vars == <<dirty, length, curr, lo, buff, diskPos, file_content, file_pointer>>
+
+\* Helper: minimum of two values
+Min(a, b) == IF a < b THEN a ELSE b
+
+\* Helper: maximum of two values
+Max(a, b) == IF a > b THEN a ELSE b
+
+\* The logical file content overlays the buffer onto disk contents
+LogicalFileContent ==
+    [offset \in Offsets |->
+        IF dirty /\ offset >= lo /\ offset < lo + BuffSz /\ offset < length
+        THEN buff[offset - lo]
+        ELSE IF offset < length THEN file_content[offset] ELSE 0]
+
+\* The high water mark of the buffer (exclusive end position)
+Hi == Min(lo + BuffSz, length)
+
+\* Internal Invariant 1: curr is within valid range
+Inv1 == curr >= 0 /\ curr <= length
+
+\* Internal Invariant 2: buffer window invariant - curr is within buffered region
+Inv2 == lo <= curr /\ curr < lo + BuffSz
+
+\* Internal Invariant 3: lo is aligned and within bounds
+Inv3 == lo >= 0 /\ lo <= MaxOffset
+
+\* Internal Invariant 4: buffer consistency - buffer matches logical content for buffered region
+Inv4 == \A i \in BufferOffsets : 
+           (lo + i < length /\ lo + i < lo + BuffSz) => 
+           (dirty => buff[i] = LogicalFileContent[lo + i])
+
+\* Internal Invariant 5: disk position consistency
+Inv5 == diskPos >= 0 /\ diskPos <= MaxOffset + 1
+
+\* Type invariant
+TypeInv ==
+    /\ dirty \in BOOLEAN
+    /\ length \in 0..(MaxOffset + 1)
+    /\ curr \in 0..(MaxOffset + 1)
+    /\ lo \in Offsets
+    /\ buff \in [BufferOffsets -> Bytes]
+    /\ diskPos \in 0..(MaxOffset + 1)
+    /\ file_content \in [Offsets -> Bytes]
+    /\ file_pointer \in 0..(MaxOffset + 1)
+
+\* Combined internal invariants
+InternalInv == Inv1 /\ Inv3 /\ Inv5
+
+\* Initialize the buffer with zeros
+InitBuff == [i \in BufferOffsets |-> 0]
+
+\* Initialize file content with zeros
+InitFileContent == [offset \in Offsets |-> 0]
+
+Init ==
+    /\ dirty = FALSE
+    /\ length = 0
+    /\ curr = 0
+    /\ lo = 0
+    /\ buff = InitBuff
+    /\ diskPos = 0
+    /\ file_content = InitFileContent
+    /\ file_pointer = 0
+
+\* FlushBuffer: writes the dirty buffer to disk
+FlushBuffer ==
+    /\ dirty = TRUE
+    /\ file_content' = [offset \in Offsets |->
+                          IF offset >= lo /\ offset < Hi
+                          THEN buff[offset - lo]
+                          ELSE file_content[offset]]
+    /\ diskPos' = Hi
+    /\ dirty' = FALSE
+    /\ UNCHANGED <<length, curr, lo, buff, file_pointer>>
+
+\* FillBuffer: reads from disk into buffer (internal action)
+FillBuffer(newLo) ==
+    /\ buff' = [i \in BufferOffsets |->
+                  IF newLo + i < length /\ newLo + i <= MaxOffset
+                  THEN file_content[newLo + i]
+                  ELSE 0]
+    /\ lo' = newLo
+    /\ diskPos' = Min(newLo + BuffSz, length)
+
+\* Seek: repositions curr, flushing and refilling buffer when needed
+Seek(newPos) ==
+    /\ newPos >= 0
+    /\ newPos <= MaxOffset
+    /\ IF newPos >= lo /\ newPos < lo + BuffSz
+       THEN \* Position is within buffer window
+            /\ curr' = newPos
+            /\ file_pointer' = newPos
+            /\ UNCHANGED <<dirty, length, lo, buff, diskPos, file_content>>
+       ELSE \* Position is outside buffer window - flush and refill
+            LET newLo == (newPos \div BuffSz) * BuffSz IN
+            /\ IF dirty
+               THEN /\ file_content' = [offset \in Offsets |->
+                                          IF offset >= lo /\ offset < Hi
+                                          THEN buff[offset - lo]
+                                          ELSE file_content[offset]]
+               ELSE /\ file_content' = file_content
+            /\ buff' = [i \in BufferOffsets |->
+                          IF newLo + i < length /\ newLo + i <= MaxOffset
+                          THEN file_content'[newLo + i]
+                          ELSE 0]
+            /\ lo' = newLo
+            /\ diskPos' = Min(newLo + BuffSz, length)
+            /\ curr' = newPos
+            /\ dirty' = FALSE
+            /\ file_pointer' = newPos
+            /\ UNCHANGED <<length>>
+
+\* SetLength: truncates or extends the file
+SetLength(newLength) ==
+    /\ newLength >= 0
+    /\ newLength <= MaxOffset + 1
+    /\ length' = newLength
+    /\ curr' = Min(curr, newLength)
+    /\ file_pointer' = Min(curr, newLength)
+    /\ IF newLength < Hi
+       THEN \* Truncating within buffer region
+            /\ buff' = [i \in BufferOffsets |->
+                          IF lo + i < newLength THEN buff[i] ELSE 0]
+            /\ UNCHANGED <<dirty, lo, diskPos, file_content>>
+       ELSE
+            UNCHANGED <<dirty, lo, buff, diskPos, file_content>>
+
+\* Read1: single-byte read at current position
+Read1 ==
+    /\ curr < length
+    /\ curr >= lo
+    /\ curr < lo + BuffSz
+    /\ curr' = curr + 1
+    /\ file_pointer' = curr + 1
+    /\ UNCHANGED <<dirty, length, lo, buff, diskPos, file_content>>
+
+\* Write1: single-byte write at current position
+Write1(b) ==
+    /\ b \in Bytes
+    /\ curr >= lo
+    /\ curr < lo + BuffSz
+    /\ curr <= MaxOffset
+    /\ buff' = [buff EXCEPT ![curr - lo] = b]
+    /\ dirty' = TRUE
+    /\ length' = Max(length, curr + 1)
+    /\ curr' = curr + 1
+    /\ file_pointer' = curr + 1
+    /\ UNCHANGED <<lo, diskPos, file_content>>
+
+\* Read: multi-byte bulk read
+Read(n) ==
+    /\ n > 0
+    /\ curr + n <= length
+    /\ curr >= lo
+    /\ curr + n <= lo + BuffSz
+    /\ curr' = curr + n
+    /\ file_pointer' = curr + n
+    /\ UNCHANGED <<dirty, length, lo, buff, diskPos, file_content>>
+
+\* WriteAtMost: multi-byte bulk write (writes up to n bytes)
+WriteAtMost(n) ==
+    /\ n > 0
+    /\ curr >= lo
+    /\ curr + n <= lo + BuffSz
+    /\ curr + n - 1 <= MaxOffset
+    /\ \E newBuff \in [BufferOffsets -> Bytes] :
+         /\ \A i \in BufferOffsets :
+              IF i >= curr - lo /\ i < curr - lo + n
+              THEN TRUE
+              ELSE newBuff[i] = buff[i]
+         /\ buff' = newBuff
+    /\ dirty' = TRUE
+    /\ length' = Max(length, curr + n)
+    /\ curr' = curr + n
+    /\ file_pointer' = curr + n
+    /\ UNCHANGED <<lo, diskPos, file_content>>
+
+\* Next state relation
+Next ==
+    \/ FlushBuffer
+    \/ \E pos \in Offsets : Seek(pos)
+    \/ \E len \in 0..(MaxOffset + 1) : SetLength(len)
+    \/ Read1
+    \/ \E b \in Bytes : Write1(b)
+    \/ \E n \in 1..BuffSz : Read(n)
+    \/ \E n \in 1..BuffSz : WriteAtMost(n)
+
+\* Specification with stuttering
+Spec == Init /\ [][Next]_vars
+
+\* Refinement mapping to RandomAccessFile
+RAF_file_content == LogicalFileContent
+RAF_file_pointer == curr
+
+\* Safety invariant: all internal invariants hold
+SafetyInv == TypeInv /\ InternalInv
+
+\* Liveness property: Inv2 can always be restored by flush-then-seek
+CanRestoreInv2 ==
+    [](\neg Inv2 => 
+       <>(\E pos \in Offsets : 
+          pos >= lo /\ pos < lo + BuffSz /\ 
+          (dirty => 
+           LET flushedContent == [offset \in Offsets |->
+                                   IF offset >= lo /\ offset < Hi
+                                   THEN buff[offset - lo]
+                                   ELSE file_content[offset]]
+           IN TRUE)))
+
+\* Property: FlushBuffer refines abstract no-op (content already visible)
+FlushBufferRefines ==
+    [][FlushBuffer => RAF_file_content' = RAF_file_content]_vars
+
+\* Property: Seek refines abstract seek
+SeekRefines ==
+    [][\E pos \in Offsets : Seek(pos) => RAF_file_pointer' = pos]_vars
+
+\* Property: Write1 refines abstract write
+Write1Refines ==
+    [][\E b \in Bytes : Write1(b) => 
+       RAF_file_content'[curr] = b /\ RAF_file_pointer' = curr + 1]_vars
+
+\* Property: Read1 refines abstract read
+Read1Refines ==
+    [][Read1 => RAF_file_pointer' = curr + 1]_vars
+
+=============================================================================
+```

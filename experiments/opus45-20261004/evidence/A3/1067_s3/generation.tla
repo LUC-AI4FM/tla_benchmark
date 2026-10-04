@@ -1,0 +1,66 @@
+--------------------------- MODULE TerminationDetection ---------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS Node
+
+ASSUME NodeAssumption == Node # {} /\ IsFiniteSet(Node)
+
+VARIABLES
+    active,
+    terminationDetected
+
+vars == <<active, terminationDetected>>
+
+TypeOK ==
+    /\ active \in [Node -> BOOLEAN]
+    /\ terminationDetected \in BOOLEAN
+
+Init ==
+    /\ active \in [Node -> BOOLEAN]
+    /\ terminationDetected = FALSE
+
+Terminate(n) ==
+    /\ active[n] = TRUE
+    /\ active' = [active EXCEPT ![n] = FALSE]
+    /\ terminationDetected' = terminationDetected
+
+Wakeup(n, m) ==
+    /\ active[n] = TRUE
+    /\ n # m
+    /\ active' = [active EXCEPT ![m] = TRUE]
+    /\ terminationDetected' = terminationDetected
+
+AllInactive ==
+    \A n \in Node : active[n] = FALSE
+
+DetectTermination ==
+    /\ AllInactive
+    /\ terminationDetected = FALSE
+    /\ terminationDetected' = TRUE
+    /\ UNCHANGED active
+
+Next ==
+    \/ \E n \in Node : Terminate(n)
+    \/ \E n, m \in Node : Wakeup(n, m)
+    \/ DetectTermination
+
+Fairness == WF_vars(DetectTermination)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+Safety ==
+    terminationDetected => AllInactive
+
+Correctness ==
+    [](terminationDetected => AllInactive)
+
+Quiescence ==
+    [](terminationDetected => []terminationDetected)
+
+Liveness ==
+    [](AllInactive => <>terminationDetected)
+
+StableTermination ==
+    []([](AllInactive) => <>[]terminationDetected)
+
+===================================================================================

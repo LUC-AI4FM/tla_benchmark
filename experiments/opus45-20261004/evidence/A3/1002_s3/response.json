@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE BarrierSync ----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N\n\nASSUME N > 0\n\nVARIABLES pc\n\nProcs == 1..N\n\nTypeOK == pc \\in [Procs -> {\"b0\", \"b1\"}]\n\nInit == pc = [p \\in Procs |-> \"b0\"]\n\nEnter(p) == \n    /\\ pc[p] = \"b0\"\n    /\\ pc' = [pc EXCEPT ![p] = \"b1\"]\n\nReset == \n    /\\ \\A p \\in Procs : pc[p] = \"b1\"\n    /\\ pc' = [p \\in Procs |-> \"b0\"]\n\nNext == \n    \\/ \\E p \\in Procs : Enter(p)\n    \\/ Reset\n\nFairness == \n    /\\ \\A p \\in Procs : WF_pc(Enter(p))\n    /\\ WF_pc(Reset)\n\nSpec == Init /\\ [][Next]_pc /\\ Fairness\n\nBarrierProperty == \n    \\A p \\in Procs : \\A q \\in Procs : \n        (pc[p] = \"b0\" /\\ pc[q] = \"b1\") => (pc'[q] = \"b1\" \\/ pc'[p] = \"b0\")\n\nSafeBarrier == \n    \\A p \\in Procs : \\A q \\in Procs :\n        (pc[q] = \"b0\" /\\ pc[p] = \"b1\") => \n            ~(pc[p] = \"b1\" /\\ pc'[p] = \"b0\" /\\ pc'[q] = \"b1\")\n\nNoPartialReset == \n    [][(\\E p \\in Procs : pc[p] = \"b1\" /\\ pc'[p] = \"b0\") => \n       (\\A q \\in Procs : pc[q] = \"b1\" /\\ pc'[q] = \"b0\")]_pc\n\nEventualReset == \n    \\A p \\in Procs : (pc[p] = \"b1\") ~> (pc[p] = \"b0\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 223,
+    "outputTokens": 550,
+    "totalTokens": 773,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9141
+  }
+}

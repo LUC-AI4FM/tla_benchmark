@@ -1,0 +1,71 @@
+```tla
+---------------------------- MODULE EuclidGCD ----------------------------
+EXTENDS Integers, TLC
+
+CONSTANT MaxNum
+
+ASSUME MaxNum = 20
+
+VARIABLES pc, u, v, u_ini, v_ini
+
+vars == <<pc, u, v, u_ini, v_ini>>
+
+Divisors(n) == {d \in 1..n : n % d = 0}
+
+GCD(x, y) == 
+    LET common == Divisors(x) \cap Divisors(y)
+    IN CHOOSE d \in common : \A e \in common : e <= d
+
+Init == 
+    /\ u_ini \in 1..MaxNum
+    /\ v_ini \in 1..MaxNum
+    /\ u = u_ini
+    /\ v = v_ini
+    /\ pc = "a"
+
+ActionA == 
+    /\ pc = "a"
+    /\ IF u /= 0
+       THEN /\ IF u < v
+               THEN /\ u' = v
+                    /\ v' = u
+               ELSE /\ u' = u
+                    /\ v' = v
+            /\ pc' = "b"
+            /\ UNCHANGED <<u_ini, v_ini>>
+       ELSE /\ Assert(v = GCD(u_ini, v_ini), "GCD assertion failed")
+            /\ pc' = "Done"
+            /\ UNCHANGED <<u, v, u_ini, v_ini>>
+
+ActionB == 
+    /\ pc = "b"
+    /\ u' = u - v
+    /\ v' = v
+    /\ pc' = "a"
+    /\ UNCHANGED <<u_ini, v_ini>>
+
+Done == 
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == ActionA \/ ActionB \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Finished == pc = "Done"
+
+SwapOccurs == 
+    /\ pc = "a"
+    /\ u /= 0
+    /\ u < v
+
+Invariant == pc = "Done" => v = GCD(u_ini, v_ini)
+
+Termination == <>(pc = "Done")
+
+PossibleCounts == 
+    /\ TLCGet("stats").states.distinct = 800 => TRUE
+    /\ Assert(TLCGet("spec").actions.SwapOccurs = 698, "SwapOccurs count mismatch")
+
+==========================================================================
+```

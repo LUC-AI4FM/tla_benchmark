@@ -1,0 +1,108 @@
+```tla+
+---------------------------- MODULE EuclidGCD ----------------------------
+EXTENDS Integers, Naturals, TLC
+
+CONSTANT MaxNum
+
+ASSUME MaxNumAssumption == MaxNum \in Nat /\ MaxNum >= 1
+
+VARIABLES pc, u_ini, v_ini, u, v
+
+vars == <<pc, u_ini, v_ini, u, v>>
+
+(* Mathematical definition of GCD *)
+Divides(p, n) == \E q \in Int : n = p * q
+
+DivisorsOf(n) == {p \in 1..n : Divides(p, n)}
+
+SetMax(S) == CHOOSE x \in S : \A y \in S : x >= y
+
+GCD(m, n) == SetMax(DivisorsOf(m) \cap DivisorsOf(n))
+
+(* Initial state *)
+Init ==
+    /\ pc = "start"
+    /\ u_ini \in 1..MaxNum
+    /\ v_ini \in 1..MaxNum
+    /\ u = u_ini
+    /\ v = v_ini
+
+(* Algorithm steps *)
+Start ==
+    /\ pc = "start"
+    /\ pc' = "loop"
+    /\ UNCHANGED <<u_ini, v_ini, u, v>>
+
+Loop ==
+    /\ pc = "loop"
+    /\ IF u = v
+       THEN /\ pc' = "done"
+            /\ UNCHANGED <<u, v>>
+       ELSE /\ IF u > v
+               THEN /\ u' = u - v
+                    /\ UNCHANGED v
+               ELSE /\ v' = v - u
+                    /\ UNCHANGED u
+            /\ pc' = "loop"
+    /\ UNCHANGED <<u_ini, v_ini>>
+
+Done ==
+    /\ pc = "done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ Start
+    \/ Loop
+    \/ Done
+
+(* Specification with weak fairness *)
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+(* Type invariant *)
+TypeOK ==
+    /\ pc \in {"start", "loop", "done"}
+    /\ u_ini \in 1..MaxNum
+    /\ v_ini \in 1..MaxNum
+    /\ u \in 1..(MaxNum * MaxNum)
+    /\ v \in 1..(MaxNum * MaxNum)
+
+(* Safety invariant: u and v remain positive *)
+PositiveInvariant ==
+    /\ u >= 1
+    /\ v >= 1
+
+(* GCD is preserved throughout the algorithm *)
+GCDInvariant ==
+    GCD(u, v) = GCD(u_ini, v_ini)
+
+(* Correctness: when done, u equals the GCD of the initial values *)
+Correctness ==
+    pc = "done" => u = GCD(u_ini, v_ini)
+
+(* When done, u equals v *)
+ResultEquality ==
+    pc = "done" => u = v
+
+(* Combined safety invariant *)
+SafetyInvariant ==
+    /\ TypeOK
+    /\ PositiveInvariant
+    /\ GCDInvariant
+    /\ Correctness
+    /\ ResultEquality
+
+(* Termination property: the algorithm eventually reaches done *)
+Termination == <>(pc = "done")
+
+(* Liveness: the algorithm terminates with the correct result *)
+LivenessCorrectness == <>(pc = "done" /\ u = GCD(u_ini, v_ini))
+
+(* Named properties for TLC counting *)
+PropInLoop == pc = "loop"
+PropTerminated == pc = "done"
+PropUGreaterV == pc = "loop" /\ u > v
+PropVGreaterU == pc = "loop" /\ v > u
+PropEqual == u = v
+
+==========================================================================
+```

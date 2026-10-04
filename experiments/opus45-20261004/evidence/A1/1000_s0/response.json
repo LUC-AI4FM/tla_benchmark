@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE ResourceAllocator ----------------------------\nEXTENDS Naturals, FiniteSets, TLC\n\nCONSTANTS \n    Clients,      \\* The set of clients\n    Resources     \\* The set of resources\n\nVARIABLES\n    unsat,        \\* unsat[c] is the set of resources requested but not yet allocated to client c\n    alloc         \\* alloc[c] is the set of resources currently allocated to client c\n\nvars == <<unsat, alloc>>\n\n-----------------------------------------------------------------------------\n(* Type invariant *)\nTypeOK == \n    /\\ unsat \\in [Clients -> SUBSET Resources]\n    /\\ alloc \\in [Clients -> SUBSET Resources]\n\n(* A resource can be allocated to at most one client *)\nMutualExclusion == \n    \\A c1, c2 \\in Clients : c1 # c2 => alloc[c1] \\cap alloc[c2] = {}\n\n(* Available resources: those not allocated to any client *)\navailable == Resources \\ (UNION {alloc[c] : c \\in Clients})\n\n-----------------------------------------------------------------------------\n(* Initial state: no requests, no allocations *)\nInit == \n    /\\ unsat = [c \\in Clients |-> {}]\n    /\\ alloc = [c \\in Clients |-> {}]\n\n(* Client c requests a non-empty set S of resources *)\n(* Precondition: c has no outstanding request and holds no resources *)\nRequest(c, S) ==\n    /\\ unsat[c] = {}\n    /\\ alloc[c] = {}\n    /\\ S # {}\n    /\\ S \\subseteq Resources\n    /\\ unsat' = [unsat EXCEPT ![c] = S]\n    /\\ UNCHANGED alloc\n\n(* Allocate a non-empty subset S of available resources to client c *)\n(* Precondition: S is a non-empty subset of c's unsatisfied request and all resources in S are available *)\nAllocate(c, S) ==\n    /\\ S # {}\n    /\\ S \\subseteq unsat[c]\n    /\\ S \\subseteq available\n    /\\ alloc' = [alloc EXCEPT ![c] = @ \\cup S]\n    /\\ unsat' = [unsat EXCEPT ![c] = @ \\ S]\n\n(* Client c returns a non-empty subset S of its allocated resources *)\nReturn(c, S) ==\n    /\\ S # {}\n    /\\ S \\subseteq alloc[c]\n    /\\ alloc' = [alloc EXCEPT ![c] = @ \\ S]\n    /\\ UNCHANGED unsat\n\n-----------------------------------------------------------------------------\n(* Next state relation *)\nNext ==\n    \\E c \\in Clients :\n        \\/ \\E S \\in SUBSET Resources : Request(c, S)\n        \\/ \\E S \\in SUBSET Resources : Allocate(c, S)\n        \\/ \\E S \\in SUBSET Resources : Return(c, S)\n\n(* Specification without fairness *)\nSpec == Init /\\ [][Next]_vars\n\n(* Specification with weak fairness on all actions *)\nFairSpec == \n    /\\ Init \n    /\\ [][Next]_vars\n    /\\ \\A c \\in Clients : \n        /\\ WF_vars(\\E S \\in SUBSET Resources : Allocate(c, S))\n        /\\ WF_vars(\\E S \\in SUBSET Resources : Return(c, S))\n\n-----------------------------------------------------------------------------\n(* Safety properties *)\n\nSafety == TypeOK /\\ MutualExclusion\n\n(* Liveness: Every request is eventually satisfied (client gets all requested resources) *)\nEventualObtainment == \n    \\A c \\in Clients : unsat[c] # {} ~> unsat[c] = {}\n\n(* Liveness: Every allocated resource is eventually returned *)\nEventualReturn == \n    \\A c \\in Clients : alloc[c] # {} ~> alloc[c] = {}\n\n(* Liveness: Infinitely often there are no unsatisfied requests *)\nInfinitelyOftenNoUnsat == \n    []<>(\\A c \\in Clients : unsat[c] = {})\n\n-----------------------------------------------------------------------------\n(* Symmetry for model checking *)\nSymmetry == Permutations(Clients) \\cup Permutations(Resources)\n\n-----------------------------------------------------------------------------\n(* Concrete counterexample value structure for debugging/testing *)\nCounterexampleClients == {\"c1\", \"c2\"}\nCounterexampleResources == {\"r1\", \"r2\"}\n\nCounterexampleState == \n    /\\ unsat = [c \\in CounterexampleClients |-> IF c = \"c1\" THEN {\"r1\"} ELSE {}]\n    /\\ alloc = [c \\in CounterexampleClients |-> IF c = \"c2\" THEN {\"r1\"} ELSE {}]\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 1181,
+    "totalTokens": 1439,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 17103
+  }
+}

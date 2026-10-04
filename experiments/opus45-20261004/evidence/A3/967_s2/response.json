@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE StoneCutting ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE Sum(_)\nSum(s) == IF s = <<>> THEN 0 ELSE Head(s) + Sum(Tail(s))\n\nRECURSIVE OrderedPartitions(_, _)\nOrderedPartitions(total, parts) ==\n    IF parts = 0 THEN\n        IF total = 0 THEN {<<>>} ELSE {}\n    ELSE IF parts = 1 THEN\n        IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE\n        UNION {\n            {<<k>> \\o rest : rest \\in OrderedPartitions(total - k, parts - 1)}\n            : k \\in 1..total - (parts - 1)\n        }\n\nAllPartitions == OrderedPartitions(W, N)\n\nCoefficients == {-1, 0, 1}\n\nAllCoeffVectors == [1..N -> Coefficients]\n\nCanWeigh(weights, target) ==\n    \\E coeffs \\in AllCoeffVectors :\n        Sum([i \\in 1..N |-> coeffs[i] * weights[i]]) = target\n\nIsSolution(weights) ==\n    \\A target \\in 1..W : CanWeigh(weights, target)\n\nSolutions == {weights \\in AllPartitions : IsSolution(weights)}\n\nHasSolution == Solutions /= {}\n\nASSUME\n    IF HasSolution THEN\n        PrintT(<<\"Solution found:\", CHOOSE s \\in Solutions : TRUE>>)\n    ELSE\n        PrintT(\"No solution exists\")\n\nVARIABLES dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\nSolutionExists == HasSolution\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 257,
+    "outputTokens": 445,
+    "totalTokens": 702,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9034
+  }
+}

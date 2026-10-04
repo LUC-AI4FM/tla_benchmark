@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nLeft(i) == i\nRight(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n\nInit ==\n    /\\ sem = [f \\in 0..(N-1) |-> 1]\n    /\\ pc = [p \\in Philosophers |-> \"thinking\"]\n\n\\* Philosopher becomes hungry\nBecomeHungry(p) ==\n    /\\ pc[p] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![p] = \"hungry\"]\n    /\\ sem' = sem\n\n\\* Philosopher 0 acquires left fork first (breaking symmetry)\nAcquireFirstFork0 ==\n    /\\ pc[0] = \"hungry\"\n    /\\ sem[Left(0)] = 1\n    /\\ sem' = [sem EXCEPT ![Left(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"hasFirst\"]\n\n\\* Philosopher 0 acquires right fork second\nAcquireSecondFork0 ==\n    /\\ pc[0] = \"hasFirst\"\n    /\\ sem[Right(0)] = 1\n    /\\ sem' = [sem EXCEPT ![Right(0)] = 0]\n    /\\ pc' = [pc EXCEPT ![0] = \"eating\"]\n\n\\* Philosophers 1 to N-1 acquire right fork first\nAcquireFirstForkOther(p) ==\n    /\\ p \\in 1..(N-1)\n    /\\ pc[p] = \"hungry\"\n    /\\ sem[Right(p)] = 1\n    /\\ sem' = [sem EXCEPT ![Right(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"hasFirst\"]\n\n\\* Philosophers 1 to N-1 acquire left fork second\nAcquireSecondForkOther(p) ==\n    /\\ p \\in 1..(N-1)\n    /\\ pc[p] = \"hasFirst\"\n    /\\ sem[Left(p)] = 1\n    /\\ sem' = [sem EXCEPT ![Left(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"eating\"]\n\n\\* Philosopher finishes eating and releases both forks\nFinishEating(p) ==\n    /\\ pc[p] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![Left(p)] = 1, ![Right(p)] = 1]\n    /\\ pc' = [pc EXCEPT ![p] = \"thinking\"]\n\n\\* Actions for philosopher 0\nP0 ==\n    \\/ BecomeHungry(0)\n    \\/ AcquireFirstFork0\n    \\/ AcquireSecondFork0\n    \\/ FinishEating(0)\n\n\\* Actions for philosophers 1 to N-1\nPOther(p) ==\n    \\/ BecomeHungry(p)\n    \\/ AcquireFirstForkOther(p)\n    \\/ AcquireSecondForkOther(p)\n    \\/ FinishEating(p)\n\nNext ==\n    \\/ P0\n    \\/ \\E p \\in 1..(N-1) : POther(p)\n\n\\* Strong fairness for each philosopher's actions\nFairness ==\n    /\\ SF_vars(P0)\n    /\\ \\A p \\in 1..(N-1) : SF_vars(POther(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: Adjacent philosophers never eat simultaneously\nMutualExclusion ==\n    \\A p \\in Philosophers : ~(pc[p] = \"eating\" /\\ pc[(p + 1) % N] = \"eating\")\n\n\\* Liveness: Every philosopher eats infinitely often (starvation freedom)\nStarvationFreedom ==\n    \\A p \\in Philosophers : []<>(pc[p] = \"eating\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 1090,
+    "totalTokens": 1359,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14043
+  }
+}

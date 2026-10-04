@@ -1,0 +1,558 @@
+```tla
+--------------------------- MODULE OldPlusCal ---------------------------
+
+EXTENDS Sequences, Integers, TLC, FiniteSets
+
+CONSTANTS ast, fairness
+
+VARIABLES dummy
+
+\* ============================================================================
+\* PART 1: Basic Utility Operators
+\* ============================================================================
+
+\* Sequence operations
+Concat(s1, s2) == s1 \o s2
+
+Flatten(seqOfSeqs) == 
+    IF seqOfSeqs = << >> THEN << >>
+    ELSE Head(seqOfSeqs) \o Flatten(Tail(seqOfSeqs))
+
+StringJoin(sep, seqs) ==
+    IF seqs = << >> THEN << >>
+    ELSE IF Len(seqs) = 1 THEN Head(seqs)
+    ELSE Head(seqs) \o <<sep>> \o StringJoin(sep, Tail(seqs))
+
+Map(Op(_), seq) ==
+    IF seq = << >> THEN << >>
+    ELSE <<Op(Head(seq))>> \o Map(Op, Tail(seq))
+
+Filter(P(_), seq) ==
+    IF seq = << >> THEN << >>
+    ELSE IF P(Head(seq)) THEN <<Head(seq)>> \o Filter(P, Tail(seq))
+    ELSE Filter(P, Tail(seq))
+
+FoldLeft(Op(_, _), init, seq) ==
+    IF seq = << >> THEN init
+    ELSE FoldLeft(Op, Op(init, Head(seq)), Tail(seq))
+
+\* ============================================================================
+\* PART 2: TLA+ Expression Representation (sequences of string lexemes)
+\* ============================================================================
+
+\* A TLA+ expression is a sequence of string tokens/lexemes
+IsExpr(e) == 
+    /\ e \in Seq(STRING)
+
+\* Basic expression constructors
+Ident(name) == <<name>>
+Number(n) == <<ToString(n)>>
+StringLit(s) == <<"\"", s, "\"">>
+
+BinOp(e1, op, e2) == e1 \o <<" ", op, " ">> \o e2
+UnaryOp(op, e) == <<op>> \o e
+Parens(e) == <<"(">> \o e \o <<")">>
+
+PrimedVar(v) == <<v, "'">>
+Subscript(e, sub) == e \o <<"[">> \o sub \o <<"]">>
+
+\* ============================================================================
+\* PART 3: +CAL AST Grammar Predicates
+\* ============================================================================
+
+\* Variable declaration: [name |-> STRING, init |-> Expr]
+IsVarDecl(v) ==
+    /\ "name" \in DOMAIN v
+    /\ "init" \in DOMAIN v
+    /\ v.name \in STRING
+
+\* Set of variable declarations
+IsVarDecls(vs) ==
+    /\ vs \in Seq([name: STRING, init: Seq(STRING)])
+
+\* Simple statements
+IsAssignment(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "assignment"
+    /\ "lhs" \in DOMAIN s
+    /\ "rhs" \in DOMAIN s
+
+IsIf(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "if"
+    /\ "cond" \in DOMAIN s
+    /\ "then" \in DOMAIN s
+    /\ "else" \in DOMAIN s
+
+IsEither(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "either"
+    /\ "branches" \in DOMAIN s
+
+IsWith(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "with"
+    /\ "var" \in DOMAIN s
+    /\ "set" \in DOMAIN s
+    /\ "body" \in DOMAIN s
+
+IsWhen(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "when"
+    /\ "cond" \in DOMAIN s
+
+IsPrint(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "print"
+    /\ "expr" \in DOMAIN s
+
+IsAssert(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "assert"
+    /\ "cond" \in DOMAIN s
+
+IsSkip(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "skip"
+
+IsCall(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "call"
+    /\ "proc" \in DOMAIN s
+    /\ "args" \in DOMAIN s
+
+IsReturn(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "return"
+
+IsCallReturn(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "callReturn"
+    /\ "proc" \in DOMAIN s
+    /\ "args" \in DOMAIN s
+
+IsGoto(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "goto"
+    /\ "label" \in DOMAIN s
+
+IsSimpleStmt(s) ==
+    \/ IsAssignment(s)
+    \/ IsIf(s)
+    \/ IsEither(s)
+    \/ IsWith(s)
+    \/ IsWhen(s)
+    \/ IsPrint(s)
+    \/ IsAssert(s)
+    \/ IsSkip(s)
+    \/ IsCall(s)
+    \/ IsReturn(s)
+    \/ IsCallReturn(s)
+    \/ IsGoto(s)
+
+\* While loop
+IsWhile(s) ==
+    /\ "type" \in DOMAIN s
+    /\ s.type = "while"
+    /\ "cond" \in DOMAIN s
+    /\ "body" \in DOMAIN s
+
+\* Labeled statement: [label |-> STRING, stmts |-> Seq(Stmt)]
+IsLabeledStmt(ls) ==
+    /\ "label" \in DOMAIN ls
+    /\ "stmts" \in DOMAIN ls
+    /\ ls.label \in STRING
+
+\* Label sequence (sequence of labeled statements)
+IsLabelSeq(lseq) ==
+    /\ lseq \in Seq([label: STRING, stmts: Seq(STRING)])
+
+\* Procedure definition
+IsProcedure(p) ==
+    /\ "type" \in DOMAIN p
+    /\ p.type = "procedure"
+    /\ "name" \in DOMAIN p
+    /\ "params" \in DOMAIN p
+    /\ "vars" \in DOMAIN p
+    /\ "body" \in DOMAIN p
+
+\* Process definition
+IsProcess(p) ==
+    /\ "type" \in DOMAIN p
+    /\ p.type = "process"
+    /\ "name" \in DOMAIN p
+    /\ "id" \in DOMAIN p
+    /\ "vars" \in DOMAIN p
+    /\ "body" \in DOMAIN p
+    /\ "fair" \in DOMAIN p
+
+\* Uniprocess algorithm
+IsUniprocessAlg(alg) ==
+    /\ "type" \in DOMAIN alg
+    /\ alg.type = "uniprocess"
+    /\ "name" \in DOMAIN alg
+    /\ "vars" \in DOMAIN alg
+    /\ "procs" \in DOMAIN alg
+    /\ "body" \in DOMAIN alg
+
+\* Multiprocess algorithm
+IsMultiprocessAlg(alg) ==
+    /\ "type" \in DOMAIN alg
+    /\ alg.type = "multiprocess"
+    /\ "name" \in DOMAIN alg
+    /\ "vars" \in DOMAIN alg
+    /\ "procs" \in DOMAIN alg
+    /\ "processes" \in DOMAIN alg
+
+\* General algorithm predicate
+IsAlgorithm(alg) ==
+    \/ IsUniprocessAlg(alg)
+    \/ IsMultiprocessAlg(alg)
+
+\* ============================================================================
+\* PART 4: Variable Collection Utilities
+\* ============================================================================
+
+\* Get all global variable names from algorithm
+GlobalVars(alg) ==
+    IF "vars" \in DOMAIN alg THEN
+        [i \in 1..Len(alg.vars) |-> alg.vars[i].name]
+    ELSE << >>
+
+\* Get all procedure names
+ProcNames(alg) ==
+    IF "procs" \in DOMAIN alg THEN
+        [i \in 1..Len(alg.procs) |-> alg.procs[i].name]
+    ELSE << >>
+
+\* Get all process names (multiprocess only)
+ProcessNames(alg) ==
+    IF "processes" \in DOMAIN alg THEN
+        [i \in 1..Len(alg.processes) |-> alg.processes[i].name]
+    ELSE << >>
+
+\* Check if algorithm has procedures
+HasProcedures(alg) ==
+    /\ "procs" \in DOMAIN alg
+    /\ Len(alg.procs) > 0
+
+\* ============================================================================
+\* PART 5: Label Extraction
+\* ============================================================================
+
+RECURSIVE ExtractLabelsFromStmts(_, _)
+RECURSIVE ExtractLabelsFromLabeledStmts(_)
+
+ExtractLabelsFromStmts(stmts, acc) ==
+    IF stmts = << >> THEN acc
+    ELSE 
+        LET s == Head(stmts)
+            rest == Tail(stmts)
+        IN
+        IF "label" \in DOMAIN s THEN
+            ExtractLabelsFromStmts(rest, Append(acc, s.label))
+        ELSE IF "then" \in DOMAIN s /\ "else" \in DOMAIN s THEN
+            LET acc2 == ExtractLabelsFromStmts(s.then, acc)
+                acc3 == ExtractLabelsFromStmts(s.else, acc2)
+            IN ExtractLabelsFromStmts(rest, acc3)
+        ELSE IF "body" \in DOMAIN s THEN
+            LET acc2 == ExtractLabelsFromStmts(s.body, acc)
+            IN ExtractLabelsFromStmts(rest, acc2)
+        ELSE IF "branches" \in DOMAIN s THEN
+            LET ProcessBranch(a, br) == ExtractLabelsFromStmts(br, a)
+            IN ExtractLabelsFromStmts(rest, FoldLeft(ProcessBranch, acc, s.branches))
+        ELSE ExtractLabelsFromStmts(rest, acc)
+
+ExtractLabelsFromLabeledStmts(lseq) ==
+    IF lseq = << >> THEN << >>
+    ELSE
+        LET ls == Head(lseq)
+            lbls == <<ls.label>> \o ExtractLabelsFromStmts(ls.stmts, << >>)
+        IN lbls \o ExtractLabelsFromLabeledStmts(Tail(lseq))
+
+\* Get all labels from algorithm
+AllLabels(alg) ==
+    LET procLabels == 
+            IF "procs" \in DOMAIN alg THEN
+                Flatten([i \in 1..Len(alg.procs) |-> ExtractLabelsFromLabeledStmts(alg.procs[i].body)])
+            ELSE << >>
+        bodyLabels ==
+            IF "body" \in DOMAIN alg THEN
+                ExtractLabelsFromLabeledStmts(alg.body)
+            ELSE << >>
+        processLabels ==
+            IF "processes" \in DOMAIN alg THEN
+                Flatten([i \in 1..Len(alg.processes) |-> ExtractLabelsFromLabeledStmts(alg.processes[i].body)])
+            ELSE << >>
+    IN procLabels \o bodyLabels \o processLabels
+
+\* ============================================================================
+\* PART 6: Statement Translation (Explode)
+\* ============================================================================
+
+\* Translate a single assignment to TLA+
+TranslateAssignment(s, nextLabel, isMulti, self) ==
+    LET lhs == IF isMulti THEN Subscript(Ident(s.lhs), Ident(self)) ELSE Ident(s.lhs)
+        rhs == s.rhs
+    IN lhs \o <<" = ">> \o rhs
+
+\* Translate pc assignment
+TranslatePC(label, isMulti, self) ==
+    LET pcVar == IF isMulti THEN Subscript(<<"pc">>, Ident(self)) ELSE <<"pc">>
+    IN pcVar \o <<" = \"", label, "\"">>
+
+\* Translate skip (just pc update)
+TranslateSkip(nextLabel, isMulti, self) ==
+    TranslatePC(nextLabel, isMulti, self)
+
+\* Translate goto
+TranslateGoto(s, isMulti, self) ==
+    TranslatePC(s.label, isMulti, self)
+
+RECURSIVE TranslateStmts(_, _, _, _)
+
+\* Translate if statement
+TranslateIf(s, nextLabel, isMulti, self) ==
+    <<"IF ">> \o s.cond \o <<" THEN\n">> \o
+    TranslateStmts(s.then, nextLabel, isMulti, self) \o
+    <<"\nELSE\n">> \o
+    TranslateStmts(s.else, nextLabel, isMulti, self) \o
+    <<"\nENDIF">>
+
+\* Translate either statement
+TranslateEither(s, nextLabel, isMulti, self) ==
+    LET TransBranch(br) == TranslateStmts(br, nextLabel, isMulti, self)
+        branches == Map(TransBranch, s.branches)
+    IN <<"\\/ ">> \o StringJoin("\n\\/ ", branches)
+
+\* Translate with statement
+TranslateWith(s, nextLabel, isMulti, self) ==
+    <<"\\E ", s.var, " \\in ">> \o s.set \o <<":\n">> \o
+    TranslateStmts(s.body, nextLabel, isMulti, self)
+
+\* Translate when (await/guard)
+TranslateWhen(s) ==
+    s.cond
+
+\* Translate print
+TranslatePrint(s) ==
+    <<"PrintT(">> \o s.expr \o <<")">>
+
+\* Translate assert
+TranslateAssert(s) ==
+    <<"Assert(">> \o s.cond \o <<", \"Assertion failed\")">>
+
+\* Translate call (push to stack, update pc)
+TranslateCall(s, nextLabel, isMulti, self) ==
+    LET stackVar == IF isMulti THEN Subscript(<<"stack">>, Ident(self)) ELSE <<"stack">>
+        pcVar == IF isMulti THEN Subscript(<<"pc">>, Ident(self)) ELSE <<"pc">>
+        pushExpr == <<"<<[procedure |-> \"", s.proc, "\", pc |-> \"", nextLabel, "\"]>> \\o ">> \o stackVar
+    IN stackVar \o <<" = ">> \o pushExpr \o <<" /\\ ">> \o pcVar \o <<" = \"", s.proc, "_entry\"">>
+
+\* Translate return (pop from stack, restore pc)
+TranslateReturn(isMulti, self) ==
+    LET stackVar == IF isMulti THEN Subscript(<<"stack">>, Ident(self)) ELSE <<"stack">>
+        pcVar == IF isMulti THEN Subscript(<<"pc">>, Ident(self)) ELSE <<"pc">>
+    IN pcVar \o <<" = Head(">> \o stackVar \o <<").pc /\\ ">> \o 
+       stackVar \o <<" = Tail(">> \o stackVar \o <<")">>
+
+\* Translate callReturn (call then return)
+TranslateCallReturn(s, isMulti, self) ==
+    LET stackVar == IF isMulti THEN Subscript(<<"stack">>, Ident(self)) ELSE <<"stack">>
+        pcVar == IF isMulti THEN Subscript(<<"pc">>, Ident(self)) ELSE <<"pc">>
+    IN pcVar \o <<" = \"", s.proc, "_entry\"">>
+
+\* Translate a statement
+TranslateStmt(s, nextLabel, isMulti, self) ==
+    IF IsAssignment(s) THEN TranslateAssignment(s, nextLabel, isMulti, self)
+    ELSE IF IsSkip(s) THEN TranslateSkip(nextLabel, isMulti, self)
+    ELSE IF IsGoto(s) THEN TranslateGoto(s, isMulti, self)
+    ELSE IF IsIf(s) THEN TranslateIf(s, nextLabel, isMulti, self)
+    ELSE IF IsEither(s) THEN TranslateEither(s, nextLabel, isMulti, self)
+    ELSE IF IsWith(s) THEN TranslateWith(s, nextLabel, isMulti, self)
+    ELSE IF IsWhen(s) THEN TranslateWhen(s)
+    ELSE IF IsPrint(s) THEN TranslatePrint(s)
+    ELSE IF IsAssert(s) THEN TranslateAssert(s)
+    ELSE IF IsCall(s) THEN TranslateCall(s, nextLabel, isMulti, self)
+    ELSE IF IsReturn(s) THEN TranslateReturn(isMulti, self)
+    ELSE IF IsCallReturn(s) THEN TranslateCallReturn(s, isMulti, self)
+    ELSE <<"TRUE">>  \* fallback
+
+TranslateStmts(stmts, nextLabel, isMulti, self) ==
+    IF stmts = << >> THEN <<"TRUE">>
+    ELSE
+        LET translated == [i \in 1..Len(stmts) |-> TranslateStmt(stmts[i], nextLabel, isMulti, self)]
+        IN StringJoin(" /\\ ", translated)
+
+\* ============================================================================
+\* PART 7: Explode Labeled Statements into Actions
+\* ============================================================================
+
+\* Explode a labeled statement into a TLA+ action definition
+ExplodeLabeledStmt(ls, nextLabel, isMulti, self) ==
+    LET guard == IF isMulti 
+                 THEN <<"pc[", self, "] = \"", ls.label, "\"">>
+                 ELSE <<"pc = \"", ls.label, "\"">>
+        body == TranslateStmts(ls.stmts, nextLabel, isMulti, self)
+        pcUpdate == TranslatePC(nextLabel, isMulti, self)
+    IN <<ls.label, "(", self, ") == ">> \o guard \o <<" /\\ ">> \o body \o <<" /\\ ">> \o pcUpdate
+
+\* Explode a sequence of labeled statements
+RECURSIVE ExplodeSeq(_, _, _, _)
+ExplodeSeq(lseq, isMulti, self, doneLabel) ==
+    IF lseq = << >> THEN << >>
+    ELSE IF Len(lseq) = 1 THEN
+        <<ExplodeLabeledStmt(Head(lseq), doneLabel, isMulti, self)>>
+    ELSE
+        LET ls == Head(lseq)
+            rest == Tail(lseq)
+            nextLabel == Head(rest).label
+        IN <<ExplodeLabeledStmt(ls, nextLabel, isMulti, self)>> \o ExplodeSeq(rest, isMulti, self, doneLabel)
+
+\* Fully explode all labeled statements from algorithm body
+FullyExplodeSeq(lseq, isMulti, self) ==
+    ExplodeSeq(lseq, isMulti, self, "Done")
+
+\* ============================================================================
+\* PART 8: Generate Definitions
+\* ============================================================================
+
+\* Generate vars tuple
+GenerateVars(alg) ==
+    LET gvars == GlobalVars(alg)
+        allVars == IF HasProcedures(alg) THEN <<"pc", "stack">> \o gvars
+                   ELSE <<"pc">> \o gvars
+    IN <<"vars == << ">> \o StringJoin(", ", [i \in 1..Len(allVars) |-> <<allVars[i]>>]) \o <<" >>">>
+
+\* Generate ProcSet for multiprocess
+GenerateProcSet(alg) ==
+    IF IsMultiprocessAlg(alg) THEN
+        LET procSets == [i \in 1..Len(alg.processes) |-> alg.processes[i].id]
+        IN <<"ProcSet == ">> \o StringJoin(" \\cup ", procSets)
+    ELSE << >>
+
+\* Generate Init
+GenerateInit(alg) ==
+    LET gvars == GlobalVars(alg)
+        varInits == [i \in 1..Len(alg.vars) |-> 
+                     <<alg.vars[i].name, " = ">> \o alg.vars[i].init]
+        pcInit == IF IsMultiprocessAlg(alg) THEN
+                    <<"pc = [self \\in ProcSet |-> CASE">> \o 
+                    StringJoin(" [] ", [i \in 1..Len(alg.processes) |-> 
+                        <<"self \\in ">> \o alg.processes[i].id \o <<" -> \"", Head(alg.processes[i].body).label, "\"">>]) \o
+                    <<"]">>
+                  ELSE IF "body" \in DOMAIN alg /\ Len(alg.body) > 0 THEN
+                    <<"pc = \"", Head(alg.body).label, "\"">>
+                  ELSE <<"pc = \"Done\"">>
+        stackInit == IF HasProcedures(alg) THEN
+                       IF IsMultiprocessAlg(alg) THEN <<"stack = [self \\in ProcSet |-> << >>]">>
+                       ELSE <<"stack = << >>">>
+                     ELSE << >>
+        allInits == IF stackInit = << >> THEN <<pcInit>> \o varInits
+                    ELSE <<pcInit, stackInit>> \o varInits
+    IN <<"Init == ">> \o StringJoin(" /\\ ", allInits)
+
+\* Generate Next
+GenerateNext(alg) ==
+    LET labels == AllLabels(alg)
+        actions == IF IsMultiprocessAlg(alg) THEN
+                     [i \in 1..Len(labels) |-> <<"(\\E self \\in ProcSet: ", labels[i], "(self))">>]
+                   ELSE
+                     [i \in 1..Len(labels) |-> <<labels[i]>>]
+        disjunction == StringJoin(" \\/ ", actions)
+        stutterVars == <<"vars">>
+    IN <<"Next == (">> \o disjunction \o <<") \\/ ((">> \o 
+       (IF IsMultiprocessAlg(alg) THEN <<"\\A self \\in ProcSet: pc[self] = \"Done\"">>
+        ELSE <<"pc = \"Done\"">>) \o
+       <<") /\\ UNCHANGED ">> \o stutterVars \o <<")">>
+
+\* Generate Spec with fairness
+GenerateSpec(alg, fairnessOption) ==
+    LET base == <<"Spec == Init /\\ [][Next]_vars">>
+        wf == IF fairnessOption = "wf" THEN <<" /\\ WF_vars(Next)">>
+              ELSE IF fairnessOption = "wfNext" THEN <<" /\\ WF_vars(Next)">>
+              ELSE IF fairnessOption = "sf" THEN <<" /\\ SF_vars(Next)">>
+              ELSE << >>
+    IN base \o wf
+
+\* Generate Termination property
+GenerateTermination(alg) ==
+    IF IsMultiprocessAlg(alg) THEN
+        <<"Termination == <>(\\A self \\in ProcSet: pc[self] = \"Done\")">>
+    ELSE
+        <<"Termination == <>(pc = \"Done\")">>
+
+\* ============================================================================
+\* PART 9: Main Translation Operator
+\* ============================================================================
+
+Translation(alg, fairnessOption) ==
+    LET isMulti == IsMultiprocessAlg(alg)
+        self == "self"
+        
+        \* Generate action definitions from body
+        bodyActions == IF "body" \in DOMAIN alg THEN
+                         FullyExplodeSeq(alg.body, isMulti, self)
+                       ELSE << >>
+        
+        \* Generate action definitions from processes
+        processActions == IF "processes" \in DOMAIN alg THEN
+                            Flatten([i \in 1..Len(alg.processes) |-> 
+                                FullyExplodeSeq(alg.processes[i].body, isMulti, self)])
+                          ELSE << >>
+        
+        \* Generate action definitions from procedures
+        procActions == IF "procs" \in DOMAIN alg THEN
+                         Flatten([i \in 1..Len(alg.procs) |-> 
+                             FullyExplodeSeq(alg.procs[i].body, isMulti, self)])
+                       ELSE << >>
+        
+        \* All actions
+        allActions == bodyActions \o processActions \o procActions
+        actionDefs == StringJoin("\n\n", allActions)
+        
+        \* Standard definitions
+        varsDef == GenerateVars(alg)
+        procSetDef == GenerateProcSet(alg)
+        initDef == GenerateInit(alg)
+        nextDef == GenerateNext(alg)
+        specDef == GenerateSpec(alg, fairnessOption)
+        termDef == GenerateTermination(alg)
+        
+        \* Combine all
+        allDefs == IF isMulti THEN
+                     <<varsDef, <<"\n\n">>, procSetDef, <<"\n\n">>, actionDefs, <<"\n\n">>, 
+                       initDef, <<"\n\n">>, nextDef, <<"\n\n">>, specDef, <<"\n\n">>, termDef>>
+                   ELSE
+                     <<varsDef, <<"\n\n">>, actionDefs, <<"\n\n">>, 
+                       initDef, <<"\n\n">>, nextDef, <<"\n\n">>, specDef, <<"\n\n">>, termDef>>
+    IN Flatten(allDefs)
+
+\* ============================================================================
+\* PART 10: Specification Structure (for TLC execution)
+\* ============================================================================
+
+Init == dummy = 0
+
+Next == UNCHANGED dummy
+
+Spec == Init /\ [][Next]_dummy
+
+\* ============================================================================
+\* PART 11: Type Invariants and Properties
+\* ============================================================================
+
+\* Type invariant
+TypeOK == dummy \in Int
+
+\* Safety: dummy never changes
+Safety == dummy = 0
+
+\* ============================================================================
+\* PART 12: Compute and print translation when TLC runs
+\* ============================================================================
+
+ASSUME PrintT(Translation(ast, fairness))
+
+=============================================================================
+```

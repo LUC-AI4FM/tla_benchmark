@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PrisonerPuzzle ----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Prisoner, Light_Unknown\n\nVARIABLES counter_count, victory_announced, signalled, lamp_on, visited\n\nvars == <<counter_count, victory_announced, signalled, lamp_on, visited>>\n\nN == Cardinality(Prisoner)\n\nCounter == CHOOSE p \\in Prisoner : TRUE\n\nNonCounters == Prisoner \\ {Counter}\n\nMaxSignals == IF Light_Unknown THEN 2 ELSE 1\n\nVictoryThreshold == IF Light_Unknown THEN 2 * N - 1 ELSE N\n\nTypeOK ==\n    /\\ counter_count \\in 1..VictoryThreshold\n    /\\ victory_announced \\in BOOLEAN\n    /\\ signalled \\in [NonCounters -> 0..MaxSignals]\n    /\\ lamp_on \\in BOOLEAN\n    /\\ visited \\in SUBSET Prisoner\n\nInit ==\n    /\\ counter_count = 1\n    /\\ victory_announced = FALSE\n    /\\ signalled = [p \\in NonCounters |-> 0]\n    /\\ lamp_on \\in IF Light_Unknown THEN BOOLEAN ELSE {FALSE}\n    /\\ visited = {}\n\nCounterVisit ==\n    /\\ ~victory_announced\n    /\\ visited' = visited \\cup {Counter}\n    /\\ IF lamp_on\n       THEN /\\ lamp_on' = FALSE\n            /\\ counter_count' = counter_count + 1\n            /\\ IF counter_count + 1 = VictoryThreshold\n               THEN victory_announced' = TRUE\n               ELSE victory_announced' = FALSE\n       ELSE /\\ lamp_on' = lamp_on\n            /\\ counter_count' = counter_count\n            /\\ victory_announced' = FALSE\n    /\\ UNCHANGED signalled\n\nNonCounterVisit(p) ==\n    /\\ p \\in NonCounters\n    /\\ ~victory_announced\n    /\\ visited' = visited \\cup {p}\n    /\\ IF ~lamp_on /\\ signalled[p] < MaxSignals\n       THEN /\\ lamp_on' = TRUE\n            /\\ signalled' = [signalled EXCEPT ![p] = signalled[p] + 1]\n       ELSE /\\ lamp_on' = lamp_on\n            /\\ signalled' = signalled\n    /\\ UNCHANGED <<counter_count, victory_announced>>\n\nWardenSelectsCounter ==\n    CounterVisit\n\nWardenSelectsNonCounter(p) ==\n    NonCounterVisit(p)\n\nNext ==\n    \\/ WardenSelectsCounter\n    \\/ \\E p \\in NonCounters : WardenSelectsNonCounter(p)\n\nFairness ==\n    /\\ WF_vars(WardenSelectsCounter)\n    /\\ \\A p \\in NonCounters : WF_vars(WardenSelectsNonCounter(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nVictoryOK ==\n    victory_announced => (visited = Prisoner)\n\nTerminating == <>(victory_announced)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 446,
+    "outputTokens": 761,
+    "totalTokens": 1207,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11196
+  }
+}

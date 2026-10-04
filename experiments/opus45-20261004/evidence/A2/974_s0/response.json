@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE RegularSimple ----------------------------\nEXTENDS Integers, TLAPS, FiniteSets\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, pc\n\nvars == <<x, y, pc>>\n\nProcs == 0..N-1\n\nLabels == {\"a1\", \"a2\", \"b\", \"Done\"}\n\nTypeOK == /\\ x \\in [Procs -> SUBSET {0,1}]\n          /\\ \\A i \\in Procs : x[i] # {}\n          /\\ y \\in [Procs -> {0,1}]\n          /\\ pc \\in [Procs -> Labels]\n\nInit == /\\ x = [i \\in Procs |-> {0}]\n        /\\ y = [i \\in Procs |-> 0]\n        /\\ pc = [i \\in Procs |-> \"a1\"]\n\na1(self) == /\\ pc[self] = \"a1\"\n            /\\ x' = [x EXCEPT ![self] = {0,1}]\n            /\\ pc' = [pc EXCEPT ![self] = \"a2\"]\n            /\\ y' = y\n\na2(self) == /\\ pc[self] = \"a2\"\n            /\\ x' = [x EXCEPT ![self] = {1}]\n            /\\ pc' = [pc EXCEPT ![self] = \"b\"]\n            /\\ y' = y\n\nb(self) == /\\ pc[self] = \"b\"\n           /\\ \\E v \\in x[(self - 1) % N] : y' = [y EXCEPT ![self] = v]\n           /\\ pc' = [pc EXCEPT ![self] = \"Done\"]\n           /\\ x' = x\n\nproc(self) == a1(self) \\/ a2(self) \\/ b(self)\n\nNext == \\E self \\in Procs : proc(self)\n\nSpec == Init /\\ [][Next]_vars\n\nTermination == <>(\\A self \\in Procs : pc[self] = \"Done\")\n\nPCorrect == (\\A i \\in Procs : pc[i] = \"Done\") => (\\E i \\in Procs : y[i] = 1)\n\nWriteComplete == \\A i \\in Procs : pc[i] \\in {\"b\", \"Done\"} => x[i] = {1}\n\nNotDoneOrSomeOne == \\/ \\E i \\in Procs : pc[i] # \"Done\"\n                    \\/ \\E i \\in Procs : y[i] = 1\n\nInv == TypeOK /\\ WriteComplete /\\ NotDoneOrSomeOne\n\nTHEOREM Correctness == Spec => []PCorrect\n<1>1. Init => Inv\n  <2>1. Init => TypeOK\n    BY NAssumption DEF Init, TypeOK, Procs\n  <2>2. Init => WriteComplete\n    BY DEF Init, WriteComplete, Procs\n  <2>3. Init => NotDoneOrSomeOne\n    BY NAssumption DEF Init, NotDoneOrSomeOne, Procs\n  <2>. QED\n    BY <2>1, <2>2, <2>3 DEF Inv\n<1>2. Inv /\\ [Next]_vars => Inv'\n  <2>1. SUFFICES ASSUME Inv, [Next]_vars\n                 PROVE Inv'\n    OBVIOUS\n  <2>2. CASE UNCHANGED vars\n    BY <2>1, <2>2 DEF Inv, TypeOK, WriteComplete, NotDoneOrSomeOne, vars\n  <2>3. CASE Next\n    <3>1. PICK self \\in Procs : proc(self)\n      BY <2>3 DEF Next\n    <3>2. CASE a1(self)\n      BY <2>1, <3>1, <3>2, NAssumption DEF Inv, TypeOK, WriteComplete, NotDoneOrSomeOne, a1, Procs\n    <3>3. CASE a2(self)\n      BY <2>1, <3>1, <3>3, NAssumption DEF Inv, TypeOK, WriteComplete, NotDoneOrSomeOne, a2, Procs\n    <3>4. CASE b(self)\n      <4>1. TypeOK'\n        BY <2>1, <3>1, <3>4, NAssumption DEF Inv, TypeOK, b, Procs\n      <4>2. WriteComplete'\n        BY <2>1, <3>1, <3>4 DEF Inv, WriteComplete, b, Procs\n      <4>3. NotDoneOrSomeOne'\n        <5>1. CASE \\E i \\in Procs : i # self /\\ pc[i] # \"Done\"\n          BY <5>1, <3>4 DEF NotDoneOrSomeOne, b, Procs\n        <5>2. CASE \\A i \\in Procs : i = self \\/ pc[i] = \"Done\"\n          <6>1. pc[(self - 1) % N] = \"Done\"\n            BY <5>2, NAssumption DEF Procs\n          <6>2. x[(self - 1) % N] = {1}\n            BY <6>1, <2>1, NAssumption DEF Inv, WriteComplete, Procs\n          <6>3. y'[self] = 1\n            BY <3>4, <6>2 DEF b\n          <6>. QED\n            BY <6>3 DEF NotDoneOrSomeOne, Procs\n        <5>. QED\n          BY <5>1, <5>2\n      <4>. QED\n        BY <4>1, <4>2, <4>3 DEF Inv\n    <3>. QED\n      BY <3>1, <3>2, <3>3, <3>4 DEF proc\n  <2>. QED\n    BY <2>2, <2>3\n<1>3. Inv => PCorrect\n  BY DEF Inv, PCorrect, NotDoneOrSomeOne\n<1>. QED\n  BY <1>1, <1>2, <1>3, PTL DEF Spec\n\nTHEOREM Correctness2 == Spec => []PCorrect\n<1>1. Init /\\ [][Next]_vars => []Inv\n  <2>1. Init => Inv\n    BY DEF Init, Inv, TypeOK, WriteComplete, NotDoneOrSomeOne, Procs\n  <2>2. Inv /\\ [Next]_vars => Inv'\n    BY DEF Inv, TypeOK, WriteComplete, NotDoneOrSomeOne, Next, proc, a1, a2, b, vars, Procs\n  <2>. QED\n    BY <2>1, <2>2, PTL\n<1>2. []Inv => []PCorrect\n  <2>1. Inv => PCorrect\n    BY DEF Inv, PCorrect, NotDoneOrSomeOne\n  <2>. QED\n    BY <2>1, PTL\n<1>. QED\n  BY <1>1, <1>2, PTL DEF Spec\n\n=============================================================================\n\\* Configuration for model checking:\n\\* CONSTANT N = 8\n\\* INVARIANTS TypeOK, Inv, PCorrect\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 562,
+    "outputTokens": 1869,
+    "totalTokens": 2431,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 25785
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE EuclidGCD ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANT MaxNum\n\nASSUME MaxNum = 20\n\nVARIABLES pc, u, v, u_ini, v_ini\n\nvars == <<pc, u, v, u_ini, v_ini>>\n\nDivisors(n) == {d \\in 1..n : n % d = 0}\n\nGCD(x, y) == \n    LET common == Divisors(x) \\cap Divisors(y)\n    IN CHOOSE d \\in common : \\A e \\in common : e <= d\n\nInit == \n    /\\ u_ini \\in 1..MaxNum\n    /\\ v_ini \\in 1..MaxNum\n    /\\ u = u_ini\n    /\\ v = v_ini\n    /\\ pc = \"a\"\n\nActionA == \n    /\\ pc = \"a\"\n    /\\ IF u /= 0\n       THEN /\\ IF u < v\n               THEN /\\ u' = v\n                    /\\ v' = u\n               ELSE /\\ u' = u\n                    /\\ v' = v\n            /\\ pc' = \"b\"\n            /\\ UNCHANGED <<u_ini, v_ini>>\n       ELSE /\\ Assert(v = GCD(u_ini, v_ini), \"GCD assertion failed\")\n            /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<u, v, u_ini, v_ini>>\n\nActionB == \n    /\\ pc = \"b\"\n    /\\ u' = u - v\n    /\\ v' = v\n    /\\ pc' = \"a\"\n    /\\ UNCHANGED <<u_ini, v_ini>>\n\nDone == \n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == ActionA \\/ ActionB \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nFinished == pc = \"Done\"\n\nSwapOccurs == \n    /\\ pc = \"a\"\n    /\\ u /= 0\n    /\\ u < v\n\nInvariant == pc = \"Done\" => v = GCD(u_ini, v_ini)\n\nTermination == <>(pc = \"Done\")\n\nPossibleCounts == \n    /\\ TLCGet(\"stats\").states.distinct = 800 => TRUE\n    /\\ Assert(TLCGet(\"spec\").actions.SwapOccurs = 698, \"SwapOccurs count mismatch\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 484,
+    "outputTokens": 616,
+    "totalTokens": 1100,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10677
+  }
+}

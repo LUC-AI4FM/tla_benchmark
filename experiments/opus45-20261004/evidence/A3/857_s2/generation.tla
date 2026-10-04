@@ -1,0 +1,135 @@
+---------------------------- MODULE PrisonerLightSwitch ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS 
+    N,              \* Number of prisoners (N >= 2)
+    InitiallyKnown  \* TRUE if initial light state is known to be off, FALSE otherwise
+
+VARIABLES
+    light,          \* State of the lamp: TRUE (on) or FALSE (off)
+    counter,        \* Count maintained by the designated counter prisoner
+    signalCount,    \* Function mapping each non-counter prisoner to times they've signaled
+    visited,        \* Set of prisoners who have visited the cell
+    announced,      \* TRUE if victory has been announced
+    turn            \* Current prisoner selected by warden (0 to N-1)
+
+vars == <<light, counter, signalCount, visited, announced, turn>>
+
+Prisoners == 0..(N-1)
+CounterPrisoner == 0
+NonCounterPrisoners == 1..(N-1)
+
+\* Maximum times a non-counter prisoner can signal
+MaxSignals == IF InitiallyKnown THEN 1 ELSE 2
+
+\* Threshold for counter to announce victory
+\* Known case: needs N-1 signals (all non-counter prisoners)
+\* Unknown case: needs 2*(N-1) - 1 = 2N - 3 signals, but actually 2N-1 total accounting
+\* Standard formulation: unknown case threshold is 2N - 3 for non-counter signals
+\* Or equivalently, counter waits for 2*(N-1) - 1 = 2N - 3 signals from others
+\* Actually the classic puzzle: unknown case needs 2N - 1 total "counts"
+Threshold == IF InitiallyKnown THEN N - 1 ELSE 2 * N - 3
+
+TypeOK ==
+    /\ light \in BOOLEAN
+    /\ counter \in 0..Threshold
+    /\ signalCount \in [NonCounterPrisoners -> 0..MaxSignals]
+    /\ visited \subseteq Prisoners
+    /\ announced \in BOOLEAN
+    /\ turn \in Prisoners
+
+Init ==
+    /\ light = IF InitiallyKnown THEN FALSE ELSE FALSE  \* Model starts with light off
+    /\ counter = 0
+    /\ signalCount = [p \in NonCounterPrisoners |-> 0]
+    /\ visited = {}
+    /\ announced = FALSE
+    /\ turn \in Prisoners  \* Warden picks initial prisoner non-deterministically
+
+\* Warden selects a prisoner to enter the cell
+WardenSelects(p) ==
+    /\ ~announced
+    /\ turn' = p
+    /\ UNCHANGED <<light, counter, signalCount, visited, announced>>
+
+\* Counter prisoner visits: turns off light and increments count, or does nothing
+CounterVisits ==
+    /\ turn = CounterPrisoner
+    /\ ~announced
+    /\ visited' = visited \cup {CounterPrisoner}
+    /\ IF light = TRUE
+       THEN /\ light' = FALSE
+            /\ counter' = counter + 1
+       ELSE /\ UNCHANGED <<light, counter>>
+    /\ UNCHANGED <<signalCount, announced, turn>>
+
+\* Counter announces victory when threshold reached
+CounterAnnounces ==
+    /\ turn = CounterPrisoner
+    /\ ~announced
+    /\ counter >= Threshold
+    /\ announced' = TRUE
+    /\ visited' = visited \cup {CounterPrisoner}
+    /\ UNCHANGED <<light, counter, signalCount, turn>>
+
+\* Non-counter prisoner visits: turns on light if off and hasn't maxed signals
+NonCounterVisits(p) ==
+    /\ p \in NonCounterPrisoners
+    /\ turn = p
+    /\ ~announced
+    /\ visited' = visited \cup {p}
+    /\ IF light = FALSE /\ signalCount[p] < MaxSignals
+       THEN /\ light' = TRUE
+            /\ signalCount' = [signalCount EXCEPT ![p] = @ + 1]
+       ELSE /\ UNCHANGED <<light, signalCount>>
+    /\ UNCHANGED <<counter, announced, turn>>
+
+\* Combined action for a prisoner entering and acting
+PrisonerActs ==
+    \/ CounterVisits
+    \/ CounterAnnounces
+    \/ \E p \in NonCounterPrisoners : NonCounterVisits(p)
+
+\* Warden picks next prisoner (combined with prisoner acting)
+Step(p) ==
+    /\ ~announced
+    /\ turn' = p
+    /\ \/ /\ p = CounterPrisoner
+          /\ visited' = visited \cup {CounterPrisoner}
+          /\ \/ /\ counter >= Threshold
+                /\ announced' = TRUE
+                /\ UNCHANGED <<light, counter, signalCount>>
+             \/ /\ counter < Threshold
+                /\ IF light = TRUE
+                   THEN /\ light' = FALSE
+                        /\ counter' = counter + 1
+                   ELSE UNCHANGED <<light, counter>>
+                /\ UNCHANGED <<announced, signalCount>>
+       \/ /\ p \in NonCounterPrisoners
+          /\ visited' = visited \cup {p}
+          /\ IF light = FALSE /\ signalCount[p] < MaxSignals
+             THEN /\ light' = TRUE
+                  /\ signalCount' = [signalCount EXCEPT ![p] = @ + 1]
+             ELSE UNCHANGED <<light, signalCount>>
+          /\ UNCHANGED <<counter, announced>>
+
+Next ==
+    \/ \E p \in Prisoners : Step(p)
+    \/ /\ announced
+       /\ UNCHANGED vars  \* Stuttering after announcement
+
+\* Fairness: warden must eventually select each prisoner
+Fairness == \A p \in Prisoners : WF_vars(Step(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety: If victory is announced, all prisoners must have visited
+SafetyInvariant == announced => (visited = Prisoners)
+
+\* Liveness: Eventually victory is announced
+LivenessProperty == <>announced
+
+\* Alternative safety: counter never exceeds threshold before all visited
+CounterSafety == counter <= Threshold
+
+=============================================================================

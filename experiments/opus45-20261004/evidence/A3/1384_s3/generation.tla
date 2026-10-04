@@ -1,0 +1,74 @@
+---------------------------- MODULE BoundedSeqGraph ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+\* Helper operators for bounded sequences
+BoundedSeq(S, n) == UNION {[1..m -> S] : m \in 0..n}
+
+\* Helper operators for directed graphs
+DirectedGraph(Nodes) == [nodes : SUBSET Nodes, edges : SUBSET (Nodes \X Nodes)]
+
+\* Get the edge set of a graph
+EdgeSet(G) == G.edges
+
+\* Constants for the graph
+CONSTANTS Nodes
+
+\* Define a constant graph based on Nodes
+ConstGraph == [nodes |-> Nodes, edges |-> Nodes \X Nodes]
+
+\* Variables ranging over the edge set of the constant graph
+VARIABLES x, y
+
+vars == <<x, y>>
+
+\* The edge set we work with
+Edges == EdgeSet(ConstGraph)
+
+\* Assumption about cardinality of nested bounded-sequence construction
+\* This tests that bounded sequences of bounded sequences have finite cardinality
+ASSUME Cardinality(BoundedSeq(BoundedSeq({1, 2}, 2), 2)) > 0
+
+\* A test graph derived from the current state
+\* Caching behavior matters here - TLCEval forces evaluation in a particular context
+TestGraph == [nodes |-> Nodes, edges |-> {<<x[1], y[2]>> : <<dummy1, dummy2>> \in {<<x, y>>}}]
+
+\* Initial state: both variables are edges in the graph
+Init ==
+    /\ x \in Edges
+    /\ y \in Edges
+
+\* Next state: non-deterministically choose new edges
+\* Using RandomElement with TLCEval to force evaluation context
+Next ==
+    /\ x' = TLCEval(RandomElement(Edges))
+    /\ y' = TLCEval(RandomElement(Edges))
+
+\* Type invariant: variables must be members of the edge set
+TypeOK ==
+    /\ x \in Edges
+    /\ y \in Edges
+
+\* Membership in derived test graph - the edge formed must be valid
+\* Note: caching behavior of TLCEval matters for correctness of this invariant
+TestGraphMembership ==
+    /\ x \in Nodes \X Nodes
+    /\ y \in Nodes \X Nodes
+
+\* Fixed TLCEval-computed cardinality check
+\* This ensures that the cardinality computation is evaluated exactly once and cached
+CardinalityCheck ==
+    TLCEval(Cardinality(Edges)) = Cardinality(Nodes) * Cardinality(Nodes)
+
+\* Combined invariant: type membership, test graph membership, and cardinality check
+Invariant ==
+    /\ TypeOK
+    /\ TestGraphMembership
+    /\ CardinalityCheck
+
+\* Specification with weak fairness on Next
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Liveness: the system can always make progress (always eventually change state)
+Liveness == []<><<Next>>_vars
+
+================================================================================

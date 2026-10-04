@@ -1,0 +1,27 @@
+---------------------------- MODULE spec ----------------------------
+
+EXTENDS Integers, FiniteSets, TLC
+
+\* S is a finite set of nine integers
+\* T is the integer range 1..10
+\* The full function space [S -> T] has 10^9 elements (since |S| = 9 and |T| = 10)
+\* and should not be explicitly enumerated.
+\* Instead, we initialize x to an element of RandomSubset(1000, [S -> T]).
+
+CONSTANTS S, T
+
+VARIABLE x
+
+\* Initial state: x is chosen from a random subset of 1000 functions from [S -> T]
+Init == x \in RandomSubset(1000, [S -> T])
+
+\* The behavior after initialization is pure stuttering
+Next == UNCHANGED x
+
+\* Trivial invariant
+Inv == TRUE
+
+\* The complete specification
+Spec == Init /\ [][Next]_x
+
+=============================================================================

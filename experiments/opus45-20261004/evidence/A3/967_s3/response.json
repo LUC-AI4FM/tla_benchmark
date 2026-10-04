@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE StoneWeighing ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE SumSeq(_)\nSumSeq(s) == IF s = <<>> THEN 0 ELSE Head(s) + SumSeq(Tail(s))\n\nRECURSIVE OrderedPartitions(_, _)\nOrderedPartitions(total, parts) ==\n    IF parts = 0 THEN\n        IF total = 0 THEN {<<>>} ELSE {}\n    ELSE IF parts = 1 THEN\n        IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE\n        UNION {\n            {<<w>> \\o rest : rest \\in OrderedPartitions(total - w, parts - 1)}\n            : w \\in 1..total - (parts - 1)\n        }\n\nCanWeigh(weights, target) ==\n    LET n == Len(weights)\n        Coefficients == [1..n -> {-1, 0, 1}]\n    IN \\E coeff \\in Coefficients :\n        LET weighted == [i \\in 1..n |-> coeff[i] * weights[i]]\n            weightSeq == [i \\in DOMAIN weighted |-> weighted[i]]\n        IN SumSeq([i \\in 1..n |-> coeff[i] * weights[i]]) = target\n\nRECURSIVE SumWithCoeff(_, _, _)\nSumWithCoeff(weights, coeff, i) ==\n    IF i > Len(weights) THEN 0\n    ELSE coeff[i] * weights[i] + SumWithCoeff(weights, coeff, i + 1)\n\nCanWeighTarget(weights, target) ==\n    LET n == Len(weights)\n    IN \\E coeff \\in [1..n -> {-1, 0, 1}] :\n        SumWithCoeff(weights, coeff, 1) = target\n\nIsSolution(weights) ==\n    /\\ SumSeq(weights) = W\n    /\\ Len(weights) = N\n    /\\ \\A i \\in 1..N : weights[i] >= 1\n    /\\ \\A t \\in 1..W : CanWeighTarget(weights, t)\n\nSolutions == {p \\in OrderedPartitions(W, N) : IsSolution(p)}\n\nASSUME\n    LET sols == Solutions\n    IN IF sols = {} THEN\n        PrintT(\"No solution exists for the given W and N\")\n       ELSE\n        PrintT(<<\"Solution found:\", CHOOSE s \\in sols : TRUE>>)\n\nVARIABLE dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\nTypeOK == dummy \\in {0}\n\nSolutionExists == Solutions /= {}\n\nAllWeightsReachable ==\n    \\A sol \\in Solutions :\n        \\A t \\in 1..W : CanWeighTarget(sol, t)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 257,
+    "outputTokens": 740,
+    "totalTokens": 997,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12404
+  }
+}

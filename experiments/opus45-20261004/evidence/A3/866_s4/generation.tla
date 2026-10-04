@@ -1,0 +1,256 @@
+------------------------------ MODULE FastPaxos ------------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    Acceptors,      \* Set of acceptor agents
+    Proposers,      \* Set of proposer agents  
+    Values,         \* Set of proposable values
+    FastQuorums,    \* Set of fast quorums (larger quorums for fast rounds)
+    ClassicQuorums, \* Set of classic quorums
+    Coordinator     \* The unique coordinator
+
+VARIABLES
+    round,          \* Current round number
+    decision,       \* The decided value (or None if no decision)
+    votes,          \* votes[a][r] = value voted by acceptor a in round r (or None)
+    maxRound,       \* maxRound[a] = highest round acceptor a has participated in
+    proposed,       \* Set of values that have been proposed
+    cValue,         \* cValue[r] = coordinator's chosen value for round r (or None)
+    msgs            \* Set of messages in the network
+
+None == CHOOSE v : v \notin Values
+
+Rounds == 0..10
+
+IsFastRound(r) == r % 2 = 0
+
+vars == <<round, decision, votes, maxRound, proposed, cValue, msgs>>
+
+TypeOK ==
+    /\ round \in Rounds
+    /\ decision \in Values \cup {None}
+    /\ votes \in [Acceptors -> [Rounds -> Values \cup {None}]]
+    /\ maxRound \in [Acceptors -> Rounds \cup {-1}]
+    /\ proposed \subseteq Values
+    /\ cValue \in [Rounds -> Values \cup {None}]
+    /\ msgs \subseteq [type: {"1a", "1b", "2a", "2b", "propose", "decision"},
+                       round: Rounds,
+                       from: Acceptors \cup Proposers \cup {Coordinator},
+                       value: Values \cup {None},
+                       maxVotedRound: Rounds \cup {-1}]
+
+\* Quorum assumptions
+ASSUME /\ \A FQ1, FQ2 \in FastQuorums : \A CQ \in ClassicQuorums : 
+           FQ1 \cap FQ2 \cap CQ # {}
+       /\ \A CQ1, CQ2 \in ClassicQuorums : CQ1 \cap CQ2 # {}
+
+\* All quorums are subsets of acceptors
+ASSUME /\ \A FQ \in FastQuorums : FQ \subseteq Acceptors
+       /\ \A CQ \in ClassicQuorums : CQ \subseteq Acceptors
+
+\* Initialize the protocol
+Init ==
+    /\ round = 0
+    /\ decision = None
+    /\ votes = [a \in Acceptors |-> [r \in Rounds |-> None]]
+    /\ maxRound = [a \in Acceptors |-> -1]
+    /\ proposed = {}
+    /\ cValue = [r \in Rounds |-> None]
+    /\ msgs = {}
+
+\* A proposer proposes a value
+Propose(p, v) ==
+    /\ decision = None
+    /\ proposed' = proposed \cup {v}
+    /\ msgs' = msgs \cup {[type |-> "propose", round |-> round, 
+                           from |-> p, value |-> v, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, decision, votes, maxRound, cValue>>
+
+\* Coordinator starts a new round (Phase 1a)
+StartRound(r) ==
+    /\ r > round
+    /\ r \in Rounds
+    /\ decision = None
+    /\ round' = r
+    /\ msgs' = msgs \cup {[type |-> "1a", round |-> r, from |-> Coordinator,
+                           value |-> None, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<decision, votes, maxRound, proposed, cValue>>
+
+\* Acceptor responds to 1a message (Phase 1b)
+Phase1b(a, r) ==
+    /\ decision = None
+    /\ [type |-> "1a", round |-> r, from |-> Coordinator, 
+        value |-> None, maxVotedRound |-> -1] \in msgs
+    /\ r >= maxRound[a]
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ LET maxVR == CHOOSE mr \in Rounds \cup {-1} : 
+                        /\ (mr = -1 /\ \A r2 \in Rounds : votes[a][r2] = None)
+                        \/ (mr \in Rounds /\ votes[a][mr] # None 
+                            /\ \A r2 \in Rounds : r2 > mr => votes[a][r2] = None)
+           maxVal == IF maxVR = -1 THEN None ELSE votes[a][maxVR]
+       IN msgs' = msgs \cup {[type |-> "1b", round |-> r, from |-> a,
+                              value |-> maxVal, maxVotedRound |-> maxVR]}
+    /\ UNCHANGED <<round, decision, votes, proposed, cValue>>
+
+\* Find highest voted round from a set of 1b messages
+HighestVotedRound(S) ==
+    LET voted == {m.maxVotedRound : m \in S}
+    IN IF voted = {-1} THEN -1
+       ELSE CHOOSE r \in voted : r # -1 /\ \A r2 \in voted : r2 <= r
+
+\* Get values voted in round r from 1b messages
+VotedValues(S, r) ==
+    {m.value : m \in {m2 \in S : m2.maxVotedRound = r /\ m2.value # None}}
+
+\* Coordinator sends 2a for classic round (Phase 2a Classic)
+Phase2aClassic(r) ==
+    /\ decision = None
+    /\ ~IsFastRound(r)
+    /\ cValue[r] = None
+    /\ LET msgs1b == {m \in msgs : m.type = "1b" /\ m.round = r}
+           Q == {m.from : m \in msgs1b}
+       IN /\ \E CQ \in ClassicQuorums : CQ \subseteq Q
+          /\ LET highR == HighestVotedRound(msgs1b)
+                 vals == VotedValues(msgs1b, highR)
+                 v == IF highR = -1 
+                      THEN CHOOSE val \in proposed : TRUE
+                      ELSE CHOOSE val \in vals : TRUE
+             IN /\ (highR = -1 => proposed # {})
+                /\ (highR # -1 => vals # {})
+                /\ cValue' = [cValue EXCEPT ![r] = v]
+                /\ msgs' = msgs \cup {[type |-> "2a", round |-> r,
+                                       from |-> Coordinator, value |-> v,
+                                       maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, decision, votes, maxRound, proposed>>
+
+\* Coordinator sends 2a for fast round - allows any proposed value
+Phase2aFast(r) ==
+    /\ decision = None
+    /\ IsFastRound(r)
+    /\ cValue[r] = None
+    /\ LET msgs1b == {m \in msgs : m.type = "1b" /\ m.round = r}
+           Q == {m.from : m \in msgs1b}
+       IN /\ \E CQ \in ClassicQuorums : CQ \subseteq Q
+          /\ LET highR == HighestVotedRound(msgs1b)
+             IN IF highR = -1
+                THEN /\ cValue' = [cValue EXCEPT ![r] = None]  \* Any value allowed
+                     /\ msgs' = msgs \cup {[type |-> "2a", round |-> r,
+                                            from |-> Coordinator, value |-> None,
+                                            maxVotedRound |-> -1]}
+                ELSE LET vals == VotedValues(msgs1b, highR)
+                         v == CHOOSE val \in vals : TRUE
+                     IN /\ vals # {}
+                        /\ cValue' = [cValue EXCEPT ![r] = v]
+                        /\ msgs' = msgs \cup {[type |-> "2a", round |-> r,
+                                               from |-> Coordinator, value |-> v,
+                                               maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, decision, votes, maxRound, proposed>>
+
+\* Acceptor votes in classic round (Phase 2b Classic)
+Phase2bClassic(a, r, v) ==
+    /\ decision = None
+    /\ ~IsFastRound(r)
+    /\ r >= maxRound[a]
+    /\ [type |-> "2a", round |-> r, from |-> Coordinator, value |-> v,
+        maxVotedRound |-> -1] \in msgs
+    /\ votes[a][r] = None
+    /\ votes' = [votes EXCEPT ![a][r] = v]
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ msgs' = msgs \cup {[type |-> "2b", round |-> r, from |-> a,
+                           value |-> v, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, decision, proposed, cValue>>
+
+\* Acceptor votes in fast round - can vote for any proposed value if coordinator allows
+Phase2bFast(a, r, v) ==
+    /\ decision = None
+    /\ IsFastRound(r)
+    /\ r >= maxRound[a]
+    /\ v \in proposed
+    /\ \/ /\ [type |-> "2a", round |-> r, from |-> Coordinator, value |-> None,
+              maxVotedRound |-> -1] \in msgs  \* Coordinator allows any value
+       \/ /\ [type |-> "2a", round |-> r, from |-> Coordinator, value |-> v,
+              maxVotedRound |-> -1] \in msgs  \* Or coordinator specified this value
+    /\ votes[a][r] = None
+    /\ votes' = [votes EXCEPT ![a][r] = v]
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ msgs' = msgs \cup {[type |-> "2b", round |-> r, from |-> a,
+                           value |-> v, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, decision, proposed, cValue>>
+
+\* Learn a decision from classic quorum
+LearnClassic(r, v) ==
+    /\ decision = None
+    /\ ~IsFastRound(r)
+    /\ LET msgs2b == {m \in msgs : m.type = "2b" /\ m.round = r /\ m.value = v}
+           Q == {m.from : m \in msgs2b}
+       IN \E CQ \in ClassicQuorums : CQ \subseteq Q
+    /\ decision' = v
+    /\ msgs' = msgs \cup {[type |-> "decision", round |-> r, from |-> Coordinator,
+                           value |-> v, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, votes, maxRound, proposed, cValue>>
+
+\* Learn a decision from fast quorum (requires all votes for same value)
+LearnFast(r, v) ==
+    /\ decision = None
+    /\ IsFastRound(r)
+    /\ LET msgs2b == {m \in msgs : m.type = "2b" /\ m.round = r /\ m.value = v}
+           Q == {m.from : m \in msgs2b}
+       IN \E FQ \in FastQuorums : FQ \subseteq Q
+    /\ decision' = v
+    /\ msgs' = msgs \cup {[type |-> "decision", round |-> r, from |-> Coordinator,
+                           value |-> v, maxVotedRound |-> -1]}
+    /\ UNCHANGED <<round, votes, maxRound, proposed, cValue>>
+
+\* Collision recovery in fast round - coordinator picks value from collision
+CollisionRecovery(r) ==
+    /\ decision = None
+    /\ IsFastRound(r)
+    /\ LET msgs2b == {m \in msgs : m.type = "2b" /\ m.round = r}
+           votedVals == {m.value : m \in msgs2b}
+       IN /\ Cardinality(votedVals) > 1  \* Collision detected
+          /\ \E CQ \in ClassicQuorums :
+               CQ \subseteq {m.from : m \in msgs2b}
+    /\ \E r2 \in Rounds : r2 > r /\ StartRound(r2)
+
+Next ==
+    \/ \E p \in Proposers, v \in Values : Propose(p, v)
+    \/ \E r \in Rounds : StartRound(r)
+    \/ \E a \in Acceptors, r \in Rounds : Phase1b(a, r)
+    \/ \E r \in Rounds : Phase2aClassic(r)
+    \/ \E r \in Rounds : Phase2aFast(r)
+    \/ \E a \in Acceptors, r \in Rounds, v \in Values : Phase2bClassic(a, r, v)
+    \/ \E a \in Acceptors, r \in Rounds, v \in Values : Phase2bFast(a, r, v)
+    \/ \E r \in Rounds, v \in Values : LearnClassic(r, v)
+    \/ \E r \in Rounds, v \in Values : LearnFast(r, v)
+    \/ \E r \in Rounds : CollisionRecovery(r)
+
+\* Safety: Only proposed values can be decided (Non-triviality)
+NonTriviality == decision # None => decision \in proposed
+
+\* Safety: At most one value is decided (Agreement/Consensus)
+Agreement == [][decision # None => decision' = decision]_vars
+
+\* Safety: Type correctness is maintained
+Safety == TypeOK /\ NonTriviality
+
+\* Fairness: Weak fairness on all actions
+Fairness ==
+    /\ \A p \in Proposers, v \in Values : WF_vars(Propose(p, v))
+    /\ \A r \in Rounds : WF_vars(StartRound(r))
+    /\ \A a \in Acceptors, r \in Rounds : WF_vars(Phase1b(a, r))
+    /\ \A r \in Rounds : WF_vars(Phase2aClassic(r))
+    /\ \A r \in Rounds : WF_vars(Phase2aFast(r))
+    /\ \A a \in Acceptors, r \in Rounds, v \in Values : WF_vars(Phase2bClassic(a, r, v))
+    /\ \A a \in Acceptors, r \in Rounds, v \in Values : WF_vars(Phase2bFast(a, r, v))
+    /\ \A r \in Rounds, v \in Values : WF_vars(LearnClassic(r, v))
+    /\ \A r \in Rounds, v \in Values : WF_vars(LearnFast(r, v))
+
+\* Liveness: Eventually a decision is made if values are proposed
+Liveness == proposed # {} ~> decision # None
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Theorem: The spec satisfies safety and liveness
+THEOREM Spec => [](TypeOK /\ NonTriviality) /\ Liveness
+
+=============================================================================

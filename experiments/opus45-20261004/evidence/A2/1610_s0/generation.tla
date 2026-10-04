@@ -1,0 +1,72 @@
+---------------------------- MODULE QuickSort ----------------------------
+EXTENDS Naturals, Sequences, FiniteSets, TLC
+
+CONSTANT N
+
+VARIABLES Ainit, A, S, pivot, pc
+
+vars == <<Ainit, A, S, pivot, pc>>
+
+----------------------------------------------------------------------------
+
+Permutations(f, lo, hi) ==
+    { g \in [1..N -> 1..N] :
+        /\ \A i \in 1..N : (i < lo \/ i > hi) => g[i] = f[i]
+        /\ \A v \in 1..N : Cardinality({i \in lo..hi : g[i] = v}) = Cardinality({i \in lo..hi : f[i] = v})
+    }
+
+PartitionedAt(g, lo, hi, p) ==
+    /\ p \in lo..hi
+    /\ \A i \in lo..(p-1), j \in p..hi : g[i] <= g[j]
+
+----------------------------------------------------------------------------
+
+Init ==
+    /\ Ainit \in [1..N -> 1..N]
+    /\ A = Ainit
+    /\ S = { <<1, N>> }
+    /\ pivot = 1
+    /\ pc = "qs1"
+
+----------------------------------------------------------------------------
+
+qs1 ==
+    /\ pc = "qs1"
+    /\ S /= {}
+    /\ \E I \in S :
+        IF I[1] >= I[2]
+        THEN
+            /\ S' = S \ {I}
+            /\ UNCHANGED <<A, pivot>>
+            /\ pc' = "qs1"
+        ELSE
+            /\ \E piv \in I[1]..I[2] :
+                /\ \E Anew \in Permutations(A, I[1], I[2]) :
+                    /\ PartitionedAt(Anew, I[1], I[2], piv)
+                    /\ A' = Anew
+                /\ pivot' = piv
+                /\ S' = (S \ {I}) \cup
+                        (IF piv > I[1] THEN { <<I[1], piv - 1>> } ELSE {}) \cup
+                        (IF piv < I[2] THEN { <<piv + 1, I[2]>> } ELSE {})
+                /\ pc' = "qs1"
+    /\ UNCHANGED Ainit
+
+Done ==
+    /\ pc = "qs1"
+    /\ S = {}
+    /\ pc' = "Done"
+    /\ UNCHANGED <<Ainit, A, S, pivot>>
+
+Terminated ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == qs1 \/ Done \/ Terminated
+
+----------------------------------------------------------------------------
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+============================================================================

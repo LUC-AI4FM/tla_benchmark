@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N > 1\n\nPhilosophers == 0..(N-1)\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n\nInit ==\n    /\\ sem = [f \\in 0..(N-1) |-> 1]\n    /\\ pc = [p \\in Philosophers |-> \"thinking\"]\n\n\\* Philosopher 0 acquires left fork first, others acquire right fork first\nFirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)\nSecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)\n\n\\* Philosopher becomes hungry (moves from thinking to hungry)\nBecomeHungry(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ sem' = sem\n\n\\* Philosopher acquires first fork\nAcquireFirst(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ sem[FirstFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![FirstFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\n\\* Philosopher acquires second fork and starts eating\nAcquireSecond(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ sem[SecondFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![SecondFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\n\\* Philosopher finishes eating and releases both forks\nFinishEating(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\n\\* All actions for philosopher i\nPhilosopher(i) ==\n    \\/ BecomeHungry(i)\n    \\/ AcquireFirst(i)\n    \\/ AcquireSecond(i)\n    \\/ FinishEating(i)\n\nNext == \\E i \\in Philosophers : Philosopher(i)\n\n\\* Strong fairness for each philosopher's actions\nFairness == \\A i \\in Philosophers : SF_vars(Philosopher(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Mutual exclusion: adjacent philosophers never eat simultaneously\nMutualExclusion ==\n    \\A i \\in Philosophers : ~(pc[i] = \"eating\" /\\ pc[(i + 1) % N] = \"eating\")\n\n\\* Starvation freedom: every philosopher eats infinitely often\nStarvationFreedom ==\n    \\A i \\in Philosophers : []<>(pc[i] = \"eating\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 279,
+    "outputTokens": 849,
+    "totalTokens": 1128,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12018
+  }
+}

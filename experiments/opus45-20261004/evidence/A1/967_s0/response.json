@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE balancescale ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE Sum(_)\nSum(s) == IF s = <<>> THEN 0 ELSE Head(s) + Sum(Tail(s))\n\nRECURSIVE OrderedPartitions(_, _)\nOrderedPartitions(total, parts) ==\n    IF parts = 1 THEN\n        IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE\n        UNION {\n            {<<w>> \\o rest : rest \\in OrderedPartitions(total - w, parts - 1)}\n            : w \\in 1..total - (parts - 1)\n        }\n\nRECURSIVE CanWeigh(_, _, _)\nCanWeigh(target, weights, idx) ==\n    IF idx > Len(weights) THEN\n        target = 0\n    ELSE\n        \\/ CanWeigh(target - weights[idx], weights, idx + 1)\n        \\/ CanWeigh(target, weights, idx + 1)\n        \\/ CanWeigh(target + weights[idx], weights, idx + 1)\n\nCanWeighAll(weights) ==\n    \\A t \\in 1..W : CanWeigh(t, weights, 1)\n\nSolutions == {p \\in OrderedPartitions(W, N) : CanWeighAll(p)}\n\nSolutionExists == Solutions /= {}\n\nFindSolution ==\n    IF SolutionExists THEN\n        CHOOSE p \\in Solutions : TRUE\n    ELSE\n        <<>>\n\nCheckResult ==\n    IF SolutionExists THEN\n        PrintT(<<\"Solution found:\", FindSolution>>)\n    ELSE\n        PrintT(\"No solution exists\")\n\nASSUME CheckResult\n\nVARIABLES dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 266,
+    "outputTokens": 466,
+    "totalTokens": 732,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8901
+  }
+}

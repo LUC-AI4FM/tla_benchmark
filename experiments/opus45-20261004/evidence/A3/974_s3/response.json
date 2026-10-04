@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE RegularReaders ----------------------------\nEXTENDS Integers, FiniteSets, TLAPS\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, pc\n\nvars == <<x, y, pc>>\n\nProcs == 1..N\n\nTypeOK == /\\ x \\in [Procs -> SUBSET {0, 1}]\n          /\\ y \\in [Procs -> {0, 1}]\n          /\\ pc \\in [Procs -> {\"write1\", \"write2\", \"read\", \"done\"}]\n\nInit == /\\ x = [i \\in Procs |-> {0}]\n        /\\ y = [i \\in Procs |-> 0]\n        /\\ pc = [i \\in Procs |-> \"write1\"]\n\nNeighbor(i) == IF i = N THEN 1 ELSE i + 1\n\nWrite1(i) == /\\ pc[i] = \"write1\"\n             /\\ x' = [x EXCEPT ![i] = {0, 1}]\n             /\\ pc' = [pc EXCEPT ![i] = \"write2\"]\n             /\\ y' = y\n\nWrite2(i) == /\\ pc[i] = \"write2\"\n             /\\ x' = [x EXCEPT ![i] = {1}]\n             /\\ pc' = [pc EXCEPT ![i] = \"read\"]\n             /\\ y' = y\n\nRead(i) == /\\ pc[i] = \"read\"\n           /\\ \\E v \\in x[Neighbor(i)] : y' = [y EXCEPT ![i] = v]\n           /\\ pc' = [pc EXCEPT ![i] = \"done\"]\n           /\\ x' = x\n\nDone(i) == /\\ pc[i] = \"done\"\n           /\\ UNCHANGED vars\n\nNext == \\E i \\in Procs : Write1(i) \\/ Write2(i) \\/ Read(i) \\/ Done(i)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <> (\\A i \\in Procs : pc[i] = \"done\")\n\nAllDone == \\A i \\in Procs : pc[i] = \"done\"\n\nPCorrect == AllDone => \\E i \\in Procs : y[i] = 1\n\nInv == /\\ TypeOK\n       /\\ \\A i \\in Procs : pc[i] \\in {\"read\", \"done\"} => 1 \\in x[i]\n       /\\ \\A i \\in Procs : pc[i] = \"done\" /\\ y[i] = 0 => \n            (pc[Neighbor(i)] \\in {\"write1\", \"write2\"})\n       /\\ \\A i \\in Procs : 0 \\in x[i] => pc[i] \\in {\"write1\", \"write2\"}\n       /\\ \\A i \\in Procs : pc[i] = \"write2\" => x[i] = {0, 1}\n       /\\ \\A i \\in Procs : pc[i] = \"write1\" => x[i] = {0}\n\nTHEOREM InitImpliesInv == Init => Inv\n<1>1. ASSUME Init\n      PROVE  Inv\n  <2>1. TypeOK\n    BY <1>1 DEF Init, TypeOK, Procs\n  <2>2. \\A i \\in Procs : pc[i] \\in {\"read\", \"done\"} => 1 \\in x[i]\n    BY <1>1 DEF Init, Procs\n  <2>3. \\A i \\in Procs : pc[i] = \"done\" /\\ y[i] = 0 => \n          (pc[Neighbor(i)] \\in {\"write1\", \"write2\"})\n    BY <1>1 DEF Init, Procs\n  <2>4. \\A i \\in Procs : 0 \\in x[i] => pc[i] \\in {\"write1\", \"write2\"}\n    BY <1>1 DEF Init, Procs\n  <2>5. \\A i \\in Procs : pc[i] = \"write2\" => x[i] = {0, 1}\n    BY <1>1 DEF Init, Procs\n  <2>6. \\A i \\in Procs : pc[i] = \"write1\" => x[i] = {0}\n    BY <1>1 DEF Init, Procs\n  <2>7. QED\n    BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6 DEF Inv\n<1>2. QED\n  BY <1>1\n\nTHEOREM InvImpliesPCorrect == Inv => PCorrect\n<1>1. ASSUME Inv, AllDone\n      PROVE  \\E i \\in Procs : y[i] = 1\n  <2>1. PICK i \\in Procs : TRUE\n    BY NAssumption DEF Procs\n  <2>2. pc[i] = \"done\"\n    BY <1>1 DEF AllDone\n  <2>3. pc[Neighbor(i)] = \"done\"\n    BY <1>1 DEF AllDone, Neighbor, Procs, NAssumption\n  <2>4. pc[Neighbor(i)] \\notin {\"write1\", \"write2\"}\n    BY <2>3\n  <2>5. ~(pc[i] = \"done\" /\\ y[i] = 0)\n    BY <1>1, <2>4 DEF Inv\n  <2>6. y[i] = 1\n    BY <1>1, <2>2, <2>5 DEF Inv, TypeOK\n  <2>7. QED\n    BY <2>1, <2>6\n<1>2. QED\n  BY <1>1 DEF PCorrect\n\nSafety == []PCorrect\n\nLiveness == Termination\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 1518,
+    "totalTokens": 1811,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 20805
+  }
+}

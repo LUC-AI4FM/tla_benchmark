@@ -1,0 +1,39 @@
+```tla+
+---------------------------- MODULE Outer ----------------------------
+EXTENDS Naturals, Sequences
+
+VARIABLES outerResult, outerSeq
+
+-----------------------------------------------------------------------------
+
+Inner(result, seq) ==
+    LET
+        InnerStep ==
+            /\ result = 0
+            /\ result' = 1
+            /\ seq' = SelectSeq(seq, LAMBDA x : x # 1)
+    IN
+        InnerStep
+
+InnerInst == Inner(outerResult, outerSeq)
+
+-----------------------------------------------------------------------------
+
+Init ==
+    /\ outerResult = 0
+    /\ outerSeq = <<1, 2, 1, 3, 1>>
+
+Next ==
+    \/ InnerInst
+    \/ (ENABLED InnerInst = FALSE /\ UNCHANGED <<outerResult, outerSeq>>)
+
+Fairness == WF_<<outerResult, outerSeq>>(InnerInst)
+
+Spec == Init /\ [][Next]_<<outerResult, outerSeq>> /\ Fairness
+
+-----------------------------------------------------------------------------
+
+Liveness == <>[](ENABLED InnerInst = FALSE)
+
+=============================================================================
+```

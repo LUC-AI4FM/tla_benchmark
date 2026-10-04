@@ -1,0 +1,149 @@
+```tla+
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, TLAPS
+
+CONSTANT N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, b, pc
+
+vars == <<x, y, b, pc>>
+
+ProcSet == 1..N
+
+Locations == {"ncs", "start", "set_x", "check_y", "set_y", "check_x", 
+              "check_b", "wait_y", "cs", "exit_x", "exit_b"}
+
+TypeOK == /\ x \in (0..N)
+          /\ y \in (0..N)
+          /\ b \in [1..N -> BOOLEAN]
+          /\ pc \in [1..N -> Locations]
+
+Init == /\ x = 0
+        /\ y = 0
+        /\ b = [i \in 1..N |-> FALSE]
+        /\ pc = [i \in 1..N |-> "ncs"]
+
+\* Noncritical section - process i stays in ncs or moves to start
+ncs(i) == /\ pc[i] = "ncs"
+          /\ pc' = [pc EXCEPT ![i] = "start"]
+          /\ UNCHANGED <<x, y, b>>
+
+\* Start: set b[i] to TRUE
+start(i) == /\ pc[i] = "start"
+            /\ b' = [b EXCEPT ![i] = TRUE]
+            /\ pc' = [pc EXCEPT ![i] = "set_x"]
+            /\ UNCHANGED <<x, y>>
+
+\* Set x to i
+set_x(i) == /\ pc[i] = "set_x"
+            /\ x' = i
+            /\ pc' = [pc EXCEPT ![i] = "check_y"]
+            /\ UNCHANGED <<y, b>>
+
+\* Check if y = 0
+check_y(i) == /\ pc[i] = "check_y"
+              /\ IF y = 0
+                 THEN pc' = [pc EXCEPT ![i] = "set_y"]
+                 ELSE pc' = [pc EXCEPT ![i] = "check_b"]
+              /\ UNCHANGED <<x, y, b>>
+
+\* Set y to i
+set_y(i) == /\ pc[i] = "set_y"
+            /\ y' = i
+            /\ pc' = [pc EXCEPT ![i] = "check_x"]
+            /\ UNCHANGED <<x, b>>
+
+\* Check if x = i
+check_x(i) == /\ pc[i] = "check_x"
+              /\ IF x = i
+                 THEN pc' = [pc EXCEPT ![i] = "cs"]
+                 ELSE pc' = [pc EXCEPT ![i] = "check_b"]
+              /\ UNCHANGED <<x, y, b>>
+
+\* Check all b[j] for j # i - slow path entry
+check_b(i) == /\ pc[i] = "check_b"
+              /\ b' = [b EXCEPT ![i] = FALSE]
+              /\ pc' = [pc EXCEPT ![i] = "wait_y"]
+              /\ UNCHANGED <<x, y>>
+
+\* Wait for y = i or y = 0 (retry)
+wait_y(i) == /\ pc[i] = "wait_y"
+             /\ IF y = i
+                THEN /\ \A j \in 1..N \ {i} : ~b[j]
+                     /\ pc' = [pc EXCEPT ![i] = "cs"]
+                ELSE IF y = 0
+                     THEN pc' = [pc EXCEPT ![i] = "start"]
+                     ELSE pc' = [pc EXCEPT ![i] = "wait_y"]
+             /\ UNCHANGED <<x, y, b>>
+
+\* Critical section - process stays or exits
+cs(i) == /\ pc[i] = "cs"
+         /\ pc' = [pc EXCEPT ![i] = "exit_x"]
+         /\ UNCHANGED <<x, y, b>>
+
+\* Exit: clear y
+exit_x(i) == /\ pc[i] = "exit_x"
+             /\ y' = 0
+             /\ pc' = [pc EXCEPT ![i] = "exit_b"]
+             /\ UNCHANGED <<x, b>>
+
+\* Exit: clear b[i]
+exit_b(i) == /\ pc[i] = "exit_b"
+             /\ b' = [b EXCEPT ![i] = FALSE]
+             /\ pc' = [pc EXCEPT ![i] = "ncs"]
+             /\ UNCHANGED <<x, y>>
+
+\* Process i's complete action
+proc(i) == \/ ncs(i)
+           \/ start(i)
+           \/ set_x(i)
+           \/ check_y(i)
+           \/ set_y(i)
+           \/ check_x(i)
+           \/ check_b(i)
+           \/ wait_y(i)
+           \/ cs(i)
+           \/ exit_x(i)
+           \/ exit_b(i)
+
+Next == \E i \in ProcSet : proc(i)
+
+\* Basic specification without fairness
+Spec == Init /\ [][Next]_vars
+
+\* Mutual exclusion safety invariant
+MutualExclusion == \A i, j \in ProcSet : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* A process is trying to enter the critical section
+Trying(i) == pc[i] \in {"start", "set_x", "check_y", "set_y", "check_x", "check_b", "wait_y"}
+
+\* A process is in the critical section
+InCS(i) == pc[i] = "cs"
+
+\* Liveness: if a process tries, it eventually enters CS
+Liveness == \A i \in ProcSet : Trying(i) ~> InCS(i)
+
+\* Conditional liveness: if a process tries and others eventually leave CS, it enters
+ConditionalLiveness == \A i \in ProcSet : 
+    (Trying(i) /\ <>(\A j \in ProcSet \ {i} : ~InCS(j))) ~> InCS(i)
+
+\* Fairness conditions for all actions except ncs and cs
+FairActions(i) == /\ WF_vars(start(i))
+                  /\ WF_vars(set_x(i))
+                  /\ WF_vars(check_y(i))
+                  /\ WF_vars(set_y(i))
+                  /\ WF_vars(check_x(i))
+                  /\ WF_vars(check_b(i))
+                  /\ WF_vars(wait_y(i))
+                  /\ WF_vars(exit_x(i))
+                  /\ WF_vars(exit_b(i))
+
+Fairness == \A i \in ProcSet : FairActions(i)
+
+\* Fairness-enhanced specification
+FairSpec == Spec /\ Fairness
+
+==========================================================================
+```

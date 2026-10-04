@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CigaretteSmokers ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Ingredients, Offers\n\nVARIABLES smoking, offer\n\nvars == <<smoking, offer>>\n\nASSUME /\\ Ingredients # {}\n       /\\ Offers \\subseteq SUBSET Ingredients\n       /\\ \\A o \\in Offers : Cardinality(o) = Cardinality(Ingredients) - 1\n\nMissingIngredient(o) == Ingredients \\ o\n\nTypeOK == /\\ smoking \\in [Ingredients -> BOOLEAN]\n          /\\ offer \\in Offers \\cup {{}\n\nInit == /\\ smoking = [i \\in Ingredients |-> FALSE]\n        /\\ offer = {}\n\nDealerOffer(o) == /\\ offer = {}\n                  /\\ o \\in Offers\n                  /\\ offer' = o\n                  /\\ smoking' = smoking\n\nSmoke(i) == /\\ offer # {}\n            /\\ MissingIngredient(offer) = {i}\n            /\\ smoking' = [smoking EXCEPT ![i] = TRUE]\n            /\\ offer' = offer\n\nFinishSmoking(i) == /\\ smoking[i] = TRUE\n                    /\\ smoking' = [smoking EXCEPT ![i] = FALSE]\n                    /\\ offer' = {}\n\nNext == \\/ \\E o \\in Offers : DealerOffer(o)\n        \\/ \\E i \\in Ingredients : Smoke(i)\n        \\/ \\E i \\in Ingredients : FinishSmoking(i)\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\nAtMostOne == Cardinality({i \\in Ingredients : smoking[i]}) <= 1\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 263,
+    "outputTokens": 437,
+    "totalTokens": 700,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8189
+  }
+}

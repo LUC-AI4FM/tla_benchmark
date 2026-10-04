@@ -1,0 +1,330 @@
+```tla
+---------------------------- MODULE PlusCal2TLA ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    \* AST Node Types
+    AlgorithmNode, ProcedureNode, ProcessNode, LabeledStmtNode,
+    AssignNode, IfNode, WhileNode, EitherNode, WithNode,
+    CallNode, ReturnNode, GotoNode, PrintNode, AssertNode,
+    AwaitNode, SkipNode,
+    \* Fairness options
+    NoFairness, WeakFairProcess, WeakFairNext, StrongFairProcess,
+    \* Special values
+    NULL, DefaultInitValue
+
+VARIABLES
+    ast,              \* The abstract syntax tree being translated
+    output,           \* The generated TLA+ lexeme sequence
+    pc,               \* Program counter for translation state machine
+    currentNode,      \* Current AST node being processed
+    labelStack,       \* Stack of labels for nested constructs
+    procContext,      \* Current procedure/process context
+    varDecls,         \* Accumulated variable declarations
+    initPred,         \* Generated Init predicate components
+    nextActions,      \* Generated Next action components
+    fairnessOption,   \* Selected fairness option
+    errors            \* Translation errors encountered
+
+\* Helper: Check if a value is a valid sequence
+IsSeq(s) == s = <<>> \/ (DOMAIN s = 1..Len(s))
+
+\* AST Node representation
+ASTNode == [type: {AlgorithmNode, ProcedureNode, ProcessNode, 
+                   LabeledStmtNode, AssignNode, IfNode, WhileNode,
+                   EitherNode, WithNode, CallNode, ReturnNode,
+                   GotoNode, PrintNode, AssertNode, AwaitNode, SkipNode},
+            name: STRING,
+            children: Seq(ASTNode) \cup {<<>>},
+            attrs: [STRING -> STRING] \cup {<<>>}]
+
+\* Valid fairness options
+FairnessOptions == {NoFairness, WeakFairProcess, WeakFairNext, StrongFairProcess}
+
+\* Lexeme types for output
+Lexeme == [kind: {"keyword", "ident", "op", "punct", "string", "number", "newline", "indent"},
+           text: STRING]
+
+\* Type invariant for state
+TypeOK ==
+    /\ IsSeq(output)
+    /\ pc \in {"init", "parseAlgorithm", "genVars", "genInit", 
+               "genActions", "genNext", "genSpec", "genFairness",
+               "genTermination", "done", "error"}
+    /\ IsSeq(labelStack)
+    /\ IsSeq(varDecls)
+    /\ IsSeq(initPred)
+    /\ IsSeq(nextActions)
+    /\ fairnessOption \in FairnessOptions
+    /\ IsSeq(errors)
+
+\* Helper: Create a lexeme
+MakeLexeme(kind, text) == [kind |-> kind, text |-> text]
+
+\* Helper: Create keyword lexeme
+Keyword(text) == MakeLexeme("keyword", text)
+
+\* Helper: Create identifier lexeme  
+Ident(text) == MakeLexeme("ident", text)
+
+\* Helper: Create operator lexeme
+Op(text) == MakeLexeme("op", text)
+
+\* Helper: Create punctuation lexeme
+Punct(text) == MakeLexeme("punct", text)
+
+\* Helper: Create newline lexeme
+Newline == MakeLexeme("newline", "\\n")
+
+\* Generate MODULE header
+GenModuleHeader(name) ==
+    <<Punct("----"), Keyword("MODULE"), Ident(name), Punct("----"), Newline>>
+
+\* Generate EXTENDS clause
+GenExtends ==
+    <<Keyword("EXTENDS"), Ident("Integers"), Punct(","), 
+      Ident("Sequences"), Punct(","), Ident("TLC"), Newline>>
+
+\* Generate VARIABLES declaration for pc
+GenPCVariable ==
+    <<Keyword("VARIABLE"), Ident("pc"), Newline>>
+
+\* Generate Init predicate start
+GenInitStart ==
+    <<Ident("Init"), Op("=="), Newline>>
+
+\* Generate Next action start  
+GenNextStart ==
+    <<Ident("Next"), Op("=="), Newline>>
+
+\* Generate Spec definition based on fairness
+GenSpec(fair) ==
+    CASE fair = NoFairness ->
+         <<Ident("Spec"), Op("=="), Ident("Init"), Op("/\\"), 
+           Punct("[]"), Punct("["), Ident("Next"), Punct("]_"), 
+           Ident("vars"), Newline>>
+    [] fair = WeakFairNext ->
+         <<Ident("Spec"), Op("=="), Ident("Init"), Op("/\\"), 
+           Punct("[]"), Punct("["), Ident("Next"), Punct("]_"),
+           Ident("vars"), Op("/\\"), Keyword("WF_"), Ident("vars"),
+           Punct("("), Ident("Next"), Punct(")"), Newline>>
+    [] fair = WeakFairProcess ->
+         <<Ident("Spec"), Op("=="), Ident("Init"), Op("/\\"), 
+           Punct("[]"), Punct("["), Ident("Next"), Punct("]_"),
+           Ident("vars"), Op("/\\"), Ident("Fairness"), Newline>>
+    [] fair = StrongFairProcess ->
+         <<Ident("Spec"), Op("=="), Ident("Init"), Op("/\\"), 
+           Punct("[]"), Punct("["), Ident("Next"), Punct("]_"),
+           Ident("vars"), Op("/\\"), Ident("Fairness"), Newline>>
+    [] OTHER ->
+         <<Ident("Spec"), Op("=="), Ident("Init"), Op("/\\"), 
+           Punct("[]"), Punct("["), Ident("Next"), Punct("]_"), 
+           Ident("vars"), Newline>>
+
+\* Generate Termination property
+GenTermination ==
+    <<Ident("Termination"), Op("=="), Punct("<>"), Punct("("),
+      Op("\\A"), Ident("self"), Op("\\in"), Ident("ProcSet"),
+      Punct(":"), Ident("pc"), Punct("["), Ident("self"), Punct("]"),
+      Op("="), MakeLexeme("string", "\"Done\""), Punct(")"), Newline>>
+
+\* Check if AST is a valid algorithm node
+IsValidAlgorithm(node) ==
+    /\ node.type = AlgorithmNode
+    /\ node.name # ""
+
+\* Check if AST is a valid procedure node
+IsValidProcedure(node) ==
+    /\ node.type = ProcedureNode
+    /\ node.name # ""
+
+\* Check if AST is a valid process node
+IsValidProcess(node) ==
+    /\ node.type = ProcessNode
+    /\ node.name # ""
+
+\* Check if AST is a valid labeled statement
+IsValidLabeledStmt(node) ==
+    /\ node.type = LabeledStmtNode
+    /\ node.name # ""
+
+\* Initial state
+Init ==
+    /\ ast = [type |-> AlgorithmNode, name |-> "Example", 
+              children |-> <<>>, attrs |-> <<>>]
+    /\ output = <<>>
+    /\ pc = "init"
+    /\ currentNode = [type |-> AlgorithmNode, name |-> "", 
+                      children |-> <<>>, attrs |-> <<>>]
+    /\ labelStack = <<>>
+    /\ procContext = NULL
+    /\ varDecls = <<>>
+    /\ initPred = <<>>
+    /\ nextActions = <<>>
+    /\ fairnessOption = NoFairness
+    /\ errors = <<>>
+
+\* Start parsing the algorithm
+StartParsing ==
+    /\ pc = "init"
+    /\ IsValidAlgorithm(ast)
+    /\ pc' = "parseAlgorithm"
+    /\ currentNode' = ast
+    /\ output' = GenModuleHeader(ast.name)
+    /\ UNCHANGED <<ast, labelStack, procContext, varDecls, 
+                   initPred, nextActions, fairnessOption, errors>>
+
+\* Generate variable declarations
+GenerateVars ==
+    /\ pc = "parseAlgorithm"
+    /\ pc' = "genVars"
+    /\ output' = output \o GenExtends \o GenPCVariable
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Generate Init predicate
+GenerateInit ==
+    /\ pc = "genVars"
+    /\ pc' = "genInit"
+    /\ output' = output \o GenInitStart \o 
+                 <<MakeLexeme("indent", "  "), Op("/\\"), Ident("pc"),
+                   Op("="), MakeLexeme("string", "\"Start\""), Newline>>
+    /\ initPred' = <<Ident("pc"), Op("="), MakeLexeme("string", "\"Start\"")>>
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, nextActions, fairnessOption, errors>>
+
+\* Generate action definitions
+GenerateActions ==
+    /\ pc = "genInit"
+    /\ pc' = "genActions"
+    /\ nextActions' = <<Ident("Start")>>
+    /\ UNCHANGED <<ast, output, currentNode, labelStack, procContext, 
+                   varDecls, initPred, fairnessOption, errors>>
+
+\* Generate Next predicate
+GenerateNext ==
+    /\ pc = "genActions"
+    /\ pc' = "genNext"
+    /\ output' = output \o GenNextStart \o
+                 <<MakeLexeme("indent", "  "), Op("\\/"), Ident("Start"), Newline>>
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Generate Spec definition
+GenerateSpec ==
+    /\ pc = "genNext"
+    /\ pc' = "genSpec"
+    /\ output' = output \o GenSpec(fairnessOption)
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Generate fairness conditions (if applicable)
+GenerateFairness ==
+    /\ pc = "genSpec"
+    /\ pc' = "genFairness"
+    /\ output' = IF fairnessOption \in {WeakFairProcess, StrongFairProcess}
+                 THEN output \o 
+                      <<Ident("Fairness"), Op("=="), 
+                        IF fairnessOption = WeakFairProcess 
+                        THEN <<Keyword("WF_"), Ident("vars"), Punct("("), 
+                               Ident("Next"), Punct(")")>>
+                        ELSE <<Keyword("SF_"), Ident("vars"), Punct("("),
+                               Ident("Next"), Punct(")")>>,
+                        Newline>>
+                 ELSE output
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Generate Termination property
+GenerateTerminationProp ==
+    /\ pc = "genFairness"
+    /\ pc' = "genTermination"
+    /\ output' = output \o GenTermination
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Translation complete
+TranslationDone ==
+    /\ pc = "genTermination"
+    /\ pc' = "done"
+    /\ output' = output \o <<Punct("===="), Newline>>
+    /\ UNCHANGED <<ast, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Handle invalid AST
+HandleError ==
+    /\ pc = "init"
+    /\ ~IsValidAlgorithm(ast)
+    /\ pc' = "error"
+    /\ errors' = errors \o <<MakeLexeme("string", "Invalid algorithm AST")>>
+    /\ UNCHANGED <<ast, output, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, fairnessOption>>
+
+\* Set fairness option (can happen during init)
+SetFairnessOption(fair) ==
+    /\ pc = "init"
+    /\ fair \in FairnessOptions
+    /\ fairnessOption' = fair
+    /\ UNCHANGED <<ast, output, pc, currentNode, labelStack, procContext, 
+                   varDecls, initPred, nextActions, errors>>
+
+\* Next state relation
+Next ==
+    \/ StartParsing
+    \/ GenerateVars
+    \/ GenerateInit
+    \/ GenerateActions
+    \/ GenerateNext
+    \/ GenerateSpec
+    \/ GenerateFairness
+    \/ GenerateTerminationProp
+    \/ TranslationDone
+    \/ HandleError
+    \/ \E fair \in FairnessOptions: SetFairnessOption(fair)
+
+\* All variables
+vars == <<ast, output, pc, currentNode, labelStack, procContext, 
+          varDecls, initPred, nextActions, fairnessOption, errors>>
+
+\* Specification with weak fairness
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* --------------------------------------------------------------------------
+\* Safety Invariants
+\* --------------------------------------------------------------------------
+
+\* The translation never enters an undefined state
+NoUndefinedState ==
+    pc \in {"init", "parseAlgorithm", "genVars", "genInit", 
+            "genActions", "genNext", "genSpec", "genFairness",
+            "genTermination", "done", "error"}
+
+\* Output is always a valid sequence
+OutputIsSequence == IsSeq(output)
+
+\* Fairness option is always valid
+ValidFairness == fairnessOption \in FairnessOptions
+
+\* Combined safety invariant
+Safety == TypeOK /\ NoUndefinedState /\ OutputIsSequence /\ ValidFairness
+
+\* --------------------------------------------------------------------------
+\* Liveness Properties  
+\* --------------------------------------------------------------------------
+
+\* Translation eventually completes (either done or error)
+EventuallyTerminates == <>(pc \in {"done", "error"})
+
+\* If we start with a valid algorithm, we eventually complete successfully
+ValidAlgorithmCompletes == 
+    IsValidAlgorithm(ast) => <>(pc = "done")
+
+\* If we start with invalid algorithm, we eventually report error
+InvalidAlgorithmErrors ==
+    ~IsValidAlgorithm(ast) => <>(pc = "error")
+
+\* Termination property
+Termination == <>(pc \in {"done", "error"})
+
+=============================================================================
+```

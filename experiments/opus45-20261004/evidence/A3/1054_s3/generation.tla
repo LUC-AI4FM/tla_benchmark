@@ -1,0 +1,76 @@
+---------------------------- MODULE DijkstraTokenRing ----------------------------
+EXTENDS Naturals
+
+CONSTANTS N, M
+
+ASSUME NAssumption == N >= 1
+ASSUME MAssumption == M >= 1
+ASSUME NMAssumption == N <= M + 1
+
+VARIABLES counter
+
+vars == <<counter>>
+
+Nodes == 0..(N-1)
+Values == 0..(M-1)
+
+TypeInvariant == counter \in [Nodes -> Values]
+
+\* Node 0 has a token if its value equals the value of the last node (N-1)
+HasToken0 == counter[0] = counter[N-1]
+
+\* Node i (i > 0) has a token if its value differs from its predecessor
+HasTokenI(i) == i > 0 /\ counter[i] # counter[i-1]
+
+\* Check if node i has a token
+HasToken(i) == IF i = 0 THEN HasToken0 ELSE HasTokenI(i)
+
+\* Count the number of tokens in the system
+TokenCount == Cardinality({i \in Nodes : HasToken(i)})
+
+\* Helper function for Cardinality
+Cardinality(S) == LET 
+    CardinalityHelper[T \in SUBSET S] == 
+        IF T = {} THEN 0
+        ELSE 1 + CardinalityHelper[T \ {CHOOSE x \in T : TRUE}]
+    IN CardinalityHelper[S]
+
+\* Initial state: any configuration
+Init == counter \in [Nodes -> Values]
+
+\* Node 0 moves: increments its counter modulo M (creates a new token)
+Move0 == 
+    /\ HasToken0
+    /\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]
+
+\* Node i (i > 0) moves: copies predecessor's value (passes the token)
+MoveI(i) == 
+    /\ i > 0
+    /\ HasTokenI(i)
+    /\ counter' = [counter EXCEPT ![i] = counter[i-1]]
+
+\* Next state relation
+Next == 
+    \/ Move0
+    \/ \E i \in 1..(N-1) : MoveI(i)
+
+\* Fairness: weak fairness for all node actions
+Fairness == 
+    /\ WF_vars(Move0)
+    /\ \A i \in 1..(N-1) : WF_vars(MoveI(i))
+
+\* The complete specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* A legitimate state has exactly one token
+Legitimate == 
+    LET tokens == {i \in Nodes : HasToken(i)}
+    IN Cardinality(tokens) = 1
+
+\* Safety invariant: type correctness is always maintained
+Safety == TypeInvariant
+
+\* Liveness property: eventually the system stabilizes (reaches and stays in legitimate state)
+Stabilization == <>[]Legitimate
+
+===================================================================================

@@ -1,0 +1,120 @@
+---------------------------- MODULE PrisonerLightSwitch ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    N,              \* Number of prisoners (N >= 2)
+    KnownInitial    \* TRUE if initial light state is known to be off, FALSE otherwise
+
+VARIABLES
+    light,          \* Current state of the lamp: TRUE = on, FALSE = off
+    counter,        \* Counter maintained by the designated counter prisoner (prisoner 0)
+    visited,        \* Set of prisoners who have visited the cell at least once
+    signaled,       \* Function mapping each non-counter prisoner to number of times they turned on the light
+    announced,      \* TRUE if victory has been announced
+    turn            \* The prisoner currently in the cell (or "none" if no one is in)
+
+vars == <<light, counter, visited, signaled, announced, turn>>
+
+Prisoners == 0..(N-1)
+CounterPrisoner == 0
+NonCounterPrisoners == 1..(N-1)
+
+\* Maximum times a non-counter prisoner can signal
+MaxSignals == IF KnownInitial THEN 1 ELSE 2
+
+\* Threshold for counter to announce victory
+Threshold == IF KnownInitial THEN N - 1 ELSE 2 * N - 3
+
+TypeOK ==
+    /\ light \in BOOLEAN
+    /\ counter \in Nat
+    /\ visited \subseteq Prisoners
+    /\ signaled \in [NonCounterPrisoners -> 0..MaxSignals]
+    /\ announced \in BOOLEAN
+    /\ turn \in Prisoners \cup {"none"}
+
+Init ==
+    /\ light = IF KnownInitial THEN FALSE ELSE FALSE  \* Model starts with light off (unknown case explores both)
+    /\ counter = 0
+    /\ visited = {}
+    /\ signaled = [p \in NonCounterPrisoners |-> 0]
+    /\ announced = FALSE
+    /\ turn = "none"
+
+\* Alternative init for unknown initial state (light could be on)
+InitUnknown ==
+    /\ light \in BOOLEAN
+    /\ counter = 0
+    /\ visited = {}
+    /\ signaled = [p \in NonCounterPrisoners |-> 0]
+    /\ announced = FALSE
+    /\ turn = "none"
+
+\* Warden selects a prisoner to enter the cell
+WardenSelects(p) ==
+    /\ turn = "none"
+    /\ ~announced
+    /\ turn' = p
+    /\ visited' = visited \cup {p}
+    /\ UNCHANGED <<light, counter, signaled, announced>>
+
+\* Counter prisoner's action in the cell
+CounterAction ==
+    /\ turn = CounterPrisoner
+    /\ ~announced
+    /\ IF light = TRUE
+       THEN /\ counter' = counter + 1
+            /\ light' = FALSE
+            /\ IF counter' >= Threshold
+               THEN announced' = TRUE
+               ELSE announced' = FALSE
+       ELSE /\ UNCHANGED <<light, counter, announced>>
+    /\ turn' = "none"
+    /\ UNCHANGED <<visited, signaled>>
+
+\* Non-counter prisoner's action in the cell
+NonCounterAction(p) ==
+    /\ turn = p
+    /\ p \in NonCounterPrisoners
+    /\ ~announced
+    /\ IF light = FALSE /\ signaled[p] < MaxSignals
+       THEN /\ light' = TRUE
+            /\ signaled' = [signaled EXCEPT ![p] = @ + 1]
+       ELSE UNCHANGED <<light, signaled>>
+    /\ turn' = "none"
+    /\ UNCHANGED <<counter, visited, announced>>
+
+\* Combined prisoner action (either counter or non-counter acts)
+PrisonerActs ==
+    \/ CounterAction
+    \/ \E p \in NonCounterPrisoners : NonCounterAction(p)
+
+\* Next state relation
+Next ==
+    \/ \E p \in Prisoners : WardenSelects(p)
+    \/ PrisonerActs
+
+\* Fairness: warden must be fair in selecting each prisoner
+Fairness ==
+    /\ \A p \in Prisoners : WF_vars(WardenSelects(p))
+    /\ WF_vars(PrisonerActs)
+
+\* Specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Specification for unknown initial state
+SpecUnknown == InitUnknown /\ [][Next]_vars /\ Fairness
+
+\* Safety: If victory is announced, all prisoners have visited
+SafetyInvariant ==
+    announced => (visited = Prisoners)
+
+\* Liveness: Eventually victory is announced
+LivenessProperty ==
+    <>(announced = TRUE)
+
+\* All prisoners eventually visit (helper property)
+AllVisit ==
+    <>(visited = Prisoners)
+
+===================================================================================

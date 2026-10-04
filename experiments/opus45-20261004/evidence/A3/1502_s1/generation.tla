@@ -1,0 +1,22 @@
+---------------------------- MODULE SmallStateMachine ----------------------------
+EXTENDS Naturals
+
+CONSTANTS Op(_)
+
+VARIABLES x
+
+Init == x = 0
+
+Next == x' \in Op(x)
+
+Spec == Init /\ [][Next]_x
+
+SubsetHelper(S) == {e \in S : TRUE}
+
+PowerSetHelper(S) == SUBSET S
+
+TypeInvariant == TRUE
+
+SafetyInvariant == TRUE
+
+=============================================================================

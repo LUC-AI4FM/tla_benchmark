@@ -1,0 +1,58 @@
+---------------------------- MODULE RandomFunctionSampling ----------------------------
+(***************************************************************************)
+(* This module specifies a single-variable system used to sample a random  *)
+(* subset of the function set [S -> T], where S is a finite set of nine    *)
+(* integers and T is the integer range 1..10.                              *)
+(*                                                                         *)
+(* The full function space [S -> T] has 10^9 elements (10 choices for each *)
+(* of the 9 elements in S), which should not be explicitly enumerated.     *)
+(* Instead, the design initializes x to an element of                      *)
+(* RandomSubset(1000, [S -> T]).                                           *)
+(*                                                                         *)
+(* The behavior after initialization is pure stuttering.                   *)
+(***************************************************************************)
+
+EXTENDS Integers, FiniteSets, TLC
+
+(***************************************************************************)
+(* S is a finite set of nine integers.                                     *)
+(* T is the integer range 1..10.                                           *)
+(***************************************************************************)
+S == {1, 2, 3, 4, 5, 6, 7, 8, 9}
+T == 1..10
+
+(***************************************************************************)
+(* The single variable x will hold a function from S to T.                 *)
+(***************************************************************************)
+VARIABLES x
+
+(***************************************************************************)
+(* TypeOK asserts that x is a function from S to T.                        *)
+(***************************************************************************)
+TypeOK == x \in [S -> T]
+
+(***************************************************************************)
+(* Initial state: x is chosen from a random subset of 1000 functions       *)
+(* from the function space [S -> T]. Using RandomSubset avoids             *)
+(* enumerating all 10^9 elements of the function space.                    *)
+(***************************************************************************)
+Init == x \in RandomSubset(1000, [S -> T])
+
+(***************************************************************************)
+(* Next state: pure stuttering - x remains unchanged.                      *)
+(* This is equivalent to UNCHANGED x or x' = x.                            *)
+(***************************************************************************)
+Next == UNCHANGED x
+
+(***************************************************************************)
+(* The complete specification with stuttering allowed.                     *)
+(***************************************************************************)
+Spec == Init /\ [][Next]_x
+
+(***************************************************************************)
+(* A trivial invariant that is always true.                                *)
+(* No substantive safety or liveness property is specified.                *)
+(***************************************************************************)
+Inv == TRUE
+
+=============================================================================

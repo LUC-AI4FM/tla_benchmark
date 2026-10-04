@@ -1,0 +1,53 @@
+---------------------------- MODULE TwoPhaseCommit ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS RM
+
+VARIABLES rmState
+
+vars == <<rmState>>
+
+RMStates == {"working", "prepared", "committed", "aborted"}
+
+TypeOK == rmState \in [RM -> RMStates]
+
+canCommit == \A r \in RM : rmState[r] \in {"prepared", "committed"}
+
+notCommitted == \A r \in RM : rmState[r] /= "committed"
+
+Prepare(r) ==
+    /\ rmState[r] = "working"
+    /\ rmState' = [rmState EXCEPT ![r] = "prepared"]
+
+Decide(r) ==
+    \/ /\ rmState[r] = "prepared"
+       /\ canCommit
+       /\ rmState' = [rmState EXCEPT ![r] = "committed"]
+    \/ /\ rmState[r] \in {"working", "prepared"}
+       /\ notCommitted
+       /\ rmState' = [rmState EXCEPT ![r] = "aborted"]
+
+Init ==
+    rmState = [r \in RM |-> "working"]
+
+Next ==
+    \E r \in RM : Prepare(r) \/ Decide(r)
+
+Spec == Init /\ [][Next]_vars
+
+FairSpec == Spec /\ WF_vars(Next)
+
+Consistency ==
+    \A r1, r2 \in RM : ~(rmState[r1] = "committed" /\ rmState[r2] = "aborted")
+
+AllCommittedOrAllAborted ==
+    \/ \A r \in RM : rmState[r] /= "committed"
+    \/ \A r \in RM : rmState[r] /= "aborted"
+
+THEOREM Spec => []TypeOK
+
+THEOREM Spec => []Consistency
+
+THEOREM Spec => []AllCommittedOrAllAborted
+
+=============================================================================

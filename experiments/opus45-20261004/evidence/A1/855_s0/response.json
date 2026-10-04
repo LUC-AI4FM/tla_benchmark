@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE prisoners ----------------------------\n\nCONSTANTS Prisoner, p2, p3\n\nVARIABLES switchA, switchB, count, declared, visited, timesFlippedA\n\nvars == <<switchA, switchB, count, declared, visited, timesFlippedA>>\n\nCounter == CHOOSE p \\in Prisoner : TRUE\n\nNonCounters == Prisoner \\ {Counter}\n\nNumPrisoners == Cardinality(Prisoner)\n\nCardinality(S) == LET CardinalityAcc[T \\in SUBSET S] ==\n                      IF T = {} THEN 0\n                      ELSE 1 + CardinalityAcc[T \\ {CHOOSE x \\in T : TRUE}]\n                  IN CardinalityAcc[S]\n\nTypeOK == /\\ switchA \\in BOOLEAN\n          /\\ switchB \\in BOOLEAN\n          /\\ count \\in 0..2*NumPrisoners\n          /\\ declared \\in BOOLEAN\n          /\\ visited \\subseteq Prisoner\n          /\\ timesFlippedA \\in [NonCounters -> 0..2]\n\nInit == /\\ switchA = FALSE\n        /\\ switchB = FALSE\n        /\\ count = 0\n        /\\ declared = FALSE\n        /\\ visited = {}\n        /\\ timesFlippedA = [p \\in NonCounters |-> 0]\n\nCounterAction == /\\ ~declared\n                 /\\ IF switchA = TRUE\n                    THEN /\\ switchA' = FALSE\n                         /\\ count' = count + 1\n                         /\\ IF count' = 2 * (NumPrisoners - 1)\n                            THEN declared' = TRUE\n                            ELSE declared' = FALSE\n                         /\\ switchB' = switchB\n                    ELSE /\\ switchB' = ~switchB\n                         /\\ switchA' = switchA\n                         /\\ count' = count\n                         /\\ declared' = FALSE\n                 /\\ visited' = visited \\cup {Counter}\n                 /\\ timesFlippedA' = timesFlippedA\n\nNonCounterAction(p) == /\\ p \\in NonCounters\n                       /\\ ~declared\n                       /\\ IF switchA = FALSE /\\ timesFlippedA[p] < 2\n                          THEN /\\ switchA' = TRUE\n                               /\\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]\n                               /\\ switchB' = switchB\n                          ELSE /\\ switchB' = ~switchB\n                               /\\ switchA' = switchA\n                               /\\ timesFlippedA' = timesFlippedA\n                       /\\ count' = count\n                       /\\ declared' = declared\n                       /\\ visited' = visited \\cup {p}\n\nEnterRoom(p) == IF p = Counter\n                THEN CounterAction\n                ELSE NonCounterAction(p)\n\nNext == \\E p \\in Prisoner : EnterRoom(p)\n\nCounterFairness == WF_vars(CounterAction)\n\nNonCounterFairness == \\A p \\in NonCounters : WF_vars(NonCounterAction(p))\n\nFairness == CounterFairness /\\ NonCounterFairness\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nCountInvariant == count <= 2 * (NumPrisoners - 1)\n\nSafety == declared => (visited = Prisoner)\n\nLiveness == <>(declared)\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 283,
+    "outputTokens": 847,
+    "totalTokens": 1130,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12757
+  }
+}

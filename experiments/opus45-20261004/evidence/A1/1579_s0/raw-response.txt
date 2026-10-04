@@ -1,0 +1,84 @@
+```tla
+---------------------------- MODULE DijkstraTokenRing ----------------------------
+EXTENDS Naturals
+
+CONSTANTS N, K
+
+ASSUME NPositive == N > 0
+ASSUME KGreaterThanN == K > N
+
+VARIABLES x, pc
+
+vars == <<x, pc>>
+
+Procs == 0..(N-1)
+
+\* A process i holds a token if:
+\* - Process 0 holds a token when x[0] = x[N-1]
+\* - Process i (i > 0) holds a token when x[i] # x[i-1]
+HasToken(i) == IF i = 0 THEN x[0] = x[N-1] ELSE x[i] # x[i-1]
+
+\* Count the number of token holders
+TokenCount == Cardinality({i \in Procs : HasToken(i)})
+
+Cardinality(S) == 
+    LET Card[T \in SUBSET Procs] == 
+        IF T = {} THEN 0 
+        ELSE 1 + Card[T \ {CHOOSE t \in T : TRUE}]
+    IN Card[S]
+
+\* Someone holds a token
+SomeoneHoldsToken == \E i \in Procs : HasToken(i)
+
+\* Exactly one process holds a token
+ExactlyOneHoldsToken == TokenCount = 1
+
+\* Eventually exactly one process holds a token (and always thereafter)
+EventuallyJustOneHoldsToken == <>[](ExactlyOneHoldsToken)
+
+\* Initial state: all processes start with arbitrary values in 0..(K-1)
+Init == 
+    /\ x \in [Procs -> 0..(K-1)]
+    /\ pc = [self \in Procs |-> "P"]
+
+\* Process 0 action: increment value mod K when it matches the last process
+P0 == 
+    /\ pc[0] = "P"
+    /\ x[0] = x[N-1]
+    /\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]
+    /\ pc' = pc
+
+\* Process i (i > 0) action: copy predecessor when values differ
+Pi(i) == 
+    /\ i > 0
+    /\ pc[i] = "P"
+    /\ x[i] # x[i-1]
+    /\ x' = [x EXCEPT ![i] = x[i-1]]
+    /\ pc' = pc
+
+\* Next state relation
+Next == 
+    \/ P0
+    \/ \E i \in 1..(N-1) : Pi(i)
+
+\* Fairness condition: weak fairness for all process actions
+Fairness == 
+    /\ WF_vars(P0)
+    /\ \A i \in 1..(N-1) : WF_vars(Pi(i))
+
+\* Complete specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Type invariant for verification
+TypeOK == 
+    /\ x \in [Procs -> 0..(K-1)]
+    /\ pc \in [Procs -> {"P"}]
+
+\* Safety property: someone always holds a token
+THEOREM SafetyTheorem == Spec => []SomeoneHoldsToken
+
+\* Liveness property: eventually exactly one holds token forever
+THEOREM LivenessTheorem == Spec => EventuallyJustOneHoldsToken
+
+=============================================================================
+```

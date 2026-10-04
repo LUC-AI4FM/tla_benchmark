@@ -1,0 +1,51 @@
+```tla+
+------------------------------- MODULE MutualExclusion -------------------------------
+EXTENDS Integers
+
+CONSTANTS Proc
+
+VARIABLES pc, lock
+
+vars == <<pc, lock>>
+
+Locations == {"ncs", "l1", "cs", "l2"}
+
+TypeOK == /\ pc \in [Proc -> Locations]
+          /\ lock \in Proc \union {NULL}
+
+NULL == CHOOSE x : x \notin Proc
+
+Init == /\ pc = [p \in Proc |-> "ncs"]
+        /\ lock = NULL
+
+ncs(p) == /\ pc[p] = "ncs"
+          /\ pc' = [pc EXCEPT ![p] = "l1"]
+          /\ lock' = lock
+
+l1(p) == /\ pc[p] = "l1"
+         /\ lock = NULL
+         /\ lock' = p
+         /\ pc' = [pc EXCEPT ![p] = "cs"]
+
+cs(p) == /\ pc[p] = "cs"
+         /\ pc' = [pc EXCEPT ![p] = "l2"]
+         /\ lock' = lock
+
+l2(p) == /\ pc[p] = "l2"
+         /\ lock' = NULL
+         /\ pc' = [pc EXCEPT ![p] = "ncs"]
+
+proc(p) == ncs(p) \/ l1(p) \/ cs(p) \/ l2(p)
+
+Next == \E p \in Proc : proc(p)
+
+Spec == Init /\ [][Next]_vars /\ \A p \in Proc : WF_vars(proc(p))
+
+MutualExclusion == \A p, q \in Proc : (p # q) => ~(pc[p] = "cs" /\ pc[q] = "cs")
+
+Proc1 == CHOOSE p \in Proc : TRUE
+
+Liveness == (pc[Proc1] = "l1") ~> (pc[Proc1] = "cs")
+
+=============================================================================
+```

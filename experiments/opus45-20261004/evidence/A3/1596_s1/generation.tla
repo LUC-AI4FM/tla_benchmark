@@ -1,0 +1,213 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, TLAPS
+
+CONSTANTS M, N
+
+ASSUME ConstantAssumption == /\ M \in Nat
+                             /\ N \in Nat
+                             /\ M >= 1
+                             /\ N >= M
+
+Procs1 == 1..M
+Procs2 == (M+1)..N
+Procs == Procs1 \cup Procs2
+
+VARIABLES x, y, b, pc
+
+vars == <<x, y, b, pc>>
+
+Init == /\ x = 0
+        /\ y = 0
+        /\ b = [i \in Procs |-> FALSE]
+        /\ pc = [i \in Procs |-> "ncs"]
+
+(* Process actions for processes in Procs1 (1..M) *)
+
+ncs1(self) == /\ self \in Procs1
+              /\ pc[self] = "ncs"
+              /\ pc' = [pc EXCEPT ![self] = "start1"]
+              /\ UNCHANGED <<x, y, b>>
+
+start1(self) == /\ self \in Procs1
+                /\ pc[self] = "start1"
+                /\ b' = [b EXCEPT ![self] = TRUE]
+                /\ x' = self
+                /\ pc' = [pc EXCEPT ![self] = "check_y1"]
+                /\ UNCHANGED <<y>>
+
+check_y1(self) == /\ self \in Procs1
+                  /\ pc[self] = "check_y1"
+                  /\ IF y # 0
+                     THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                          /\ pc' = [pc EXCEPT ![self] = "wait_y1"]
+                     ELSE /\ pc' = [pc EXCEPT ![self] = "set_y1"]
+                          /\ UNCHANGED b
+                  /\ UNCHANGED <<x, y>>
+
+wait_y1(self) == /\ self \in Procs1
+                 /\ pc[self] = "wait_y1"
+                 /\ y = 0
+                 /\ pc' = [pc EXCEPT ![self] = "start1"]
+                 /\ UNCHANGED <<x, y, b>>
+
+set_y1(self) == /\ self \in Procs1
+                /\ pc[self] = "set_y1"
+                /\ y' = self
+                /\ pc' = [pc EXCEPT ![self] = "check_x1"]
+                /\ UNCHANGED <<x, b>>
+
+check_x1(self) == /\ self \in Procs1
+                  /\ pc[self] = "check_x1"
+                  /\ IF x # self
+                     THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                          /\ pc' = [pc EXCEPT ![self] = "wait_b1"]
+                     ELSE /\ pc' = [pc EXCEPT ![self] = "cs1"]
+                          /\ UNCHANGED b
+                  /\ UNCHANGED <<x, y>>
+
+wait_b1(self) == /\ self \in Procs1
+                 /\ pc[self] = "wait_b1"
+                 /\ \A j \in Procs : ~b[j]
+                 /\ pc' = [pc EXCEPT ![self] = "check_y_again1"]
+                 /\ UNCHANGED <<x, y, b>>
+
+check_y_again1(self) == /\ self \in Procs1
+                        /\ pc[self] = "check_y_again1"
+                        /\ IF y = self
+                           THEN /\ pc' = [pc EXCEPT ![self] = "cs1"]
+                           ELSE /\ pc' = [pc EXCEPT ![self] = "start1"]
+                        /\ UNCHANGED <<x, y, b>>
+
+cs1(self) == /\ self \in Procs1
+             /\ pc[self] = "cs1"
+             /\ pc' = [pc EXCEPT ![self] = "exit1"]
+             /\ UNCHANGED <<x, y, b>>
+
+exit1(self) == /\ self \in Procs1
+               /\ pc[self] = "exit1"
+               /\ y' = 0
+               /\ b' = [b EXCEPT ![self] = FALSE]
+               /\ pc' = [pc EXCEPT ![self] = "ncs"]
+               /\ UNCHANGED <<x>>
+
+(* Process actions for processes in Procs2 ((M+1)..N) *)
+
+ncs2(self) == /\ self \in Procs2
+              /\ pc[self] = "ncs"
+              /\ pc' = [pc EXCEPT ![self] = "start2"]
+              /\ UNCHANGED <<x, y, b>>
+
+start2(self) == /\ self \in Procs2
+                /\ pc[self] = "start2"
+                /\ b' = [b EXCEPT ![self] = TRUE]
+                /\ x' = self
+                /\ pc' = [pc EXCEPT ![self] = "check_y2"]
+                /\ UNCHANGED <<y>>
+
+check_y2(self) == /\ self \in Procs2
+                  /\ pc[self] = "check_y2"
+                  /\ IF y # 0
+                     THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                          /\ pc' = [pc EXCEPT ![self] = "wait_y2"]
+                     ELSE /\ pc' = [pc EXCEPT ![self] = "set_y2"]
+                          /\ UNCHANGED b
+                  /\ UNCHANGED <<x, y>>
+
+wait_y2(self) == /\ self \in Procs2
+                 /\ pc[self] = "wait_y2"
+                 /\ y = 0
+                 /\ pc' = [pc EXCEPT ![self] = "start2"]
+                 /\ UNCHANGED <<x, y, b>>
+
+set_y2(self) == /\ self \in Procs2
+                /\ pc[self] = "set_y2"
+                /\ y' = self
+                /\ pc' = [pc EXCEPT ![self] = "check_x2"]
+                /\ UNCHANGED <<x, b>>
+
+check_x2(self) == /\ self \in Procs2
+                  /\ pc[self] = "check_x2"
+                  /\ IF x # self
+                     THEN /\ b' = [b EXCEPT ![self] = FALSE]
+                          /\ pc' = [pc EXCEPT ![self] = "wait_b2"]
+                     ELSE /\ pc' = [pc EXCEPT ![self] = "cs2"]
+                          /\ UNCHANGED b
+                  /\ UNCHANGED <<x, y>>
+
+wait_b2(self) == /\ self \in Procs2
+                 /\ pc[self] = "wait_b2"
+                 /\ \A j \in Procs : ~b[j]
+                 /\ pc' = [pc EXCEPT ![self] = "check_y_again2"]
+                 /\ UNCHANGED <<x, y, b>>
+
+check_y_again2(self) == /\ self \in Procs2
+                        /\ pc[self] = "check_y_again2"
+                        /\ IF y = self
+                           THEN /\ pc' = [pc EXCEPT ![self] = "cs2"]
+                           ELSE /\ pc' = [pc EXCEPT ![self] = "start2"]
+                        /\ UNCHANGED <<x, y, b>>
+
+cs2(self) == /\ self \in Procs2
+             /\ pc[self] = "cs2"
+             /\ pc' = [pc EXCEPT ![self] = "exit2"]
+             /\ UNCHANGED <<x, y, b>>
+
+exit2(self) == /\ self \in Procs2
+               /\ pc[self] = "exit2"
+               /\ y' = 0
+               /\ b' = [b EXCEPT ![self] = FALSE]
+               /\ pc' = [pc EXCEPT ![self] = "ncs"]
+               /\ UNCHANGED <<x>>
+
+(* Combined process actions *)
+
+proc1(self) == \/ ncs1(self)
+               \/ start1(self)
+               \/ check_y1(self)
+               \/ wait_y1(self)
+               \/ set_y1(self)
+               \/ check_x1(self)
+               \/ wait_b1(self)
+               \/ check_y_again1(self)
+               \/ cs1(self)
+               \/ exit1(self)
+
+proc2(self) == \/ ncs2(self)
+               \/ start2(self)
+               \/ check_y2(self)
+               \/ wait_y2(self)
+               \/ set_y2(self)
+               \/ check_x2(self)
+               \/ wait_b2(self)
+               \/ check_y_again2(self)
+               \/ cs2(self)
+               \/ exit2(self)
+
+Next == \/ \E self \in Procs1 : proc1(self)
+        \/ \E self \in Procs2 : proc2(self)
+
+(* Fairness conditions *)
+
+Fairness1 == \A self \in Procs1 : WF_vars(proc1(self))
+
+Fairness2 == \A self \in Procs2 : WF_vars(proc2(self))
+
+Fairness == Fairness1 /\ Fairness2
+
+(* Specification *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(* Safety: Mutual Exclusion Invariant *)
+
+InCS(i) == pc[i] \in {"cs1", "cs2"}
+
+MutualExclusion == \A i, j \in Procs : (i # j) => ~(InCS(i) /\ InCS(j))
+
+(* Liveness: Some process enters CS infinitely often *)
+
+SomeoneInCS == \E i \in Procs : InCS(i)
+
+Liveness == []<>SomeoneInCS
+
+==========================================================================

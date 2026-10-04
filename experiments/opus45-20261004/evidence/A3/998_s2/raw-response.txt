@@ -1,0 +1,172 @@
+```tla
+---------------------------- MODULE ResourceAllocator ----------------------------
+EXTENDS Naturals, Sequences, FiniteSets
+
+CONSTANTS Clients, Resources
+
+VARIABLES
+    unsat,      \* unsat[c] = set of resources client c has requested but not yet received
+    alloc,      \* alloc[c] = set of resources currently allocated to client c
+    sched       \* sequence of clients whose requests may be served (in order)
+
+vars == <<unsat, alloc, sched>>
+
+----------------------------------------------------------------------------
+(* Type definitions and helpers *)
+
+TypeOK ==
+    /\ unsat \in [Clients -> SUBSET Resources]
+    /\ alloc \in [Clients -> SUBSET Resources]
+    /\ sched \in Seq(Clients)
+
+(* Set of all resources currently allocated to some client *)
+AllocatedResources == UNION {alloc[c] : c \in Clients}
+
+(* Available resources *)
+Available == Resources \ AllocatedResources
+
+(* Clients with outstanding unsatisfied requests *)
+ActiveClients == {c \in Clients : unsat[c] /= {}}
+
+(* Clients in the schedule *)
+SchedClients == {sched[i] : i \in 1..Len(sched)}
+
+----------------------------------------------------------------------------
+(* Initial state *)
+
+Init ==
+    /\ unsat = [c \in Clients |-> {}]
+    /\ alloc = [c \in Clients |-> {}]
+    /\ sched = <<>>
+
+----------------------------------------------------------------------------
+(* Actions *)
+
+(* Client c requests a set of resources S *)
+(* Clients can only request when they have no outstanding request and hold no resources *)
+Request(c, S) ==
+    /\ S /= {}
+    /\ S \subseteq Resources
+    /\ unsat[c] = {}
+    /\ alloc[c] = {}
+    /\ unsat' = [unsat EXCEPT ![c] = S]
+    /\ alloc' = alloc
+    /\ sched' = sched
+
+(* Allocate a subset of requested resources to client c *)
+(* Client must be first in schedule, and we allocate from available resources *)
+Allocate(c, S) ==
+    /\ S /= {}
+    /\ S \subseteq unsat[c]
+    /\ S \subseteq Available
+    /\ Len(sched) > 0
+    /\ Head(sched) = c
+    /\ alloc' = [alloc EXCEPT ![c] = alloc[c] \cup S]
+    /\ unsat' = [unsat EXCEPT ![c] = unsat[c] \ S]
+    /\ sched' = IF unsat'[c] = {} THEN Tail(sched) ELSE sched
+
+(* Client c returns some resources (possibly before fully satisfied) *)
+Return(c, S) ==
+    /\ S /= {}
+    /\ S \subseteq alloc[c]
+    /\ alloc' = [alloc EXCEPT ![c] = alloc[c] \ S]
+    /\ unsat' = unsat
+    /\ sched' = sched
+
+(* Schedule a client with an outstanding request *)
+Schedule(c) ==
+    /\ unsat[c] /= {}
+    /\ c \notin SchedClients
+    /\ sched' = Append(sched, c)
+    /\ unsat' = unsat
+    /\ alloc' = alloc
+
+----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ \E c \in Clients : \E S \in SUBSET Resources : Request(c, S)
+    \/ \E c \in Clients : \E S \in SUBSET Resources : Allocate(c, S)
+    \/ \E c \in Clients : \E S \in SUBSET Resources : Return(c, S)
+    \/ \E c \in Clients : Schedule(c)
+
+----------------------------------------------------------------------------
+(* Fairness conditions *)
+
+(* Client returns all resources once fully satisfied (unsat is empty but alloc is not) *)
+ClientReturnsWhenSatisfied(c) ==
+    WF_vars(Return(c, alloc[c]))
+
+(* Allocation eventually happens when enabled *)
+AllocationFairness ==
+    \A c \in Clients : \A S \in SUBSET Resources : WF_vars(Allocate(c, S))
+
+(* Scheduling eventually occurs *)
+SchedulingFairness ==
+    \A c \in Clients : WF_vars(Schedule(c))
+
+Fairness ==
+    /\ \A c \in Clients : ClientReturnsWhenSatisfied(c)
+    /\ AllocationFairness
+    /\ SchedulingFairness
+
+----------------------------------------------------------------------------
+(* Specification *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+(* Mutual exclusion: no resource is allocated to more than one client *)
+MutualExclusion ==
+    \A c1, c2 \in Clients : c1 /= c2 => alloc[c1] \cap alloc[c2] = {}
+
+(* Allocator invariant: resources in unsat are never in alloc for same client *)
+AllocatorInvariant ==
+    \A c \in Clients : unsat[c] \cap alloc[c] = {}
+
+(* Schedule only contains clients with outstanding requests *)
+ScheduleInvariant ==
+    \A i \in 1..Len(sched) : unsat[sched[i]] /= {}
+
+(* No duplicate clients in schedule *)
+NoDuplicatesInSchedule ==
+    \A i, j \in 1..Len(sched) : i /= j => sched[i] /= sched[j]
+
+(* Combined safety invariant *)
+Safety ==
+    /\ TypeOK
+    /\ MutualExclusion
+    /\ AllocatorInvariant
+    /\ ScheduleInvariant
+    /\ NoDuplicatesInSchedule
+
+----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+(* Eventual return: if a client holds resources, it eventually returns them all *)
+EventualReturn ==
+    \A c \in Clients : alloc[c] /= {} ~> alloc[c] = {}
+
+(* Eventual obtainment: if a client requests resources, it eventually gets them all *)
+EventualObtainment ==
+    \A c \in Clients : unsat[c] /= {} ~> (unsat[c] = {} /\ alloc[c] /= {})
+
+(* Infinitely often satisfied: requests are satisfied infinitely often *)
+(* This means that infinitely often, some client has its request fully satisfied *)
+InfinitelyOftenSatisfied ==
+    []<>(\E c \in Clients : unsat[c] = {} /\ alloc[c] /= {})
+
+(* A client making a request will eventually be fully satisfied and then release resources *)
+ClientProgress ==
+    \A c \in Clients : 
+        (unsat[c] /= {} \/ alloc[c] /= {}) ~> (unsat[c] = {} /\ alloc[c] = {})
+
+Liveness ==
+    /\ EventualReturn
+    /\ EventualObtainment
+    /\ ClientProgress
+
+=============================================================================
+```

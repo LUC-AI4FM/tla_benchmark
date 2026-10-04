@@ -1,0 +1,179 @@
+```tla+
+---- MODULE MCMultiNodeReadsAlt ----
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS 
+    Nodes,
+    Keys,
+    Values,
+    TxnIds,
+    MaxTransactions
+
+VARIABLES 
+    ledgerBranches,
+    history,
+    nodeStates,
+    pendingReads,
+    committedTxns
+
+vars == <<ledgerBranches, history, nodeStates, pendingReads, committedTxns>>
+
+\* Type definitions for clarity
+NullValue == CHOOSE v : v \notin Values
+
+\* Transaction record type
+TxnRecord == [txnId: TxnIds, key: Keys, value: Values \cup {NullValue}, status: {"pending", "committed", "aborted"}]
+
+\* History entry types
+HistoryEntry == [type: {"request", "response"}, txnId: TxnIds, operation: {"read", "write"}, key: Keys, value: Values \cup {NullValue}, committed: BOOLEAN]
+
+\* Helper: Get a transaction ID for pre-committed transactions
+PreCommittedTxn1 == CHOOSE t \in TxnIds : TRUE
+PreCommittedTxn2 == CHOOSE t \in TxnIds : t # PreCommittedTxn1
+
+\* Helper: Get keys and values for initialization
+InitKey1 == CHOOSE k \in Keys : TRUE
+InitKey2 == CHOOSE k \in Keys : k # InitKey1 \/ Cardinality(Keys) = 1
+InitValue1 == CHOOSE v \in Values : TRUE
+InitValue2 == CHOOSE v \in Values : v # InitValue1 \/ Cardinality(Values) = 1
+
+\* Base initial state predicate (standard initialization)
+BaseInit ==
+    /\ ledgerBranches = [n \in Nodes |-> <<>>]
+    /\ history = <<>>
+    /\ nodeStates = [n \in Nodes |-> [lastSeen |-> 0, cache |-> [k \in Keys |-> NullValue]]]
+    /\ pendingReads = {}
+    /\ committedTxns = {}
+
+\* Alternative initial state with two transactions already committed
+\* This represents a state where the system has already processed two write transactions
+AltInit ==
+    /\ ledgerBranches = [n \in Nodes |-> 
+        <<[txnId |-> PreCommittedTxn1, key |-> InitKey1, value |-> InitValue1, status |-> "committed"],
+          [txnId |-> PreCommittedTxn2, key |-> InitKey2, value |-> InitValue2, status |-> "committed"]>>]
+    /\ history = <<
+        [type |-> "request", txnId |-> PreCommittedTxn1, operation |-> "write", key |-> InitKey1, value |-> InitValue1, committed |-> FALSE],
+        [type |-> "response", txnId |-> PreCommittedTxn1, operation |-> "write", key |-> InitKey1, value |-> InitValue1, committed |-> TRUE],
+        [type |-> "request", txnId |-> PreCommittedTxn2, operation |-> "write", key |-> InitKey2, value |-> InitValue2, committed |-> FALSE],
+        [type |-> "response", txnId |-> PreCommittedTxn2, operation |-> "write", key |-> InitKey2, value |-> InitValue2, committed |-> TRUE]
+       >>
+    /\ nodeStates = [n \in Nodes |-> [lastSeen |-> 2, cache |-> 
+        [k \in Keys |-> IF k = InitKey1 THEN InitValue1 
+                        ELSE IF k = InitKey2 THEN InitValue2 
+                        ELSE NullValue]]]
+    /\ pendingReads = {}
+    /\ committedTxns = {PreCommittedTxn1, PreCommittedTxn2}
+
+\* Read action: A node performs a read operation
+ReadAction(n, t, k) ==
+    /\ t \notin committedTxns
+    /\ t \notin {pr.txnId : pr \in pendingReads}
+    /\ Len(history) < MaxTransactions * 4
+    /\ pendingReads' = pendingReads \cup {[node |-> n, txnId |-> t, key |-> k]}
+    /\ history' = Append(history, [type |-> "request", txnId |-> t, operation |-> "read", key |-> k, value |-> NullValue, committed |-> FALSE])
+    /\ UNCHANGED <<ledgerBranches, nodeStates, committedTxns>>
+
+\* Complete a pending read
+CompleteRead(pr) ==
+    /\ pr \in pendingReads
+    /\ LET n == pr.node
+           k == pr.key
+           t == pr.txnId
+           readValue == nodeStates[n].cache[k]
+       IN
+       /\ history' = Append(history, [type |-> "response", txnId |-> t, operation |-> "read", key |-> k, value |-> readValue, committed |-> TRUE])
+       /\ committedTxns' = committedTxns \cup {t}
+       /\ pendingReads' = pendingReads \ {pr}
+    /\ UNCHANGED <<ledgerBranches, nodeStates>>
+
+\* Write action: A node performs a write operation
+WriteAction(n, t, k, v) ==
+    /\ t \notin committedTxns
+    /\ Len(history) < MaxTransactions * 4
+    /\ LET newEntry == [txnId |-> t, key |-> k, value |-> v, status |-> "committed"]
+       IN
+       /\ ledgerBranches' = [m \in Nodes |-> Append(ledgerBranches[m], newEntry)]
+       /\ nodeStates' = [m \in Nodes |-> [nodeStates[m] EXCEPT 
+            !.lastSeen = Len(ledgerBranches[m]) + 1,
+            !.cache = [nodeStates[m].cache EXCEPT ![k] = v]]]
+       /\ history' = Append(Append(history, 
+            [type |-> "request", txnId |-> t, operation |-> "write", key |-> k, value |-> v, committed |-> FALSE]),
+            [type |-> "response", txnId |-> t, operation |-> "write", key |-> k, value |-> v, committed |-> TRUE])
+       /\ committedTxns' = committedTxns \cup {t}
+       /\ UNCHANGED <<pendingReads>>
+
+\* Synchronize a node with the ledger
+SyncNode(n) ==
+    /\ nodeStates[n].lastSeen < Len(ledgerBranches[n])
+    /\ LET idx == nodeStates[n].lastSeen + 1
+           entry == ledgerBranches[n][idx]
+       IN
+       /\ nodeStates' = [nodeStates EXCEPT ![n] = [
+            lastSeen |-> idx,
+            cache |-> [nodeStates[n].cache EXCEPT ![entry.key] = entry.value]]]
+    /\ UNCHANGED <<ledgerBranches, history, pendingReads, committedTxns>>
+
+\* The MCNextMultiNodeReadsAction combines all possible actions
+MCNextMultiNodeReadsAction ==
+    \/ \E n \in Nodes, t \in TxnIds, k \in Keys : ReadAction(n, t, k)
+    \/ \E pr \in pendingReads : CompleteRead(pr)
+    \/ \E n \in Nodes, t \in TxnIds, k \in Keys, v \in Values : WriteAction(n, t, k, v)
+    \/ \E n \in Nodes : SyncNode(n)
+
+\* Standard initial state specification
+Init == BaseInit
+
+\* Next state relation
+Next == MCNextMultiNodeReadsAction
+
+\* Alternative specification starting from the alternative initial state
+\* Uses stuttering form with the imported action
+AltSpec == AltInit /\ [][MCNextMultiNodeReadsAction]_vars
+
+\* Standard specification for reference
+Spec == Init /\ [][Next]_vars
+
+\* Safety Invariants
+
+\* Type invariant
+TypeInvariant ==
+    /\ ledgerBranches \in [Nodes -> Seq(TxnRecord)]
+    /\ history \in Seq(HistoryEntry)
+    /\ pendingReads \subseteq [node: Nodes, txnId: TxnIds, key: Keys]
+    /\ committedTxns \subseteq TxnIds
+
+\* All committed transactions should have response entries in history
+CommittedHaveResponses ==
+    \A t \in committedTxns :
+        \E i \in 1..Len(history) : 
+            history[i].txnId = t /\ history[i].type = "response" /\ history[i].committed = TRUE
+
+\* Consistency: All nodes eventually see the same ledger entries
+LedgerConsistency ==
+    \A n1, n2 \in Nodes :
+        \A i \in 1..Min(Len(ledgerBranches[n1]), Len(ledgerBranches[n2])) :
+            ledgerBranches[n1][i] = ledgerBranches[n2][i]
+
+\* No duplicate transaction IDs in committed set (implicit by set)
+NoDuplicateCommits ==
+    \A t \in committedTxns :
+        Cardinality({i \in 1..Len(history) : history[i].txnId = t /\ history[i].type = "response" /\ history[i].committed = TRUE}) <= 1
+
+\* Combined safety invariant
+SafetyInvariant ==
+    /\ TypeInvariant
+    /\ CommittedHaveResponses
+    /\ LedgerConsistency
+
+\* Liveness Properties (under fairness)
+
+\* Every pending read eventually completes
+PendingReadsComplete ==
+    \A pr \in pendingReads : <>(pr \notin pendingReads)
+
+\* Helper function
+Min(a, b) == IF a < b THEN a ELSE b
+
+====
+```

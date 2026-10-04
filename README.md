@@ -121,6 +121,15 @@ kept as `reproduce_as_submitted.py`.
   Opus configuration-aware output passed in the released run; on re-runs it took between
   21 and 301 seconds and failed once by reaching the 300-second limit.
 
+## Supplementary Opus 4.5 runs (2026-10-04)
+
+The [new evidence release](experiments/opus45-20261004/README.md) adds 600 experimental
+outputs with exact prompts, configurations, dependencies, and raw grading evidence.
+It reports diagnostic-aware SANY results separately from the retained historical flags,
+verified 300-second TLC nonpasses, matched A3 pass@4, and explicitly uncertified mixed
+baseline coverage. It preserves the historical tables above. Reproduce the supplement
+offline with `python3 experiments/opus45-20261004/reproduce.py --check`.
+
 ## Licensing and responsible use
 
 The `.tla` specifications come from 13 public repositories; each specification's source

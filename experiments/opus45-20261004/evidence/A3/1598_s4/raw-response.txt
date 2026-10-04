@@ -1,0 +1,203 @@
+```tla
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, FiniteSets, TLAPS
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+Procs == 1..N
+
+VARIABLES x, y, b, S, pc
+
+vars == <<x, y, b, S, pc>>
+
+\* Process control locations
+\* ncs - non-critical section
+\* start - beginning of protocol
+\* l1 - set b[self] := TRUE
+\* l2 - set x := self
+\* l3 - check y /= 0
+\* l4 - set b[self] := FALSE
+\* l5 - await y = 0
+\* l6 - goto start (retry)
+\* l7 - set y := self
+\* l8 - check x = self
+\* l9 - set b[self] := FALSE
+\* l10 - wait for all b[j] = FALSE
+\* l11 - check y = self
+\* l12 - goto start (retry after failed y check)
+\* l13 - await y \in S (wait in set)
+\* cs - critical section
+\* l14 - set y := 0, exit protocol
+\* l15 - set S[self] := {} 
+\* l16 - set b[self] := FALSE
+
+Labels == {"ncs", "start", "l1", "l2", "l3", "l4", "l5", "l6", 
+           "l7", "l8", "l9", "l10", "l11", "l12", "l13", "cs", 
+           "l14", "l15", "l16"}
+
+TypeOK == /\ x \in Procs \cup {0}
+          /\ y \in Procs \cup {0}
+          /\ b \in [Procs -> BOOLEAN]
+          /\ S \in [Procs -> SUBSET Procs]
+          /\ pc \in [Procs -> Labels]
+
+Init == /\ x = 0
+        /\ y = 0
+        /\ b = [i \in Procs |-> FALSE]
+        /\ S = [i \in Procs |-> {}]
+        /\ pc = [i \in Procs |-> "ncs"]
+
+\* Non-critical section - process decides to enter
+ncs(self) == /\ pc[self] = "ncs"
+             /\ pc' = [pc EXCEPT ![self] = "start"]
+             /\ UNCHANGED <<x, y, b, S>>
+
+\* Start of fast path
+start(self) == /\ pc[self] = "start"
+               /\ pc' = [pc EXCEPT ![self] = "l1"]
+               /\ UNCHANGED <<x, y, b, S>>
+
+\* l1: b[self] := TRUE
+l1(self) == /\ pc[self] = "l1"
+            /\ b' = [b EXCEPT ![self] = TRUE]
+            /\ pc' = [pc EXCEPT ![self] = "l2"]
+            /\ UNCHANGED <<x, y, S>>
+
+\* l2: x := self
+l2(self) == /\ pc[self] = "l2"
+            /\ x' = self
+            /\ pc' = [pc EXCEPT ![self] = "l3"]
+            /\ UNCHANGED <<y, b, S>>
+
+\* l3: if y /= 0 then goto l4, else goto l7
+l3(self) == /\ pc[self] = "l3"
+            /\ IF y /= 0
+               THEN pc' = [pc EXCEPT ![self] = "l4"]
+               ELSE pc' = [pc EXCEPT ![self] = "l7"]
+            /\ UNCHANGED <<x, y, b, S>>
+
+\* l4: b[self] := FALSE (slow path)
+l4(self) == /\ pc[self] = "l4"
+            /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "l5"]
+            /\ UNCHANGED <<x, y, S>>
+
+\* l5: await y = 0
+l5(self) == /\ pc[self] = "l5"
+            /\ y = 0
+            /\ pc' = [pc EXCEPT ![self] = "l6"]
+            /\ UNCHANGED <<x, y, b, S>>
+
+\* l6: goto start (retry)
+l6(self) == /\ pc[self] = "l6"
+            /\ pc' = [pc EXCEPT ![self] = "start"]
+            /\ UNCHANGED <<x, y, b, S>>
+
+\* l7: y := self (fast path continues)
+l7(self) == /\ pc[self] = "l7"
+            /\ y' = self
+            /\ pc' = [pc EXCEPT ![self] = "l8"]
+            /\ UNCHANGED <<x, b, S>>
+
+\* l8: if x = self then goto cs (fast path success), else goto l9
+l8(self) == /\ pc[self] = "l8"
+            /\ IF x = self
+               THEN pc' = [pc EXCEPT ![self] = "cs"]
+               ELSE pc' = [pc EXCEPT ![self] = "l9"]
+            /\ UNCHANGED <<x, y, b, S>>
+
+\* l9: b[self] := FALSE (slow path after fast path failed)
+l9(self) == /\ pc[self] = "l9"
+            /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "l10"]
+            /\ UNCHANGED <<x, y, S>>
+
+\* l10: wait for all b[j] = FALSE for j /= self, collect into S
+l10(self) == /\ pc[self] = "l10"
+             /\ \A j \in Procs \ {self} : b[j] = FALSE
+             /\ S' = [S EXCEPT ![self] = Procs \ {self}]
+             /\ pc' = [pc EXCEPT ![self] = "l11"]
+             /\ UNCHANGED <<x, y, b>>
+
+\* l11: if y = self then goto cs, else goto l12
+l11(self) == /\ pc[self] = "l11"
+             /\ IF y = self
+                THEN pc' = [pc EXCEPT ![self] = "cs"]
+                ELSE pc' = [pc EXCEPT ![self] = "l12"]
+             /\ UNCHANGED <<x, y, b, S>>
+
+\* l12: add self to S[y] if y /= 0, then goto l13
+l12(self) == /\ pc[self] = "l12"
+             /\ IF y /= 0
+                THEN S' = [S EXCEPT ![y] = S[y] \cup {self}]
+                ELSE S' = S
+             /\ pc' = [pc EXCEPT ![self] = "l13"]
+             /\ UNCHANGED <<x, y, b>>
+
+\* l13: await self \in S[self] \/ y = 0 (wait to be released or y becomes 0)
+l13(self) == /\ pc[self] = "l13"
+             /\ (self \in S[self] \/ y = 0)
+             /\ pc' = [pc EXCEPT ![self] = "start"]
+             /\ S' = [S EXCEPT ![self] = {}]
+             /\ UNCHANGED <<x, y, b>>
+
+\* cs: critical section
+cs(self) == /\ pc[self] = "cs"
+            /\ pc' = [pc EXCEPT ![self] = "l14"]
+            /\ UNCHANGED <<x, y, b, S>>
+
+\* l14: y := 0 (release)
+l14(self) == /\ pc[self] = "l14"
+             /\ y' = 0
+             /\ pc' = [pc EXCEPT ![self] = "l15"]
+             /\ UNCHANGED <<x, b, S>>
+
+\* l15: release waiting processes in S[self]
+l15(self) == /\ pc[self] = "l15"
+             /\ \A j \in S[self] : S' = [S EXCEPT ![j] = S[j] \cup {j}]
+             /\ S' = [j \in Procs |-> IF j \in S[self] THEN S[j] \cup {j} ELSE IF j = self THEN {} ELSE S[j]]
+             /\ pc' = [pc EXCEPT ![self] = "l16"]
+             /\ UNCHANGED <<x, y, b>>
+
+\* l16: b[self] := FALSE, return to ncs
+l16(self) == /\ pc[self] = "l16"
+             /\ b' = [b EXCEPT ![self] = FALSE]
+             /\ pc' = [pc EXCEPT ![self] = "ncs"]
+             /\ UNCHANGED <<x, y, S>>
+
+\* Per-process action
+proc(self) == \/ ncs(self)
+              \/ start(self)
+              \/ l1(self)
+              \/ l2(self)
+              \/ l3(self)
+              \/ l4(self)
+              \/ l5(self)
+              \/ l6(self)
+              \/ l7(self)
+              \/ l8(self)
+              \/ l9(self)
+              \/ l10(self)
+              \/ l11(self)
+              \/ l12(self)
+              \/ l13(self)
+              \/ cs(self)
+              \/ l14(self)
+              \/ l15(self)
+              \/ l16(self)
+
+Next == \E self \in Procs : proc(self)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety: Mutual exclusion - no two distinct processes in CS
+MutualExclusion == \A i, j \in Procs : (i /= j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* Liveness: Infinitely often some process is in CS
+InCS == \E i \in Procs : pc[i] = "cs"
+Liveness == []<>InCS
+
+==========================================================================
+```

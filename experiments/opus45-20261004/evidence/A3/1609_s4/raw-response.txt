@@ -1,0 +1,109 @@
+```tla+
+--------------------------- MODULE Quicksort ---------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT ArrayLen
+
+ASSUME ArrayLen \in Nat /\ ArrayLen > 0
+
+\* Helper operator: set of all permutations of a sequence
+PermutationsOf(s) ==
+    LET Domain == 1..Len(s)
+        Perms == {f \in [Domain -> Domain] : \A i, j \in Domain : i # j => f[i] # f[j]}
+    IN {[i \in Domain |-> s[f[i]]] : f \in Perms}
+
+\* Check if sequence is sorted
+IsSorted(arr) ==
+    \A i, j \in DOMAIN arr : i < j => arr[i] <= arr[j]
+
+\* Check if two sequences are permutations of each other
+IsPermutation(arr1, arr2) ==
+    /\ Len(arr1) = Len(arr2)
+    /\ LET Bag(s) == [v \in {s[i] : i \in DOMAIN s} |-> Cardinality({i \in DOMAIN s : s[i] = v})]
+       IN Bag(arr1) = Bag(arr2)
+
+VARIABLES 
+    A,           \* The array being sorted
+    A0,          \* Initial array (for checking permutation property)
+    pc,          \* Program counter
+    stack,       \* Stack for recursive calls
+    lo,          \* Current lower bound
+    hi           \* Current upper bound
+
+vars == <<A, A0, pc, stack, lo, hi>>
+
+\* Initial state: array contains values 1..ArrayLen in some order, starting call to QS(1, ArrayLen)
+Init ==
+    /\ A \in PermutationsOf([i \in 1..ArrayLen |-> i])
+    /\ A0 = A
+    /\ pc = "QS"
+    /\ stack = <<>>
+    /\ lo = 1
+    /\ hi = ArrayLen
+
+\* Partition and recursive call logic
+\* When pc = "QS": if lo >= hi, return; otherwise partition and recurse
+QS ==
+    /\ pc = "QS"
+    /\ IF lo >= hi
+       THEN \* Base case: subarray of size 0 or 1, return
+            IF stack = <<>>
+            THEN /\ pc' = "Done"
+                 /\ UNCHANGED <<A, A0, stack, lo, hi>>
+            ELSE /\ pc' = "QS"
+                 /\ lo' = Head(stack).lo
+                 /\ hi' = Head(stack).hi
+                 /\ stack' = Tail(stack)
+                 /\ UNCHANGED <<A, A0>>
+       ELSE \* Choose pivot and partition
+            \E pivotIdx \in lo..hi :
+                \E newA \in [1..ArrayLen -> 1..ArrayLen] :
+                    \* newA must be a valid partitioned permutation
+                    /\ \A i \in 1..ArrayLen : 
+                        (i < lo \/ i > hi) => newA[i] = A[i]
+                    /\ {newA[i] : i \in lo..hi} = {A[i] : i \in lo..hi}
+                    /\ \A i \in lo..pivotIdx, j \in (pivotIdx+1)..hi :
+                        (i <= hi /\ j <= hi /\ i >= lo /\ j >= lo) => newA[i] <= newA[j]
+                    /\ A' = newA
+                    /\ IF pivotIdx + 1 < hi
+                       THEN \* Need to recurse on right subarray after left
+                            /\ stack' = <<[lo |-> pivotIdx + 1, hi |-> hi]>> \o stack
+                            /\ lo' = lo
+                            /\ hi' = pivotIdx - 1
+                            /\ pc' = "QS"
+                       ELSE \* Only left subarray needs processing
+                            /\ stack' = stack
+                            /\ lo' = lo
+                            /\ hi' = pivotIdx - 1
+                            /\ pc' = "QS"
+                    /\ UNCHANGED A0
+
+\* Terminal state
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == QS \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: A is always a permutation of A0
+TypeInvariant ==
+    /\ A \in [1..ArrayLen -> 1..ArrayLen]
+    /\ A0 \in [1..ArrayLen -> 1..ArrayLen]
+    /\ pc \in {"QS", "Done"}
+    /\ lo \in 1..ArrayLen
+    /\ hi \in 0..ArrayLen \/ hi \in 1..ArrayLen
+
+PermutationInvariant ==
+    IsPermutation(A, A0)
+
+\* Termination property
+Termination == <>(pc = "Done")
+
+\* Final state property: array is sorted and is a permutation of initial
+FinalStateCorrect ==
+    pc = "Done" => (IsSorted(A) /\ IsPermutation(A, A0))
+
+=========================================================================
+```

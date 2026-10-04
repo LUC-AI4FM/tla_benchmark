@@ -1,0 +1,407 @@
+```tla+
+-------------------------------- MODULE Snark --------------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Procs, Address, Val, Dummy, NIL
+
+ASSUME Dummy \in Address
+ASSUME NIL \notin Address
+
+(* Memory fields *)
+Left == "left"
+Right == "right"
+Value == "value"
+
+(* Special return values *)
+Empty == "empty"
+Full == "full"
+
+VARIABLES Mem, freeList, LeftHat, RightHat, rVal, valBag, pc, stack, temp
+
+vars == <<Mem, freeList, LeftHat, RightHat, rVal, valBag, pc, stack, temp>>
+
+(* Addresses excluding Dummy for allocation *)
+AllocAddress == Address \ {Dummy}
+
+(* Initialize memory node *)
+InitNode == [left |-> NIL, right |-> NIL, value |-> NIL]
+
+(* Type definitions *)
+MemType == [Address -> [left: Address \cup {NIL}, right: Address \cup {NIL}, value: Val \cup {NIL}]]
+
+(* Helper: Bag operations *)
+BagAdd(bag, v) == [bag EXCEPT ![v] = @ + 1]
+BagRemove(bag, v) == [bag EXCEPT ![v] = @ - 1]
+BagIn(v, bag) == bag[v] > 0
+
+(* Labels for each process *)
+Labels == {"T1", "PushRight_1", "PushRight_2", "PushRight_3", "PushRight_4", "PushRight_Done",
+           "PushLeft_1", "PushLeft_2", "PushLeft_3", "PushLeft_4", "PushLeft_Done",
+           "PopRight_1", "PopRight_2", "PopRight_3", "PopRight_4", "PopRight_Done",
+           "PopLeft_1", "PopLeft_2", "PopLeft_3", "PopLeft_4", "PopLeft_Done",
+           "HandleResult"}
+
+Init ==
+    /\ Mem = [a \in Address |-> IF a = Dummy 
+                                THEN [left |-> Dummy, right |-> Dummy, value |-> NIL]
+                                ELSE InitNode]
+    /\ freeList = AllocAddress
+    /\ LeftHat = Dummy
+    /\ RightHat = Dummy
+    /\ rVal = [p \in Procs |-> NIL]
+    /\ valBag = [v \in Val |-> 0]
+    /\ pc = [p \in Procs |-> "T1"]
+    /\ stack = [p \in Procs |-> <<>>]
+    /\ temp = [p \in Procs |-> [node |-> NIL, rh |-> NIL, lh |-> NIL, 
+                                 rhR |-> NIL, lhL |-> NIL, val |-> NIL, op |-> NIL]]
+
+(* Allocate a node from free list *)
+Allocate(p) ==
+    IF freeList = {}
+    THEN /\ rVal' = [rVal EXCEPT ![p] = Full]
+         /\ UNCHANGED <<freeList, Mem>>
+    ELSE \E addr \in freeList:
+         /\ freeList' = freeList \ {addr}
+         /\ temp' = [temp EXCEPT ![p].node = addr]
+         /\ Mem' = [Mem EXCEPT ![addr] = InitNode]
+         /\ rVal' = [rVal EXCEPT ![p] = NIL]
+
+(* Free a node back to free list *)
+Free(addr) ==
+    freeList' = freeList \cup {addr}
+
+(* DCAS: Double Compare-and-Swap *)
+(* Atomically: if Mem[a1][f1] = old1 and Mem[a2][f2] = old2, 
+   set Mem[a1][f1] = new1 and Mem[a2][f2] = new2, return TRUE
+   else return FALSE *)
+DCAS(a1, f1, old1, new1, a2, f2, old2, new2) ==
+    IF Mem[a1][f1] = old1 /\ Mem[a2][f2] = old2
+    THEN /\ Mem' = [Mem EXCEPT ![a1][f1] = new1, ![a2][f2] = new2]
+         /\ TRUE
+    ELSE /\ UNCHANGED Mem
+         /\ FALSE
+
+(* ==================== PushRight ==================== *)
+
+PushRight_1(p) ==
+    /\ pc[p] = "PushRight_1"
+    /\ IF freeList = {}
+       THEN /\ rVal' = [rVal EXCEPT ![p] = Full]
+            /\ pc' = [pc EXCEPT ![p] = "PushRight_Done"]
+            /\ UNCHANGED <<Mem, freeList, temp>>
+       ELSE \E addr \in freeList:
+            /\ freeList' = freeList \ {addr}
+            /\ temp' = [temp EXCEPT ![p].node = addr]
+            /\ Mem' = [Mem EXCEPT ![addr] = [left |-> NIL, right |-> NIL, value |-> temp[p].val]]
+            /\ rVal' = [rVal EXCEPT ![p] = NIL]
+            /\ pc' = [pc EXCEPT ![p] = "PushRight_2"]
+    /\ UNCHANGED <<LeftHat, RightHat, valBag, stack>>
+
+PushRight_2(p) ==
+    /\ pc[p] = "PushRight_2"
+    /\ temp' = [temp EXCEPT ![p].rh = RightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PushRight_3"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PushRight_3(p) ==
+    /\ pc[p] = "PushRight_3"
+    /\ temp' = [temp EXCEPT ![p].rhR = Mem[temp[p].rh].right]
+    /\ pc' = [pc EXCEPT ![p] = "PushRight_4"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PushRight_4(p) ==
+    /\ pc[p] = "PushRight_4"
+    /\ LET rh == temp[p].rh
+           rhR == temp[p].rhR
+           node == temp[p].node
+       IN IF rhR = rh  \* rh.right points to rh means rh is rightmost
+          THEN IF Mem[rh].right = rhR /\ RightHat = rh
+               THEN /\ Mem' = [Mem EXCEPT ![rh].right = node, ![node].left = rh, ![node].right = node]
+                    /\ RightHat' = node
+                    /\ valBag' = BagAdd(valBag, temp[p].val)
+                    /\ rVal' = [rVal EXCEPT ![p] = "ok"]
+                    /\ pc' = [pc EXCEPT ![p] = "PushRight_Done"]
+                    /\ UNCHANGED <<freeList, LeftHat>>
+               ELSE /\ pc' = [pc EXCEPT ![p] = "PushRight_2"]
+                    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+          ELSE /\ pc' = [pc EXCEPT ![p] = "PushRight_2"]
+               /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED <<temp, stack>>
+
+PushRight_Done(p) ==
+    /\ pc[p] = "PushRight_Done"
+    /\ pc' = [pc EXCEPT ![p] = "HandleResult"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack, temp>>
+
+(* ==================== PushLeft ==================== *)
+
+PushLeft_1(p) ==
+    /\ pc[p] = "PushLeft_1"
+    /\ IF freeList = {}
+       THEN /\ rVal' = [rVal EXCEPT ![p] = Full]
+            /\ pc' = [pc EXCEPT ![p] = "PushLeft_Done"]
+            /\ UNCHANGED <<Mem, freeList, temp>>
+       ELSE \E addr \in freeList:
+            /\ freeList' = freeList \ {addr}
+            /\ temp' = [temp EXCEPT ![p].node = addr]
+            /\ Mem' = [Mem EXCEPT ![addr] = [left |-> NIL, right |-> NIL, value |-> temp[p].val]]
+            /\ rVal' = [rVal EXCEPT ![p] = NIL]
+            /\ pc' = [pc EXCEPT ![p] = "PushLeft_2"]
+    /\ UNCHANGED <<LeftHat, RightHat, valBag, stack>>
+
+PushLeft_2(p) ==
+    /\ pc[p] = "PushLeft_2"
+    /\ temp' = [temp EXCEPT ![p].lh = LeftHat]
+    /\ pc' = [pc EXCEPT ![p] = "PushLeft_3"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PushLeft_3(p) ==
+    /\ pc[p] = "PushLeft_3"
+    /\ temp' = [temp EXCEPT ![p].lhL = Mem[temp[p].lh].left]
+    /\ pc' = [pc EXCEPT ![p] = "PushLeft_4"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PushLeft_4(p) ==
+    /\ pc[p] = "PushLeft_4"
+    /\ LET lh == temp[p].lh
+           lhL == temp[p].lhL
+           node == temp[p].node
+       IN IF lhL = lh  \* lh.left points to lh means lh is leftmost
+          THEN IF Mem[lh].left = lhL /\ LeftHat = lh
+               THEN /\ Mem' = [Mem EXCEPT ![lh].left = node, ![node].right = lh, ![node].left = node]
+                    /\ LeftHat' = node
+                    /\ valBag' = BagAdd(valBag, temp[p].val)
+                    /\ rVal' = [rVal EXCEPT ![p] = "ok"]
+                    /\ pc' = [pc EXCEPT ![p] = "PushLeft_Done"]
+                    /\ UNCHANGED <<freeList, RightHat>>
+               ELSE /\ pc' = [pc EXCEPT ![p] = "PushLeft_2"]
+                    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+          ELSE /\ pc' = [pc EXCEPT ![p] = "PushLeft_2"]
+               /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED <<temp, stack>>
+
+PushLeft_Done(p) ==
+    /\ pc[p] = "PushLeft_Done"
+    /\ pc' = [pc EXCEPT ![p] = "HandleResult"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack, temp>>
+
+(* ==================== PopRight ==================== *)
+
+PopRight_1(p) ==
+    /\ pc[p] = "PopRight_1"
+    /\ temp' = [temp EXCEPT ![p].rh = RightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PopRight_2"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PopRight_2(p) ==
+    /\ pc[p] = "PopRight_2"
+    /\ IF temp[p].rh = Dummy
+       THEN /\ rVal' = [rVal EXCEPT ![p] = Empty]
+            /\ pc' = [pc EXCEPT ![p] = "PopRight_Done"]
+            /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, valBag, temp>>
+       ELSE /\ temp' = [temp EXCEPT ![p].lh = LeftHat]
+            /\ pc' = [pc EXCEPT ![p] = "PopRight_3"]
+            /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED stack
+
+PopRight_3(p) ==
+    /\ pc[p] = "PopRight_3"
+    /\ LET rh == temp[p].rh
+           lh == temp[p].lh
+           rhL == Mem[rh].left
+       IN IF rh = lh  \* Only one element
+          THEN IF RightHat = rh /\ LeftHat = lh /\ Mem[rh].left = rhL
+               THEN /\ Mem' = [Mem EXCEPT ![Dummy].left = Dummy, ![Dummy].right = Dummy]
+                    /\ RightHat' = Dummy
+                    /\ LeftHat' = Dummy
+                    /\ LET v == Mem[rh].value
+                       IN /\ rVal' = [rVal EXCEPT ![p] = v]
+                          /\ valBag' = BagRemove(valBag, v)
+                    /\ freeList' = freeList \cup {rh}
+                    /\ pc' = [pc EXCEPT ![p] = "PopRight_Done"]
+                    /\ UNCHANGED temp
+               ELSE /\ pc' = [pc EXCEPT ![p] = "PopRight_1"]
+                    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, temp>>
+          ELSE /\ temp' = [temp EXCEPT ![p].rhR = rhL]
+               /\ pc' = [pc EXCEPT ![p] = "PopRight_4"]
+               /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED stack
+
+PopRight_4(p) ==
+    /\ pc[p] = "PopRight_4"
+    /\ LET rh == temp[p].rh
+           rhL == Mem[rh].left
+       IN IF RightHat = rh /\ Mem[rh].left = rhL /\ rhL # rh
+          THEN /\ Mem' = [Mem EXCEPT ![rhL].right = rhL]
+               /\ RightHat' = rhL
+               /\ LET v == Mem[rh].value
+                  IN /\ rVal' = [rVal EXCEPT ![p] = v]
+                     /\ valBag' = BagRemove(valBag, v)
+               /\ freeList' = freeList \cup {rh}
+               /\ pc' = [pc EXCEPT ![p] = "PopRight_Done"]
+          ELSE /\ pc' = [pc EXCEPT ![p] = "PopRight_1"]
+               /\ UNCHANGED <<Mem, freeList, RightHat, rVal, valBag>>
+    /\ UNCHANGED <<LeftHat, temp, stack>>
+
+PopRight_Done(p) ==
+    /\ pc[p] = "PopRight_Done"
+    /\ pc' = [pc EXCEPT ![p] = "HandleResult"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack, temp>>
+
+(* ==================== PopLeft ==================== *)
+
+PopLeft_1(p) ==
+    /\ pc[p] = "PopLeft_1"
+    /\ temp' = [temp EXCEPT ![p].lh = LeftHat]
+    /\ pc' = [pc EXCEPT ![p] = "PopLeft_2"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+PopLeft_2(p) ==
+    /\ pc[p] = "PopLeft_2"
+    /\ IF temp[p].lh = Dummy
+       THEN /\ rVal' = [rVal EXCEPT ![p] = Empty]
+            /\ pc' = [pc EXCEPT ![p] = "PopLeft_Done"]
+            /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, valBag, temp>>
+       ELSE /\ temp' = [temp EXCEPT ![p].rh = RightHat]
+            /\ pc' = [pc EXCEPT ![p] = "PopLeft_3"]
+            /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED stack
+
+PopLeft_3(p) ==
+    /\ pc[p] = "PopLeft_3"
+    /\ LET lh == temp[p].lh
+           rh == temp[p].rh
+           lhR == Mem[lh].right
+       IN IF lh = rh  \* Only one element
+          THEN IF LeftHat = lh /\ RightHat = rh /\ Mem[lh].right = lhR
+               THEN /\ Mem' = [Mem EXCEPT ![Dummy].left = Dummy, ![Dummy].right = Dummy]
+                    /\ LeftHat' = Dummy
+                    /\ RightHat' = Dummy
+                    /\ LET v == Mem[lh].value
+                       IN /\ rVal' = [rVal EXCEPT ![p] = v]
+                          /\ valBag' = BagRemove(valBag, v)
+                    /\ freeList' = freeList \cup {lh}
+                    /\ pc' = [pc EXCEPT ![p] = "PopLeft_Done"]
+                    /\ UNCHANGED temp
+               ELSE /\ pc' = [pc EXCEPT ![p] = "PopLeft_1"]
+                    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, temp>>
+          ELSE /\ temp' = [temp EXCEPT ![p].lhL = lhR]
+               /\ pc' = [pc EXCEPT ![p] = "PopLeft_4"]
+               /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag>>
+    /\ UNCHANGED stack
+
+PopLeft_4(p) ==
+    /\ pc[p] = "PopLeft_4"
+    /\ LET lh == temp[p].lh
+           lhR == Mem[lh].right
+       IN IF LeftHat = lh /\ Mem[lh].right = lhR /\ lhR # lh
+          THEN /\ Mem' = [Mem EXCEPT ![lhR].left = lhR]
+               /\ LeftHat' = lhR
+               /\ LET v == Mem[lh].value
+                  IN /\ rVal' = [rVal EXCEPT ![p] = v]
+                     /\ valBag' = BagRemove(valBag, v)
+               /\ freeList' = freeList \cup {lh}
+               /\ pc' = [pc EXCEPT ![p] = "PopLeft_Done"]
+          ELSE /\ pc' = [pc EXCEPT ![p] = "PopLeft_1"]
+               /\ UNCHANGED <<Mem, freeList, LeftHat, rVal, valBag>>
+    /\ UNCHANGED <<RightHat, temp, stack>>
+
+PopLeft_Done(p) ==
+    /\ pc[p] = "PopLeft_Done"
+    /\ pc' = [pc EXCEPT ![p] = "HandleResult"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack, temp>>
+
+(* ==================== Test Process Main Loop ==================== *)
+
+T1(p) ==
+    /\ pc[p] = "T1"
+    /\ \/ \E v \in Val:  \* pushRight
+          /\ temp' = [temp EXCEPT ![p].val = v, ![p].op = "pushRight"]
+          /\ pc' = [pc EXCEPT ![p] = "PushRight_1"]
+       \/ \E v \in Val:  \* pushLeft
+          /\ temp' = [temp EXCEPT ![p].val = v, ![p].op = "pushLeft"]
+          /\ pc' = [pc EXCEPT ![p] = "PushLeft_1"]
+       \/ /\ temp' = [temp EXCEPT ![p].op = "popRight"]  \* popRight
+          /\ pc' = [pc EXCEPT ![p] = "PopRight_1"]
+       \/ /\ temp' = [temp EXCEPT ![p].op = "popLeft"]  \* popLeft
+          /\ pc' = [pc EXCEPT ![p] = "PopLeft_1"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack>>
+
+HandleResult(p) ==
+    /\ pc[p] = "HandleResult"
+    /\ LET op == temp[p].op
+           rv == rVal[p]
+       IN /\ IF op \in {"popRight", "popLeft"}
+             THEN IF rv \notin {Empty, NIL}
+                  THEN Assert(BagIn(rv, valBag), "Popped value not in bag!")
+                  ELSE TRUE
+             ELSE TRUE
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+    /\ UNCHANGED <<Mem, freeList, LeftHat, RightHat, rVal, valBag, stack, temp>>
+
+(* ==================== Next State Relation ==================== *)
+
+ProcStep(p) ==
+    \/ T1(p)
+    \/ PushRight_1(p)
+    \/ PushRight_2(p)
+    \/ PushRight_3(p)
+    \/ PushRight_4(p)
+    \/ PushRight_Done(p)
+    \/ PushLeft_1(p)
+    \/ PushLeft_2(p)
+    \/ PushLeft_3(p)
+    \/ PushLeft_4(p)
+    \/ PushLeft_Done(p)
+    \/ PopRight_1(p)
+    \/ PopRight_2(p)
+    \/ PopRight_3(p)
+    \/ PopRight_4(p)
+    \/ PopRight_Done(p)
+    \/ PopLeft_1(p)
+    \/ PopLeft_2(p)
+    \/ PopLeft_3(p)
+    \/ PopLeft_4(p)
+    \/ PopLeft_Done(p)
+    \/ HandleResult(p)
+
+Next == \E p \in Procs: ProcStep(p)
+
+(* ==================== Specification ==================== *)
+
+Spec == Init /\ [][Next]_vars
+
+(* ==================== Safety Invariants ==================== *)
+
+(* Values in valBag are non-negative *)
+ValBagNonNegative == \A v \in Val: valBag[v] >= 0
+
+(* LeftHat and RightHat are always valid addresses *)
+HatsValid == LeftHat \in Address /\ RightHat \in Address
+
+(* Type invariant *)
+TypeInvariant ==
+    /\ Mem \in [Address -> [left: Address \cup {NIL}, right: Address \cup {NIL}, value: Val \cup {NIL}]]
+    /\ freeList \subseteq AllocAddress
+    /\ LeftHat \in Address
+    /\ RightHat \in Address
+    /\ rVal \in [Procs -> Val \cup {NIL, Empty, Full, "ok"}]
+    /\ valBag \in [Val -> Int]
+    /\ pc \in [Procs -> Labels]
+
+(* Combined safety invariant *)
+SafetyInvariant ==
+    /\ ValBagNonNegative
+    /\ HatsValid
+
+(* ==================== Liveness Properties ==================== *)
+
+(* Every process returns infinitely often to label T1 *)
+Liveness == \A p \in Procs: []<>(pc[p] = "T1")
+
+(* ==================== Symmetry ==================== *)
+
+Symmetry == UNION {Permutations(AllocAddress), Permutations(Procs)}
+
+=============================================================================
+```

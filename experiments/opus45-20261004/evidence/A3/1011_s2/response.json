@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE KeyValueStore ----------------------------\nEXTENDS Naturals, TLC\n\nCONSTANTS Keys, Vals, MISSING\n\nVARIABLES store, op, args, retval, state\n\nvars == <<store, op, args, retval, state>>\n\nTypeOK ==\n    /\\ store \\in [Keys -> Vals \\cup {MISSING}]\n    /\\ op \\in {\"get\", \"insert\", \"update\", \"delete\", \"none\"}\n    /\\ args \\in (Keys \\times Vals) \\cup Keys \\cup {<<>>}\n    /\\ retval \\in Vals \\cup {MISSING, \"ok\", \"error\", \"none\"}\n    /\\ state \\in {\"ready\", \"working\"}\n\nInit ==\n    /\\ store = [k \\in Keys |-> MISSING]\n    /\\ op = \"none\"\n    /\\ args = <<>>\n    /\\ retval = \"none\"\n    /\\ state = \"ready\"\n\nGetRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ op' = \"get\"\n    /\\ args' = k\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<store, retval>>\n\nGetResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"get\"\n    /\\ args \\in Keys\n    /\\ retval' = store[args]\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = <<>>\n    /\\ UNCHANGED store\n\nInsertRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ op' = \"insert\"\n    /\\ args' = <<k, v>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<store, retval>>\n\nInsertResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"insert\"\n    /\\ args \\in Keys \\times Vals\n    /\\ LET k == args[1]\n           v == args[2]\n       IN IF store[k] = MISSING\n          THEN /\\ store' = [store EXCEPT ![k] = v]\n               /\\ retval' = \"ok\"\n          ELSE /\\ retval' = \"error\"\n               /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = <<>>\n\nUpdateRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ op' = \"update\"\n    /\\ args' = <<k, v>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<store, retval>>\n\nUpdateResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"update\"\n    /\\ args \\in Keys \\times Vals\n    /\\ LET k == args[1]\n           v == args[2]\n       IN IF store[k] # MISSING\n          THEN /\\ store' = [store EXCEPT ![k] = v]\n               /\\ retval' = \"ok\"\n          ELSE /\\ retval' = \"error\"\n               /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = <<>>\n\nDeleteRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ op' = \"delete\"\n    /\\ args' = k\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<store, retval>>\n\nDeleteResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"delete\"\n    /\\ args \\in Keys\n    /\\ IF store[args] # MISSING\n       THEN /\\ store' = [store EXCEPT ![args] = MISSING]\n            /\\ retval' = \"ok\"\n       ELSE /\\ retval' = \"error\"\n            /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = <<>>\n\nNext ==\n    \\/ \\E k \\in Keys : GetRequest(k)\n    \\/ GetResponse\n    \\/ \\E k \\in Keys, v \\in Vals : InsertRequest(k, v)\n    \\/ InsertResponse\n    \\/ \\E k \\in Keys, v \\in Vals : UpdateRequest(k, v)\n    \\/ UpdateResponse\n    \\/ \\E k \\in Keys : DeleteRequest(k)\n    \\/ DeleteResponse\n\nDeleteRequestAction == \\E k \\in Keys : DeleteRequest(k)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_op(DeleteRequestAction)\n\nStoreConsistency ==\n    \\A k \\in Keys : store[k] \\in Vals \\cup {MISSING}\n\nReadyImpliesNoOp ==\n    state = \"ready\" => op = \"none\"\n\nWorkingImpliesOp ==\n    state = \"working\" => op \\in {\"get\", \"insert\", \"update\", \"delete\"}\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 231,
+    "outputTokens": 1191,
+    "totalTokens": 1422,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14180
+  }
+}

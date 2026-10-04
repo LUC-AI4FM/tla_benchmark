@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE Chameneos ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS N, M\n\nVARIABLES chameneoses, meetingPlace, numMeetings\n\nvars == <<chameneoses, meetingPlace, numMeetings>>\n\nColors == {\"blue\", \"red\", \"yellow\"}\n\nFaded == \"faded\"\n\nAllColors == Colors \\cup {Faded}\n\nCreatures == 1..M\n\nComplement(c1, c2) ==\n    IF c1 = c2 THEN c1\n    ELSE IF c1 = \"blue\" /\\ c2 = \"red\" THEN \"yellow\"\n    ELSE IF c1 = \"blue\" /\\ c2 = \"yellow\" THEN \"red\"\n    ELSE IF c1 = \"red\" /\\ c2 = \"blue\" THEN \"yellow\"\n    ELSE IF c1 = \"red\" /\\ c2 = \"yellow\" THEN \"blue\"\n    ELSE IF c1 = \"yellow\" /\\ c2 = \"blue\" THEN \"red\"\n    ELSE \"blue\"  \\* c1 = \"yellow\" /\\ c2 = \"red\"\n\nInit ==\n    /\\ chameneoses \\in [Creatures -> [color: Colors, meetings: {0}]]\n    /\\ meetingPlace = CHOOSE x : x \\notin Creatures\n    /\\ numMeetings = 0\n\nEmpty == CHOOSE x : x \\notin Creatures\n\nIsNonFaded(c) == chameneoses[c].color # Faded\n\nEnterMeetingPlace(c) ==\n    /\\ IsNonFaded(c)\n    /\\ meetingPlace = Empty\n    /\\ numMeetings < N\n    /\\ meetingPlace' = c\n    /\\ UNCHANGED <<chameneoses, numMeetings>>\n\nFadeImmediately(c) ==\n    /\\ IsNonFaded(c)\n    /\\ meetingPlace = Empty\n    /\\ numMeetings = N\n    /\\ chameneoses' = [chameneoses EXCEPT ![c].color = Faded]\n    /\\ UNCHANGED <<meetingPlace, numMeetings>>\n\nCompleteMeeting(c) ==\n    /\\ IsNonFaded(c)\n    /\\ meetingPlace # Empty\n    /\\ meetingPlace # c\n    /\\ LET waiting == meetingPlace\n           newColor == Complement(chameneoses[c].color, chameneoses[waiting].color)\n       IN /\\ chameneoses' = [chameneoses EXCEPT \n               ![c].color = newColor,\n               ![c].meetings = @ + 1,\n               ![waiting].color = newColor,\n               ![waiting].meetings = @ + 1]\n          /\\ numMeetings' = numMeetings + 1\n          /\\ meetingPlace' = Empty\n\nMeet(c) ==\n    \\/ EnterMeetingPlace(c)\n    \\/ FadeImmediately(c)\n    \\/ CompleteMeeting(c)\n\nNext == \\E c \\in Creatures : Meet(c)\n\nSpec == Init /\\ [][Next]_vars\n\nSumOfMeetings == \n    LET Sum[S \\in SUBSET Creatures] ==\n        IF S = {} THEN 0\n        ELSE LET c == CHOOSE x \\in S : TRUE\n             IN chameneoses[c].meetings + Sum[S \\ {c}]\n    IN Sum[Creatures]\n\nSumMet == numMeetings = N => SumOfMeetings = 2 * N\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 483,
+    "outputTokens": 872,
+    "totalTokens": 1355,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13263
+  }
+}

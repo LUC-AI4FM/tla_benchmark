@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE StoneCutting ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE Sum(_)\nSum(seq) ==\n    IF seq = << >>\n    THEN 0\n    ELSE Head(seq) + Sum(Tail(seq))\n\nRECURSIVE Partitions(_, _)\nPartitions(total, parts) ==\n    IF parts = 1\n    THEN IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE UNION {\n        {<<i>> \\o p : p \\in Partitions(total - i, parts - 1)}\n        : i \\in 1..total - (parts - 1)\n    }\n\nRECURSIVE CanWeigh(_, _, _, _)\nCanWeigh(target, weights, idx, currentSum) ==\n    IF idx > Len(weights)\n    THEN currentSum = target\n    ELSE \\/ CanWeigh(target, weights, idx + 1, currentSum)\n         \\/ CanWeigh(target, weights, idx + 1, currentSum + weights[idx])\n         \\/ CanWeigh(target, weights, idx + 1, currentSum - weights[idx])\n\nIsValidPartition(partition) ==\n    /\\ Len(partition) = N\n    /\\ Sum(partition) = W\n    /\\ \\A i \\in 1..Len(partition) : partition[i] >= 1\n    /\\ \\A t \\in 1..W : CanWeigh(t, partition, 1, 0)\n\nAllPartitions == Partitions(W, N)\n\nSolutions == {p \\in AllPartitions : IsValidPartition(p)}\n\nASSUME\n    LET result == Solutions\n    IN IF result = {}\n       THEN PrintT(\"No solution exists\")\n       ELSE PrintT(<<\"Solution found:\", CHOOSE s \\in result : TRUE>>)\n\nVARIABLES dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\nTypeOK == dummy \\in {0}\n\nSolutionExists == Solutions /= {}\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 257,
+    "outputTokens": 516,
+    "totalTokens": 773,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9874
+  }
+}

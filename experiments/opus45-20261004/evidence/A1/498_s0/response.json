@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE Consensus ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Value, Slot\n\nVARIABLES proposed, chosen\n\nvars == <<proposed, chosen>>\n\nTypeOK ==\n    /\\ proposed \\subseteq Value\n    /\\ chosen \\in [Slot -> SUBSET Value]\n    /\\ \\A s \\in Slot : Cardinality(chosen[s]) <= 1\n\nInit ==\n    /\\ proposed = {}\n    /\\ chosen = [s \\in Slot |-> {}]\n\nPropose(v) ==\n    /\\ v \\notin proposed\n    /\\ proposed' = proposed \\cup {v}\n    /\\ UNCHANGED chosen\n\nChoose(s, v) ==\n    /\\ v \\in proposed\n    /\\ chosen[s] = {}\n    /\\ chosen' = [chosen EXCEPT ![s] = {v}]\n    /\\ UNCHANGED proposed\n\nNext ==\n    \\/ \\E v \\in Value : Propose(v)\n    \\/ \\E s \\in Slot, v \\in Value : Choose(s, v)\n\nSpec == Init /\\ [][Next]_vars\n\nLiveSpec == Spec /\\ WF_vars(Next)\n\n(* Safety Properties *)\n\nNontriviality ==\n    \\A s \\in Slot : \\A v \\in chosen[s] : v \\in Value\n\nStability ==\n    \\A s \\in Slot : chosen[s] # {} => chosen[s]' = chosen[s]\n\nConsistency ==\n    \\A s \\in Slot : Cardinality(chosen[s]) <= 1\n\nSafety == TypeOK /\\ Nontriviality /\\ Consistency\n\n(* Liveness Property *)\n\nAllSlotsChosen == \\A s \\in Slot : chosen[s] # {}\n\nLiveness == <>AllSlotsChosen\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 279,
+    "outputTokens": 446,
+    "totalTokens": 725,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7752
+  }
+}

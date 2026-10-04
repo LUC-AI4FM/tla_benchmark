@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n----------------------------- MODULE GameOfLife -----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES grid\n\nPos == (0..(N-1)) \\X (0..(N-1))\n\nSum(S, f) ==\n    LET RECURSIVE SumHelper(_, _)\n        SumHelper(T, acc) ==\n            IF T = {} THEN acc\n            ELSE LET x == CHOOSE y \\in T : TRUE\n                 IN SumHelper(T \\ {x}, acc + f[x])\n    IN SumHelper(S, 0)\n\nNeighbors(x, y) ==\n    { <<x + dx, y + dy>> : dx \\in {-1, 0, 1}, dy \\in {-1, 0, 1} }\n    \\ { <<x, y>> }\n\nCellValue(pos) ==\n    IF pos \\in Pos THEN grid[pos] ELSE FALSE\n\nLiveNeighborCount(x, y) ==\n    LET neighborSet == Neighbors(x, y)\n        f == [p \\in neighborSet |-> IF CellValue(p) THEN 1 ELSE 0]\n    IN Sum(neighborSet, f)\n\nNextCellState(x, y) ==\n    LET count == LiveNeighborCount(x, y)\n        alive == grid[<<x, y>>]\n    IN IF alive\n       THEN count \\in {2, 3}\n       ELSE count = 3\n\nTypeOK ==\n    grid \\in [Pos -> BOOLEAN]\n\nInit ==\n    grid \\in [Pos -> BOOLEAN]\n\nNext ==\n    grid' = [pos \\in Pos |-> NextCellState(pos[1], pos[2])]\n\nSpec == Init /\\ [][Next]_grid\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 252,
+    "outputTokens": 454,
+    "totalTokens": 706,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8953
+  }
+}

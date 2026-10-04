@@ -1,0 +1,62 @@
+```tla+
+---------------------------- MODULE spec ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT Graph
+
+\* Helper: Bounded sequences of S up to length n
+BoundedSeq(S, n) == UNION {[1..i -> S] : i \in 0..n}
+
+\* Helper: Edges of a directed graph (set of pairs)
+DirectedGraphEdges(G) == G
+
+\* Helper: Nodes from edges
+NodesFromEdges(E) == {e[1] : e \in E} \union {e[2] : e \in E}
+
+\* TestGraph derived from Graph using TLCEval for caching
+TestGraph == TLCEval(Graph)
+
+\* Assumption about cardinality of nested bounded-sequence construction
+\* This forces evaluation and tests the bounded sequence helper
+ASSUME Cardinality(BoundedSeq(BoundedSeq({1,2}, 2), 2)) > 0
+
+VARIABLES x, y
+
+vars == <<x, y>>
+
+\* Initial state: x and y are elements of Graph (edge set)
+Init ==
+    /\ x \in Graph
+    /\ y \in Graph
+
+\* Next state: non-deterministically choose new edges from Graph
+\* Using RandomElement through TLCEval to force particular evaluation context
+Next ==
+    \/ /\ x' \in Graph
+       /\ y' \in Graph
+    \/ /\ x' = TLCEval(RandomElement(Graph))
+       /\ y' = TLCEval(RandomElement(Graph))
+    \/ UNCHANGED vars
+
+\* Type invariant: both variables are edges in Graph
+TypeOK ==
+    /\ x \in Graph
+    /\ y \in Graph
+
+\* Membership in derived TestGraph
+InTestGraph ==
+    /\ x \in TestGraph
+    /\ y \in TestGraph
+
+\* Fixed TLCEval-computed cardinality check
+\* Caching behavior matters: TLCEval ensures this is computed once
+CardinalityCheck == TLCEval(Cardinality(Graph)) >= 0
+
+\* Combined invariant: type membership, TestGraph membership, and cardinality check
+Inv ==
+    /\ TypeOK
+    /\ InTestGraph
+    /\ CardinalityCheck
+
+=========================================================================
+```

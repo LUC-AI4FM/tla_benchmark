@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES sem, pc\n\nvars == <<sem, pc>>\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n\nInit ==\n    /\\ sem = [f \\in 0..(N-1) |-> 1]\n    /\\ pc = [p \\in Philosophers |-> \"thinking\"]\n\nBeginHungry(p) ==\n    /\\ pc[p] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![p] = \"hungry\"]\n    /\\ sem' = sem\n\nAcquireFirst(p) ==\n    /\\ pc[p] = \"hungry\"\n    /\\ IF p = 0\n       THEN /\\ sem[LeftFork(p)] = 1\n            /\\ sem' = [sem EXCEPT ![LeftFork(p)] = 0]\n       ELSE /\\ sem[RightFork(p)] = 1\n            /\\ sem' = [sem EXCEPT ![RightFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"hasFirst\"]\n\nAcquireSecond(p) ==\n    /\\ pc[p] = \"hasFirst\"\n    /\\ IF p = 0\n       THEN /\\ sem[RightFork(p)] = 1\n            /\\ sem' = [sem EXCEPT ![RightFork(p)] = 0]\n       ELSE /\\ sem[LeftFork(p)] = 1\n            /\\ sem' = [sem EXCEPT ![LeftFork(p)] = 0]\n    /\\ pc' = [pc EXCEPT ![p] = \"eating\"]\n\nFinishEating(p) ==\n    /\\ pc[p] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![LeftFork(p)] = 1, ![RightFork(p)] = 1]\n    /\\ pc' = [pc EXCEPT ![p] = \"thinking\"]\n\nPhilosopherAction(p) ==\n    \\/ BeginHungry(p)\n    \\/ AcquireFirst(p)\n    \\/ AcquireSecond(p)\n    \\/ FinishEating(p)\n\nNext ==\n    \\E p \\in Philosophers : PhilosopherAction(p)\n\nFairness ==\n    \\A p \\in Philosophers : SF_vars(PhilosopherAction(p))\n\nSpec ==\n    /\\ Init\n    /\\ [][Next]_vars\n    /\\ Fairness\n\nMutualExclusion ==\n    \\A p \\in Philosophers : ~(pc[p] = \"eating\" /\\ pc[(p + 1) % N] = \"eating\")\n\nStarvationFreedom ==\n    \\A p \\in Philosophers : []<>(pc[p] = \"eating\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 797,
+    "totalTokens": 1066,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10428
+  }
+}

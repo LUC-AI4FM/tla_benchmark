@@ -1,0 +1,235 @@
+```tla+
+--------------------------- MODULE FischerMutex ---------------------------
+(***************************************************************************)
+(* Fischer's timed mutual exclusion algorithm for N synchronizing          *)
+(* processes, together with a separate ticking process that decrements     *)
+(* per-process timers.                                                     *)
+(*                                                                         *)
+(* NOTE: A bug (mutual exclusion violation) should be found when N > 1     *)
+(* and Delta >= Epsilon. This highlights the timing-sensitive design of    *)
+(* the algorithm - Fischer's algorithm requires Delta < Epsilon for        *)
+(* correctness.                                                            *)
+(***************************************************************************)
+
+EXTENDS Integers, Naturals, TLC
+
+CONSTANTS N, Delta, Epsilon, Infinity
+
+ASSUME N \in Nat /\ N > 0
+ASSUME Delta \in Nat /\ Delta > 0
+ASSUME Epsilon \in Nat /\ Epsilon > 0
+ASSUME Infinity \in Nat /\ Infinity > Delta /\ Infinity > Epsilon
+
+Procs == 1..N
+
+(*--algorithm FischerMutex
+variables
+    turn = 0,                          \* shared variable indicating which process may enter CS
+    pc_state = [i \in Procs |-> "idle"],  \* process state: idle, waiting, trying, critical
+    timer = [i \in Procs |-> 0];       \* per-process timer
+
+\* Macro to set timer for a process
+macro setTimer(p, val) begin
+    timer[p] := val;
+end macro;
+
+\* The ticking process decrements all positive finite timers
+fair process Tick = 0
+begin
+    TickLoop:
+    while TRUE do
+        await \E i \in Procs : timer[i] > 0 /\ timer[i] < Infinity;
+        timer := [i \in Procs |-> IF timer[i] > 0 /\ timer[i] < Infinity 
+                                  THEN timer[i] - 1 
+                                  ELSE timer[i]];
+    end while;
+end process;
+
+\* Fischer's mutual exclusion protocol for each process
+fair process Proc \in Procs
+begin
+    Idle:
+    while TRUE do
+        \* Wait until turn is 0 (no one claiming the lock)
+        WaitTurn:
+        await turn = 0;
+        
+        \* Set turn to self and start Delta timer
+        SetTurn:
+        turn := self;
+        setTimer(self, Delta);
+        pc_state[self] := "waiting";
+        
+        \* Wait for Delta time to pass (timer reaches 0)
+        WaitDelta:
+        await timer[self] = 0;
+        pc_state[self] := "trying";
+        
+        \* Check if still our turn, set Epsilon timer
+        CheckTurn:
+        if turn = self then
+            setTimer(self, Epsilon);
+            
+            \* Wait for Epsilon time to pass
+            WaitEpsilon:
+            await timer[self] = 0;
+            
+            \* Enter critical section
+            EnterCS:
+            pc_state[self] := "critical";
+            
+            \* Critical section - can do work here
+            CriticalSection:
+            skip;
+            
+            \* Exit critical section
+            ExitCS:
+            turn := 0;
+            pc_state[self] := "idle";
+        else
+            \* Someone else took turn, go back to idle
+            pc_state[self] := "idle";
+        end if;
+    end while;
+end process;
+
+end algorithm; *)
+
+\* BEGIN TRANSLATION
+VARIABLES turn, pc_state, timer, pc
+
+vars == << turn, pc_state, timer, pc >>
+
+ProcSet == {0} \cup (Procs)
+
+Init == (* Global variables *)
+        /\ turn = 0
+        /\ pc_state = [i \in Procs |-> "idle"]
+        /\ timer = [i \in Procs |-> 0]
+        /\ pc = [self \in ProcSet |-> CASE self = 0 -> "TickLoop"
+                                        [] self \in Procs -> "Idle"]
+
+TickLoop == /\ pc[0] = "TickLoop"
+            /\ \E i \in Procs : timer[i] > 0 /\ timer[i] < Infinity
+            /\ timer' = [i \in Procs |-> IF timer[i] > 0 /\ timer[i] < Infinity 
+                                         THEN timer[i] - 1 
+                                         ELSE timer[i]]
+            /\ pc' = [pc EXCEPT ![0] = "TickLoop"]
+            /\ UNCHANGED << turn, pc_state >>
+
+Tick == TickLoop
+
+Idle(self) == /\ pc[self] = "Idle"
+              /\ pc' = [pc EXCEPT ![self] = "WaitTurn"]
+              /\ UNCHANGED << turn, pc_state, timer >>
+
+WaitTurn(self) == /\ pc[self] = "WaitTurn"
+                  /\ turn = 0
+                  /\ pc' = [pc EXCEPT ![self] = "SetTurn"]
+                  /\ UNCHANGED << turn, pc_state, timer >>
+
+SetTurn(self) == /\ pc[self] = "SetTurn"
+                 /\ turn' = self
+                 /\ timer' = [timer EXCEPT ![self] = Delta]
+                 /\ pc_state' = [pc_state EXCEPT ![self] = "waiting"]
+                 /\ pc' = [pc EXCEPT ![self] = "WaitDelta"]
+
+WaitDelta(self) == /\ pc[self] = "WaitDelta"
+                   /\ timer[self] = 0
+                   /\ pc_state' = [pc_state EXCEPT ![self] = "trying"]
+                   /\ pc' = [pc EXCEPT ![self] = "CheckTurn"]
+                   /\ UNCHANGED << turn, timer >>
+
+CheckTurn(self) == /\ pc[self] = "CheckTurn"
+                   /\ IF turn = self
+                      THEN /\ timer' = [timer EXCEPT ![self] = Epsilon]
+                           /\ pc' = [pc EXCEPT ![self] = "WaitEpsilon"]
+                      ELSE /\ pc_state' = [pc_state EXCEPT ![self] = "idle"]
+                           /\ pc' = [pc EXCEPT ![self] = "Idle"]
+                           /\ UNCHANGED timer
+                   /\ UNCHANGED turn
+                   /\ IF turn = self THEN UNCHANGED pc_state ELSE TRUE
+
+WaitEpsilon(self) == /\ pc[self] = "WaitEpsilon"
+                     /\ timer[self] = 0
+                     /\ pc' = [pc EXCEPT ![self] = "EnterCS"]
+                     /\ UNCHANGED << turn, pc_state, timer >>
+
+EnterCS(self) == /\ pc[self] = "EnterCS"
+                 /\ pc_state' = [pc_state EXCEPT ![self] = "critical"]
+                 /\ pc' = [pc EXCEPT ![self] = "CriticalSection"]
+                 /\ UNCHANGED << turn, timer >>
+
+CriticalSection(self) == /\ pc[self] = "CriticalSection"
+                         /\ TRUE
+                         /\ pc' = [pc EXCEPT ![self] = "ExitCS"]
+                         /\ UNCHANGED << turn, pc_state, timer >>
+
+ExitCS(self) == /\ pc[self] = "ExitCS"
+                /\ turn' = 0
+                /\ pc_state' = [pc_state EXCEPT ![self] = "idle"]
+                /\ pc' = [pc EXCEPT ![self] = "Idle"]
+                /\ UNCHANGED timer
+
+Proc(self) == Idle(self) \/ WaitTurn(self) \/ SetTurn(self) 
+              \/ WaitDelta(self) \/ CheckTurn(self) \/ WaitEpsilon(self)
+              \/ EnterCS(self) \/ CriticalSection(self) \/ ExitCS(self)
+
+Next == Tick
+           \/ (\E self \in Procs: Proc(self))
+
+Fairness == /\ WF_vars(Tick)
+            /\ \A self \in Procs : WF_vars(Proc(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* END TRANSLATION
+
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* Safety Invariant: Mutual Exclusion                                      *)
+(* At most one process can be in the critical section at any time.         *)
+(***************************************************************************)
+
+MutualExclusion == \A i, j \in Procs : 
+                     (pc_state[i] = "critical" /\ pc_state[j] = "critical") => i = j
+
+TypeInvariant == /\ turn \in {0} \cup Procs
+                 /\ pc_state \in [Procs -> {"idle", "waiting", "trying", "critical"}]
+                 /\ timer \in [Procs -> Nat]
+                 /\ pc \in [ProcSet -> STRING]
+
+(***************************************************************************)
+(* Count of processes in each state - useful for TLC state exploration     *)
+(***************************************************************************)
+
+InCritical == {i \in Procs : pc_state[i] = "critical"}
+NumInCritical == Cardinality(InCritical)
+
+InWaiting == {i \in Procs : pc_state[i] = "waiting"}
+NumInWaiting == Cardinality(InWaiting)
+
+InTrying == {i \in Procs : pc_state[i] = "trying"}
+NumInTrying == Cardinality(InTrying)
+
+InIdle == {i \in Procs : pc_state[i] = "idle"}
+NumInIdle == Cardinality(InIdle)
+
+(***************************************************************************)
+(* TLC check for state counts                                              *)
+(***************************************************************************)
+
+StateCountCheck == NumInCritical + NumInWaiting + NumInTrying + NumInIdle = N
+
+-----------------------------------------------------------------------------
+(***************************************************************************)
+(* Liveness Property                                                       *)
+(* Some process is infinitely often in the critical section.               *)
+(***************************************************************************)
+
+SomeoneInCS == \E i \in Procs : pc_state[i] = "critical"
+
+Liveness == []<>SomeoneInCS
+
+=============================================================================
+```

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N > 1\n\nVARIABLES pc, sem\n\nvars == <<pc, sem>>\n\nPhilosophers == 0..(N-1)\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nTypeOK ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n\nInit ==\n    /\\ pc = [i \\in Philosophers |-> \"thinking\"]\n    /\\ sem = [f \\in 0..(N-1) |-> 1]\n\nFirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)\nSecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)\n\nBecomeHungry(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ sem' = sem\n\nPickUpFirstFork(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ sem[FirstFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![FirstFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\nPickUpSecondFork(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ sem[SecondFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![SecondFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\nStopEating(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![FirstFork(i)] = 1, ![SecondFork(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\nPhilosopherAction(i) ==\n    \\/ BecomeHungry(i)\n    \\/ PickUpFirstFork(i)\n    \\/ PickUpSecondFork(i)\n    \\/ StopEating(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\nFairness == \\A i \\in Philosophers : SF_vars(PhilosopherAction(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nInvariant ==\n    \\A i \\in Philosophers :\n        ~(pc[i] = \"eating\" /\\ pc[(i + 1) % N] = \"eating\")\n\nStarvationFree == \\A i \\in Philosophers : []<>(pc[i] = \"eating\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 296,
+    "outputTokens": 742,
+    "totalTokens": 1038,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10244
+  }
+}

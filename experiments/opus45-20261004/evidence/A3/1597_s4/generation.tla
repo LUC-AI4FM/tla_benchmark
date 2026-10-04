@@ -1,0 +1,208 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Naturals, TLAPS
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, b, pc, failed
+
+vars == <<x, y, b, pc, failed>>
+
+Procs == 1..N
+
+ProcSet == Procs
+
+\* Process states
+\* "ncs"  - non-critical section
+\* "start" - beginning of protocol
+\* "setx" - set x to self
+\* "checky" - check if y = 0
+\* "setx2" - set y to self
+\* "checkx" - check if x = self
+\* "wait" - wait for b flags
+\* "checky2" - check if y = self
+\* "waitb" - wait for b[y]
+\* "cs" - critical section
+\* "exit" - exit protocol
+\* "resetb" - reset b[self]
+\* "done" - process has failed/terminated
+
+Init == 
+    /\ x = 0
+    /\ y = 0
+    /\ b = [i \in Procs |-> FALSE]
+    /\ pc = [i \in Procs |-> "ncs"]
+    /\ failed = [i \in Procs |-> FALSE]
+
+\* Non-critical section - process can move to start
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ ~failed[self]
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Start - set b[self] to TRUE
+start(self) ==
+    /\ pc[self] = "start"
+    /\ ~failed[self]
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "setx"]
+    /\ UNCHANGED <<x, y, failed>>
+
+\* Set x to self
+setx(self) ==
+    /\ pc[self] = "setx"
+    /\ ~failed[self]
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "checky"]
+    /\ UNCHANGED <<y, b, failed>>
+
+\* Check if y = 0
+checky(self) ==
+    /\ pc[self] = "checky"
+    /\ ~failed[self]
+    /\ IF y = 0
+       THEN pc' = [pc EXCEPT ![self] = "sety"]
+       ELSE pc' = [pc EXCEPT ![self] = "resetb"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Set y to self
+sety(self) ==
+    /\ pc[self] = "sety"
+    /\ ~failed[self]
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkx"]
+    /\ UNCHANGED <<x, b, failed>>
+
+\* Check if x = self
+checkx(self) ==
+    /\ pc[self] = "checkx"
+    /\ ~failed[self]
+    /\ IF x = self
+       THEN pc' = [pc EXCEPT ![self] = "cs"]
+       ELSE pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Wait for all b[j] where j # self to be FALSE
+wait(self) ==
+    /\ pc[self] = "wait"
+    /\ ~failed[self]
+    /\ \A j \in Procs \ {self} : ~b[j]
+    /\ pc' = [pc EXCEPT ![self] = "checky2"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Check if y = self after waiting
+checky2(self) ==
+    /\ pc[self] = "checky2"
+    /\ ~failed[self]
+    /\ IF y = self
+       THEN pc' = [pc EXCEPT ![self] = "cs"]
+       ELSE pc' = [pc EXCEPT ![self] = "waitb"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Wait for b[y] to be FALSE, then restart
+waitb(self) ==
+    /\ pc[self] = "waitb"
+    /\ ~failed[self]
+    /\ y # 0
+    /\ ~b[y]
+    /\ pc' = [pc EXCEPT ![self] = "resetb"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Critical section - move to exit
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ ~failed[self]
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<x, y, b, failed>>
+
+\* Exit - reset y to 0
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ ~failed[self]
+    /\ y' = 0
+    /\ pc' = [pc EXCEPT ![self] = "resetb"]
+    /\ UNCHANGED <<x, b, failed>>
+
+\* Reset b[self] to FALSE and return to ncs
+resetb(self) ==
+    /\ pc[self] = "resetb"
+    /\ ~failed[self]
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<x, y, failed>>
+
+\* Process failure action
+Fail(self) ==
+    /\ ~failed[self]
+    /\ pc[self] # "cs"  \* Don't fail in critical section for liveness
+    /\ failed' = [failed EXCEPT ![self] = TRUE]
+    /\ b' = [b EXCEPT ![self] = FALSE]  \* Release b on failure
+    /\ IF y = self THEN y' = 0 ELSE y' = y
+    /\ pc' = [pc EXCEPT ![self] = "done"]
+    /\ UNCHANGED <<x>>
+
+\* Actions for process 1 (distinguished process)
+proc1 ==
+    \/ ncs(1)
+    \/ start(1)
+    \/ setx(1)
+    \/ checky(1)
+    \/ sety(1)
+    \/ checkx(1)
+    \/ wait(1)
+    \/ checky2(1)
+    \/ waitb(1)
+    \/ cs(1)
+    \/ exit(1)
+    \/ resetb(1)
+
+\* Actions for processes 2..N
+procN(self) ==
+    /\ self \in 2..N
+    /\ \/ ncs(self)
+       \/ start(self)
+       \/ setx(self)
+       \/ checky(self)
+       \/ sety(self)
+       \/ checkx(self)
+       \/ wait(self)
+       \/ checky2(self)
+       \/ waitb(self)
+       \/ cs(self)
+       \/ exit(self)
+       \/ resetb(self)
+
+Next == 
+    \/ proc1
+    \/ \E self \in 2..N : procN(self)
+
+\* Weak fairness for process 1
+Fairness1 == WF_vars(proc1)
+
+\* Weak fairness for processes 2..N
+FairnessN == \A self \in 2..N : WF_vars(procN(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness1 /\ FairnessN
+
+\* Safety: Mutual Exclusion Invariant
+\* No two distinct processes are simultaneously in the critical section
+MutualExclusion == 
+    \A i, j \in Procs : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* Type invariant
+TypeOK ==
+    /\ x \in 0..N
+    /\ y \in 0..N
+    /\ b \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "start", "setx", "checky", "sety", 
+                         "checkx", "wait", "checky2", "waitb", "cs", 
+                         "exit", "resetb", "done"}]
+    /\ failed \in [Procs -> BOOLEAN]
+
+\* Liveness: Infinitely often some process is in the critical section
+InCS == \E i \in Procs : pc[i] = "cs"
+Liveness == []<>InCS
+
+==========================================================================

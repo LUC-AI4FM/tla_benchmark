@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE TwoPhaseCommit ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS\n    RM  \\* The set of resource managers\n\nVARIABLES\n    rmState  \\* rmState[r] is the state of resource manager r\n\nvars == <<rmState>>\n\n\\* The set of possible states for a resource manager\nRMStates == {\"working\", \"prepared\", \"committed\", \"aborted\"}\n\n\\* Type correctness invariant\nTypeOK ==\n    rmState \\in [RM -> RMStates]\n\n\\* Initial state: all RMs are in the \"working\" state\nInit ==\n    rmState = [r \\in RM |-> \"working\"]\n\n\\* A working RM can prepare to commit\nPrepare(r) ==\n    /\\ rmState[r] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![r] = \"prepared\"]\n\n\\* A working RM can decide to abort unilaterally\nDecideAbort(r) ==\n    /\\ rmState[r] \\in {\"working\", \"prepared\"}\n    /\\ rmState' = [rmState EXCEPT ![r] = \"aborted\"]\n\n\\* A prepared RM can decide to commit only if all RMs are prepared or committed\n\\* (no RM has aborted and all have at least prepared)\nDecideCommit(r) ==\n    /\\ rmState[r] = \"prepared\"\n    /\\ \\A rm \\in RM : rmState[rm] \\in {\"prepared\", \"committed\"}\n    /\\ rmState' = [rmState EXCEPT ![r] = \"committed\"]\n\n\\* Combined Decide action for RM r\nDecide(r) ==\n    \\/ DecideAbort(r)\n    \\/ DecideCommit(r)\n\n\\* Next-state relation: disjunction of all RM actions\nNext ==\n    \\E r \\in RM :\n        \\/ Prepare(r)\n        \\/ Decide(r)\n\n\\* Consistency invariant: no two RMs can be in conflicting final states\n\\* (one committed and one aborted)\nConsistency ==\n    ~(\\E r1, r2 \\in RM : rmState[r1] = \"committed\" /\\ rmState[r2] = \"aborted\")\n\n\\* Alternative formulation of consistency\nNoConflictingDecisions ==\n    \\/ \\A r \\in RM : rmState[r] /= \"committed\"\n    \\/ \\A r \\in RM : rmState[r] /= \"aborted\"\n\n\\* An RM can only commit if all RMs have prepared\n\\* (Safety property: committed implies all prepared or committed)\nCommitRequiresAllPrepared ==\n    \\A r \\in RM :\n        rmState[r] = \"committed\" =>\n            \\A rm \\in RM : rmState[rm] \\in {\"prepared\", \"committed\"}\n\n\\* Fairness condition: weak fairness on all actions\nFairness ==\n    \\A r \\in RM :\n        /\\ WF_vars(Prepare(r))\n        /\\ WF_vars(Decide(r))\n\n\\* Complete specification with fairness\nSpec ==\n    Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Liveness property: eventually all RMs reach a terminal state (committed or aborted)\n\\* if the system keeps making progress\nAllTerminate ==\n    <>(\\A r \\in RM : rmState[r] \\in {\"committed\", \"aborted\"})\n\n\\* Liveness property: if all RMs prepare, eventually all commit\nAllPreparedLeadsToAllCommitted ==\n    (\\A r \\in RM : rmState[r] = \"prepared\") ~> (\\A r \\in RM : rmState[r] = \"committed\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 914,
+    "totalTokens": 1192,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14665
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Integers, Naturals, TLAPS\n\nCONSTANTS N, K\n\nASSUME NPositive == N > 0\nASSUME KGreaterThanN == K > N\n\nVARIABLES x\n\nvars == <<x>>\n\n\\* Process indices\nProcs == 0..(N-1)\n\n\\* Valid values for each process\nValues == 0..(K-1)\n\n\\* Type invariant\nTypeOK == x \\in [Procs -> Values]\n\n\\* Process i has a token if its value differs from its predecessor (for i > 0)\n\\* or if its value equals the last process (for i = 0)\nHasToken(i) ==\n    IF i = 0\n    THEN x[0] = x[N-1]\n    ELSE x[i] # x[i-1]\n\n\\* Count the number of token holders\nTokenCount == Cardinality({i \\in Procs : HasToken(i)})\n\n\\* At least one process has a token\nSomeoneHasToken == \\E i \\in Procs : HasToken(i)\n\n\\* Exactly one process has a token (legitimate state)\nExactlyOneToken == Cardinality({i \\in Procs : HasToken(i)}) = 1\n\n\\* Helper function for modular arithmetic\nPlusOneMod(v) == (v + 1) % K\n\n\\* Initial state: any configuration of values\nInit == x \\in [Procs -> Values]\n\n\\* Process 0's action: increment value mod K when it equals the last process\nProcess0 ==\n    /\\ HasToken(0)\n    /\\ x' = [x EXCEPT ![0] = PlusOneMod(x[0])]\n\n\\* Process i's action (for i > 0): copy predecessor when values differ\nProcessI(i) ==\n    /\\ i > 0\n    /\\ HasToken(i)\n    /\\ x' = [x EXCEPT ![i] = x[i-1]]\n\n\\* Next state relation: some process with a token takes an action\nNext ==\n    \\/ Process0\n    \\/ \\E i \\in 1..(N-1) : ProcessI(i)\n\n\\* Weak fairness for all process actions\nFairness ==\n    /\\ WF_vars(Process0)\n    /\\ \\A i \\in 1..(N-1) : WF_vars(ProcessI(i))\n\n\\* Temporal specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariant: some process always holds a token\nSafetyInvariant == SomeoneHasToken\n\n\\* Liveness property: eventually exactly one token holder remains (convergence)\nConvergence == <>ExactlyOneToken\n\n\\* Once in legitimate state, it stays legitimate (closure)\nClosure == [](ExactlyOneToken => []ExactlyOneToken)\n\n\\* Combined liveness: convergence and closure\nLivenessProperty == Convergence /\\ Closure\n\n\\* Main correctness theorem\nTHEOREM Correctness == Spec => ([]SafetyInvariant /\\ LivenessProperty)\n\n\\* Auxiliary definitions for proof purposes\nTokenHolders == {i \\in Procs : HasToken(i)}\n\n\\* The ring is in a legitimate state\nLegitimate == ExactlyOneToken\n\n\\* Helper lemma: TypeOK is an invariant\nLEMMA TypeInvariant == Spec => []TypeOK\n\n\\* Helper lemma: Safety holds\nLEMMA Safety == Spec => []SomeoneHasToken\n\n\\* Helper lemma: Convergence holds\nLEMMA ConvergenceLemma == Spec => <>ExactlyOneToken\n\n\\* Helper lemma: Closure holds\nLEMMA ClosureLemma == Spec => [](ExactlyOneToken => []ExactlyOneToken)\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 946,
+    "totalTokens": 1204,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16283
+  }
+}

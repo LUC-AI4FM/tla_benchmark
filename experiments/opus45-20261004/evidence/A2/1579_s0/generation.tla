@@ -1,0 +1,88 @@
+---------------------------- MODULE DijkstraTokenRing ----------------------------
+EXTENDS Naturals, Integers, FiniteSets, TLC
+
+CONSTANTS N, K
+
+ASSUME KGreaterThanN == K > N /\ N > 0
+
+VARIABLES M, pc
+
+vars == << M, pc >>
+
+ProcSet == (0..(N-1))
+
+\* Definition of when a process holds a token
+HasToken(i) == IF i = 0 
+               THEN M[0] = M[N-1]
+               ELSE M[i] # M[i-1]
+
+\* Count of tokens in the system
+TokenCount == Cardinality({i \in 0..(N-1) : HasToken(i)})
+
+Init == 
+    /\ M \in [0..(N-1) -> 0..(K-1)]
+    /\ pc = [self \in ProcSet |-> "Check"]
+
+\* Process 0 (bottom process): holds token when M[0] = M[N-1]
+\* Responds by incrementing its value modulo K
+Bottom_Check == 
+    /\ pc[0] = "Check"
+    /\ M[0] = M[N-1]
+    /\ pc' = [pc EXCEPT ![0] = "Act"]
+    /\ M' = M
+
+Bottom_Act ==
+    /\ pc[0] = "Act"
+    /\ M' = [M EXCEPT ![0] = (M[0] + 1) % K]
+    /\ pc' = [pc EXCEPT ![0] = "Check"]
+
+Bottom == Bottom_Check \/ Bottom_Act
+
+\* Other processes i > 0: hold token when M[i] # M[i-1]
+\* Respond by copying neighbor's value
+Other_Check(self) ==
+    /\ self \in 1..(N-1)
+    /\ pc[self] = "Check"
+    /\ M[self] # M[self-1]
+    /\ pc' = [pc EXCEPT ![self] = "Act"]
+    /\ M' = M
+
+Other_Act(self) ==
+    /\ self \in 1..(N-1)
+    /\ pc[self] = "Act"
+    /\ M' = [M EXCEPT ![self] = M[self-1]]
+    /\ pc' = [pc EXCEPT ![self] = "Check"]
+
+Other(self) == Other_Check(self) \/ Other_Act(self)
+
+\* Combined next-state relation
+Next == 
+    \/ Bottom
+    \/ \E self \in 1..(N-1): Other(self)
+
+\* Fairness: weak fairness for all processes
+Fairness == 
+    /\ WF_vars(Bottom)
+    /\ \A self \in 1..(N-1): WF_vars(Other(self))
+
+\* Temporal specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariant: at least one process always holds a token
+SomeoneHoldsToken == TokenCount >= 1
+
+\* State where exactly one token exists
+SingleToken == TokenCount = 1
+
+\* Token passes: some process (other than 0 in initial check position) holds token
+TokenPasses == \E i \in 0..(N-1) : HasToken(i)
+
+\* Liveness property: eventually exactly one process holds the token forever
+EventuallyJustOneHoldsToken == <>[]SingleToken
+
+\* Type invariant for verification
+TypeOK == 
+    /\ M \in [0..(N-1) -> 0..(K-1)]
+    /\ pc \in [ProcSet -> {"Check", "Act"}]
+
+=============================================================================

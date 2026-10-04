@@ -1,0 +1,135 @@
+```tla+
+---------------------------- MODULE Bakery ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N, MaxTicket
+
+ASSUME N \in Nat /\ N > 0
+ASSUME MaxTicket \in Nat /\ MaxTicket > 0
+
+Procs == 1..N
+
+VARIABLES pc, num, flag, nxt, previous
+
+vars == <<pc, num, flag, nxt, previous>>
+
+TypeOK ==
+    /\ pc \in [Procs -> {"ncs", "e1", "e2", "e3", "e4", "cs", "exit"}]
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ nxt \in [Procs -> Procs]
+    /\ previous \in [Procs -> Nat]
+
+Init ==
+    /\ pc = [i \in Procs |-> "ncs"]
+    /\ num = [i \in Procs |-> 0]
+    /\ flag = [i \in Procs |-> FALSE]
+    /\ nxt = [i \in Procs |-> 1]
+    /\ previous = [i \in Procs |-> 0]
+
+\* Non-critical section - process decides to enter
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "e1"]
+    /\ UNCHANGED <<num, flag, nxt, previous>>
+
+\* Entry phase 1: Set flag to indicate intent
+e1(self) ==
+    /\ pc[self] = "e1"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "e2"]
+    /\ UNCHANGED <<num, nxt, previous>>
+
+\* Entry phase 2: Take a ticket (max of all tickets + 1)
+e2(self) ==
+    /\ pc[self] = "e2"
+    /\ LET maxNum == IF Procs = {} THEN 0
+                     ELSE LET S == {num[j] : j \in Procs}
+                          IN CHOOSE m \in S : \A n \in S : m >= n
+       IN num' = [num EXCEPT ![self] = maxNum + 1]
+    /\ nxt' = [nxt EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "e3"]
+    /\ UNCHANGED <<flag, previous>>
+
+\* Entry phase 3: Wait loop - check each other process
+e3(self) ==
+    /\ pc[self] = "e3"
+    /\ IF nxt[self] <= N
+       THEN /\ previous' = [previous EXCEPT ![self] = nxt[self]]
+            /\ pc' = [pc EXCEPT ![self] = "e4"]
+            /\ UNCHANGED <<num, flag, nxt>>
+       ELSE /\ flag' = [flag EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<num, nxt, previous>>
+
+\* Entry phase 4: Wait for process 'previous' to not be choosing and to have lower priority
+e4(self) ==
+    /\ pc[self] = "e4"
+    /\ LET other == previous[self]
+       IN IF other = self
+          THEN /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+               /\ pc' = [pc EXCEPT ![self] = "e3"]
+               /\ UNCHANGED <<num, flag, previous>>
+          ELSE /\ ~flag[other]  \* Wait until other is not choosing
+               /\ \/ num[other] = 0  \* Other not interested
+                  \/ num[self] < num[other]  \* Self has smaller ticket
+                  \/ (num[self] = num[other] /\ self < other)  \* Same ticket, smaller id wins
+               /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+               /\ pc' = [pc EXCEPT ![self] = "e3"]
+               /\ UNCHANGED <<num, flag, previous>>
+
+\* Critical section - process is in CS
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, nxt, previous>>
+
+\* Exit: Reset ticket number
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, nxt, previous>>
+
+\* Process action
+proc(self) ==
+    \/ ncs(self)
+    \/ e1(self)
+    \/ e2(self)
+    \/ e3(self)
+    \/ e4(self)
+    \/ cs(self)
+    \/ exit(self)
+
+Next == \E self \in Procs : proc(self)
+
+\* Fairness: Each process eventually makes progress
+Fairness == \A self \in Procs : WF_vars(proc(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+\* Safety Invariants
+
+\* Mutual Exclusion: No two processes in critical section simultaneously
+MutualExclusion ==
+    \A i, j \in Procs : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* Constraint for TLC model checking - limit ticket numbers
+TicketConstraint ==
+    \A i \in Procs : num[i] <= MaxTicket
+
+\* Combined invariant
+Inv == TypeOK /\ MutualExclusion
+
+-----------------------------------------------------------------------------
+\* Liveness Properties
+
+\* Every process trying to enter CS eventually enters
+Liveness == \A self \in Procs : (pc[self] = "e1") ~> (pc[self] = "cs")
+
+\* No starvation: If a process wants to enter, it eventually does
+NoStarvation == \A self \in Procs : []<>(pc[self] = "cs" \/ pc[self] = "ncs")
+
+=============================================================================
+```

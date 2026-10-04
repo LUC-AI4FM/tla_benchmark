@@ -1,0 +1,106 @@
+---------------------------- MODULE RegularReaders ----------------------------
+EXTENDS Integers, TLAPS, FiniteSets
+
+CONSTANT N
+
+ASSUME NAssump == N \in Nat \ {0}
+
+VARIABLES x, y, pc
+
+vars == <<x, y, pc>>
+
+Procs == 1..N
+
+TypeOK == /\ x \in [Procs -> SUBSET {0,1}]
+          /\ y \in [Procs -> {0,1}]
+          /\ pc \in [Procs -> {"write1", "write2", "read", "done"}]
+
+Init == /\ x = [i \in Procs |-> {0}]
+        /\ y = [i \in Procs |-> 0]
+        /\ pc = [i \in Procs |-> "write1"]
+
+Neighbor(i) == IF i = N THEN 1 ELSE i + 1
+
+Write1(i) == /\ pc[i] = "write1"
+             /\ x' = [x EXCEPT ![i] = {0,1}]
+             /\ pc' = [pc EXCEPT ![i] = "write2"]
+             /\ y' = y
+
+Write2(i) == /\ pc[i] = "write2"
+             /\ x' = [x EXCEPT ![i] = {1}]
+             /\ pc' = [pc EXCEPT ![i] = "read"]
+             /\ y' = y
+
+Read(i) == /\ pc[i] = "read"
+           /\ \E v \in x[Neighbor(i)] : y' = [y EXCEPT ![i] = v]
+           /\ pc' = [pc EXCEPT ![i] = "done"]
+           /\ x' = x
+
+Done(i) == /\ pc[i] = "done"
+           /\ UNCHANGED vars
+
+Next == \E i \in Procs : Write1(i) \/ Write2(i) \/ Read(i) \/ Done(i)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == \A i \in Procs : pc[i] = "done"
+
+PCorrect == Termination => \E i \in Procs : y[i] = 1
+
+Inv == /\ TypeOK
+       /\ \A i \in Procs : pc[i] \in {"read", "done"} => 1 \in x[i]
+       /\ \A i \in Procs : pc[i] = "done" /\ y[i] = 0 => 
+            pc[Neighbor(i)] \in {"read", "done"}
+       /\ \A i \in Procs : 0 \in x[i]
+       /\ \A i \in Procs : pc[i] = "write1" => x[i] = {0}
+       /\ \A i \in Procs : pc[i] = "write2" => x[i] = {0,1}
+       /\ \A i \in Procs : pc[i] \in {"read", "done"} => x[i] = {1}
+
+THEOREM InitImpliesInv == Init => Inv
+<1>1. ASSUME Init
+      PROVE  Inv
+  <2>1. TypeOK
+    BY <1>1 DEF Init, TypeOK, Procs
+  <2>2. \A i \in Procs : pc[i] \in {"read", "done"} => 1 \in x[i]
+    BY <1>1 DEF Init, Procs
+  <2>3. \A i \in Procs : pc[i] = "done" /\ y[i] = 0 => 
+          pc[Neighbor(i)] \in {"read", "done"}
+    BY <1>1 DEF Init, Procs
+  <2>4. \A i \in Procs : 0 \in x[i]
+    BY <1>1 DEF Init, Procs
+  <2>5. \A i \in Procs : pc[i] = "write1" => x[i] = {0}
+    BY <1>1 DEF Init, Procs
+  <2>6. \A i \in Procs : pc[i] = "write2" => x[i] = {0,1}
+    BY <1>1 DEF Init, Procs
+  <2>7. \A i \in Procs : pc[i] \in {"read", "done"} => x[i] = {1}
+    BY <1>1 DEF Init, Procs
+  <2>. QED
+    BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6, <2>7 DEF Inv
+<1>. QED
+  BY <1>1
+
+THEOREM InvImpliesPCorrect == Inv => PCorrect
+<1>1. ASSUME Inv, Termination
+      PROVE  \E i \in Procs : y[i] = 1
+  <2>1. \A i \in Procs : pc[i] = "done"
+    BY <1>1 DEF Termination
+  <2>2. \A i \in Procs : x[i] = {1}
+    BY <1>1, <2>1 DEF Inv, Procs
+  <2>3. ASSUME \A i \in Procs : y[i] = 0
+        PROVE  FALSE
+    <3>1. PICK i \in Procs : TRUE
+      BY NAssump DEF Procs
+    <3>2. pc[i] = "done" /\ y[i] = 0
+      BY <2>1, <2>3, <3>1
+    <3>3. pc[Neighbor(i)] \in {"read", "done"}
+      BY <1>1, <3>2 DEF Inv
+    <3>4. 1 \in x[Neighbor(i)]
+      BY <2>2, NAssump DEF Neighbor, Procs
+    <3>. QED
+      BY <2>3, <3>1, NAssump DEF Procs
+  <2>. QED
+    BY <2>3
+<1>. QED
+  BY <1>1 DEF PCorrect
+
+=============================================================================

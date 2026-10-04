@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets, TLC\n\nCONSTANTS Nodes, Root\n\nASSUME Root \\in Nodes\n\nvars == <<mom, dist>>\n\n\\* Generate random edges: for each node, pick a random subset of other nodes\n\\* This creates an undirected graph\nEdgesFrom(n) == RandomElement(SUBSET (Nodes \\ {n}))\n\n\\* We use a function to store the random edges, generated once\nVARIABLE mom, dist, edges\n\nallvars == <<mom, dist, edges>>\n\n\\* For the undirected graph, an edge exists if either direction was chosen\nEdge(m, n) == n \\in edges[m] \\/ m \\in edges[n]\n\nNeighbors(n) == {m \\in Nodes : Edge(m, n)}\n\nTypeOK == \n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> Nat \\cup {-1}]\n    /\\ edges \\in [Nodes -> SUBSET Nodes]\n\n\\* Initialization: every node points to itself, only root has distance 0\n\\* Other nodes have distance -1 (representing infinity/unreachable initially)\nInit == \n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE -1]\n    /\\ edges = [n \\in Nodes |-> RandomElement(SUBSET (Nodes \\ {n}))]\n\n\\* A node can adopt a neighbor with strictly smaller distance\n\\* and choose an intermediate smaller distance value\n\\* We use -1 to represent infinity (unreachable)\n\\* A distance d1 is \"smaller\" than d2 if d1 >= 0 and (d2 = -1 or d1 < d2)\nSmaller(d1, d2) == \n    /\\ d1 >= 0\n    /\\ \\/ d2 = -1\n       \\/ d1 < d2\n\n\\* Node n adopts neighbor m with smaller distance and picks intermediate distance\nAdopt(n, m) ==\n    /\\ n # Root\n    /\\ Edge(n, m)\n    /\\ Smaller(dist[m], dist[n])\n    /\\ \\E d \\in (dist[m] + 1)..(IF dist[n] = -1 THEN dist[m] + 1 ELSE dist[n] - 1) \\cup {dist[m] + 1}:\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n    /\\ UNCHANGED edges\n\nNext == \\E n \\in Nodes : \\E m \\in Nodes : Adopt(n, m)\n\n\\* Postcondition: characterizes a rooted spanning tree or unreachable nodes\n\\* A node is either:\n\\* - the root (points to itself, distance 0)\n\\* - reachable (points to a neighbor with distance one less)\n\\* - unreachable (points to itself, distance -1, no reachable neighbors)\nReachable(n) == dist[n] >= 0\n\nPostCondition ==\n    \\A n \\in Nodes :\n        \\/ /\\ n = Root\n           /\\ mom[n] = Root\n           /\\ dist[n] = 0\n        \\/ /\\ n # Root\n           /\\ Reachable(n)\n           /\\ Edge(n, mom[n])\n           /\\ dist[mom[n]] = dist[n] - 1\n           /\\ dist[n] > 0\n        \\/ /\\ n # Root\n           /\\ ~Reachable(n)\n           /\\ dist[n] = -1\n           /\\ mom[n] = n\n           /\\ \\A m \\in Neighbors(n) : ~Reachable(m)\n\n\\* Quiescence: no node can make progress\nQuiescent == ~ENABLED Next\n\n\\* Safety: quiescence implies postcondition\nSafetyProperty == Quiescent => PostCondition\n\n\\* Liveness: eventually the postcondition holds\nLivenessProperty == <>PostCondition\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_allvars /\\ WF_allvars(Next)\n\n\\* Invariants and properties to check\nInvariants == TypeOK /\\ SafetyProperty\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 322,
+    "outputTokens": 1082,
+    "totalTokens": 1404,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 17945
+  }
+}

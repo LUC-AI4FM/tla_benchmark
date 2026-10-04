@@ -1,0 +1,86 @@
+```tla+
+---------------------------- MODULE QuickSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N
+
+ASSUME N \in Nat /\ N >= 1
+
+VARIABLES arr, S, pc
+
+vars == <<arr, S, pc>>
+
+Indices == 1..N
+Values == 1..N
+
+\* A permutation of a sequence over an interval [lo, hi]
+IsPermutationOver(newArr, oldArr, lo, hi) ==
+    /\ \A i \in Indices \ (lo..hi) : newArr[i] = oldArr[i]
+    /\ LET Subseq(a, l, h) == [j \in 1..(h-l+1) |-> a[l+j-1]]
+           oldSub == Subseq(oldArr, lo, hi)
+           newSub == Subseq(newArr, lo, hi)
+       IN \A v \in Values : 
+            Cardinality({j \in 1..(hi-lo+1) : oldSub[j] = v}) = 
+            Cardinality({j \in 1..(hi-lo+1) : newSub[j] = v})
+
+\* Partition property: all elements in [lo, p-1] <= arr[p] and all in [p+1, hi] >= arr[p]
+PartitionProperty(a, lo, hi, p) ==
+    /\ \A i \in lo..(p-1) : a[i] <= a[p]
+    /\ \A j \in (p+1)..hi : a[j] >= a[p]
+
+\* Initial arrays: all functions from Indices to Values
+InitArrays == [Indices -> Values]
+
+Init ==
+    /\ arr \in InitArrays
+    /\ S = IF N >= 1 THEN {<<1, N>>} ELSE {}
+    /\ pc = "qs1"
+
+\* The main quicksort step
+qs1 ==
+    /\ pc = "qs1"
+    /\ IF S = {}
+       THEN /\ pc' = "Done"
+            /\ arr' = arr
+            /\ S' = S
+       ELSE \E interval \in S :
+            LET lo == interval[1]
+                hi == interval[2]
+            IN IF lo >= hi
+               THEN /\ S' = S \ {interval}
+                    /\ arr' = arr
+                    /\ pc' = "qs1"
+               ELSE \E p \in lo..hi :
+                    \E newArr \in [Indices -> Values] :
+                        /\ IsPermutationOver(newArr, arr, lo, hi)
+                        /\ PartitionProperty(newArr, lo, hi, p)
+                        /\ arr' = newArr
+                        /\ S' = (S \ {interval}) \cup 
+                                (IF p > lo THEN {<<lo, p-1>>} ELSE {}) \cup
+                                (IF p < hi THEN {<<p+1, hi>>} ELSE {})
+                        /\ pc' = "qs1"
+
+Terminating ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == qs1 \/ Terminating
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: array always contains values in range
+TypeInvariant ==
+    /\ arr \in [Indices -> Values]
+    /\ S \subseteq (Indices \X Indices)
+    /\ pc \in {"qs1", "Done"}
+
+\* When done, array should be sorted
+IsSorted == \A i, j \in Indices : i < j => arr[i] <= arr[j]
+
+SortedWhenDone == pc = "Done" => IsSorted
+
+\* Liveness: eventually terminates
+Termination == <>(pc = "Done")
+
+==========================================================================
+```

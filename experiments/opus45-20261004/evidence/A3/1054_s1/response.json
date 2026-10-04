@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals\n\nCONSTANTS N, M\n\nASSUME NAssumption == N >= 1\nASSUME MAssumption == M >= 1\nASSUME NMAssumption == N <= M + 1\n\nVARIABLES counter\n\nvars == <<counter>>\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nTypeOK == counter \\in [Nodes -> Values]\n\n\\* Node 0 has a token when its value equals the last node's value\nHasToken0 == counter[0] = counter[N-1]\n\n\\* Node i > 0 has a token when its value differs from its predecessor\nHasTokenI(i) == counter[i] # counter[i-1]\n\n\\* Count the number of tokens in the system\nTokenCount == \n    (IF HasToken0 THEN 1 ELSE 0) +\n    LET TokensFromOthers == {i \\in 1..(N-1) : HasTokenI(i)}\n    IN Cardinality(TokensFromOthers)\n\nCardinality(S) == \n    LET RECURSIVE CardHelper(_, _)\n        CardHelper(T, acc) == \n            IF T = {} THEN acc\n            ELSE LET x == CHOOSE y \\in T : TRUE\n                 IN CardHelper(T \\ {x}, acc + 1)\n    IN CardHelper(S, 0)\n\n\\* Alternative: directly compute token count\nCountTokens == \n    LET RECURSIVE Count(_, _)\n        Count(i, acc) ==\n            IF i = N THEN acc\n            ELSE IF i = 0 THEN \n                    Count(1, IF counter[0] = counter[N-1] THEN acc + 1 ELSE acc)\n                 ELSE \n                    Count(i + 1, IF counter[i] # counter[i-1] THEN acc + 1 ELSE acc)\n    IN Count(0, 0)\n\n\\* Stable configuration: exactly one token exists\nStable == CountTokens = 1\n\n\\* Node 0 action: increment its counter (mod M) when it holds the token\nNode0Action ==\n    /\\ counter[0] = counter[N-1]\n    /\\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]\n\n\\* Node i > 0 action: copy predecessor's value when values differ (has token)\nNodeIAction(i) ==\n    /\\ i > 0\n    /\\ counter[i] # counter[i-1]\n    /\\ counter' = [counter EXCEPT ![i] = counter[i-1]]\n\n\\* Initial state: any configuration (to demonstrate self-stabilization)\nInit == counter \\in [Nodes -> Values]\n\n\\* Next state relation\nNext ==\n    \\/ Node0Action\n    \\/ \\E i \\in 1..(N-1) : NodeIAction(i)\n\n\\* Fairness: weak fairness for all node actions\nFairness ==\n    /\\ WF_vars(Node0Action)\n    /\\ \\A i \\in 1..(N-1) : WF_vars(NodeIAction(i))\n\n\\* Complete specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariant: type correctness\nSafety == TypeOK\n\n\\* Liveness property: eventually the system stabilizes and stays stable\n\\* (eventually always exactly one token)\nStabilization == <>[]Stable\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 250,
+    "outputTokens": 868,
+    "totalTokens": 1118,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15033
+  }
+}

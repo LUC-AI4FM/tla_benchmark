@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE EWD426 ----------------------------\nEXTENDS Naturals, Integers\n\nCONSTANTS N, M\n\nASSUME /\\ N \\in Nat \\ {0}\n       /\\ M \\in Nat \\ {0}\n       /\\ N <= M + 1\n\nVARIABLES c\n\nvars == <<c>>\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nTypeOK == c \\in [Nodes -> Values]\n\n\\* A token exists at position i when all counters before i equal c[0]\n\\* and all counters from i onward equal (c[0] - 1) mod M\nHasToken(i) ==\n    IF i = 0\n    THEN \\A j \\in Nodes : c[j] = c[0]\n    ELSE /\\ \\A j \\in 0..(i-1) : c[j] = c[0]\n         /\\ \\A j \\in i..(N-1) : c[j] = (c[0] - 1 + M) % M\n\n\\* Count the number of tokens in the ring\nTokenCount == Cardinality({i \\in Nodes : HasToken(i)})\n\n\\* There is exactly one token in the ring\nOneToken == TokenCount = 1\n\n\\* Initial state allows any assignment of counter values\nInit == c \\in [Nodes -> Values]\n\n\\* Node 0 creates a token when its counter equals its predecessor's (node N-1)\nCreateToken ==\n    /\\ c[0] = c[N-1]\n    /\\ c' = [c EXCEPT ![0] = (c[0] + 1) % M]\n\n\\* Non-zero node i passes token when its counter differs from predecessor's\nPassToken(i) ==\n    /\\ i \\in 1..(N-1)\n    /\\ c[i] # c[i-1]\n    /\\ c' = [c EXCEPT ![i] = c[i-1]]\n\n\\* Next-state relation\nNext ==\n    \\/ CreateToken\n    \\/ \\E i \\in 1..(N-1) : PassToken(i)\n\n\\* Temporal specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Liveness property: eventually always exactly one token\nStab == <>[]OneToken\n\n\\* Helper for TokenCount\nRECURSIVE SetCardinality(_)\nSetCardinality(S) ==\n    IF S = {} THEN 0\n    ELSE 1 + SetCardinality(S \\ {CHOOSE x \\in S : TRUE})\n\nCardinality(S) == SetCardinality(S)\n\n=======================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 477,
+    "outputTokens": 654,
+    "totalTokens": 1131,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11453
+  }
+}

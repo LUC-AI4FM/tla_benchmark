@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME /\\ Root \\in Nodes\n       /\\ \\A e \\in Edges : e \\subseteq Nodes /\\ Cardinality(e) = 2\n       /\\ MaxCardinality \\in Nat\n       /\\ MaxCardinality >= Cardinality(Nodes)\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nNeighbors(n) == {m \\in Nodes : \\E e \\in Edges : e = {n, m}}\n\nTypeOK == /\\ mom \\in [Nodes -> Nodes]\n          /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit == /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n        /\\ mom = [n \\in Nodes |-> n]\n\nUpdate(n, m) == \n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] + 1 < dist[n]\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        dist' = [dist EXCEPT ![n] = d]\n    /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext == \\E n \\in Nodes : \\E m \\in Nodes : Update(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nReachable(n) == \n    LET RECURSIVE ReachableFrom(_)\n        ReachableFrom(S) == \n            LET New == {m \\in Nodes : \\E s \\in S : m \\in Neighbors(s)} \\ S\n            IN IF New = {} THEN S ELSE ReachableFrom(S \\cup New)\n    IN n \\in ReachableFrom({Root})\n\nPostCondition ==\n    /\\ dist[Root] = 0\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes :\n        IF n = Root THEN TRUE\n        ELSE IF ~Reachable(n) THEN\n            /\\ dist[n] = MaxCardinality\n            /\\ mom[n] = n\n            /\\ \\A m \\in Neighbors(n) : dist[m] = MaxCardinality\n        ELSE\n            /\\ dist[n] = dist[mom[n]] + 1\n            /\\ mom[n] \\in Neighbors(n)\n\nTerminated == ~ENABLED Next\n\nSafety == Terminated => PostCondition\n\nLiveness == <>Terminated\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 595,
+    "outputTokens": 660,
+    "totalTokens": 1255,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10937
+  }
+}

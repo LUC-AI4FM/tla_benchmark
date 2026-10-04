@@ -1,0 +1,79 @@
+```tla+
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+ASSUME N > 1
+
+Philosophers == 0..(N-1)
+
+VARIABLES sem, pc
+
+vars == <<sem, pc>>
+
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+TypeOK ==
+    /\ sem \in [0..(N-1) -> {0, 1}]
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating"}]
+
+Init ==
+    /\ sem = [f \in 0..(N-1) |-> 1]
+    /\ pc = [p \in Philosophers |-> "thinking"]
+
+\* Philosopher 0 acquires left fork first, others acquire right fork first
+FirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)
+SecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)
+
+\* Philosopher becomes hungry (moves from thinking to hungry)
+BecomeHungry(i) ==
+    /\ pc[i] = "thinking"
+    /\ pc' = [pc EXCEPT ![i] = "hungry"]
+    /\ sem' = sem
+
+\* Philosopher acquires first fork
+AcquireFirst(i) ==
+    /\ pc[i] = "hungry"
+    /\ sem[FirstFork(i)] = 1
+    /\ sem' = [sem EXCEPT ![FirstFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "hasFirst"]
+
+\* Philosopher acquires second fork and starts eating
+AcquireSecond(i) ==
+    /\ pc[i] = "hasFirst"
+    /\ sem[SecondFork(i)] = 1
+    /\ sem' = [sem EXCEPT ![SecondFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "eating"]
+
+\* Philosopher finishes eating and releases both forks
+FinishEating(i) ==
+    /\ pc[i] = "eating"
+    /\ sem' = [sem EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]
+    /\ pc' = [pc EXCEPT ![i] = "thinking"]
+
+\* All actions for philosopher i
+Philosopher(i) ==
+    \/ BecomeHungry(i)
+    \/ AcquireFirst(i)
+    \/ AcquireSecond(i)
+    \/ FinishEating(i)
+
+Next == \E i \in Philosophers : Philosopher(i)
+
+\* Strong fairness for each philosopher's actions
+Fairness == \A i \in Philosophers : SF_vars(Philosopher(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Mutual exclusion: adjacent philosophers never eat simultaneously
+MutualExclusion ==
+    \A i \in Philosophers : ~(pc[i] = "eating" /\ pc[(i + 1) % N] = "eating")
+
+\* Starvation freedom: every philosopher eats infinitely often
+StarvationFreedom ==
+    \A i \in Philosophers : []<>(pc[i] = "eating")
+
+===================================================================================
+```

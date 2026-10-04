@@ -1,0 +1,83 @@
+```tla+
+---------------------------- MODULE DieHard ----------------------------
+EXTENDS Integers, TLC
+
+VARIABLES small, big
+
+\* Capacities of the jugs
+SmallCap == 3
+BigCap == 5
+
+\* Type invariant: both variables remain within their capacity bounds
+TypeOK == /\ small \in 0..SmallCap
+          /\ big \in 0..BigCap
+
+\* Goal state: big jug contains exactly 4 gallons
+HasFour == big = 4
+
+\* Pour action: both jugs change simultaneously
+PourAction == small' # small /\ big' # big
+
+\* Initial state: both jugs are empty
+Init == /\ small = 0
+        /\ big = 0
+
+\* Fill the small jug to capacity
+FillSmall == /\ small' = SmallCap
+             /\ big' = big
+             /\ TLCSet(42, TLCGet(42) + (SmallCap - small))
+
+\* Fill the big jug to capacity
+FillBig == /\ big' = BigCap
+           /\ small' = small
+           /\ TLCSet(42, TLCGet(42) + (BigCap - big))
+
+\* Empty the small jug completely
+EmptySmall == /\ small' = 0
+              /\ big' = big
+
+\* Empty the big jug completely
+EmptyBig == /\ big' = 0
+            /\ small' = small
+
+\* Pour from small to big: stops when source is empty or destination is full
+SmallToBig == LET amount == IF small + big <= BigCap 
+                            THEN small 
+                            ELSE BigCap - big
+              IN /\ small' = small - amount
+                 /\ big' = big + amount
+
+\* Pour from big to small: stops when source is empty or destination is full
+BigToSmall == LET amount == IF small + big <= SmallCap 
+                            THEN big 
+                            ELSE SmallCap - small
+              IN /\ small' = small - amount
+                 /\ big' = big + amount
+
+\* Next state relation: disjunction of all six actions
+Next == \/ FillSmall
+        \/ FillBig
+        \/ EmptySmall
+        \/ EmptyBig
+        \/ SmallToBig
+        \/ BigToSmall
+
+\* Temporal specification with stuttering
+Spec == Init /\ [][Next]_<<small, big>>
+
+\* TLC instrumentation for tracking reachability counts
+HasFour_POSSIBLE == HasFour
+PourAction_POSSIBLE == PourAction
+
+\* Post-condition for model checking statistics
+PostCondition == /\ TLCGet("generated") = 97
+                 /\ TLCGet("distinct") = 16
+                 /\ TLCGet("diameter") = 8
+                 /\ TLCGet(42) = 128
+
+\* Verification of possible counts for annotated predicates
+PossibleCounts == /\ TLCGet("HasFour_POSSIBLE") = 8
+                  /\ TLCGet("PourAction_POSSIBLE") = 14
+
+=========================================================================
+```

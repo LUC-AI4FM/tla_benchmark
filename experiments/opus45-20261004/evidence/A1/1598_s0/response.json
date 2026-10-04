@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES x, y, b, S, pc\n\nvars == <<x, y, b, S, pc>>\n\nProcs == 1..N\n\nLabels == {\"ncs\", \"start\", \"l1\", \"l2\", \"l3\", \"l4\", \"l5\", \"cs\", \"l6\", \"l7\"}\n\nTypeOK ==\n    /\\ x \\in Procs \\cup {0}\n    /\\ y \\in Procs \\cup {0}\n    /\\ b \\in [Procs -> BOOLEAN]\n    /\\ S \\in [Procs -> SUBSET Procs]\n    /\\ pc \\in [Procs -> Labels]\n\nInit ==\n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [i \\in Procs |-> FALSE]\n    /\\ S = [i \\in Procs |-> {}]\n    /\\ pc = [i \\in Procs |-> \"ncs\"]\n\n(* Non-critical section - process decides to enter critical section *)\nncs(self) ==\n    /\\ pc[self] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Start of fast path - set own flag *)\nstart(self) ==\n    /\\ pc[self] = \"start\"\n    /\\ b' = [b EXCEPT ![self] = TRUE]\n    /\\ pc' = [pc EXCEPT ![self] = \"l1\"]\n    /\\ UNCHANGED <<x, y, S>>\n\n(* Set x to self *)\nl1(self) ==\n    /\\ pc[self] = \"l1\"\n    /\\ x' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"l2\"]\n    /\\ UNCHANGED <<y, b, S>>\n\n(* Check if y is 0; if not, reset flag and go to slow path *)\nl2(self) ==\n    /\\ pc[self] = \"l2\"\n    /\\ IF y /= 0\n       THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n            /\\ pc' = [pc EXCEPT ![self] = \"l3\"]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"l4\"]\n            /\\ b' = b\n    /\\ UNCHANGED <<x, y, S>>\n\n(* Slow path: wait until y becomes 0 *)\nl3(self) ==\n    /\\ pc[self] = \"l3\"\n    /\\ IF y /= 0\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"l3\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n\n(* Set y to self *)\nl4(self) ==\n    /\\ pc[self] = \"l4\"\n    /\\ y' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"l5\"]\n    /\\ UNCHANGED <<x, b, S>>\n\n(* Check if x equals self (fast path success) *)\nl5(self) ==\n    /\\ pc[self] = \"l5\"\n    /\\ IF x /= self\n       THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n            /\\ S' = [S EXCEPT ![self] = Procs]\n            /\\ pc' = [pc EXCEPT ![self] = \"l6\"]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n            /\\ UNCHANGED <<b, S>>\n    /\\ UNCHANGED <<x, y>>\n\n(* Wait for all other processes to have b[j] = FALSE *)\nl6(self) ==\n    /\\ pc[self] = \"l6\"\n    /\\ IF S[self] /= {}\n       THEN \\E j \\in S[self]:\n            /\\ b[j] = FALSE\n            /\\ S' = [S EXCEPT ![self] = S[self] \\ {j}]\n            /\\ pc' = pc\n            /\\ UNCHANGED <<x, y, b>>\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"l7\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n\n(* Check if y still equals self *)\nl7(self) ==\n    /\\ pc[self] = \"l7\"\n    /\\ IF y = self\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Critical section - then exit *)\ncs(self) ==\n    /\\ pc[self] = \"cs\"\n    /\\ y' = 0\n    /\\ b' = [b EXCEPT ![self] = FALSE]\n    /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n    /\\ UNCHANGED <<x, S>>\n\n(* Per-process action *)\nproc(self) ==\n    \\/ ncs(self)\n    \\/ start(self)\n    \\/ l1(self)\n    \\/ l2(self)\n    \\/ l3(self)\n    \\/ l4(self)\n    \\/ l5(self)\n    \\/ l6(self)\n    \\/ l7(self)\n    \\/ cs(self)\n\nNext == \\E self \\in Procs: proc(self)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Mutual exclusion: no two distinct processes in critical section *)\nMutualExclusion == \\A i, j \\in Procs: (i /= j) => ~(pc[i] = \"cs\" /\\ pc[j] = \"cs\")\n\nInvariant == MutualExclusion\n\n(* Liveness: infinitely often some process is in the critical section *)\nLiveness == []<>(\\E i \\in Procs: pc[i] = \"cs\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 273,
+    "outputTokens": 1539,
+    "totalTokens": 1812,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18564
+  }
+}

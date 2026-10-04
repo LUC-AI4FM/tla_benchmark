@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE ConcurrentQueue ----------------------------\nEXTENDS Naturals, Sequences\n\nCONSTANTS Procs, Val, N\n\nVARIABLES queue, rV, pc\n\nvars == <<queue, rV, pc>>\n\nInit ==\n    /\\ queue = <<>>\n    /\\ rV = [p \\in Procs |-> \"null\"]\n    /\\ pc = [p \\in Procs |-> \"choose\"]\n\nEnqueueFront(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) < N\n    /\\ \\E v \\in Val:\n        /\\ queue' = <<v>> \\o queue\n        /\\ rV' = [rV EXCEPT ![self] = \"okay\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nEnqueueBack(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) < N\n    /\\ \\E v \\in Val:\n        /\\ queue' = Append(queue, v)\n        /\\ rV' = [rV EXCEPT ![self] = \"okay\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nEnqueueFullFront(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) >= N\n    /\\ queue' = queue\n    /\\ rV' = [rV EXCEPT ![self] = \"full\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nEnqueueFullBack(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) >= N\n    /\\ queue' = queue\n    /\\ rV' = [rV EXCEPT ![self] = \"full\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueHead(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) > 0\n    /\\ rV' = [rV EXCEPT ![self] = Head(queue)]\n    /\\ queue' = Tail(queue)\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueTail(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) > 0\n    /\\ rV' = [rV EXCEPT ![self] = queue[Len(queue)]]\n    /\\ queue' = SubSeq(queue, 1, Len(queue) - 1)\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueEmptyHead(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) = 0\n    /\\ queue' = queue\n    /\\ rV' = [rV EXCEPT ![self] = \"empty\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueEmptyTail(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ Len(queue) = 0\n    /\\ queue' = queue\n    /\\ rV' = [rV EXCEPT ![self] = \"empty\"]\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nP(self) ==\n    \\/ EnqueueFront(self)\n    \\/ EnqueueBack(self)\n    \\/ EnqueueFullFront(self)\n    \\/ EnqueueFullBack(self)\n    \\/ DequeueHead(self)\n    \\/ DequeueTail(self)\n    \\/ DequeueEmptyHead(self)\n    \\/ DequeueEmptyTail(self)\n\nNext ==\n    \\E self \\in Procs: P(self)\n\nFairness ==\n    \\A self \\in Procs: WF_vars(P(self))\n\nSpec ==\n    /\\ Init\n    /\\ [][Next]_vars\n    /\\ Fairness\n\nStateConstraint ==\n    Len(queue) <= N\n\nTypeInvariant ==\n    /\\ queue \\in Seq(Val)\n    /\\ Len(queue) <= N\n    /\\ pc \\in [Procs -> {\"choose\"}]\n    /\\ rV \\in [Procs -> Val \\cup {\"okay\", \"full\", \"empty\", \"null\"}]\n\nQueueBoundInvariant ==\n    Len(queue) <= N\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 251,
+    "outputTokens": 1085,
+    "totalTokens": 1336,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12145
+  }
+}

@@ -1,0 +1,71 @@
+---------------------------- MODULE LiveHourClock ----------------------------
+EXTENDS Naturals
+
+CONSTANT HCini
+
+VARIABLE hr
+
+-----------------------------------------------------------------------------
+\* Inherited definitions from HourClock
+
+HCnxt == hr' = IF hr = 12 THEN 1 ELSE hr + 1
+
+HC == (hr \in (1..12)) /\ [][HCnxt]_hr
+
+-----------------------------------------------------------------------------
+\* Type invariant - the initial-state typing condition
+
+TypeOK == hr \in (1..12)
+
+-----------------------------------------------------------------------------
+\* Liveness specification with weak fairness
+
+LSpec == HC /\ WF_hr(HCnxt)
+
+-----------------------------------------------------------------------------
+\* Temporal properties
+
+\* Ticking happens infinitely often
+TicksInfinitelyOften == []<><<HCnxt>>_hr
+
+\* Every hour value from 1 through 12 recurs infinitely often
+AllHoursRecur == \A h \in 1..12 : []<>(hr = h)
+
+\* The initial-state typing condition remains always true
+AlwaysTypeOK == []TypeOK
+
+-----------------------------------------------------------------------------
+\* Init and Next for specification structure
+
+Init == hr \in (1..12)
+
+Next == HCnxt
+
+Spec == Init /\ [][Next]_hr /\ WF_hr(Next)
+
+-----------------------------------------------------------------------------
+\* Theorem asserting the temporal properties follow from LSpec
+
+THEOREM LSpec => TicksInfinitelyOften /\ AllHoursRecur /\ AlwaysTypeOK
+
+-----------------------------------------------------------------------------
+\* Postcondition describing a concrete counterexample structure for a settling property
+\* A settling property would be something like <>[](hr = k) for some k
+\* This is false under LSpec - the clock never settles
+
+NeverSettles == \A h \in 1..12 : ~<>[](hr = h)
+
+\* Counterexample structure: if the clock were to settle at some hour h,
+\* it would violate the fairness condition since HCnxt would be continuously enabled
+\* but never taken. The counterexample would be a finite prefix followed by
+\* an infinite suffix where hr remains constant.
+
+CounterexampleStructure == 
+    \* If settling occurred, there would exist an hour h such that eventually
+    \* hr stays at h forever, contradicting weak fairness of HCnxt
+    \E h \in 1..12 : <>[](hr = h)
+
+\* Theorem: LSpec implies the clock never settles (negation of counterexample)
+THEOREM LSpec => ~CounterexampleStructure
+
+=============================================================================

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE QuickSort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS ArrayLen\n\nASSUME ArrayLen \\in Nat /\\ ArrayLen > 0\n\nVARIABLES arr, arr0, pc, stack, lo, hi\n\nvars == <<arr, arr0, pc, stack, lo, hi>>\n\n\\* Helper definitions\n\nRange(f) == {f[i] : i \\in DOMAIN f}\n\n\\* Check if sequence s is sorted in nondecreasing order\nIsSorted(s) == \\A i, j \\in DOMAIN s : i < j => s[i] <= s[j]\n\n\\* Check if two sequences are permutations of each other\nIsPermutation(s1, s2) ==\n    /\\ DOMAIN s1 = DOMAIN s2\n    /\\ \\A v \\in Range(s1) : \n        Cardinality({i \\in DOMAIN s1 : s1[i] = v}) = \n        Cardinality({i \\in DOMAIN s2 : s2[i] = v})\n\n\\* All permutations of elements in a set applied to indices lo..hi in sequence s\nPermutations(s, l, h) ==\n    LET indices == l..h\n        elems == [i \\in indices |-> s[i]]\n    IN {t \\in [1..ArrayLen -> Int] :\n        /\\ \\A i \\in 1..ArrayLen : \n            IF i < l \\/ i > h \n            THEN t[i] = s[i]\n            ELSE t[i] \\in {s[j] : j \\in indices}\n        /\\ \\A v \\in {s[j] : j \\in indices} :\n            Cardinality({i \\in indices : t[i] = v}) = \n            Cardinality({i \\in indices : s[i] = v})}\n\n\\* Check if array is partitioned around pivot position p within lo..hi\nIsPartitioned(a, l, p, h) ==\n    /\\ \\A i \\in l..p : \\A j \\in (p+1)..h : a[i] <= a[j]\n\n\\* Initial values for array (nondeterministic)\nInitArray == [i \\in 1..ArrayLen -> i]  \\* Could be any permutation\n\n\\* Type invariant\nTypeOK ==\n    /\\ arr \\in [1..ArrayLen -> Int]\n    /\\ arr0 \\in [1..ArrayLen -> Int]\n    /\\ pc \\in {\"QS\", \"QS_recurse\", \"QS_return\", \"Done\"}\n    /\\ stack \\in Seq([lo : Int, hi : Int])\n    /\\ lo \\in Int\n    /\\ hi \\in Int\n\n\\* Initial state\nInit ==\n    /\\ arr \\in [1..ArrayLen -> 1..ArrayLen]\n    /\\ arr0 = arr\n    /\\ pc = \"QS\"\n    /\\ stack = <<>>\n    /\\ lo = 1\n    /\\ hi = ArrayLen\n\n\\* QS procedure: if lo < hi, choose pivot and partition\nQS ==\n    /\\ pc = \"QS\"\n    /\\ IF lo < hi\n       THEN \\E p \\in lo..hi :  \\* Nondeterministically choose pivot position\n            \\E newArr \\in Permutations(arr, lo, hi) :  \\* Nondeterministically permute\n                /\\ IsPartitioned(newArr, lo, p, hi)\n                /\\ arr' = newArr\n                /\\ stack' = Append(stack, [lo |-> p+1, hi |-> hi])\n                /\\ hi' = p\n                /\\ lo' = lo\n                /\\ pc' = \"QS\"\n                /\\ UNCHANGED arr0\n       ELSE /\\ pc' = \"QS_return\"\n            /\\ UNCHANGED <<arr, arr0, stack, lo, hi>>\n\n\\* Return from QS: pop frame or finish\nQS_return ==\n    /\\ pc = \"QS_return\"\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<arr, arr0, stack, lo, hi>>\n       ELSE /\\ lo' = Head(stack).lo\n            /\\ hi' = Head(stack).hi\n            /\\ stack' = Tail(stack)\n            /\\ pc' = \"QS\"\n            /\\ UNCHANGED <<arr, arr0>>\n\n\\* Termination state\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\n\\* Next state relation\nNext == QS \\/ QS_return \\/ Done\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety invariant: array is always a permutation of initial array\nPermutationInvariant == IsPermutation(arr, arr0)\n\n\\* Termination property\nTermination == <>(pc = \"Done\")\n\n\\* Final state check: sorted and permutation of initial\nFinalStateCorrect ==\n    pc = \"Done\" => (IsSorted(arr) /\\ IsPermutation(arr, arr0))\n\n\\* Combined invariant\nInvariant == PermutationInvariant /\\ FinalStateCorrect\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 303,
+    "outputTokens": 1291,
+    "totalTokens": 1594,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 20492
+  }
+}

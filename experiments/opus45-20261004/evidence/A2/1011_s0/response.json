@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE KeyValueStore ----------------------------\n\nEXTENDS Sequences, TLC\n\nCONSTANTS Keys, Vals, MISSING, NIL\n\nASSUME MISSING \\notin Vals\nASSUME NIL \\notin Vals\nASSUME NIL \\notin {\"get\", \"insert\", \"update\", \"delete\"}\nASSUME MISSING \\notin {\"get\", \"insert\", \"update\", \"delete\"}\n\nVARIABLES op, args, ret, dict, state\n\nvars == <<op, args, ret, dict, state>>\n\nTypeOK ==\n    /\\ op \\in {\"get\", \"insert\", \"update\", \"delete\"} \\cup {NIL}\n    /\\ args \\in ({Keys} \\X (Vals \\cup {NIL})) \\cup {NIL}\n    /\\ ret \\in Vals \\cup {MISSING, \"ok\", \"error\", NIL}\n    /\\ dict \\in [Keys -> Vals \\cup {MISSING}]\n    /\\ state \\in {\"ready\", \"working\"}\n\nInit ==\n    /\\ op = NIL\n    /\\ args = NIL\n    /\\ ret = NIL\n    /\\ dict \\in [Keys -> {MISSING}]\n    /\\ state = \"ready\"\n\nGetRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ k \\in Keys\n    /\\ op' = \"get\"\n    /\\ args' = <<k, NIL>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<ret, dict>>\n\nGetResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"get\"\n    /\\ ret' = dict[args[1]]\n    /\\ op' = NIL\n    /\\ args' = NIL\n    /\\ state' = \"ready\"\n    /\\ UNCHANGED dict\n\nInsertRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ k \\in Keys\n    /\\ v \\in Vals\n    /\\ op' = \"insert\"\n    /\\ args' = <<k, v>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<ret, dict>>\n\nInsertResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"insert\"\n    /\\ IF dict[args[1]] = MISSING\n       THEN /\\ dict' = [dict EXCEPT ![args[1]] = args[2]]\n            /\\ ret' = \"ok\"\n       ELSE /\\ ret' = \"error\"\n            /\\ UNCHANGED dict\n    /\\ op' = NIL\n    /\\ args' = NIL\n    /\\ state' = \"ready\"\n\nUpdateRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ k \\in Keys\n    /\\ v \\in Vals\n    /\\ op' = \"update\"\n    /\\ args' = <<k, v>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<ret, dict>>\n\nUpdateResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"update\"\n    /\\ IF dict[args[1]] # MISSING\n       THEN /\\ dict' = [dict EXCEPT ![args[1]] = args[2]]\n            /\\ ret' = \"ok\"\n       ELSE /\\ ret' = \"error\"\n            /\\ UNCHANGED dict\n    /\\ op' = NIL\n    /\\ args' = NIL\n    /\\ state' = \"ready\"\n\nDeleteRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ k \\in Keys\n    /\\ op' = \"delete\"\n    /\\ args' = <<k, NIL>>\n    /\\ state' = \"working\"\n    /\\ UNCHANGED <<ret, dict>>\n\nDeleteResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"delete\"\n    /\\ dict' = [dict EXCEPT ![args[1]] = MISSING]\n    /\\ ret' = \"ok\"\n    /\\ op' = NIL\n    /\\ args' = NIL\n    /\\ state' = \"ready\"\n\nDeleteRequestAction == \\E k \\in Keys : DeleteRequest(k)\n\nNext ==\n    \\/ \\E k \\in Keys : GetRequest(k)\n    \\/ GetResponse\n    \\/ \\E k \\in Keys, v \\in Vals : InsertRequest(k, v)\n    \\/ InsertResponse\n    \\/ \\E k \\in Keys, v \\in Vals : UpdateRequest(k, v)\n    \\/ UpdateResponse\n    \\/ DeleteRequestAction\n    \\/ DeleteResponse\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(DeleteRequestAction)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 453,
+    "outputTokens": 1112,
+    "totalTokens": 1565,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13176
+  }
+}

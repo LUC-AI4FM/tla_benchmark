@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE ConcurrentQueue ----------------------------\nEXTENDS Integers, Sequences\n\nCONSTANTS Procs, Val, N\n\nVARIABLES queue, rV, pc\n\nvars == <<queue, rV, pc>>\n\n\\* Possible return values\nReturnValues == {\"okay\", \"full\", \"empty\", \"null\"} \\cup Val\n\n\\* Initial state\nInit ==\n    /\\ queue = <<>>\n    /\\ rV = [p \\in Procs |-> \"null\"]\n    /\\ pc = [p \\in Procs |-> \"choose\"]\n\n\\* Process actions\nChoose(self) ==\n    /\\ pc[self] = \"choose\"\n    /\\ \\E op \\in {\"enqueue_front\", \"enqueue_back\", \"dequeue_head\", \"dequeue_tail\"} :\n        pc' = [pc EXCEPT ![self] = op]\n    /\\ UNCHANGED <<queue, rV>>\n\nEnqueueFront(self) ==\n    /\\ pc[self] = \"enqueue_front\"\n    /\\ IF Len(queue) < N\n       THEN \\E v \\in Val :\n            /\\ queue' = <<v>> \\o queue\n            /\\ rV' = [rV EXCEPT ![self] = \"okay\"]\n       ELSE \n            /\\ rV' = [rV EXCEPT ![self] = \"full\"]\n            /\\ UNCHANGED queue\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nEnqueueBack(self) ==\n    /\\ pc[self] = \"enqueue_back\"\n    /\\ IF Len(queue) < N\n       THEN \\E v \\in Val :\n            /\\ queue' = Append(queue, v)\n            /\\ rV' = [rV EXCEPT ![self] = \"okay\"]\n       ELSE \n            /\\ rV' = [rV EXCEPT ![self] = \"full\"]\n            /\\ UNCHANGED queue\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueHead(self) ==\n    /\\ pc[self] = \"dequeue_head\"\n    /\\ IF Len(queue) > 0\n       THEN \n            /\\ rV' = [rV EXCEPT ![self] = Head(queue)]\n            /\\ queue' = Tail(queue)\n       ELSE \n            /\\ rV' = [rV EXCEPT ![self] = \"empty\"]\n            /\\ UNCHANGED queue\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\nDequeueTail(self) ==\n    /\\ pc[self] = \"dequeue_tail\"\n    /\\ IF Len(queue) > 0\n       THEN \n            /\\ rV' = [rV EXCEPT ![self] = queue[Len(queue)]]\n            /\\ queue' = SubSeq(queue, 1, Len(queue) - 1)\n       ELSE \n            /\\ rV' = [rV EXCEPT ![self] = \"empty\"]\n            /\\ UNCHANGED queue\n    /\\ pc' = [pc EXCEPT ![self] = \"choose\"]\n\n\\* Combined process action\nP(self) ==\n    \\/ Choose(self)\n    \\/ EnqueueFront(self)\n    \\/ EnqueueBack(self)\n    \\/ DequeueHead(self)\n    \\/ DequeueTail(self)\n\n\\* Next state relation\nNext ==\n    \\E self \\in Procs : P(self)\n\n\\* Specification with weak fairness for each process\nSpec ==\n    /\\ Init\n    /\\ [][Next]_vars\n    /\\ \\A self \\in Procs : WF_vars(P(self))\n\n\\* State constraint: queue length bounded by N\nStateConstraint == Len(queue) <= N\n\n\\* Safety invariants\nTypeInvariant ==\n    /\\ queue \\in Seq(Val)\n    /\\ Len(queue) <= N\n    /\\ rV \\in [Procs -> ReturnValues]\n    /\\ pc \\in [Procs -> {\"choose\", \"enqueue_front\", \"enqueue_back\", \"dequeue_head\", \"dequeue_tail\"}]\n\nQueueBoundedInvariant == Len(queue) <= N\n\n\\* Liveness properties\n\\* Each process eventually gets to make a choice\nProcessProgress == \\A self \\in Procs : []<>(pc[self] = \"choose\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 251,
+    "outputTokens": 1074,
+    "totalTokens": 1325,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13184
+  }
+}

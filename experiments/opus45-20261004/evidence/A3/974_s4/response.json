@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE RegularRegisters ----------------------------\nEXTENDS Naturals, TLAPS, FiniteSets\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, pc\n\nvars == <<x, y, pc>>\n\nProcs == 1..N\n\nNeighbor(i) == IF i = N THEN 1 ELSE i + 1\n\nInit ==\n    /\\ x = [i \\in Procs |-> {0}]\n    /\\ y = [i \\in Procs |-> 0]\n    /\\ pc = [i \\in Procs |-> \"write1\"]\n\nWrite1(i) ==\n    /\\ pc[i] = \"write1\"\n    /\\ x' = [x EXCEPT ![i] = {0, 1}]\n    /\\ pc' = [pc EXCEPT ![i] = \"write2\"]\n    /\\ y' = y\n\nWrite2(i) ==\n    /\\ pc[i] = \"write2\"\n    /\\ x' = [x EXCEPT ![i] = {1}]\n    /\\ pc' = [pc EXCEPT ![i] = \"read\"]\n    /\\ y' = y\n\nRead(i) ==\n    /\\ pc[i] = \"read\"\n    /\\ \\E v \\in x[Neighbor(i)]:\n        /\\ y' = [y EXCEPT ![i] = v]\n        /\\ pc' = [pc EXCEPT ![i] = \"done\"]\n    /\\ x' = x\n\nNext ==\n    \\E i \\in Procs: Write1(i) \\/ Write2(i) \\/ Read(i)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeOK ==\n    /\\ x \\in [Procs -> SUBSET {0, 1}]\n    /\\ y \\in [Procs -> {0, 1}]\n    /\\ pc \\in [Procs -> {\"write1\", \"write2\", \"read\", \"done\"}]\n\nTerminated == \\A i \\in Procs: pc[i] = \"done\"\n\nPCorrect == Terminated => \\E i \\in Procs: y[i] = 1\n\nInv ==\n    /\\ TypeOK\n    /\\ \\A i \\in Procs: pc[i] \\in {\"read\", \"done\"} => 1 \\in x[i]\n    /\\ \\A i \\in Procs: pc[i] = \"done\" /\\ y[i] = 0 => \n        \\E j \\in Procs: j # i /\\ pc[j] \\in {\"write1\", \"write2\"}\n    /\\ \\A i \\in Procs: x[i] # {}\n\nTHEOREM InitImpliesInv == Init => Inv\n<1>1. ASSUME Init\n      PROVE TypeOK\n  BY <1>1, NAssumption DEF Init, TypeOK, Procs\n<1>2. ASSUME Init\n      PROVE \\A i \\in Procs: pc[i] \\in {\"read\", \"done\"} => 1 \\in x[i]\n  BY <1>2 DEF Init, Procs\n<1>3. ASSUME Init\n      PROVE \\A i \\in Procs: pc[i] = \"done\" /\\ y[i] = 0 => \n            \\E j \\in Procs: j # i /\\ pc[j] \\in {\"write1\", \"write2\"}\n  BY <1>3 DEF Init, Procs\n<1>4. ASSUME Init\n      PROVE \\A i \\in Procs: x[i] # {}\n  BY <1>4 DEF Init, Procs\n<1>. QED\n  BY <1>1, <1>2, <1>3, <1>4 DEF Inv\n\nTHEOREM InvImpliesPCorrect == Inv => PCorrect\n<1>1. ASSUME Inv, Terminated\n      PROVE \\E i \\in Procs: y[i] = 1\n  <2>1. \\A i \\in Procs: pc[i] = \"done\"\n    BY <1>1 DEF Terminated\n  <2>2. \\A i \\in Procs: pc[i] \\notin {\"write1\", \"write2\"}\n    BY <2>1\n  <2>3. ASSUME \\A i \\in Procs: y[i] = 0\n        PROVE FALSE\n    <3>1. PICK i \\in Procs: TRUE\n      BY NAssumption DEF Procs\n    <3>2. pc[i] = \"done\" /\\ y[i] = 0\n      BY <2>1, <2>3, <3>1\n    <3>3. \\E j \\in Procs: j # i /\\ pc[j] \\in {\"write1\", \"write2\"}\n      BY <3>2, <1>1 DEF Inv\n    <3>. QED\n      BY <3>3, <2>2\n  <2>. QED\n    BY <2>3, <1>1 DEF Inv, TypeOK, Procs\n<1>. QED\n  BY <1>1 DEF PCorrect\n\nTermination == <>Terminated\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 1314,
+    "totalTokens": 1607,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18956
+  }
+}

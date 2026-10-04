@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE QuickSort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N >= 1\n\nVARIABLES arr, S, pc\n\nvars == <<arr, S, pc>>\n\n\\* A permutation of a sequence is another sequence with the same elements\nIsPermutation(s1, s2) ==\n    /\\ Len(s1) = Len(s2)\n    /\\ \\A i \\in 1..Len(s1) : \n        Cardinality({j \\in 1..Len(s1) : s1[j] = i}) = \n        Cardinality({j \\in 1..Len(s2) : s2[j] = i})\n\n\\* Check if array segment [lo..hi] satisfies partition property around pivot position p\n\\* All elements in [lo..p-1] <= arr[p] and all elements in [p+1..hi] >= arr[p]\nSatisfiesPartition(a, lo, hi, p) ==\n    /\\ \\A i \\in lo..(p-1) : a[i] <= a[p]\n    /\\ \\A i \\in (p+1)..hi : a[i] >= a[p]\n\n\\* Check if new array is a valid partitioned permutation of segment [lo..hi]\n\\* The segment [lo..hi] in the new array is a permutation of the same segment in the old array\n\\* and satisfies the partition property\nValidPartitionedArray(oldArr, newArr, lo, hi, p) ==\n    /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => newArr[i] = oldArr[i]\n    /\\ [i \\in 1..(hi-lo+1) |-> newArr[lo+i-1]] \\in \n       {s \\in [1..(hi-lo+1) -> 1..N] : \n        \\A v \\in 1..N : Cardinality({j \\in 1..(hi-lo+1) : s[j] = v}) = \n                        Cardinality({j \\in lo..hi : oldArr[j] = v})}\n    /\\ SatisfiesPartition(newArr, lo, hi, p)\n\n\\* All possible arrays of length N with values in 1..N\nArrays == [1..N -> 1..N]\n\n\\* Initial state\nInit ==\n    /\\ arr \\in Arrays\n    /\\ S = {<<1, N>>}\n    /\\ pc = \"qs1\"\n\n\\* Main quicksort step: pick an interval, choose pivot, partition\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF S = {}\n       THEN /\\ pc' = \"Done\"\n            /\\ arr' = arr\n            /\\ S' = S\n       ELSE \\E interval \\in S :\n            LET lo == interval[1]\n                hi == interval[2]\n            IN\n            IF lo >= hi\n            THEN /\\ S' = S \\ {interval}\n                 /\\ arr' = arr\n                 /\\ pc' = \"qs1\"\n            ELSE \\E p \\in lo..hi :  \\* Nondeterministically choose pivot position\n                 \\E newArr \\in Arrays :  \\* Nondeterministically choose new array\n                    /\\ ValidPartitionedArray(arr, newArr, lo, hi, p)\n                    /\\ arr' = newArr\n                    /\\ S' = (S \\ {interval}) \\cup \n                            (IF p > lo THEN {<<lo, p-1>>} ELSE {}) \\cup\n                            (IF p < hi THEN {<<p+1, hi>>} ELSE {})\n                    /\\ pc' = \"qs1\"\n\n\\* Termination state\nTerminating ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\n\\* Next-state relation\nNext == qs1 \\/ Terminating\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Type invariant\nTypeOK ==\n    /\\ arr \\in Arrays\n    /\\ S \\subseteq {<<i, j>> : i \\in 1..N, j \\in 1..N}\n    /\\ pc \\in {\"qs1\", \"Done\"}\n\n\\* Safety: intervals in S are valid (lo <= hi when present, and within bounds)\nSafeIntervals ==\n    \\A interval \\in S : \n        /\\ interval[1] \\in 1..N\n        /\\ interval[2] \\in 1..N\n\n\\* Liveness: eventual termination\nTermination == <>(pc = \"Done\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 1170,
+    "totalTokens": 1439,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18966
+  }
+}

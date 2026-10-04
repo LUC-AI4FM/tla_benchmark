@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE CarTalkPuzzle ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nASSUME W \\in Nat /\\ W > 0\nASSUME N \\in Nat /\\ N > 0\n\nRECURSIVE Partitions(_, _, _, _)\nPartitions(len, total, minVal, acc) ==\n    IF len = 0\n    THEN IF total = 0 THEN {acc} ELSE {}\n    ELSE LET maxVal == total - (len - 1) * minVal\n             minBound == minVal\n             maxBound == IF maxVal < minVal THEN minVal - 1 ELSE maxVal\n         IN IF minBound > maxBound\n            THEN {}\n            ELSE UNION {Partitions(len - 1, total - v, v, Append(acc, v)) : \n                        v \\in minBound..maxBound}\n\nAllPartitions(n, w) == Partitions(n, w, 1, <<>>)\n\nRECURSIVE SumWithCoeffs(_, _)\nSumWithCoeffs(seq, coeffs) ==\n    IF Len(seq) = 0\n    THEN 0\n    ELSE Head(coeffs) * Head(seq) + SumWithCoeffs(Tail(seq), Tail(coeffs))\n\nRECURSIVE AllCoefficients(_)\nAllCoefficients(len) ==\n    IF len = 0\n    THEN {<<>>}\n    ELSE {<<c>> \\o rest : c \\in {-1, 0, 1}, rest \\in AllCoefficients(len - 1)}\n\nWeighs(seq, wt) ==\n    \\E coeffs \\in AllCoefficients(Len(seq)) : SumWithCoeffs(seq, coeffs) = wt\n\nCanWeighAll(seq) ==\n    \\A wt \\in 1..W : Weighs(seq, wt)\n\nSolutions == {p \\in AllPartitions(N, W) : CanWeighAll(p)}\n\nPrintSolutions ==\n    IF Solutions = {}\n    THEN PrintT(\"No solution\")\n    ELSE \\A sol \\in Solutions : PrintT(sol)\n\nASSUME PrintSolutions\n\nVARIABLES dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 444,
+    "outputTokens": 581,
+    "totalTokens": 1025,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10753
+  }
+}

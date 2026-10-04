@@ -1,0 +1,130 @@
+---------------------------- MODULE Bakery ----------------------------
+EXTENDS Integers, Naturals, FiniteSets
+
+CONSTANTS NumProcs, MaxNum
+
+Proc == 1..NumProcs
+
+VARIABLES num, choosing, pc, read, max, nxt
+
+vars == <<num, choosing, pc, read, max, nxt>>
+
+Labels == {"loop", "d1", "d2", "d3", "w1", "w2", "cs", "exit"}
+
+TypeOK ==
+    /\ num \in [Proc -> Nat]
+    /\ choosing \in [Proc -> BOOLEAN]
+    /\ pc \in [Proc -> Labels]
+    /\ read \in [Proc -> Proc \cup {0}]
+    /\ max \in [Proc -> Nat]
+    /\ nxt \in [Proc -> Proc \cup {0}]
+
+Init ==
+    /\ num = [i \in Proc |-> 0]
+    /\ choosing = [i \in Proc |-> FALSE]
+    /\ pc = [i \in Proc |-> "loop"]
+    /\ read = [i \in Proc |-> 0]
+    /\ max = [i \in Proc |-> 0]
+    /\ nxt = [i \in Proc |-> 0]
+
+\* Process i starts choosing - set choosing flag and initialize scan
+Loop(i) ==
+    /\ pc[i] = "loop"
+    /\ choosing' = [choosing EXCEPT ![i] = TRUE]
+    /\ read' = [read EXCEPT ![i] = 1]
+    /\ max' = [max EXCEPT ![i] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "d1"]
+    /\ UNCHANGED <<num, nxt>>
+
+\* Process i reads ticket of process read[i] to find max
+D1(i) ==
+    /\ pc[i] = "d1"
+    /\ IF read[i] <= NumProcs
+       THEN /\ pc' = [pc EXCEPT ![i] = "d2"]
+            /\ UNCHANGED <<num, choosing, read, max, nxt>>
+       ELSE /\ pc' = [pc EXCEPT ![i] = "d3"]
+            /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+\* Process i updates max if needed and moves to next process
+D2(i) ==
+    /\ pc[i] = "d2"
+    /\ max' = [max EXCEPT ![i] = IF num[read[i]] > max[i] THEN num[read[i]] ELSE max[i]]
+    /\ read' = [read EXCEPT ![i] = read[i] + 1]
+    /\ pc' = [pc EXCEPT ![i] = "d1"]
+    /\ UNCHANGED <<num, choosing, nxt>>
+
+\* Process i assigns ticket max+1 and clears choosing flag
+D3(i) ==
+    /\ pc[i] = "d3"
+    /\ num' = [num EXCEPT ![i] = max[i] + 1]
+    /\ choosing' = [choosing EXCEPT ![i] = FALSE]
+    /\ nxt' = [nxt EXCEPT ![i] = 1]
+    /\ pc' = [pc EXCEPT ![i] = "w1"]
+    /\ UNCHANGED <<read, max>>
+
+\* Process i checks if done waiting or moves to wait for process nxt[i]
+W1(i) ==
+    /\ pc[i] = "w1"
+    /\ IF nxt[i] <= NumProcs
+       THEN /\ pc' = [pc EXCEPT ![i] = "w2"]
+            /\ UNCHANGED <<num, choosing, read, max, nxt>>
+       ELSE /\ pc' = [pc EXCEPT ![i] = "cs"]
+            /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+\* Process i waits for process nxt[i] according to bakery algorithm rules
+W2(i) ==
+    /\ pc[i] = "w2"
+    /\ IF nxt[i] = i
+       THEN \* Skip self
+            /\ nxt' = [nxt EXCEPT ![i] = nxt[i] + 1]
+            /\ pc' = [pc EXCEPT ![i] = "w1"]
+            /\ UNCHANGED <<num, choosing, read, max>>
+       ELSE \* Wait for process nxt[i]
+            /\ choosing[nxt[i]] = FALSE  \* Wait until not choosing
+            /\ \/ num[nxt[i]] = 0  \* Process has no ticket
+               \/ num[nxt[i]] > num[i]  \* Process has larger ticket
+               \/ (num[nxt[i]] = num[i] /\ nxt[i] > i)  \* Equal ticket but higher ID
+            /\ nxt' = [nxt EXCEPT ![i] = nxt[i] + 1]
+            /\ pc' = [pc EXCEPT ![i] = "w1"]
+            /\ UNCHANGED <<num, choosing, read, max>>
+
+\* Process i is in critical section, moves to exit
+CS(i) ==
+    /\ pc[i] = "cs"
+    /\ pc' = [pc EXCEPT ![i] = "exit"]
+    /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+\* Process i exits critical section, resets ticket to 0
+Exit(i) ==
+    /\ pc[i] = "exit"
+    /\ num' = [num EXCEPT ![i] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "loop"]
+    /\ UNCHANGED <<choosing, read, max, nxt>>
+
+\* Action for process i
+ProcAction(i) ==
+    \/ Loop(i)
+    \/ D1(i)
+    \/ D2(i)
+    \/ D3(i)
+    \/ W1(i)
+    \/ W2(i)
+    \/ CS(i)
+    \/ Exit(i)
+
+Next == \E i \in Proc : ProcAction(i)
+
+Spec == Init /\ [][Next]_vars
+
+\* Mutual exclusion invariant: at most one process in critical section
+Invariant == \A i, j \in Proc : (i # j) => ~(pc[i] = "cs" /\ pc[j] = "cs")
+
+\* State constraint for model checking
+Constraint == \A i \in Proc : num[i] <= MaxNum
+
+\* Predicates for counting states
+InCS == \E i \in Proc : pc[i] = "cs"
+
+ChooseNumber == \E i \in Proc : pc[i] \in {"d1", "d2", "d3"}
+
+=======================================================================

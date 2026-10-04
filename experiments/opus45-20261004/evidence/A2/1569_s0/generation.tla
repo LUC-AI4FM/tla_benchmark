@@ -1,0 +1,125 @@
+---------------------------- MODULE CBakery ----------------------------
+EXTENDS Integers, Naturals
+
+CONSTANTS NumProcs, MaxNum
+
+ASSUME NumProcs \in Nat /\ NumProcs > 0
+ASSUME MaxNum \in Nat /\ MaxNum > 0
+
+Procs == 1..NumProcs
+
+VARIABLES pc, num, choosing, read, max, nxt
+
+vars == <<pc, num, choosing, read, max, nxt>>
+
+TypeOK ==
+    /\ pc \in [Procs -> {"d1", "d2", "d3", "w1", "w2", "cs", "exit"}]
+    /\ num \in [Procs -> Nat]
+    /\ choosing \in [Procs -> BOOLEAN]
+    /\ read \in [Procs -> Procs \cup {0}]
+    /\ max \in [Procs -> Nat]
+    /\ nxt \in [Procs -> Procs \cup {0}]
+
+Init ==
+    /\ pc = [p \in Procs |-> "d1"]
+    /\ num = [p \in Procs |-> 0]
+    /\ choosing = [p \in Procs |-> FALSE]
+    /\ read = [p \in Procs |-> 0]
+    /\ max = [p \in Procs |-> 0]
+    /\ nxt = [p \in Procs |-> 0]
+
+(* Label d1: Begin choosing, initialize for scanning *)
+d1(self) ==
+    /\ pc[self] = "d1"
+    /\ choosing' = [choosing EXCEPT ![self] = TRUE]
+    /\ read' = [read EXCEPT ![self] = 1]
+    /\ max' = [max EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "d2"]
+    /\ UNCHANGED <<num, nxt>>
+
+(* Label d2: Scan all processes to find maximum ticket number *)
+d2(self) ==
+    /\ pc[self] = "d2"
+    /\ IF read[self] <= NumProcs
+       THEN
+           /\ max' = [max EXCEPT ![self] = IF num[read[self]] > max[self] 
+                                           THEN num[read[self]] 
+                                           ELSE max[self]]
+           /\ read' = [read EXCEPT ![self] = read[self] + 1]
+           /\ pc' = [pc EXCEPT ![self] = "d2"]
+           /\ UNCHANGED <<num, choosing, nxt>>
+       ELSE
+           /\ pc' = [pc EXCEPT ![self] = "d3"]
+           /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+(* Label d3: Set ticket number and clear choosing flag *)
+d3(self) ==
+    /\ pc[self] = "d3"
+    /\ num' = [num EXCEPT ![self] = max[self] + 1]
+    /\ choosing' = [choosing EXCEPT ![self] = FALSE]
+    /\ nxt' = [nxt EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "w1"]
+    /\ UNCHANGED <<read, max>>
+
+(* Label w1: Wait loop - check if done or wait for not choosing *)
+w1(self) ==
+    /\ pc[self] = "w1"
+    /\ IF nxt[self] <= NumProcs
+       THEN
+           IF nxt[self] = self
+           THEN
+               /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+               /\ pc' = [pc EXCEPT ![self] = "w1"]
+               /\ UNCHANGED <<num, choosing, read, max>>
+           ELSE
+               /\ choosing[nxt[self]] = FALSE
+               /\ pc' = [pc EXCEPT ![self] = "w2"]
+               /\ UNCHANGED <<num, choosing, read, max, nxt>>
+       ELSE
+           /\ pc' = [pc EXCEPT ![self] = "cs"]
+           /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+(* Label w2: Wait for priority over process nxt[self] *)
+w2(self) ==
+    /\ pc[self] = "w2"
+    /\ \/ num[nxt[self]] = 0
+       \/ num[nxt[self]] > num[self]
+       \/ (num[nxt[self]] = num[self] /\ nxt[self] > self)
+    /\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "w1"]
+    /\ UNCHANGED <<num, choosing, read, max>>
+
+(* Label cs: Critical section *)
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, choosing, read, max, nxt>>
+
+(* Label exit: Exit critical section and reset *)
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "d1"]
+    /\ UNCHANGED <<choosing, read, max, nxt>>
+
+(* Process actions *)
+proc(self) ==
+    \/ d1(self)
+    \/ d2(self)
+    \/ d3(self)
+    \/ w1(self)
+    \/ w2(self)
+    \/ cs(self)
+    \/ exit(self)
+
+Next == \E self \in Procs : proc(self)
+
+Spec == Init /\ [][Next]_vars
+
+(* State constraint for model checking *)
+StateConstraint == \A p \in Procs : num[p] <= MaxNum
+
+(* Mutual exclusion invariant *)
+MutualExclusion == \A p, q \in Procs : (p # q) => ~(pc[p] = "cs" /\ pc[q] = "cs")
+
+=========================================================================

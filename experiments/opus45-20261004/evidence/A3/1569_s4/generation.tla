@@ -1,0 +1,138 @@
+---------------------------- MODULE BakeryAlgorithm ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Procs, MaxTicketValue
+
+ASSUME Procs # {}
+ASSUME MaxTicketValue \in Nat /\ MaxTicketValue > 0
+
+VARIABLES num, flag, pc, localNum, localMax, localJ, localReadSet
+
+vars == <<num, flag, pc, localNum, localMax, localJ, localReadSet>>
+
+ProcSet == Procs
+
+Init ==
+    /\ num = [p \in Procs |-> 0]
+    /\ flag = [p \in Procs |-> FALSE]
+    /\ pc = [p \in Procs |-> "ncs"]
+    /\ localNum = [p \in Procs |-> 0]
+    /\ localMax = [p \in Procs |-> 0]
+    /\ localJ = [p \in Procs |-> CHOOSE q \in Procs : TRUE]
+    /\ localReadSet = [p \in Procs |-> {}]
+
+NCS(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "enter"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, localJ, localReadSet>>
+
+Enter(self) ==
+    /\ pc[self] = "enter"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ localMax' = [localMax EXCEPT ![self] = 0]
+    /\ localReadSet' = [localReadSet EXCEPT ![self] = Procs]
+    /\ pc' = [pc EXCEPT ![self] = "readMax"]
+    /\ UNCHANGED <<num, localNum, localJ>>
+
+ReadMax(self) ==
+    /\ pc[self] = "readMax"
+    /\ IF localReadSet[self] # {}
+       THEN 
+            /\ \E q \in localReadSet[self]:
+                /\ localNum' = [localNum EXCEPT ![self] = num[q]]
+                /\ localReadSet' = [localReadSet EXCEPT ![self] = localReadSet[self] \ {q}]
+                /\ IF localNum'[self] > localMax[self]
+                   THEN localMax' = [localMax EXCEPT ![self] = localNum'[self]]
+                   ELSE localMax' = localMax
+            /\ pc' = [pc EXCEPT ![self] = "readMax"]
+            /\ UNCHANGED <<num, flag, localJ>>
+       ELSE
+            /\ pc' = [pc EXCEPT ![self] = "chooseTicket"]
+            /\ UNCHANGED <<num, flag, localNum, localMax, localJ, localReadSet>>
+
+ChooseTicket(self) ==
+    /\ pc[self] = "chooseTicket"
+    /\ num' = [num EXCEPT ![self] = localMax[self] + 1]
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ localReadSet' = [localReadSet EXCEPT ![self] = Procs \ {self}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<localNum, localMax, localJ>>
+
+Wait(self) ==
+    /\ pc[self] = "wait"
+    /\ IF localReadSet[self] # {}
+       THEN
+            /\ localJ' = [localJ EXCEPT ![self] = CHOOSE q \in localReadSet[self] : TRUE]
+            /\ pc' = [pc EXCEPT ![self] = "checkFlag"]
+            /\ UNCHANGED <<num, flag, localNum, localMax, localReadSet>>
+       ELSE
+            /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<num, flag, localNum, localMax, localJ, localReadSet>>
+
+CheckFlag(self) ==
+    /\ pc[self] = "checkFlag"
+    /\ ~flag[localJ[self]]
+    /\ pc' = [pc EXCEPT ![self] = "checkTicket"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, localJ, localReadSet>>
+
+CheckTicket(self) ==
+    /\ pc[self] = "checkTicket"
+    /\ \/ num[localJ[self]] = 0
+       \/ <<num[self], self>> < <<num[localJ[self]], localJ[self]>>
+       \/ (num[self] = num[localJ[self]] /\ self < localJ[self])
+    /\ localReadSet' = [localReadSet EXCEPT ![self] = localReadSet[self] \ {localJ[self]}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, localJ>>
+
+CS(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, localNum, localMax, localJ, localReadSet>>
+
+Exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, localNum, localMax, localJ, localReadSet>>
+
+ProcStep(self) ==
+    \/ NCS(self)
+    \/ Enter(self)
+    \/ ReadMax(self)
+    \/ ChooseTicket(self)
+    \/ Wait(self)
+    \/ CheckFlag(self)
+    \/ CheckTicket(self)
+    \/ CS(self)
+    \/ Exit(self)
+
+Next == \E self \in Procs : ProcStep(self)
+
+Fairness == \A self \in Procs : WF_vars(ProcStep(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+
+TypeInvariant ==
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "enter", "readMax", "chooseTicket", "wait", "checkFlag", "checkTicket", "cs", "exit"}]
+    /\ localNum \in [Procs -> Nat]
+    /\ localMax \in [Procs -> Nat]
+    /\ localJ \in [Procs -> Procs]
+    /\ localReadSet \in [Procs -> SUBSET Procs]
+
+InCS(p) == pc[p] = "cs"
+
+MutualExclusion == \A p, q \in Procs : (p # q) => ~(InCS(p) /\ InCS(q))
+
+AtMostOneInCS == Cardinality({p \in Procs : InCS(p)}) <= 1
+
+StateConstraint == \A p \in Procs : num[p] <= MaxTicketValue
+
+Trying(p) == pc[p] \in {"enter", "readMax", "chooseTicket", "wait", "checkFlag", "checkTicket"}
+
+StarvationFreedom == \A p \in Procs : Trying(p) ~> InCS(p)
+
+=============================================================================

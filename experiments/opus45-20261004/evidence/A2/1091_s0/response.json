@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PCR ----------------------------\n\nEXTENDS Integers\n\nCONSTANTS DNA, PRIMER\n\nVARIABLES tee, primer, dna, template, hybrid\n\nvars == <<tee, primer, dna, template, hybrid>>\n\nTemperature == {\"Hot\", \"TooHot\", \"Warm\"}\n\nTypeOK ==\n    /\\ tee \\in Temperature\n    /\\ primer \\in Int\n    /\\ dna \\in Int\n    /\\ template \\in Int\n    /\\ hybrid \\in Int\n\nInit ==\n    /\\ tee = \"Hot\"\n    /\\ dna = DNA\n    /\\ template = 0\n    /\\ hybrid = 0\n    /\\ primer = PRIMER\n\nheat ==\n    /\\ tee = \"Hot\"\n    /\\ tee' = \"TooHot\"\n    /\\ template' = template + 2*dna + hybrid\n    /\\ primer' = primer + hybrid\n    /\\ dna' = 0\n    /\\ hybrid' = 0\n\ncool ==\n    /\\ tee = \"TooHot\"\n    /\\ tee' = \"Hot\"\n    /\\ UNCHANGED <<primer, dna, template, hybrid>>\n\nanneal ==\n    /\\ tee = \"Hot\"\n    /\\ \\E n \\in 0..primer :\n        /\\ n <= template\n        /\\ primer' = primer - n\n        /\\ template' = template - n\n        /\\ hybrid' = hybrid + n\n        /\\ dna' = dna\n    /\\ tee' = \"Warm\"\n\nextend ==\n    /\\ tee = \"Warm\"\n    /\\ tee' = \"Hot\"\n    /\\ dna' = dna + hybrid\n    /\\ hybrid' = 0\n    /\\ UNCHANGED <<primer, template>>\n\nNext ==\n    \\/ heat\n    \\/ cool\n    \\/ anneal\n    \\/ extend\n\nSpec == Init /\\ [][Next]_vars\n\nNonNegPrimer == primer >= 0\n\nConservation == template + primer + 2*(dna + hybrid) = PRIMER + 2*DNA\n\nConservationSafety == [][Conservation]_vars\n\nEventualPrimerDepletion == <>(primer = 0)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 537,
+    "outputTokens": 532,
+    "totalTokens": 1069,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8266
+  }
+}

@@ -1,0 +1,22 @@
+---------------------------- MODULE HourClock ----------------------------
+EXTENDS Naturals
+
+VARIABLES hr
+
+HCini == hr \in 1..12
+
+HCnxt == hr' = IF hr = 12 THEN 1 ELSE hr + 1
+
+Init == HCini
+
+Next == HCnxt
+
+Spec == Init /\ [][Next]_hr
+
+HC == HCini /\ [][HCnxt]_hr
+
+TypeInvariant == hr \in 1..12
+
+THEOREM HC => []HCini
+
+==========================================================================

@@ -1,0 +1,217 @@
+--------------------------- MODULE Quicksort ---------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT ArrayLen
+
+ASSUME ArrayLen \in Nat /\ ArrayLen > 0
+
+\* Helper: Set of all permutations of a sequence
+PermutationsOf(s) ==
+    LET Perms[S \in SUBSET (1..Len(s))] ==
+        IF S = {} THEN {<<>>}
+        ELSE LET Extensions == {<<s[i]>> \o p : i \in S, p \in Perms[S \ {i}]}
+             IN Extensions
+    IN Perms[1..Len(s)]
+
+\* Check if sequence is sorted in nondecreasing order
+IsSorted(arr) ==
+    \A i, j \in 1..Len(arr) : i < j => arr[i] <= arr[j]
+
+\* Check if two sequences are permutations of each other
+IsPermutation(arr1, arr2) ==
+    /\ Len(arr1) = Len(arr2)
+    /\ LET Bag(s) == [v \in {s[i] : i \in 1..Len(s)} |-> 
+                        Cardinality({i \in 1..Len(s) : s[i] = v})]
+       IN Bag(arr1) = Bag(arr2)
+
+VARIABLES 
+    arr,        \* The array being sorted
+    arr0,       \* Initial array (for checking permutation property)
+    pc,         \* Program counter
+    stack,      \* Stack for recursive calls
+    lo,         \* Lower bound of current subarray
+    hi          \* Upper bound of current subarray
+
+vars == <<arr, arr0, pc, stack, lo, hi>>
+
+\* A stack frame contains saved lo, hi values
+StackFrame == [lo : Int, hi : Int]
+
+\* Generate all arrays of given length with values in 1..ArrayLen
+ArrayType == [1..ArrayLen -> 1..ArrayLen]
+
+\* Subarray from index i to j (inclusive)
+Subarray(a, i, j) ==
+    IF i > j THEN <<>>
+    ELSE [k \in 1..(j-i+1) |-> a[i+k-1]]
+
+\* All permutations of indices lo..hi in array a
+SubarrayPerms(a, l, h) ==
+    IF l > h THEN {a}
+    ELSE
+        LET indices == l..h
+            perms == {f \in [indices -> indices] : 
+                        \A i, j \in indices : i # j => f[i] # f[j]}
+        IN {[i \in 1..ArrayLen |-> 
+                IF i \in indices THEN a[f[i]] ELSE a[i]] : f \in perms}
+
+\* Check if array is partitioned: all elements in lo..pivot <= all elements in (pivot+1)..hi
+IsPartitioned(a, l, pivot, h) ==
+    \A i \in l..pivot, j \in (pivot+1)..h : a[i] <= a[j]
+
+\* All valid partitioned permutations of subarray
+PartitionedPerms(a, l, h) ==
+    IF l >= h THEN {a}
+    ELSE
+        {b \in SubarrayPerms(a, l, h) :
+            \E pivot \in l..h : IsPartitioned(b, l, pivot, h)}
+
+\* Type invariant
+TypeOK ==
+    /\ arr \in ArrayType
+    /\ arr0 \in ArrayType
+    /\ pc \in {"start", "partition", "recurse_left", "recurse_right", "return", "Done"}
+    /\ stack \in Seq(StackFrame)
+    /\ lo \in 1..ArrayLen+1
+    /\ hi \in 0..ArrayLen
+
+Init ==
+    /\ arr \in ArrayType
+    /\ arr0 = arr
+    /\ pc = "start"
+    /\ stack = <<>>
+    /\ lo = 1
+    /\ hi = ArrayLen
+
+\* Start: Check if we need to sort this subarray
+Start ==
+    /\ pc = "start"
+    /\ IF lo >= hi
+       THEN /\ pc' = "return"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+       ELSE /\ pc' = "partition"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* Partition: nondeterministically choose pivot and permute
+Partition ==
+    /\ pc = "partition"
+    /\ \E pivot \in lo..hi :
+        \E newArr \in SubarrayPerms(arr, lo, hi) :
+            /\ IsPartitioned(newArr, lo, pivot, hi)
+            /\ arr' = newArr
+            /\ stack' = Append(stack, [lo |-> lo, hi |-> hi, pivot |-> pivot])
+            /\ lo' = lo
+            /\ hi' = pivot
+            /\ pc' = "recurse_left"
+    /\ UNCHANGED arr0
+
+\* Extended stack frame to include pivot
+ExtStackFrame == [lo : Int, hi : Int, pivot : Int]
+
+\* Recurse left: push frame and recurse on left partition
+RecurseLeft ==
+    /\ pc = "recurse_left"
+    /\ IF lo >= hi
+       THEN /\ pc' = "recurse_right"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+       ELSE /\ \E pivot \in lo..hi :
+               \E newArr \in SubarrayPerms(arr, lo, hi) :
+                   /\ IsPartitioned(newArr, lo, pivot, hi)
+                   /\ arr' = newArr
+                   /\ stack' = Append(stack, [lo |-> lo, hi |-> hi, pivot |-> pivot])
+                   /\ hi' = pivot
+                   /\ pc' = "recurse_left"
+                   /\ UNCHANGED lo
+            /\ UNCHANGED arr0
+
+\* Recurse right: after left recursion completes
+RecurseRight ==
+    /\ pc = "recurse_right"
+    /\ Len(stack) > 0
+    /\ LET frame == Head(Seq([lo : Int, hi : Int, pivot : Int]) \o stack)
+           topFrame == stack[Len(stack)]
+       IN /\ lo' = topFrame.pivot + 1
+          /\ hi' = topFrame.hi
+          /\ stack' = SubSeq(stack, 1, Len(stack) - 1)
+          /\ pc' = "start"
+    /\ UNCHANGED <<arr, arr0>>
+
+\* Return from recursion
+Return ==
+    /\ pc = "return"
+    /\ IF Len(stack) = 0
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+       ELSE LET topFrame == stack[Len(stack)]
+            IN /\ lo' = topFrame.pivot + 1
+               /\ hi' = topFrame.hi
+               /\ stack' = SubSeq(stack, 1, Len(stack) - 1)
+               /\ pc' = "start"
+               /\ UNCHANGED <<arr, arr0>>
+
+\* Simplified specification with cleaner state machine
+\* Redefine with simpler stack: just save bounds for right recursion
+
+VARIABLES pivot_stack
+
+vars2 == <<arr, arr0, pc, pivot_stack, lo, hi>>
+
+\* Actually, let's use a cleaner model:
+\* Stack contains pairs (lo, hi) representing pending right-side recursions
+
+Init2 ==
+    /\ arr \in ArrayType
+    /\ arr0 = arr
+    /\ pc = "start"
+    /\ stack = <<>>
+    /\ lo = 1
+    /\ hi = ArrayLen
+
+\* Main recursive step
+DoSort ==
+    /\ pc = "start"
+    /\ lo < hi
+    /\ \E p \in lo..hi :  \* Choose pivot position
+        \E newArr \in SubarrayPerms(arr, lo, hi) :
+            /\ IsPartitioned(newArr, lo, p, hi)
+            /\ arr' = newArr
+            /\ stack' = Append(stack, [lo |-> p + 1, hi |-> hi])  \* Save right part
+            /\ hi' = p  \* Recurse on left part
+            /\ UNCHANGED <<arr0, pc, lo>>
+
+\* Base case or pop from stack
+DoPop ==
+    /\ pc = "start"
+    /\ lo >= hi
+    /\ IF Len(stack) > 0
+       THEN LET top == stack[Len(stack)]
+            IN /\ lo' = top.lo
+               /\ hi' = top.hi
+               /\ stack' = SubSeq(stack, 1, Len(stack) - 1)
+               /\ UNCHANGED <<arr, arr0, pc>>
+       ELSE /\ pc' = "Done"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+Terminated ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == DoSort \/ DoPop \/ Terminated
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety: array is always a permutation of initial array
+PermutationInvariant ==
+    IsPermutation(arr, arr0)
+
+\* Final state property: array is sorted and is permutation of initial
+Sorted ==
+    pc = "Done" => IsSorted(arr)
+
+FinalCorrect ==
+    pc = "Done" => (IsSorted(arr) /\ IsPermutation(arr, arr0))
+
+\* Liveness: algorithm eventually terminates
+Termination == <>(pc = "Done")
+
+=============================================================================
