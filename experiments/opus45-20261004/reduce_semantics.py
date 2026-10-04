@@ -39,6 +39,13 @@ def reduce_evidence(evidence, allow_partial=False):
     E.require("11.0.25+9" in evidence["runtime"] and 1 <= evidence["timeout_seconds"] <= 300,
               "Independent audit runtime/settings differ")
     E.require(evidence["jvm_heap_MiB"] == 512, "Independent audit heap differs")
+    import continue_reference_audit as C
+    profiles = evidence.get("execution_profiles", {})
+    E.require(evidence.get("default_execution_profile_id", C.LEGACY_PROFILE) == C.LEGACY_PROFILE,
+              "Original execution profile changed")
+    for pid, profile in profiles.items():
+        C.validate_profile(profile)
+        E.require(pid == profile["profile_id"], "Execution profile registry differs")
     original_rows = E.collect()
     expected = {r["run_id"]: r for r in original_rows if r["job"] != "smoke" and r["tlc_pass"]}
     observed = {r["run_id"]: r for r in evidence["rows"]}
@@ -65,6 +72,8 @@ def reduce_evidence(evidence, allow_partial=False):
     reconciled = []
     for rid, row in observed.items():
         original = expected[rid]
+        profile_id = row.get("execution_profile_id", C.LEGACY_PROFILE)
+        E.require(profile_id == C.LEGACY_PROFILE or profile_id in profiles, "Missing execution profile receipt")
         directory = E.HERE / chains[rid]["directory"]
         path = E.REPO / original["reference_path"]
         generated, reference, cfg = (directory / "generation.tla").read_text(), path.read_text(), path.with_suffix(".cfg").read_text()
@@ -83,6 +92,18 @@ def reduce_evidence(evidence, allow_partial=False):
         E.require(reused["generated_sha256"] == row["generated_sha256"]
                   and input_keys[reused["run_id"]] == input_keys[rid]
                   and all(row[c] == reused[c] for c in COMPONENTS), "Reused execution differs")
+        E.require(profile_id == reused.get("execution_profile_id", C.LEGACY_PROFILE), "Reused execution profile differs")
+        control_origin = row.get("reference_self_check_execution")
+        if control_origin:
+            control_source = observed.get(control_origin["reused_from_run_id"])
+            E.require(control_source is not None
+                      and row["reference_sha256"] == control_source["reference_sha256"]
+                      and row["original_configuration_sha256"] == control_source["original_configuration_sha256"]
+                      and row["reference_self_check"] == control_source["reference_self_check"],
+                      "Reused reference control differs")
+            source_origin = control_source.get("reference_self_check_execution", {
+                "profile_id": control_source.get("execution_profile_id", C.LEGACY_PROFILE)})
+            E.require(control_origin["profile_id"] == source_origin["profile_id"], "Reference control profile differs")
         statuses = {c: row[c]["status"] for c in COMPONENTS}
         control_holds = statuses["reference_self_check"] == "holds"
         behavior_holds = control_holds and all(statuses[c] == "holds" for c in COMPONENTS[2:])
@@ -90,6 +111,8 @@ def reduce_evidence(evidence, allow_partial=False):
         counterexample = control_holds and any(row[c].get("semantic_kill") is True for c in COMPONENTS[1:])
         reconciled.append({"run_id": rid, "spec_id": original["spec_id"], "job": original["job"], "sample": original["sample"],
             "mode": original["mode"], "description_provider": original["description_provider"],
+            "execution_profile_id": profile_id,
+            "reference_self_check_execution": control_origin,
             "execution_input_key": dict(zip(["spec_id", "generated_sha256", "reference_sha256", "configuration_sha256"], input_keys[rid])),
             "author_tlc_pass": True, "qualified_checked_tlc_pass": original["qualified_tlc_pass"],
             "external_reference_qualified_tlc_pass": qualified,
@@ -141,6 +164,8 @@ def reduce_evidence(evidence, allow_partial=False):
         "unexecuted_run_ids": sorted(set(expected) - set(observed)),
         "unique_generated_outputs_executed": len(unique), "unique_generated_outputs_expected": len(full_unique), "jobs": by_job,
         "target_scope": target_scope,
+        "execution_profiles": profiles,
+        "execution_profile_output_counts": dict(sorted(Counter(r["execution_profile_id"] for r in reconciled).items())),
         "external_reference_qualified_a3_any_pass": any_pass,
         "row_reconciliation": reconciled}
 

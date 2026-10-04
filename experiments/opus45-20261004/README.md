@@ -104,6 +104,18 @@ qualification above have complete evidence coverage independently of this partia
 Audit continuation accepts the same evaluator, runtime, settings and unchanged sources:
 use `--resume --max-new-outputs 1` to checkpoint bounded batches.
 
+`continue_reference_audit.py` additionally supports an explicitly qualified execution
+profile for the authorized NUC continuation. It retains the frozen evaluator and checker
+hashes and the same 60-second SANY/5-second TLC limits, 512-MiB heap, one worker,
+seed and fingerprint. Installed Temurin 25.0.3+9-LTS receives its own actual Linux
+runtime receipt after the retained evaluator controls pass; it is never labeled Java 11.
+This qualification covers those finite controls, not exhaustive JVM equivalence.
+Original records remain unchanged, completed generated-source groups are skipped, and
+existing reference controls are reused with explicit source/profile pointers. Checkpoints
+are written atomically outside the integrity-protected inputs. The legacy `runtime` field
+describes the original Mac profile; additional receipts and per-row profile IDs describe
+subsequent executions. Human faithfulness assessment remains separate and unreviewed.
+
 Live regression fixtures establish that replacing a valid invariant by TRUE or removing
 its check preserves the already passing state graph, while FALSE is rejected on a model
 whose control establishes nonempty Init. A known broken transition is rejected by a
