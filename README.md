@@ -156,6 +156,23 @@ The supplement preserves the historical results and the corrected 76/300 pooled
 configuration-aware count above. The separate experimental reference audit is available
 on [wip/reference-audit](https://github.com/LUC-AI4FM/tla_benchmark/tree/wip/reference-audit/experiments/opus45-20261004).
 
+### Additional I1 intent runs
+
+[I1](experiments/opus45-20261004/README.md#additional-i1-intent-runs) adds **400 requests**
+on the same 100 tasks, stored in the [pinned paid-runs release](https://github.com/LUC-AI4FM/tla_benchmark/tree/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/results).
+It uses the same Bedrock Opus 4.5 model, 16,000-token limit and provider-default temperature.
+
+| Intent description | Default TLC passes / outputs | Configuration-aware TLC passes / outputs |
+|---|---:|---:|
+| GPT | 3/100 | 13/100 |
+| Claude | 7/100 | 21/100 |
+
+Both conditions use name-hidden intent text. The default prompt adds no reference-name
+list; the configuration-aware prompt appends names extracted from the reference configuration.
+The [summary](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/SUMMARY.json) and [protocol](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/PROTOCOL.json) preserve original grades and input hashes.
+The linked supplement gives the pinned offline reproduction command. I1 is a separate
+experiment; A3's matched pass@5 remains 27/100.
+
 ## Licensing and responsible use
 
 The `.tla` specifications come from 13 public repositories; each specification's source

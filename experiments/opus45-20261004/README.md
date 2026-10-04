@@ -7,7 +7,7 @@ configuration-aware count.
 
 All requests used Amazon Bedrock `us.anthropic.claude-opus-4-5-20251101-v1:0` in
 `us-east-2`, `maxTokens=16000`, and provider-default temperature. No temperature was
-included in the request. The recorded grader used Temurin 11.0.25+9, the pinned tools
+included in the request. The A1–A3 grader used Temurin 11.0.25+9, the pinned tools
 jar, a 60-second SANY limit and a 300-second TLC limit.
 
 ## Results
@@ -40,6 +40,44 @@ natural-language description. A1 and A2 change both configuration exposure and d
 source. Their difference does not isolate a description-provider effect. [report.json](report.json)
 retains row-level outcomes, additional diagnostic qualifications and the 100/99/93-task
 sensitivity strata; [tables.md](tables.md) is generated from those saved outputs.
+
+## Additional I1 intent runs
+
+The separate [I1 evidence release](https://github.com/LUC-AI4FM/tla_benchmark/tree/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/results) contains **400 additional requests**:
+one output per task in each of four conditions. Its [saved summary](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/SUMMARY.json)
+derives the following author-protocol TLC counts from the result records.
+
+| Intent description | Default TLC passes / outputs | Configuration-aware TLC passes / outputs |
+|---|---:|---:|
+| GPT | 3/100 | 13/100 |
+| Claude | 7/100 | 21/100 |
+
+I1 uses `us.anthropic.claude-opus-4-5-20251101-v1:0` through Bedrock in `us-east-2`,
+`maxTokens=16000`, and provider-default temperature, omitted from the request.
+The intent description text hides reference names. Default prompts add no reference-name
+list. Configuration-aware prompts append the names extracted from the original `.cfg`,
+so those configuration names are supplied to the model in that condition.
+These are original author-protocol grades, separate from A1–A3 and A3's 27/100 pass@5.
+
+The [published I1 protocol](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/PROTOCOL.json) pins 409 source files at
+`e33a164fb4606703de0dea2e314909a3298ce8a3` and all 400 prompt/request hashes.
+Its descriptions come directly from `descriptions/intent_gpt/<id>.txt` and
+`descriptions/intent_claude/<id>.txt`. The recorded run-protocol pin is
+`35683b714d2bea8207832a89d192d19d85505a711897b76118bb909b88499e17`;
+the published `PROTOCOL.json` file itself has SHA256
+`b79e9a261440243ad22f8c6244688b5b2c8e52d3079b0129dee8c29644f0177b`.
+A1–A3 continue to use the frozen manifest described below.
+
+To count I1 results offline from their pinned release:
+
+```sh
+git clone --branch paid-runs https://github.com/LUC-AI4FM/tla_benchmark.git tla-bench-intent-I1
+git -C tla-bench-intent-I1 checkout --detach 9443647e95a5124a7ba361187df2c3c2eed2709e
+python3 tla-bench-intent-I1/paid_runs/check_results.py
+```
+
+The checker reads saved grades and makes no model requests. Generated modules, result
+records and verified chain hashes are available in the linked release.
 
 ## Frozen inputs
 
