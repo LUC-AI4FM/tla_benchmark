@@ -4,6 +4,7 @@ from collections import Counter
 import argparse
 import json
 from pathlib import Path
+import re
 
 import semantic_audit as A
 E = A.E
@@ -46,6 +47,30 @@ def reduce_evidence(evidence, allow_partial=False):
     for pid, profile in profiles.items():
         C.validate_profile(profile)
         E.require(pid == profile["profile_id"], "Execution profile registry differs")
+        builds = re.findall(r"\(build ([^\s),]+)", profile["runtime"]["java_version_output"])
+        E.require(bool(builds) and all(b == profile["runtime"]["java_build"] for b in builds),
+                  "Recorded Java version output contradicts profile build")
+
+    def verify_runtime_banner(record, profile_id):
+        raw = record.get("raw", {})
+        text = raw.get("tlc", {}).get("stdout", "") or raw.get("timeout", {}).get("partial_stdout", "")
+        banner = next((line for line in text.splitlines() if line.startswith("Running ") and "Model-Checking" in line), "")
+        if not banner:
+            E.require(record["status"] != "holds" and not record.get("semantic_kill"),
+                      "Completed checker result lacks runtime banner")
+            return
+        if profile_id == C.LEGACY_PROFILE:
+            version, system = "11.0.25", "Mac OS X"
+        else:
+            runtime = profiles[profile_id]["runtime"]
+            version = runtime["java_build"].split("+")[0]
+            system = {"Darwin": "Mac OS X", "Linux": "Linux"}.get(runtime["system"], runtime["system"])
+        E.require(re.search(r"Eclipse Adoptium " + re.escape(version) + r" 64bit", banner)
+                  and system in banner, "Raw checker runtime contradicts execution profile")
+
+    for pid, profile in profiles.items():
+        for record in profile["controls"].values():
+            verify_runtime_banner(record, pid)
     original_rows = E.collect()
     expected = {r["run_id"]: r for r in original_rows if r["job"] != "smoke" and r["tlc_pass"]}
     observed = {r["run_id"]: r for r in evidence["rows"]}
@@ -87,6 +112,10 @@ def reduce_evidence(evidence, allow_partial=False):
                  A.oracle_wrapper(reference, generated, cfg, "behavior")]
         for component, plan in zip(COMPONENTS, plans):
             verify_execution(row[component], plan, path.parent)
+            component_profile = row.get("reference_self_check_execution", {}).get("profile_id", profile_id) if component == "reference_self_check" else profile_id
+            E.require(component_profile == C.LEGACY_PROFILE or component_profile in profiles,
+                      "Missing component execution profile receipt")
+            verify_runtime_banner(row[component], component_profile)
         E.require(row["execution_reused_from"] in observed, "Unindexed reused execution")
         reused = observed[row["execution_reused_from"]]
         E.require(reused["generated_sha256"] == row["generated_sha256"]
@@ -136,7 +165,10 @@ def reduce_evidence(evidence, allow_partial=False):
     a3 = [r for r in original_rows if r["job"] == "A3"]
     a3_ids = {r["spec_id"] for r in a3}
     passing = {r["spec_id"] for r in a3 if r["run_id"] in qualified_ids}
-    any_pass = {"samples": sorted({r["sample"] for r in a3}), "certified_complete_audit": evidence["complete"]}
+    a3_profiles = sorted({r["execution_profile_id"] for r in reconciled if r["job"] == "A3"})
+    any_pass = {"samples": sorted({r["sample"] for r in a3}), "certified_complete_audit": evidence["complete"],
+                "observed_execution_profile_ids": a3_profiles, "single_execution_profile": len(a3_profiles) == 1,
+                "assessment_scope": "Bounded reference checks with the explicitly recorded execution profiles; no natural-language faithfulness certification."}
     if evidence["complete"]:
         any_pass.update(passing_specifications=len(passing), specifications=len(a3_ids), passing_ids=sorted(passing, key=int))
     else:
@@ -157,6 +189,15 @@ def reduce_evidence(evidence, allow_partial=False):
         "passing_output_rows_by_condition": dict(sorted(Counter(r["job"] for r in expected.values()).items())),
         "execution_key_fields": ["spec_id", "generated_sha256", "reference_sha256", "configuration_sha256"],
     }
+    missing_cfg = {r["spec_id"] for r in a3 if r["missing_cfg"]}
+    single_state = {str(r["spec_id"]) for r in E.load(E.REPO / "outputs/audit/fixture_audit.json") if r.get("distinct") == 1}
+    strata = {}
+    for name, selected in [("full_primary", a3_ids), ("with_original_configuration", a3_ids - missing_cfg),
+            ("without_missing_cfg_or_single_state_fixtures", a3_ids - missing_cfg - single_state)]:
+        strata[name] = {"specifications": len(selected), "excluded_ids": sorted(a3_ids - selected, key=int),
+                        "certified_complete_audit": evidence["complete"]}
+        if evidence["complete"]:
+            strata[name].update(passing_specifications=len(passing & selected), passing_ids=sorted(passing & selected, key=int))
     return {"schema": 1, "assessment_phase": "post_generation_validation_of_frozen_reference_contracts", "complete": evidence["complete"],
         "claim_scope": "Bounded reference-derived named properties and both behavior inclusions under explicit identity bindings; not natural-language faithfulness certification.",
         "audit_script_sha256": evidence["audit_script_sha256"], "runtime": evidence["runtime"], "timeout_seconds": evidence["timeout_seconds"], "jvm_heap_MiB": evidence["jvm_heap_MiB"],
@@ -167,7 +208,34 @@ def reduce_evidence(evidence, allow_partial=False):
         "execution_profiles": profiles,
         "execution_profile_output_counts": dict(sorted(Counter(r["execution_profile_id"] for r in reconciled).items())),
         "external_reference_qualified_a3_any_pass": any_pass,
+        "external_reference_a3_evaluation_strata": strata,
         "row_reconciliation": reconciled}
+
+
+def render_tables(report):
+    lines = ["# Independent bounded reference audit", "",
+             f"Coverage: {report['passing_outputs_audited']}/{report['passing_outputs_expected']} passing output rows; "
+             f"{report['unique_generated_outputs_executed']}/{report['unique_generated_outputs_expected']} unique input keys.", "",
+             "| Condition | Passing rows audited | External reference-qualified outputs | Counterexample outputs | Outputs with unresolved components |",
+             "|---|---:|---:|---:|---:|"]
+    for job, row in report["jobs"].items():
+        lines.append(f"| {job} | {row['archived_passing_outputs_audited']}/{row['archived_passing_outputs_expected']} | "
+                     f"{row['observed_external_reference_qualified_passes']} | {row['reference_counterexamples']} | {row['unresolved_outputs']} |")
+    lines += ["", "Counterexample and unresolved columns can overlap when different components have different outcomes.",
+              "External qualification requires the original named-check/nonempty qualification and all four reference components to hold.", "",
+              "| A3 task stratum | External reference-qualified any-pass across samples 0–4 |", "|---|---:|"]
+    for name, row in report["external_reference_a3_evaluation_strata"].items():
+        value = f"{row['passing_specifications']}/{row['specifications']}" if report["complete"] else "Incomplete audit; no population score certified"
+        lines.append(f"| {name} | {value} |")
+    lines += ["", "| Execution profile | Output rows |", "|---|---:|"]
+    for pid, count in report["execution_profile_output_counts"].items():
+        label = "Original Mac / Temurin 11.0.25+9" if pid == "original-mac-temurin11" else (
+            report["execution_profiles"][pid]["runtime"]["system"] + " / Temurin " + report["execution_profiles"][pid]["runtime"]["java_build"])
+        lines.append(f"| {label} | {count} |")
+    lines += ["", "Reference controls retain their separately recorded execution source/profile when reused.",
+              "These are bounded results under mixed execution profiles, not natural-language faithfulness certification.",
+              "All 100 description-equivalence cases remain unreviewed.", ""]
+    return "\n".join(lines)
 
 
 def main():
@@ -176,12 +244,27 @@ def main():
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--allow-partial", action="store_true", help="verify an explicitly incomplete checkpoint without certifying a population score")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--tables", action="store_true", help="render the independently derived audit tables")
     args = parser.parse_args()
     E.verify()
     report = reduce_evidence(E.load(args.evidence), allow_partial=args.allow_partial)
     if args.check:
         E.require(report == E.load(E.HERE / "semantic-report.json"), "Semantic report does not derive from checker evidence")
-    print(json.dumps(report, indent=2) if args.json else json.dumps(report["jobs"], indent=2))
+        E.require(render_tables(report) == (E.HERE / "semantic-tables.md").read_text(), "Semantic tables do not derive from checker evidence")
+        if report["complete"]:
+            receipt = E.load(E.HERE / "execution-receipt.json")
+            profile = report["execution_profiles"][receipt["profile_id"]]
+            E.require(receipt["runtime"] == profile["runtime"] and receipt["limits"] == profile["limits"], "Launch/runtime receipt differs")
+            E.require(receipt["final_unique_checks"] == report["unique_generated_outputs_executed"]
+                      == receipt["prior_completed_unique_checks"] + receipt["new_unique_checks_completed"]
+                      and receipt["final_passing_records"] == report["passing_outputs_audited"]
+                      == receipt["prior_completed_records"] + receipt["new_output_records_reconciled"]
+                      and receipt["new_output_records_reconciled"] == report["execution_profile_output_counts"][receipt["profile_id"]],
+                      "Completion receipt inventory differs")
+            projection = E.load(args.evidence)["public_log_projection"]
+            E.require(receipt["final_raw_checkpoint_sha256"] == projection["source_checkpoint_sha256"]
+                      and receipt["prior_checkpoint_sha256"] == projection["preserved_checkpoint_sha256"], "Checkpoint receipt lineage differs")
+    print(render_tables(report) if args.tables else (json.dumps(report, indent=2) if args.json else json.dumps(report["jobs"], indent=2)))
 
 
 if __name__ == "__main__":

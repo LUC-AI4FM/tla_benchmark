@@ -40,6 +40,15 @@ class ExecutionProfiles(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Missing execution profile"):
             R.reduce_evidence(evidence, allow_partial=True)
 
+    def test_raw_runtime_banner_cannot_be_relabelled(self):
+        import reduce_semantics as R
+        evidence = copy.deepcopy(E.load(E.HERE / "semantic-evidence.json"))
+        evidence.setdefault("execution_profiles", {})[self.profile["profile_id"]] = self.profile
+        original = next(r for r in evidence["rows"] if r.get("execution_profile_id", C.LEGACY_PROFILE) == C.LEGACY_PROFILE)
+        original["execution_profile_id"] = self.profile["profile_id"]
+        with self.assertRaisesRegex(ValueError, "runtime contradicts execution profile"):
+            R.reduce_evidence(evidence, allow_partial=True)
+
     def test_real_bounded_continuation_preserves_completed_records(self):
         import reduce_semantics as R
         evidence = copy.deepcopy(E.load(E.HERE / "semantic-evidence.json"))
@@ -63,7 +72,12 @@ class ExecutionProfiles(unittest.TestCase):
             self.assertTrue(set(before) < set(observed))
             self.assertTrue(all(observed[rid] == row for rid, row in before.items()))
             report = R.reduce_evidence(resumed, allow_partial=True)
-            self.assertFalse(report["external_reference_qualified_a3_any_pass"]["certified_complete_audit"])
+            self.assertEqual(report["external_reference_qualified_a3_any_pass"]["certified_complete_audit"], resumed["complete"])
+            if resumed["complete"]:
+                self.assertEqual(R.reduce_evidence(resumed), report)
+            else:
+                with self.assertRaisesRegex(ValueError, "incomplete"):
+                    R.reduce_evidence(resumed)
             self.assertIn(self.profile["profile_id"], report["execution_profile_output_counts"])
 
 

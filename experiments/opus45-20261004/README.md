@@ -93,16 +93,22 @@ with 114 unique input keys. Fresh sample 0 adds 19 passing rows: 13 new input ke
 `semantic-report.json` derives this inventory from the frozen outputs and records each
 row's condition, sample and full execution input key.
 
-The saved checkpoint is **incomplete: 44 of 146 passing outputs audited, 42 of 127
-unique input keys**. All 18 previously published records remain unchanged. The continuation
-stopped when the coordination host's configured local compute policy terminated the
-checker workload. No checker was active at checkpoint publication; 85 unique checks
-remain. `semantic-report.json` lists every unexecuted run explicitly.
-The default reducer rejects incomplete evidence; `--allow-partial` verifies the checkpoint
-without certifying a population score. The archived matched pass@5 and named-check
-qualification above have complete evidence coverage independently of this partial audit.
-Audit continuation accepts the same evaluator, runtime, settings and unchanged sources:
-use `--resume --max-new-outputs 1` to checkpoint bounded batches.
+The saved audit is **complete: all 146 passing output rows and 127 unique input keys**.
+The 44 records completed on the original Mac profile remain unchanged. The remaining
+85 unique checks completed sequentially on the explicitly authorized NUC; their aliases
+cover 102 additional output rows. No inference APIs were called. The default reducer
+requires complete coverage; `--allow-partial` supports separately labeled intermediate
+checkpoints. `semantic-report.json` and `semantic-tables.md` derive from the raw checks.
+The archived matched pass@5 and named-check qualification remain separate from this
+independent audit.
+
+Under the recorded mixed execution profiles, external reference-qualified A3 any-pass
+is **7/100**, **7/99** with original configurations, and **5/93** after excluding missing
+configuration/single-state fixtures. These results require all reference components to
+hold plus the original named-check/nonempty qualification. Timeouts, unsupported mappings
+and missing contracts remain unresolved; complete coverage does not certify every output
+or natural-language faithfulness. Counterexample and unresolved columns can overlap
+when different components have different outcomes.
 
 `continue_reference_audit.py` additionally supports an explicitly qualified execution
 profile for the authorized NUC continuation. It retains the frozen evaluator and checker
@@ -161,7 +167,7 @@ are required.
 
 ```sh
 python3 experiments/opus45-20261004/reproduce.py --check
-python3 experiments/opus45-20261004/reduce_semantics.py --allow-partial --check
+python3 experiments/opus45-20261004/reduce_semantics.py --check
 python3 -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
 python3 -O -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
 python3 reproduce.py --clean

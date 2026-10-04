@@ -129,6 +129,9 @@ It reports `sany_semantic_ok` separately from retained flags, matched A3 pass@5,
 configuration/nonempty-check qualifications, independent reference checks, and evaluator
 regression controls. It preserves the historical tables above. Reproduce the supplement
 offline with `python3 experiments/opus45-20261004/reproduce.py --check`.
+The independent reference audit covers all 146 passing output rows and 127 unique input
+keys. Its [derived tables](experiments/opus45-20261004/semantic-tables.md) label the mixed
+Mac/NUC runtime profiles and unresolved cases; human description review remains pending.
 
 ## Licensing and responsible use
 

@@ -40,6 +40,7 @@ class IndependentWorkflow(unittest.TestCase):
 
     def test_completed_sample_alias_cannot_be_dropped(self):
         data = copy.deepcopy(self.evidence)
+        data["complete"] = False
         alias = next(r for r in data["rows"] if r["run_id"].startswith("A3:")
                      and r["execution_reused_from"] != r["run_id"])
         data["rows"].remove(alias)
