@@ -29,6 +29,14 @@ A3)      # repeated samples: 4 more default-regime samples at the main run's set
   python run_generation.py --provider bedrock --model-id "$OPUS_ID" --label claude-opus-4-5 \
     --mode default --desc gpt --samples 4 --sample-offset 1 --max-tokens 16000 --workers 4 --cap 80 ;;
 
+A4)      # configuration-aware regime on the Claude-written declarative descriptions
+  python run_generation.py --provider bedrock --model-id "$OPUS_ID" --label claude-opus-4-5 \
+    --mode cfgaware --desc claude --max-tokens 16000 --workers 4 --cap 30 ;;
+
+opus)    # everything Opus still needs, in order: I1 (400 requests), then A4 (100 requests)
+  "$0" I1
+  "$0" A4 ;;
+
 # ---------------------------------------------------------------- OpenAI (GPT-5), needs OPENAI_API_KEY
 B1)      # cross-provider; the free tier allows 50 requests a day, so this stops and resumes
   python run_generation.py --provider openai --model-id gpt-5-2025-08-07 --label gpt-5 \
@@ -43,6 +51,10 @@ B2)      # repeated samples 1-4 (sample 0 is the released run)
 C1)      # cross-provider, same decoding as the released default run (temperature 0, default length)
   python run_generation.py --provider google --model-id gemini-2.5-pro --label gemini-2-5-pro \
     --mode default --desc claude --temperature 0 --max-tokens 0 --workers 4 --cap 15 ;;
+
+C3)      # configuration-aware regime on the Claude-written declarative descriptions (as I3's cfgaware runs)
+  python run_generation.py --provider google --model-id gemini-2.5-pro --label gemini-2-5-pro \
+    --mode cfgaware --desc claude --temperature 0 --max-tokens 16000 --workers 4 --cap 15 ;;
 
 C2)      # repeated samples at the provider-default temperature (temperature 0 would repeat itself)
   python run_generation.py --provider google --model-id gemini-2.5-pro --label gemini-2-5-pro-default-temp \
@@ -101,5 +113,5 @@ D0)      # open models on the GPT-written declarative descriptions, graded with 
 check)   # summary of everything in results/
   python check_results.py ;;
 
-*) echo "usage: ./jobs.sh {smoke|A1|A2|A3|B1|B2|C1|C2|D|D0|I1|I2|I3|I4|check}" ;;
+*) echo "usage: ./jobs.sh {smoke|A1|A2|A3|A4|opus|B1|B2|C1|C2|C3|D|D0|I1|I2|I3|I4|check}" ;;
 esac

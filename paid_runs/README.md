@@ -23,9 +23,13 @@ All commands run from the repository root, for example `./paid_runs/jobs.sh I1`.
 | A2 | Claude Opus 4.5 | Claude-written declarative descriptions | 100 | done (PR #39) |
 | A3 | Claude Opus 4.5 | 4 more samples on the GPT-written descriptions | 400 | done (PR #39) |
 | **I1** | Claude Opus 4.5 | **Both intent (name-hidden) description sets, in both regimes** | 400 | **to run** |
-| B1, I2 | GPT-5 | Claude-written and intent descriptions | | run by the authors |
-| C1, I3 | Gemini 2.5 Pro | Claude-written and intent descriptions | | run by the authors |
+| **A4** | Claude Opus 4.5 | **Claude-written declarative descriptions, configuration-aware regime** | 100 | **to run** |
+| B1, B2, I2 | GPT-5 | Claude-written, repeated samples and intent descriptions | | run by the authors |
+| C1, C2, C3, I3 | Gemini 2.5 Pro | Claude-written, repeated samples, configuration-aware Claude-written and intent | | run by the authors |
 | D, D0, I4 | open models | Claude-written, GPT-written (strict grading) and intent descriptions | | run by the authors |
+
+**To run everything Opus still needs:** `./paid_runs/jobs.sh opus`. It runs I1 and then A4
+(500 requests in all, roughly $40 to $75). Each part can also be run alone.
 
 I1 runs both intent sets (`descriptions/intent_gpt/`, `descriptions/intent_claude/`) in the
 default regime (no names given) and in the configuration-aware regime (the names the
@@ -33,6 +37,9 @@ reference configuration checks are listed in the prompt). The intent text hides 
 names, while TLC checks operators by name, so the second regime separates understanding the
 system from guessing its names. Settings: 16,000 output tokens and provider-default
 temperature, as in A1 to A3. Rough cost: $30 to $60.
+
+A4 gives the configuration-aware regime the Claude-written declarative descriptions, so that
+every description set is run in both regimes. Same settings as A1.
 
 Every job can be stopped and restarted with the same command; finished items are skipped.
 A job stops by itself if its estimated spend passes the cap in `jobs.sh`. Failed requests are
