@@ -1,0 +1,172 @@
+```tla+
+-------------------------------- MODULE Bakery --------------------------------
+EXTENDS Naturals, Sequences, FiniteSets
+
+CONSTANT NumProcs, MaxTicket
+
+ASSUME NumProcs \in Nat /\ NumProcs > 0
+ASSUME MaxTicket \in Nat /\ MaxTicket > 0
+
+Procs == 1..NumProcs
+
+(*
+--algorithm Bakery {
+    variables 
+        num = [i \in Procs |-> 0],
+        flag = [i \in Procs |-> FALSE];
+    
+    define {
+        Max(S) == IF S = {} THEN 0 ELSE CHOOSE x \in S : \A y \in S : x >= y
+    }
+    
+    fair process (proc \in Procs)
+    variables j = 1;
+    {
+    ncs:
+        skip;  \* non-critical section
+    
+    start:
+        flag[self] := TRUE;
+    
+    getTicket:
+        num[self] := Max({num[k] : k \in Procs}) + 1;
+    
+    endFlag:
+        flag[self] := FALSE;
+    
+    wait:
+        j := 1;
+    
+    checkWait:
+        while (j <= NumProcs) {
+            await (flag[j] = FALSE);
+        checkNum:
+            await (num[j] = 0 \/ num[self] < num[j] \/ (num[self] = num[j] /\ self <= j));
+        incJ:
+            j := j + 1;
+        };
+    
+    cs:
+        skip;  \* critical section
+    
+    exit:
+        num[self] := 0;
+        goto ncs;
+    }
+}
+*)
+
+VARIABLES num, flag, pc, j
+
+vars == <<num, flag, pc, j>>
+
+ProcSet == Procs
+
+Init == 
+    /\ num = [i \in Procs |-> 0]
+    /\ flag = [i \in Procs |-> FALSE]
+    /\ pc = [self \in ProcSet |-> "ncs"]
+    /\ j = [self \in Procs |-> 1]
+
+Max(S) == IF S = {} THEN 0 ELSE CHOOSE x \in S : \A y \in S : x >= y
+
+ncs(self) ==
+    /\ pc[self] = "ncs"
+    /\ TRUE
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<num, flag, j>>
+
+start(self) ==
+    /\ pc[self] = "start"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "getTicket"]
+    /\ UNCHANGED <<num, j>>
+
+getTicket(self) ==
+    /\ pc[self] = "getTicket"
+    /\ num' = [num EXCEPT ![self] = Max({num[k] : k \in Procs}) + 1]
+    /\ pc' = [pc EXCEPT ![self] = "endFlag"]
+    /\ UNCHANGED <<flag, j>>
+
+endFlag(self) ==
+    /\ pc[self] = "endFlag"
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, j>>
+
+wait(self) ==
+    /\ pc[self] = "wait"
+    /\ j' = [j EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "checkWait"]
+    /\ UNCHANGED <<num, flag>>
+
+checkWait(self) ==
+    /\ pc[self] = "checkWait"
+    /\ IF j[self] <= NumProcs
+       THEN /\ flag[j[self]] = FALSE
+            /\ pc' = [pc EXCEPT ![self] = "checkNum"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+    /\ UNCHANGED <<num, flag, j>>
+
+checkNum(self) ==
+    /\ pc[self] = "checkNum"
+    /\ \/ num[j[self]] = 0
+       \/ num[self] < num[j[self]]
+       \/ (num[self] = num[j[self]] /\ self <= j[self])
+    /\ pc' = [pc EXCEPT ![self] = "incJ"]
+    /\ UNCHANGED <<num, flag, j>>
+
+incJ(self) ==
+    /\ pc[self] = "incJ"
+    /\ j' = [j EXCEPT ![self] = j[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "checkWait"]
+    /\ UNCHANGED <<num, flag>>
+
+cs(self) ==
+    /\ pc[self] = "cs"
+    /\ TRUE
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, j>>
+
+exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, j>>
+
+proc(self) ==
+    \/ ncs(self)
+    \/ start(self)
+    \/ getTicket(self)
+    \/ endFlag(self)
+    \/ wait(self)
+    \/ checkWait(self)
+    \/ checkNum(self)
+    \/ incJ(self)
+    \/ cs(self)
+    \/ exit(self)
+
+Next == \E self \in Procs : proc(self)
+
+Fairness == \A self \in Procs : WF_vars(proc(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Mutual Exclusion: No two processes in critical section simultaneously
+MutualExclusion == \A i, k \in Procs : (i # k) => ~(pc[i] = "cs" /\ pc[k] = "cs")
+
+\* Type invariant
+TypeOK ==
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "start", "getTicket", "endFlag", "wait", "checkWait", "checkNum", "incJ", "cs", "exit"}]
+    /\ j \in [Procs -> 1..(NumProcs+1)]
+
+\* Constraint for TLC model checking to bound ticket numbers
+TicketConstraint == \A i \in Procs : num[i] <= MaxTicket
+
+\* The main invariant combining all properties
+Invariant == MutualExclusion /\ TypeOK
+
+=============================================================================
+```

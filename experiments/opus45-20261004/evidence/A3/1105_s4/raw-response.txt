@@ -1,0 +1,179 @@
+```tla+
+---------------------------- MODULE AsyncNBACFailureDetector ----------------------------
+EXTENDS Integers, FiniteSets, Sequences
+
+CONSTANTS
+    Procs,          \* Set of process identifiers
+    InitialVote     \* Either "AllYes" or "AllNo" - specialized initial condition
+
+VARIABLES
+    vote,           \* vote[p] = "YES" or "NO" - initial vote of process p
+    crashed,        \* crashed[p] = TRUE iff process p has crashed
+    suspected,      \* suspected[p] = TRUE iff process p is suspected by failure detector
+    decision,       \* decision[p] = "COMMIT", "ABORT", or "UNDECIDED"
+    msgSent,        \* msgSent[p] = set of messages sent by process p
+    msgReceived,    \* msgReceived[p] = set of messages received by process p
+    network         \* Set of messages in transit
+
+\* Message types
+Messages == [type: {"VOTE", "DECISION"}, from: Procs, content: {"YES", "NO", "COMMIT", "ABORT"}]
+
+\* Type invariant
+TypeInvariant ==
+    /\ vote \in [Procs -> {"YES", "NO"}]
+    /\ crashed \in [Procs -> BOOLEAN]
+    /\ suspected \in [Procs -> BOOLEAN]
+    /\ decision \in [Procs -> {"COMMIT", "ABORT", "UNDECIDED"}]
+    /\ msgSent \in [Procs -> SUBSET Messages]
+    /\ msgReceived \in [Procs -> SUBSET Messages]
+    /\ network \subseteq Messages
+
+\* Initial state - specialized for all YES or all NO votes
+Init ==
+    /\ vote = [p \in Procs |-> IF InitialVote = "AllYes" THEN "YES" ELSE "NO"]
+    /\ crashed = [p \in Procs |-> FALSE]
+    /\ suspected = [p \in Procs |-> FALSE]
+    /\ decision = [p \in Procs |-> "UNDECIDED"]
+    /\ msgSent = [p \in Procs |-> {}]
+    /\ msgReceived = [p \in Procs |-> {}]
+    /\ network = {}
+
+\* Helper: Check if process p has received YES votes from all processes
+ReceivedAllYes(p) ==
+    \A q \in Procs : \E m \in msgReceived[p] : 
+        m.type = "VOTE" /\ m.from = q /\ m.content = "YES"
+
+\* Helper: Check if process p has received a NO vote from some process
+ReceivedSomeNo(p) ==
+    \E m \in msgReceived[p] : m.type = "VOTE" /\ m.content = "NO"
+
+\* Helper: Check if some process is suspected
+SomeSuspected(p) ==
+    \E q \in Procs : suspected[q]
+
+\* Helper: Check if process p has received an ABORT decision
+ReceivedAbort(p) ==
+    \E m \in msgReceived[p] : m.type = "DECISION" /\ m.content = "ABORT"
+
+\* Helper: Check if process p has received a COMMIT decision
+ReceivedCommit(p) ==
+    \E m \in msgReceived[p] : m.type = "DECISION" /\ m.content = "COMMIT"
+
+\* Action: Process p sends its vote
+SendVote(p) ==
+    /\ ~crashed[p]
+    /\ ~(\E m \in msgSent[p] : m.type = "VOTE")  \* Haven't sent vote yet
+    /\ LET voteMsg == [type |-> "VOTE", from |-> p, content |-> vote[p]]
+       IN /\ msgSent' = [msgSent EXCEPT ![p] = @ \cup {voteMsg}]
+          /\ network' = network \cup {voteMsg}
+    /\ UNCHANGED <<vote, crashed, suspected, decision, msgReceived>>
+
+\* Action: Process p receives a message from the network
+ReceiveMessage(p) ==
+    /\ ~crashed[p]
+    /\ \E m \in network :
+        /\ m \notin msgReceived[p]
+        /\ msgReceived' = [msgReceived EXCEPT ![p] = @ \cup {m}]
+    /\ UNCHANGED <<vote, crashed, suspected, decision, msgSent, network>>
+
+\* Action: Process p decides to commit
+DecideCommit(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    /\ \/ ReceivedCommit(p)  \* Received COMMIT from another process
+       \/ /\ ReceivedAllYes(p)  \* Received YES from all processes
+          /\ ~SomeSuspected(p)  \* No process is suspected
+    /\ decision' = [decision EXCEPT ![p] = "COMMIT"]
+    /\ LET decMsg == [type |-> "DECISION", from |-> p, content |-> "COMMIT"]
+       IN /\ msgSent' = [msgSent EXCEPT ![p] = @ \cup {decMsg}]
+          /\ network' = network \cup {decMsg}
+    /\ UNCHANGED <<vote, crashed, suspected, msgReceived>>
+
+\* Action: Process p decides to abort
+DecideAbort(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    /\ \/ ReceivedAbort(p)     \* Received ABORT from another process
+       \/ ReceivedSomeNo(p)    \* Received NO vote
+       \/ SomeSuspected(p)     \* Some process is suspected (and haven't committed)
+    /\ decision' = [decision EXCEPT ![p] = "ABORT"]
+    /\ LET decMsg == [type |-> "DECISION", from |-> p, content |-> "ABORT"]
+       IN /\ msgSent' = [msgSent EXCEPT ![p] = @ \cup {decMsg}]
+          /\ network' = network \cup {decMsg}
+    /\ UNCHANGED <<vote, crashed, suspected, msgReceived>>
+
+\* Action: Process p crashes
+Crash(p) ==
+    /\ ~crashed[p]
+    /\ crashed' = [crashed EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, suspected, decision, msgSent, msgReceived, network>>
+
+\* Action: Failure detector suspects process p
+Suspect(p) ==
+    /\ ~suspected[p]
+    /\ suspected' = [suspected EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, crashed, decision, msgSent, msgReceived, network>>
+
+\* Action: Failure detector unsuspects process p (for unreliable failure detector)
+Unsuspect(p) ==
+    /\ suspected[p]
+    /\ ~crashed[p]  \* Can only unsuspect if actually not crashed
+    /\ suspected' = [suspected EXCEPT ![p] = FALSE]
+    /\ UNCHANGED <<vote, crashed, decision, msgSent, msgReceived, network>>
+
+\* Process action for process p (used for fairness)
+ProcessAction(p) ==
+    \/ SendVote(p)
+    \/ ReceiveMessage(p)
+    \/ DecideCommit(p)
+    \/ DecideAbort(p)
+
+\* Next state relation
+Next ==
+    \/ \E p \in Procs : ProcessAction(p)
+    \/ \E p \in Procs : Crash(p)
+    \/ \E p \in Procs : Suspect(p)
+    \/ \E p \in Procs : Unsuspect(p)
+
+\* Fairness: Weak fairness for non-stuttering process actions
+Fairness ==
+    \A p \in Procs : WF_<<vote, crashed, suspected, decision, msgSent, msgReceived, network>>(ProcessAction(p))
+
+\* Specification
+Spec == Init /\ [][Next]_<<vote, crashed, suspected, decision, msgSent, msgReceived, network>> /\ Fairness
+
+\* ==================== SAFETY INVARIANTS ====================
+
+\* Agreement: No two processes decide differently
+Agreement ==
+    \A p, q \in Procs :
+        (decision[p] \in {"COMMIT", "ABORT"} /\ decision[q] \in {"COMMIT", "ABORT"})
+            => decision[p] = decision[q]
+
+\* Abort Validity: If a process decides ABORT, then either some process voted NO
+\* or some process crashed
+AbortValidity ==
+    \A p \in Procs :
+        decision[p] = "ABORT" =>
+            (\E q \in Procs : vote[q] = "NO") \/ (\E q \in Procs : crashed[q])
+
+\* Commit Validity: If a process decides COMMIT, then all processes voted YES
+CommitValidity ==
+    \A p \in Procs :
+        decision[p] = "COMMIT" => (\A q \in Procs : vote[q] = "YES")
+
+\* ==================== LIVENESS PROPERTIES ====================
+
+\* Termination: Every correct (non-crashed) process eventually decides
+Termination ==
+    \A p \in Procs : 
+        (~crashed[p]) ~> (crashed[p] \/ decision[p] # "UNDECIDED")
+
+\* Eventual Commit: If all processes vote YES and no process crashes,
+\* then eventually some process decides COMMIT
+EventualCommit ==
+    (\A p \in Procs : vote[p] = "YES") /\ [](\A p \in Procs : ~crashed[p])
+        => <>(\E p \in Procs : decision[p] = "COMMIT")
+
+=============================================================================
+```

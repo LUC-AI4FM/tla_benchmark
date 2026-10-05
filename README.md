@@ -121,6 +121,58 @@ kept as `reproduce_as_submitted.py`.
   Opus configuration-aware output passed in the released run; on re-runs it took between
   21 and 301 seconds and failed once by reaching the 300-second limit.
 
+## Supplementary Opus 4.5 runs (2026-10-04)
+
+The [supplement](experiments/opus45-20261004/README.md) contains 700 new experimental
+outputs over the same 100 tasks, plus one separate smoke output. All runs used Bedrock
+Claude Opus 4.5, a 16,000-token output limit and provider-default temperature.
+
+| Run | Description | Prompt | Outputs | Archived SANY flag | `sany_semantic_ok` | Archived TLC pass |
+|---|---|---|---:|---:|---:|---:|
+| A1 | GPT declarative | Configuration-aware | 100 | 91 | 74 | 22 |
+| A2 | Claude declarative | Default | 100 | 89 | 77 | 31 |
+| A3 | GPT declarative | Default, five samples | 500 | 449 | 390 | 93 |
+
+A3's matched author-protocol **pass@5 is 27/100**: 27 tasks have at least one TLC pass
+among their five saved samples. The original four samples give 26/100. The historical
+baseline is recorded separately because its request settings are incomplete.
+
+`sany_semantic_ok` checks compiler diagnostics as well as the exit code. Original grades
+and logs are retained. Compiler acceptance and author-protocol TLC passes do not establish
+faithfulness to the natural-language description. A1 and A2 change both the prompt and
+the description source, so their difference cannot isolate a provider effect.
+
+The experiment uses its own [frozen manifest](experiments/opus45-20261004/inputs/manifest.jsonl).
+Verification reconstructs all 701 request prompts from its declarative descriptions and
+the pinned grader/configurations. Later root-manifest edits do not change these inputs.
+
+```sh
+python3 experiments/opus45-20261004/reproduce.py --check
+python3 -m unittest discover -s experiments/opus45-20261004 -p 'test_*.py' -v
+python3 reproduce.py --clean
+```
+
+The supplement preserves the historical results and the corrected 76/300 pooled
+configuration-aware count above. The separate experimental reference audit is available
+on [wip/reference-audit](https://github.com/LUC-AI4FM/tla_benchmark/tree/wip/reference-audit/experiments/opus45-20261004).
+
+### Additional I1 intent runs
+
+[I1](experiments/opus45-20261004/README.md#additional-i1-intent-runs) adds **400 requests**
+on the same 100 tasks, stored in the [pinned paid-runs release](https://github.com/LUC-AI4FM/tla_benchmark/tree/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/results).
+It uses the same Bedrock Opus 4.5 model, 16,000-token limit and provider-default temperature.
+
+| Intent description | Default TLC passes / outputs | Configuration-aware TLC passes / outputs |
+|---|---:|---:|
+| GPT | 3/100 | 13/100 |
+| Claude | 7/100 | 21/100 |
+
+Both conditions use name-hidden intent text. The default prompt adds no reference-name
+list; the configuration-aware prompt appends names extracted from the reference configuration.
+The [summary](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/SUMMARY.json) and [protocol](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7ba361187df2c3c2eed2709e/paid_runs/intent_I1_20261004/PROTOCOL.json) preserve original grades and input hashes.
+The linked supplement gives the pinned offline reproduction command. I1 is a separate
+experiment; A3's matched pass@5 remains 27/100.
+
 ## Licensing and responsible use
 
 The `.tla` specifications come from 13 public repositories; each specification's source

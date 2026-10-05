@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n--------------------------- MODULE EvenOdd ---------------------------\nEXTENDS Integers, Sequences, TLC\n\nCONSTANT N\n\nASSUME N \\in Nat\n\nVARIABLES pc, stack, xEven, xOdd, result\n\nvars == <<pc, stack, xEven, xOdd, result>>\n\nInit ==\n    /\\ pc = \"CallEvenFromMain\"\n    /\\ stack = <<>>\n    /\\ xEven = 0\n    /\\ xOdd = 0\n    /\\ result = FALSE\n\nCallEvenFromMain ==\n    /\\ pc = \"CallEvenFromMain\"\n    /\\ xEven' = N\n    /\\ pc' = \"EvenCheck\"\n    /\\ stack' = <<[returnTo |-> \"Done\", proc |-> \"main\", localX |-> 0]>> \\o stack\n    /\\ xOdd' = xOdd\n    /\\ result' = result\n\nEvenCheck ==\n    /\\ pc = \"EvenCheck\"\n    /\\ IF xEven = 0\n       THEN /\\ result' = TRUE\n            /\\ pc' = \"EvenReturn\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE /\\ pc' = \"EvenCallOdd\"\n            /\\ UNCHANGED <<stack, xEven, xOdd, result>>\n\nEvenCallOdd ==\n    /\\ pc = \"EvenCallOdd\"\n    /\\ xOdd' = xEven - 1\n    /\\ pc' = \"OddCheck\"\n    /\\ stack' = <<[returnTo |-> \"EvenReturn\", proc |-> \"Even\", localX |-> xEven]>> \\o stack\n    /\\ xEven' = xEven\n    /\\ result' = result\n\nEvenReturn ==\n    /\\ pc = \"EvenReturn\"\n    /\\ Len(stack) > 0\n    /\\ LET frame == Head(stack)\n       IN /\\ pc' = frame.returnTo\n          /\\ stack' = Tail(stack)\n          /\\ IF frame.proc = \"Odd\"\n             THEN xOdd' = frame.localX\n             ELSE xOdd' = xOdd\n          /\\ IF frame.proc = \"Even\"\n             THEN xEven' = frame.localX\n             ELSE xEven' = xEven\n    /\\ result' = result\n\nOddCheck ==\n    /\\ pc = \"OddCheck\"\n    /\\ IF xOdd = 0\n       THEN /\\ result' = FALSE\n            /\\ pc' = \"OddReturn\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE /\\ pc' = \"OddCallEven\"\n            /\\ UNCHANGED <<stack, xEven, xOdd, result>>\n\nOddCallEven ==\n    /\\ pc = \"OddCallEven\"\n    /\\ xEven' = xOdd - 1\n    /\\ pc' = \"EvenCheck\"\n    /\\ stack' = <<[returnTo |-> \"OddReturn\", proc |-> \"Odd\", localX |-> xOdd]>> \\o stack\n    /\\ xOdd' = xOdd\n    /\\ result' = result\n\nOddReturn ==\n    /\\ pc = \"OddReturn\"\n    /\\ Len(stack) > 0\n    /\\ LET frame == Head(stack)\n       IN /\\ pc' = frame.returnTo\n          /\\ stack' = Tail(stack)\n          /\\ IF frame.proc = \"Odd\"\n             THEN xOdd' = frame.localX\n             ELSE xOdd' = xOdd\n          /\\ IF frame.proc = \"Even\"\n             THEN xEven' = frame.localX\n             ELSE xEven' = xEven\n    /\\ result' = result\n\nTerminating ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ CallEvenFromMain\n    \\/ EvenCheck\n    \\/ EvenCallOdd\n    \\/ EvenReturn\n    \\/ OddCheck\n    \\/ OddCallEven\n    \\/ OddReturn\n    \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeInvariant ==\n    /\\ pc \\in {\"CallEvenFromMain\", \"EvenCheck\", \"EvenCallOdd\", \"EvenReturn\", \n               \"OddCheck\", \"OddCallEven\", \"OddReturn\", \"Done\"}\n    /\\ xEven \\in Nat\n    /\\ xOdd \\in Nat\n    /\\ result \\in BOOLEAN\n    /\\ stack \\in Seq([returnTo : {\"EvenReturn\", \"OddReturn\", \"Done\"}, \n                      proc : {\"main\", \"Even\", \"Odd\"}, \n                      localX : Nat])\n\nResultCorrectness ==\n    pc = \"Done\" => (result = ((N % 2) = 0))\n\nTermination == <>(pc = \"Done\")\n\n=======================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 251,
+    "outputTokens": 1220,
+    "totalTokens": 1471,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15441
+  }
+}

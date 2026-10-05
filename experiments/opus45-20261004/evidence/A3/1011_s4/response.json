@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n-------------------------------- MODULE KeyValueStore --------------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS Keys, Vals, MISSING\n\nVARIABLES store, state, op, args, result\n\nvars == <<store, state, op, args, result>>\n\nTypeOK ==\n    /\\ store \\in [Keys -> Vals \\cup {MISSING}]\n    /\\ state \\in {\"ready\", \"working\"}\n    /\\ op \\in {\"get\", \"insert\", \"update\", \"delete\", \"none\"}\n    /\\ args \\in [key: Keys \\cup {MISSING}, val: Vals \\cup {MISSING}]\n    /\\ result \\in Vals \\cup {MISSING, \"ok\", \"error\", \"none\"}\n\nInit ==\n    /\\ store = [k \\in Keys |-> MISSING]\n    /\\ state = \"ready\"\n    /\\ op = \"none\"\n    /\\ args = [key |-> MISSING, val |-> MISSING]\n    /\\ result = \"none\"\n\n\\* Get operation\nGetRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ state' = \"working\"\n    /\\ op' = \"get\"\n    /\\ args' = [key |-> k, val |-> MISSING]\n    /\\ result' = \"none\"\n    /\\ UNCHANGED store\n\nGetResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"get\"\n    /\\ args.key \\in Keys\n    /\\ result' = store[args.key]\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = [key |-> MISSING, val |-> MISSING]\n    /\\ UNCHANGED store\n\n\\* Insert operation\nInsertRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ state' = \"working\"\n    /\\ op' = \"insert\"\n    /\\ args' = [key |-> k, val |-> v]\n    /\\ result' = \"none\"\n    /\\ UNCHANGED store\n\nInsertResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"insert\"\n    /\\ args.key \\in Keys\n    /\\ args.val \\in Vals\n    /\\ IF store[args.key] = MISSING\n       THEN /\\ store' = [store EXCEPT ![args.key] = args.val]\n            /\\ result' = \"ok\"\n       ELSE /\\ result' = \"error\"\n            /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = [key |-> MISSING, val |-> MISSING]\n\n\\* Update operation\nUpdateRequest(k, v) ==\n    /\\ state = \"ready\"\n    /\\ state' = \"working\"\n    /\\ op' = \"update\"\n    /\\ args' = [key |-> k, val |-> v]\n    /\\ result' = \"none\"\n    /\\ UNCHANGED store\n\nUpdateResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"update\"\n    /\\ args.key \\in Keys\n    /\\ args.val \\in Vals\n    /\\ IF store[args.key] # MISSING\n       THEN /\\ store' = [store EXCEPT ![args.key] = args.val]\n            /\\ result' = \"ok\"\n       ELSE /\\ result' = \"error\"\n            /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = [key |-> MISSING, val |-> MISSING]\n\n\\* Delete operation\nDeleteRequest(k) ==\n    /\\ state = \"ready\"\n    /\\ state' = \"working\"\n    /\\ op' = \"delete\"\n    /\\ args' = [key |-> k, val |-> MISSING]\n    /\\ result' = \"none\"\n    /\\ UNCHANGED store\n\nDeleteResponse ==\n    /\\ state = \"working\"\n    /\\ op = \"delete\"\n    /\\ args.key \\in Keys\n    /\\ IF store[args.key] # MISSING\n       THEN /\\ store' = [store EXCEPT ![args.key] = MISSING]\n            /\\ result' = \"ok\"\n       ELSE /\\ result' = \"error\"\n            /\\ UNCHANGED store\n    /\\ state' = \"ready\"\n    /\\ op' = \"none\"\n    /\\ args' = [key |-> MISSING, val |-> MISSING]\n\n\\* Combined request action for delete (for fairness)\nDeleteRequestAction ==\n    \\E k \\in Keys : DeleteRequest(k)\n\nNext ==\n    \\/ \\E k \\in Keys : GetRequest(k)\n    \\/ GetResponse\n    \\/ \\E k \\in Keys, v \\in Vals : InsertRequest(k, v)\n    \\/ InsertResponse\n    \\/ \\E k \\in Keys, v \\in Vals : UpdateRequest(k, v)\n    \\/ UpdateResponse\n    \\/ \\E k \\in Keys : DeleteRequest(k)\n    \\/ DeleteResponse\n\nSpec == Init /\\ [][Next]_vars /\\ WF_op(DeleteRequestAction)\n\n\\* Safety invariant: Type correctness is always maintained\nSafety == TypeOK\n\n\\* Liveness property: If a delete is requested, eventually the system returns to ready\nDeleteEventuallyCompletes ==\n    (op = \"delete\" /\\ state = \"working\") ~> (state = \"ready\")\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 231,
+    "outputTokens": 1324,
+    "totalTokens": 1555,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15448
+  }
+}

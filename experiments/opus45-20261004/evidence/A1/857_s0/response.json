@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE prisoners ----------------------------\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 1\n\nVARIABLES\n    counter,\n    lightOn,\n    count,\n    announced,\n    visited,\n    numSignals\n\nvars == <<counter, lightOn, count, announced, visited, numSignals>>\n\nPrisoners == 1..N\n\nTypeOK ==\n    /\\ counter \\in Prisoners\n    /\\ lightOn \\in BOOLEAN\n    /\\ count \\in 0..(2*N)\n    /\\ announced \\in BOOLEAN\n    /\\ visited \\subseteq Prisoners\n    /\\ numSignals \\in [Prisoners -> 0..2]\n\nInit ==\n    /\\ counter \\in Prisoners\n    /\\ lightOn \\in BOOLEAN\n    /\\ count = 0\n    /\\ announced = FALSE\n    /\\ visited = {}\n    /\\ numSignals = [p \\in Prisoners |-> 0]\n\nThreshold == 2 * N - 1\n\nCounterEnters ==\n    /\\ ~announced\n    /\\ lightOn\n    /\\ count' = count + 1\n    /\\ lightOn' = FALSE\n    /\\ visited' = visited \\cup {counter}\n    /\\ UNCHANGED <<counter, announced, numSignals>>\n\nCounterAnnounces ==\n    /\\ ~announced\n    /\\ count >= Threshold\n    /\\ announced' = TRUE\n    /\\ UNCHANGED <<counter, lightOn, count, visited, numSignals>>\n\nNonCounterEnters(p) ==\n    /\\ ~announced\n    /\\ p # counter\n    /\\ ~lightOn\n    /\\ numSignals[p] < 2\n    /\\ lightOn' = TRUE\n    /\\ numSignals' = [numSignals EXCEPT ![p] = @ + 1]\n    /\\ visited' = visited \\cup {p}\n    /\\ UNCHANGED <<counter, count, announced>>\n\nNonCounterNoAction(p) ==\n    /\\ ~announced\n    /\\ p # counter\n    /\\ \\/ lightOn\n       \\/ numSignals[p] >= 2\n    /\\ visited' = visited \\cup {p}\n    /\\ UNCHANGED <<counter, lightOn, count, announced, numSignals>>\n\nCounterNoAction ==\n    /\\ ~announced\n    /\\ ~lightOn\n    /\\ count < Threshold\n    /\\ visited' = visited \\cup {counter}\n    /\\ UNCHANGED <<counter, lightOn, count, announced, numSignals>>\n\nWardenSelectsCounter ==\n    \\/ CounterEnters\n    \\/ CounterNoAction\n    \\/ CounterAnnounces\n\nWardenSelectsNonCounter(p) ==\n    \\/ NonCounterEnters(p)\n    \\/ NonCounterNoAction(p)\n\nNext ==\n    \\/ WardenSelectsCounter\n    \\/ \\E p \\in Prisoners \\ {counter} : WardenSelectsNonCounter(p)\n\nFairness ==\n    /\\ WF_vars(WardenSelectsCounter)\n    /\\ \\A p \\in Prisoners : WF_vars(WardenSelectsNonCounter(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nTerminating == <>(announced)\n\nVictoryOK == announced => (visited = Prisoners)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 271,
+    "outputTokens": 802,
+    "totalTokens": 1073,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11930
+  }
+}

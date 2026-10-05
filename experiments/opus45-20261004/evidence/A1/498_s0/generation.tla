@@ -1,0 +1,57 @@
+---------------------------- MODULE Consensus ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS Value, Slot
+
+VARIABLES proposed, chosen
+
+vars == <<proposed, chosen>>
+
+TypeOK ==
+    /\ proposed \subseteq Value
+    /\ chosen \in [Slot -> SUBSET Value]
+    /\ \A s \in Slot : Cardinality(chosen[s]) <= 1
+
+Init ==
+    /\ proposed = {}
+    /\ chosen = [s \in Slot |-> {}]
+
+Propose(v) ==
+    /\ v \notin proposed
+    /\ proposed' = proposed \cup {v}
+    /\ UNCHANGED chosen
+
+Choose(s, v) ==
+    /\ v \in proposed
+    /\ chosen[s] = {}
+    /\ chosen' = [chosen EXCEPT ![s] = {v}]
+    /\ UNCHANGED proposed
+
+Next ==
+    \/ \E v \in Value : Propose(v)
+    \/ \E s \in Slot, v \in Value : Choose(s, v)
+
+Spec == Init /\ [][Next]_vars
+
+LiveSpec == Spec /\ WF_vars(Next)
+
+(* Safety Properties *)
+
+Nontriviality ==
+    \A s \in Slot : \A v \in chosen[s] : v \in Value
+
+Stability ==
+    \A s \in Slot : chosen[s] # {} => chosen[s]' = chosen[s]
+
+Consistency ==
+    \A s \in Slot : Cardinality(chosen[s]) <= 1
+
+Safety == TypeOK /\ Nontriviality /\ Consistency
+
+(* Liveness Property *)
+
+AllSlotsChosen == \A s \in Slot : chosen[s] # {}
+
+Liveness == <>AllSlotsChosen
+
+==========================================================================

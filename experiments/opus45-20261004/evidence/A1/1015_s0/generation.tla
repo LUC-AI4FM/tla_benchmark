@@ -1,0 +1,63 @@
+---------------------------- MODULE voucher ----------------------------
+
+EXTENDS Naturals
+
+CONSTANT V
+
+VARIABLES voucher, lifecycle
+
+v2 == <<voucher, lifecycle>>
+
+VoucherStates == {"phantom", "valid", "redeemed", "cancelled"}
+LifecycleStates == {"pre_issue", "issued", "terminal"}
+
+VTypeOK == 
+    /\ voucher \in [V -> VoucherStates]
+    /\ lifecycle \in [V -> LifecycleStates]
+
+VConsistent ==
+    \A vid \in V :
+        /\ (voucher[vid] = "phantom") => (lifecycle[vid] = "pre_issue")
+        /\ (voucher[vid] = "valid") => (lifecycle[vid] = "issued")
+        /\ (voucher[vid] \in {"redeemed", "cancelled"}) => (lifecycle[vid] = "terminal")
+
+VInit ==
+    /\ voucher = [vid \in V |-> "phantom"]
+    /\ lifecycle = [vid \in V |-> "pre_issue"]
+
+Issue(vid) ==
+    /\ voucher[vid] = "phantom"
+    /\ lifecycle[vid] = "pre_issue"
+    /\ voucher' = [voucher EXCEPT ![vid] = "valid"]
+    /\ lifecycle' = [lifecycle EXCEPT ![vid] = "issued"]
+
+Redeem(vid) ==
+    /\ voucher[vid] = "valid"
+    /\ lifecycle[vid] = "issued"
+    /\ voucher' = [voucher EXCEPT ![vid] = "redeemed"]
+    /\ lifecycle' = [lifecycle EXCEPT ![vid] = "terminal"]
+
+Cancel(vid) ==
+    /\ voucher[vid] = "valid"
+    /\ lifecycle[vid] = "issued"
+    /\ voucher' = [voucher EXCEPT ![vid] = "cancelled"]
+    /\ lifecycle' = [lifecycle EXCEPT ![vid] = "terminal"]
+
+Transfer(vid) ==
+    /\ voucher[vid] = "valid"
+    /\ lifecycle[vid] = "issued"
+    /\ voucher' = voucher
+    /\ lifecycle' = lifecycle
+
+VNext ==
+    \E vid \in V :
+        \/ Issue(vid)
+        \/ Redeem(vid)
+        \/ Cancel(vid)
+        \/ Transfer(vid)
+
+VSpec == VInit /\ [][VNext]_v2
+
+THEOREM VSpec => [](VTypeOK /\ VConsistent)
+
+=============================================================================

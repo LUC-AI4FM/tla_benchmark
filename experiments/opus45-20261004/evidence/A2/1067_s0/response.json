@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SyncTerminationDetection ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES active, terminationDetected\n\nvars == <<active, terminationDetected>>\n\nNodes == 0 .. N-1\n\nTerminated == \\A i \\in Nodes : ~active[i]\n\nTypeOK == /\\ active \\in [Nodes -> BOOLEAN]\n          /\\ terminationDetected \\in BOOLEAN\n\nInit == /\\ active \\in [Nodes -> BOOLEAN]\n        /\\ terminationDetected \\in {FALSE, Terminated}\n\nTerminate(i) == /\\ active[i]\n                /\\ active' = [active EXCEPT ![i] = FALSE]\n                /\\ terminationDetected' \\in {terminationDetected, \n                                              \\A j \\in Nodes : ~active'[j]}\n\nWakeup(i, j) == /\\ active[i]\n                /\\ active' = [active EXCEPT ![j] = TRUE]\n                /\\ terminationDetected' = terminationDetected\n\nDetectTermination == /\\ Terminated\n                     /\\ terminationDetected' = TRUE\n                     /\\ active' = active\n\nNext == \\/ \\E i \\in Nodes : Terminate(i)\n        \\/ \\E i, j \\in Nodes : Wakeup(i, j)\n        \\/ DetectTermination\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(DetectTermination)\n\n-----------------------------------------------------------------------------\n\nTDCorrect == terminationDetected => Terminated\n\nQuiescence == Terminated => [][Terminated]_vars\n\nLiveness == Terminated ~> terminationDetected\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 458,
+    "outputTokens": 430,
+    "totalTokens": 888,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7880
+  }
+}

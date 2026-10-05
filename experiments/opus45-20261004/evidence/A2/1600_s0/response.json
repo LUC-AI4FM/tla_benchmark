@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, b, pc, j, failed\n\nvars == <<x, y, b, pc, j, failed>>\n\nProcs == 1..N\n\nTypeOK ==\n    /\\ x \\in Procs \\cup {0}\n    /\\ y \\in Procs \\cup {0}\n    /\\ b \\in [Procs -> BOOLEAN]\n    /\\ pc \\in [Procs -> {\"ncs\", \"start\", \"checkY\", \"writeY\", \"checkX\", \n                         \"clearFlag\", \"waitFlags\", \"checkYAgain\", \"waitY\",\n                         \"cs\", \"exit\"}]\n    /\\ j \\in [Procs -> Procs \\cup {0, N+1}]\n    /\\ failed \\in [Procs -> BOOLEAN]\n\nInit ==\n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [i \\in Procs |-> FALSE]\n    /\\ pc = [i \\in Procs |-> \"ncs\"]\n    /\\ j = [i \\in Procs |-> 0]\n    /\\ failed = [i \\in Procs |-> FALSE]\n\nncs(self) ==\n    /\\ pc[self] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ failed' = [failed EXCEPT ![self] = FALSE]\n    /\\ UNCHANGED <<x, y, b, j>>\n\nstart(self) ==\n    /\\ pc[self] = \"start\"\n    /\\ b' = [b EXCEPT ![self] = TRUE]\n    /\\ x' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"checkY\"]\n    /\\ UNCHANGED <<y, j, failed>>\n\ncheckY(self) ==\n    /\\ pc[self] = \"checkY\"\n    /\\ IF y /= 0\n       THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n            /\\ pc' = [pc EXCEPT ![self] = \"waitY\"]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"writeY\"]\n            /\\ UNCHANGED b\n    /\\ UNCHANGED <<x, y, j, failed>>\n\nwriteY(self) ==\n    /\\ pc[self] = \"writeY\"\n    /\\ y' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"checkX\"]\n    /\\ UNCHANGED <<x, b, j, failed>>\n\ncheckX(self) ==\n    /\\ pc[self] = \"checkX\"\n    /\\ IF x /= self\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"clearFlag\"]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n    /\\ UNCHANGED <<x, y, b, j, failed>>\n\nclearFlag(self) ==\n    /\\ pc[self] = \"clearFlag\"\n    /\\ b' = [b EXCEPT ![self] = FALSE]\n    /\\ j' = [j EXCEPT ![self] = 1]\n    /\\ pc' = [pc EXCEPT ![self] = \"waitFlags\"]\n    /\\ UNCHANGED <<x, y, failed>>\n\nwaitFlags(self) ==\n    /\\ pc[self] = \"waitFlags\"\n    /\\ IF j[self] <= N\n       THEN IF j[self] /= self /\\ b[j[self]]\n            THEN UNCHANGED <<x, y, b, pc, j, failed>>\n            ELSE /\\ j' = [j EXCEPT ![self] = j[self] + 1]\n                 /\\ UNCHANGED <<x, y, b, pc, failed>>\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"checkYAgain\"]\n            /\\ UNCHANGED <<x, y, b, j, failed>>\n\ncheckYAgain(self) ==\n    /\\ pc[self] = \"checkYAgain\"\n    /\\ IF y /= self\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"waitY\"]\n            /\\ failed' = [failed EXCEPT ![self] = TRUE]\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n            /\\ UNCHANGED failed\n    /\\ UNCHANGED <<x, y, b, j>>\n\nwaitY(self) ==\n    /\\ pc[self] = \"waitY\"\n    /\\ IF y /= 0\n       THEN UNCHANGED <<x, y, b, pc, j, failed>>\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n            /\\ UNCHANGED <<x, y, b, j, failed>>\n\ncs(self) ==\n    /\\ pc[self] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"exit\"]\n    /\\ UNCHANGED <<x, y, b, j, failed>>\n\nexit(self) ==\n    /\\ pc[self] = \"exit\"\n    /\\ y' = 0\n    /\\ b' = [b EXCEPT ![self] = FALSE]\n    /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n    /\\ UNCHANGED <<x, j, failed>>\n\nproc(self) ==\n    \\/ ncs(self)\n    \\/ start(self)\n    \\/ checkY(self)\n    \\/ writeY(self)\n    \\/ checkX(self)\n    \\/ clearFlag(self)\n    \\/ waitFlags(self)\n    \\/ checkYAgain(self)\n    \\/ waitY(self)\n    \\/ cs(self)\n    \\/ exit(self)\n\nNext == \\E self \\in Procs : proc(self)\n\nFairness == \\A self \\in Procs : WF_vars(proc(self))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nInCS(i) == pc[i] = \"cs\" /\\ ~failed[i]\n\nInvariant == \\A i, k \\in Procs : i /= k => ~(InCS(i) /\\ InCS(k))\n\nSomeoneInCS == \\E i \\in Procs : pc[i] = \"cs\"\n\nLiveness == []<>SomeoneInCS\n\nContention == \\E i, k \\in Procs : i /= k /\\ pc[i] = \"cs\" /\\ pc[k] \\in {\"checkX\", \"clearFlag\", \"waitFlags\", \"checkYAgain\", \"waitY\"}\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 489,
+    "outputTokens": 1625,
+    "totalTokens": 2114,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19209
+  }
+}

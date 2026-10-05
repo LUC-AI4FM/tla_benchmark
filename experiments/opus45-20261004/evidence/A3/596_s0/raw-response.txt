@@ -1,0 +1,44 @@
+```tla
+---------------------------- MODULE Scratch ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+VARIABLES x
+
+Init == x = 0
+
+Next == 
+    \/ (x = 0 /\ (x' = 1 \/ x' = 2))
+    \/ (x /= 0 /\ x' = 0)
+
+Spec == Init /\ [][Next]_x /\ WF_x(Next)
+
+(* Safety Invariants *)
+TypeInvariant == x \in {0, 1, 2}
+
+(* Liveness Properties *)
+(* Eventually stabilize away from 1 *)
+EventuallyNotOne == <>[](x /= 1)
+
+(* Eventually stabilize away from 2 *)
+EventuallyNotTwo == <>[](x /= 2)
+
+(* Eventually repeatedly return to zero *)
+EventuallyAlwaysReturnToZero == []<>(x = 0)
+
+(* Negation of a temporal property - x does not always stay at 0 *)
+NotAlwaysZero == ~[](x = 0)
+
+(* Postcondition for TLC counterexample trace checking *)
+(* Encodes a trace as records, tuples, and sets for TLC verification *)
+TraceConstraint ==
+    LET 
+        trace == <<[x |-> 0], [x |-> 1], [x |-> 0], [x |-> 2], [x |-> 0]>>
+        validStates == {0, 1, 2}
+    IN
+        \A i \in 1..Len(trace) : trace[i].x \in validStates
+
+(* Alternative liveness: from any state, we can eventually reach 0 *)
+AlwaysEventuallyZero == [](x /= 0 => <>(x = 0))
+
+=============================================================================
+```

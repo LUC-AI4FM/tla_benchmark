@@ -1,0 +1,84 @@
+```tla
+---------------------------- MODULE prisoners ----------------------------
+
+CONSTANTS Prisoner, p2, p3
+
+VARIABLES switchA, switchB, count, declared, visited, timesFlippedA
+
+vars == <<switchA, switchB, count, declared, visited, timesFlippedA>>
+
+Counter == CHOOSE p \in Prisoner : TRUE
+
+NonCounters == Prisoner \ {Counter}
+
+NumPrisoners == Cardinality(Prisoner)
+
+Cardinality(S) == LET CardinalityAcc[T \in SUBSET S] ==
+                      IF T = {} THEN 0
+                      ELSE 1 + CardinalityAcc[T \ {CHOOSE x \in T : TRUE}]
+                  IN CardinalityAcc[S]
+
+TypeOK == /\ switchA \in BOOLEAN
+          /\ switchB \in BOOLEAN
+          /\ count \in 0..2*NumPrisoners
+          /\ declared \in BOOLEAN
+          /\ visited \subseteq Prisoner
+          /\ timesFlippedA \in [NonCounters -> 0..2]
+
+Init == /\ switchA = FALSE
+        /\ switchB = FALSE
+        /\ count = 0
+        /\ declared = FALSE
+        /\ visited = {}
+        /\ timesFlippedA = [p \in NonCounters |-> 0]
+
+CounterAction == /\ ~declared
+                 /\ IF switchA = TRUE
+                    THEN /\ switchA' = FALSE
+                         /\ count' = count + 1
+                         /\ IF count' = 2 * (NumPrisoners - 1)
+                            THEN declared' = TRUE
+                            ELSE declared' = FALSE
+                         /\ switchB' = switchB
+                    ELSE /\ switchB' = ~switchB
+                         /\ switchA' = switchA
+                         /\ count' = count
+                         /\ declared' = FALSE
+                 /\ visited' = visited \cup {Counter}
+                 /\ timesFlippedA' = timesFlippedA
+
+NonCounterAction(p) == /\ p \in NonCounters
+                       /\ ~declared
+                       /\ IF switchA = FALSE /\ timesFlippedA[p] < 2
+                          THEN /\ switchA' = TRUE
+                               /\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]
+                               /\ switchB' = switchB
+                          ELSE /\ switchB' = ~switchB
+                               /\ switchA' = switchA
+                               /\ timesFlippedA' = timesFlippedA
+                       /\ count' = count
+                       /\ declared' = declared
+                       /\ visited' = visited \cup {p}
+
+EnterRoom(p) == IF p = Counter
+                THEN CounterAction
+                ELSE NonCounterAction(p)
+
+Next == \E p \in Prisoner : EnterRoom(p)
+
+CounterFairness == WF_vars(CounterAction)
+
+NonCounterFairness == \A p \in NonCounters : WF_vars(NonCounterAction(p))
+
+Fairness == CounterFairness /\ NonCounterFairness
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+CountInvariant == count <= 2 * (NumPrisoners - 1)
+
+Safety == declared => (visited = Prisoner)
+
+Liveness == <>(declared)
+
+==========================================================================
+```

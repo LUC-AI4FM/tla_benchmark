@@ -1,0 +1,145 @@
+---------------------------- MODULE AsyncTerminationDetection ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES
+    active,     \* active[i] = TRUE iff node i is active
+    pending,    \* pending[i] = count of pending messages for node i
+    detected    \* TRUE iff termination has been detected
+
+vars == <<active, pending, detected>>
+
+Node == 0..(N-1)
+
+\* Type invariant
+TypeOK ==
+    /\ active \in [Node -> BOOLEAN]
+    /\ pending \in [Node -> Nat]
+    /\ detected \in BOOLEAN
+
+\* Initial state: all nodes are active, no pending messages, termination not detected
+Init ==
+    /\ active = [i \in Node |-> TRUE]
+    /\ pending = [i \in Node |-> 0]
+    /\ detected = FALSE
+
+\* A node terminates (becomes inactive)
+\* A node can only terminate if it has no pending messages
+Terminate(i) ==
+    /\ active[i] = TRUE
+    /\ active' = [active EXCEPT ![i] = FALSE]
+    /\ UNCHANGED <<pending, detected>>
+
+\* A node sends a message to another node in the ring
+\* Only active nodes can send messages
+SendMsg(i, j) ==
+    /\ active[i] = TRUE
+    /\ i /= j
+    /\ pending' = [pending EXCEPT ![j] = pending[j] + 1]
+    /\ UNCHANGED <<active, detected>>
+
+\* A node receives a pending message and becomes active
+ReceiveMsg(i) ==
+    /\ pending[i] > 0
+    /\ pending' = [pending EXCEPT ![i] = pending[i] - 1]
+    /\ active' = [active EXCEPT ![i] = TRUE]
+    /\ UNCHANGED <<detected>>
+
+\* Actual termination: all nodes are inactive and no pending messages
+Terminated ==
+    /\ \A i \in Node : active[i] = FALSE
+    /\ \A i \in Node : pending[i] = 0
+
+\* Detection of termination can occur when system is actually terminated
+DetectTermination ==
+    /\ Terminated
+    /\ detected = FALSE
+    /\ detected' = TRUE
+    /\ UNCHANGED <<active, pending>>
+
+\* Next state relation
+Next ==
+    \/ \E i \in Node : Terminate(i)
+    \/ \E i, j \in Node : SendMsg(i, j)
+    \/ \E i \in Node : ReceiveMsg(i)
+    \/ DetectTermination
+
+\* Fairness: weak fairness on DetectTermination
+Fairness == WF_vars(DetectTermination)
+
+\* Complete specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+--------------------------------------------------------------------------------
+\* SAFETY PROPERTIES
+--------------------------------------------------------------------------------
+
+\* Safety: Detection implies actual termination
+\* If termination has been detected, then the system is actually terminated
+Safe == detected => Terminated
+
+\* Once termination is detected, it remains detected (stability of detection)
+StableDetection == [][detected => detected']_vars
+
+\* Once terminated, the system stays terminated (no active nodes, no pending messages)
+\* This holds because terminated nodes cannot spontaneously become active
+\* and messages can only be sent by active nodes
+StableTermination == [](Terminated => []Terminated)
+
+\* Auxiliary invariant: pending messages are bounded by total possible sends
+\* (useful for bounded model checking)
+PendingBounded == \A i \in Node : pending[i] <= N * N
+
+\* Auxiliary invariant: if detected then must have been terminated
+DetectionImpliesTermination == detected => Terminated
+
+\* Main safety invariant combining all safety properties
+Safety == TypeOK /\ Safe
+
+--------------------------------------------------------------------------------
+\* LIVENESS PROPERTIES
+--------------------------------------------------------------------------------
+
+\* Liveness: If the system is terminated, eventually detection will occur
+\* (under weak fairness of DetectTermination)
+Live == Terminated ~> detected
+
+\* Alternative formulation: actual termination leads to eventual detection
+EventualDetection == [](Terminated => <>detected)
+
+--------------------------------------------------------------------------------
+\* STATE CONSTRAINT FOR BOUNDED MODEL CHECKING
+--------------------------------------------------------------------------------
+
+\* Bound on pending messages for finite state space exploration
+MaxPending == 3
+
+StateConstraint == \A i \in Node : pending[i] <= MaxPending
+
+--------------------------------------------------------------------------------
+\* AUXILIARY INVARIANTS
+--------------------------------------------------------------------------------
+
+\* Total number of pending messages
+TotalPending == 
+    LET Sum[S \in SUBSET Node] == 
+        IF S = {} THEN 0
+        ELSE LET x == CHOOSE x \in S : TRUE
+             IN pending[x] + Sum[S \ {x}]
+    IN Sum[Node]
+
+\* If no node is active and there are pending messages, 
+\* receiving a message will activate a node
+NoActiveWithPending ==
+    (\A i \in Node : ~active[i]) /\ (TotalPending > 0) =>
+    \E i \in Node : pending[i] > 0
+
+\* Auxiliary: at least one node must be active or have pending messages,
+\* or the system is terminated
+ActiveOrPendingOrTerminated ==
+    (\E i \in Node : active[i] \/ pending[i] > 0) \/ Terminated
+
+================================================================================

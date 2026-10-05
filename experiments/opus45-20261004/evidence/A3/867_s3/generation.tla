@@ -1,0 +1,234 @@
+-------------------------------- MODULE Paxos --------------------------------
+(******************************************************************************)
+(* This module specifies the Paxos consensus protocol without explicit        *)
+(* leaders or learners, modeling the exchange of prepare, promise, accept,    *)
+(* accepted, and decide messages among proposers and acceptors.               *)
+(*                                                                            *)
+(* NOTE: Paxos does not guarantee termination under the asynchronous fault    *)
+(* model implied by FLP-style reasoning. The impossibility result shows that  *)
+(* no deterministic consensus protocol can guarantee both safety and liveness *)
+(* in an asynchronous system with even one faulty process. Therefore, we      *)
+(* explicitly set liveness to FALSE in this specification.                    *)
+(******************************************************************************)
+
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    Acceptors,      \* The set of acceptors
+    Proposers,      \* The set of proposers  
+    Values,         \* The set of proposable values
+    Ballots         \* The set of ballot numbers (typically natural numbers)
+
+(******************************************************************************)
+(* We assume quorums are strict majorities with pairwise intersection.        *)
+(* A quorum is any subset of Acceptors with more than half the acceptors.     *)
+(******************************************************************************)
+Quorums == {Q \in SUBSET Acceptors : Cardinality(Q) * 2 > Cardinality(Acceptors)}
+
+(******************************************************************************)
+(* Message types:                                                             *)
+(*   - Prepare: proposer initiates a ballot                                   *)
+(*   - Promise: acceptor responds to prepare                                  *)
+(*   - Accept: proposer asks acceptors to accept a value                      *)
+(*   - Accepted: acceptor confirms acceptance                                 *)
+(*   - Decide: decision announcement                                          *)
+(******************************************************************************)
+
+VARIABLES
+    messages,       \* The set of all messages that have been sent
+    decision,       \* A representative decision value (None or some value)
+    maxBal,         \* maxBal[a] = highest ballot seen by acceptor a
+    maxVBal,        \* maxVBal[a] = highest ballot accepted by acceptor a
+    maxVal          \* maxVal[a] = value accepted at maxVBal[a]
+
+vars == <<messages, decision, maxBal, maxVBal, maxVal>>
+
+None == CHOOSE v : v \notin Values
+
+(******************************************************************************)
+(* Type definitions for messages                                              *)
+(******************************************************************************)
+PrepareMsg == [type : {"prepare"}, bal : Ballots, proposer : Proposers]
+
+PromiseMsg == [type : {"promise"}, bal : Ballots, acc : Acceptors,
+               maxVBal : Ballots \cup {-1}, maxVal : Values \cup {None}]
+
+AcceptMsg == [type : {"accept"}, bal : Ballots, val : Values, proposer : Proposers]
+
+AcceptedMsg == [type : {"accepted"}, bal : Ballots, val : Values, acc : Acceptors]
+
+DecideMsg == [type : {"decide"}, val : Values]
+
+Message == PrepareMsg \cup PromiseMsg \cup AcceptMsg \cup AcceptedMsg \cup DecideMsg
+
+(******************************************************************************)
+(* Type invariant                                                             *)
+(******************************************************************************)
+TypeOK ==
+    /\ messages \subseteq Message
+    /\ decision \in Values \cup {None}
+    /\ maxBal \in [Acceptors -> Ballots \cup {-1}]
+    /\ maxVBal \in [Acceptors -> Ballots \cup {-1}]
+    /\ maxVal \in [Acceptors -> Values \cup {None}]
+
+(******************************************************************************)
+(* Initial state                                                              *)
+(******************************************************************************)
+Init ==
+    /\ messages = {}
+    /\ decision = None
+    /\ maxBal = [a \in Acceptors |-> -1]
+    /\ maxVBal = [a \in Acceptors |-> -1]
+    /\ maxVal = [a \in Acceptors |-> None]
+
+(******************************************************************************)
+(* Send a message by adding it to the messages set                            *)
+(******************************************************************************)
+Send(m) == messages' = messages \cup {m}
+
+(******************************************************************************)
+(* Phase 1a: Proposer sends prepare request for ballot b                      *)
+(******************************************************************************)
+Phase1a(p, b) ==
+    /\ Send([type |-> "prepare", bal |-> b, proposer |-> p])
+    /\ UNCHANGED <<decision, maxBal, maxVBal, maxVal>>
+
+(******************************************************************************)
+(* Phase 1b: Acceptor responds to prepare with promise                        *)
+(******************************************************************************)
+Phase1b(a) ==
+    \E m \in messages :
+        /\ m.type = "prepare"
+        /\ m.bal > maxBal[a]
+        /\ maxBal' = [maxBal EXCEPT ![a] = m.bal]
+        /\ Send([type |-> "promise", 
+                 bal |-> m.bal, 
+                 acc |-> a,
+                 maxVBal |-> maxVBal[a], 
+                 maxVal |-> maxVal[a]])
+        /\ UNCHANGED <<decision, maxVBal, maxVal>>
+
+(******************************************************************************)
+(* Phase 2a: Proposer sends accept request after receiving promises from a    *)
+(* quorum. The value is either the value from the highest ballot among        *)
+(* promises, or any proposed value if no acceptor has accepted anything.      *)
+(******************************************************************************)
+Phase2a(p, b, v) ==
+    /\ \E Q \in Quorums :
+        LET promiseMsgs == {m \in messages : m.type = "promise" /\ m.bal = b /\ m.acc \in Q}
+        IN  /\ \A a \in Q : \E m \in promiseMsgs : m.acc = a
+            /\ \/ \A m \in promiseMsgs : m.maxVBal = -1  \* No prior accepts, free to choose v
+               \/ \E m \in promiseMsgs :  \* Must use value from highest ballot
+                    /\ m.maxVBal >= 0
+                    /\ m.maxVal = v
+                    /\ \A m2 \in promiseMsgs : m2.maxVBal =< m.maxVBal
+    /\ ~\E m \in messages : m.type = "accept" /\ m.bal = b  \* Don't send duplicate accepts
+    /\ Send([type |-> "accept", bal |-> b, val |-> v, proposer |-> p])
+    /\ UNCHANGED <<decision, maxBal, maxVBal, maxVal>>
+
+(******************************************************************************)
+(* Phase 2b: Acceptor accepts the value if it hasn't promised to a higher     *)
+(* ballot                                                                     *)
+(******************************************************************************)
+Phase2b(a) ==
+    \E m \in messages :
+        /\ m.type = "accept"
+        /\ m.bal >= maxBal[a]
+        /\ maxBal' = [maxBal EXCEPT ![a] = m.bal]
+        /\ maxVBal' = [maxVBal EXCEPT ![a] = m.bal]
+        /\ maxVal' = [maxVal EXCEPT ![a] = m.val]
+        /\ Send([type |-> "accepted", bal |-> m.bal, val |-> m.val, acc |-> a])
+        /\ UNCHANGED <<decision>>
+
+(******************************************************************************)
+(* Decide: When a quorum of acceptors have accepted the same value at the     *)
+(* same ballot, the value can be decided                                      *)
+(******************************************************************************)
+Decide ==
+    \E b \in Ballots, v \in Values :
+        /\ \E Q \in Quorums :
+            \A a \in Q : 
+                \E m \in messages : 
+                    m.type = "accepted" /\ m.bal = b /\ m.val = v /\ m.acc = a
+        /\ decision = None  \* Only decide once
+        /\ decision' = v
+        /\ Send([type |-> "decide", val |-> v])
+        /\ UNCHANGED <<maxBal, maxVBal, maxVal>>
+
+(******************************************************************************)
+(* Next state relation                                                        *)
+(******************************************************************************)
+Next ==
+    \/ \E p \in Proposers, b \in Ballots : Phase1a(p, b)
+    \/ \E a \in Acceptors : Phase1b(a)
+    \/ \E p \in Proposers, b \in Ballots, v \in Values : Phase2a(p, b, v)
+    \/ \E a \in Acceptors : Phase2b(a)
+    \/ Decide
+
+(******************************************************************************)
+(* The specification                                                          *)
+(******************************************************************************)
+Spec == Init /\ [][Next]_vars
+
+(******************************************************************************)
+(* SAFETY INVARIANTS                                                          *)
+(******************************************************************************)
+
+(******************************************************************************)
+(* Non-triviality: Only proposed values can be learned/decided.               *)
+(* A value is proposed if there exists an accept message for it.              *)
+(******************************************************************************)
+ProposedValues == {m.val : m \in {msg \in messages : msg.type = "accept"}}
+
+NonTriviality ==
+    decision # None => decision \in ProposedValues
+
+(******************************************************************************)
+(* Consistency: At most one value can be decided                              *)
+(* (Once a decision is made, it cannot change)                                *)
+(******************************************************************************)
+Consistency ==
+    \A m1, m2 \in messages :
+        (m1.type = "decide" /\ m2.type = "decide") => m1.val = m2.val
+
+(******************************************************************************)
+(* Combined safety invariant                                                  *)
+(******************************************************************************)
+SafetyInvariant ==
+    /\ TypeOK
+    /\ NonTriviality
+    /\ Consistency
+
+(******************************************************************************)
+(* TEMPORAL PROPERTIES                                                        *)
+(******************************************************************************)
+
+(******************************************************************************)
+(* Consistency over time: Once decided, the decision value never changes      *)
+(******************************************************************************)
+DecisionStability ==
+    \A v \in Values : (decision = v) => [](decision = v)
+
+(******************************************************************************)
+(* LIVENESS                                                                   *)
+(******************************************************************************)
+(******************************************************************************)
+(* Liveness is explicitly set to FALSE.                                       *)
+(*                                                                            *)
+(* NOTE: Paxos does not guarantee termination under the asynchronous fault    *)
+(* model. The FLP impossibility result proves that no deterministic           *)
+(* consensus protocol can guarantee both safety and liveness in an            *)
+(* asynchronous system where even one process may fail. Paxos prioritizes     *)
+(* safety (agreement and validity) over liveness (termination).               *)
+(*                                                                            *)
+(* In practice, liveness can be achieved with additional mechanisms such as:  *)
+(*   - Leader election to prevent dueling proposers                           *)
+(*   - Timeouts and failure detectors (which assume partial synchrony)        *)
+(*   - Randomized backoff                                                     *)
+(*                                                                            *)
+(* The following property would express termination, but it is NOT guaranteed:*)
+(*   Termination == <>(decision # None)                                       *)
+(******************************************************************************)
+Liveness == FALSE
+
+=============================================================================

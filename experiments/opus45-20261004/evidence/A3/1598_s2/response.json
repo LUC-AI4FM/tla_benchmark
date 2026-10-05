@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Integers, FiniteSets, Sequences, TLC\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES x, y, b, S, pc\n\nProcs == 1..N\n\nTypeOK ==\n    /\\ x \\in Procs \\cup {0}\n    /\\ y \\in Procs \\cup {0}\n    /\\ b \\in [Procs -> BOOLEAN]\n    /\\ S \\in [Procs -> SUBSET Procs]\n    /\\ pc \\in [Procs -> {\"ncs\", \"start\", \"setx\", \"checkx\", \"sety\", \"checky\", \n                         \"wait\", \"cs\", \"exit\", \"reset\"}]\n\nInit ==\n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [i \\in Procs |-> FALSE]\n    /\\ S = [i \\in Procs |-> {}]\n    /\\ pc = [i \\in Procs |-> \"ncs\"]\n\n\\* Non-critical section - process decides to enter critical section\nncs(self) ==\n    /\\ pc[self] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Start - set b[self] to TRUE\nstart(self) ==\n    /\\ pc[self] = \"start\"\n    /\\ b' = [b EXCEPT ![self] = TRUE]\n    /\\ pc' = [pc EXCEPT ![self] = \"setx\"]\n    /\\ UNCHANGED <<x, y, S>>\n\n\\* Set x to self\nsetx(self) ==\n    /\\ pc[self] = \"setx\"\n    /\\ x' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"checkx\"]\n    /\\ UNCHANGED <<y, b, S>>\n\n\\* Check if y != 0, if so retry\ncheckx(self) ==\n    /\\ pc[self] = \"checkx\"\n    /\\ IF y /= 0\n       THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n            /\\ S' = [S EXCEPT ![self] = {i \\in Procs : b[i]}]\n            /\\ pc' = [pc EXCEPT ![self] = \"wait\"]\n            /\\ UNCHANGED <<x, y>>\n       ELSE /\\ pc' = [pc EXCEPT ![self] = \"sety\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Wait for y to become 0, then restart\nwait(self) ==\n    /\\ pc[self] = \"wait\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Set y to self\nsety(self) ==\n    /\\ pc[self] = \"sety\"\n    /\\ y' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"checky\"]\n    /\\ UNCHANGED <<x, b, S>>\n\n\\* Check if x = self, otherwise wait for others\nchecky(self) ==\n    /\\ pc[self] = \"checky\"\n    /\\ IF x = self\n       THEN /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n       ELSE /\\ b' = [b EXCEPT ![self] = FALSE]\n            /\\ S' = [S EXCEPT ![self] = {i \\in Procs : b[i]}]\n            /\\ pc' = [pc EXCEPT ![self] = \"waitall\"]\n            /\\ UNCHANGED <<x, y>>\n\n\\* Wait for all processes in S to set b to FALSE\nwaitall(self) ==\n    /\\ pc[self] = \"waitall\"\n    /\\ \\A i \\in S[self] : ~b[i]\n    /\\ IF y = self\n       THEN pc' = [pc EXCEPT ![self] = \"cs\"]\n       ELSE pc' = [pc EXCEPT ![self] = \"recheck\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Recheck y and possibly restart\nrecheck(self) ==\n    /\\ pc[self] = \"recheck\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Critical section\ncs(self) ==\n    /\\ pc[self] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"exit\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n\\* Exit - reset y and b[self]\nexit(self) ==\n    /\\ pc[self] = \"exit\"\n    /\\ y' = 0\n    /\\ b' = [b EXCEPT ![self] = FALSE]\n    /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n    /\\ UNCHANGED <<x, S>>\n\n\\* Combined action for process self\nproc(self) ==\n    \\/ ncs(self)\n    \\/ start(self)\n    \\/ setx(self)\n    \\/ checkx(self)\n    \\/ wait(self)\n    \\/ sety(self)\n    \\/ checky(self)\n    \\/ waitall(self)\n    \\/ recheck(self)\n    \\/ cs(self)\n    \\/ exit(self)\n\nNext ==\n    \\E self \\in Procs : proc(self)\n\nvars == <<x, y, b, S, pc>>\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety: Mutual Exclusion - no two distinct processes in CS simultaneously\nMutualExclusion ==\n    \\A i, j \\in Procs : (i /= j) => ~(pc[i] = \"cs\" /\\ pc[j] = \"cs\")\n\n\\* Liveness: Infinitely often some process is in the critical section\nSomeoneInCS ==\n    \\E i \\in Procs : pc[i] = \"cs\"\n\nLiveness == []<>SomeoneInCS\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 253,
+    "outputTokens": 1543,
+    "totalTokens": 1796,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18714
+  }
+}

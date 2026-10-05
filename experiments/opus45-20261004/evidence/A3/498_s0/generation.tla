@@ -1,0 +1,61 @@
+---------------------------- MODULE MultiSlotConsensus ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS Values, Slots
+
+VARIABLES proposed, chosen
+
+vars == <<proposed, chosen>>
+
+TypeOK ==
+    /\ proposed \subseteq Values
+    /\ chosen \in [Slots -> SUBSET Values]
+    /\ \A s \in Slots : Cardinality(chosen[s]) <= 1
+
+Init ==
+    /\ proposed = {}
+    /\ chosen = [s \in Slots |-> {}]
+
+Propose(v) ==
+    /\ v \notin proposed
+    /\ proposed' = proposed \cup {v}
+    /\ UNCHANGED chosen
+
+Choose(s, v) ==
+    /\ chosen[s] = {}
+    /\ v \in proposed
+    /\ chosen' = [chosen EXCEPT ![s] = {v}]
+    /\ UNCHANGED proposed
+
+Next ==
+    \/ \E v \in Values : Propose(v)
+    \/ \E s \in Slots, v \in Values : Choose(s, v)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+(* Safety Properties *)
+
+Nontriviality ==
+    \A s \in Slots : \A v \in chosen[s] : v \in Values
+
+Stability ==
+    \A s \in Slots : chosen[s] /= {} => [][chosen[s] = chosen'[s]]_vars
+
+Consistency ==
+    \A s \in Slots : Cardinality(chosen[s]) <= 1
+
+ChosenWasProposed ==
+    \A s \in Slots : \A v \in chosen[s] : v \in proposed
+
+SafetyInvariant ==
+    /\ TypeOK
+    /\ Nontriviality
+    /\ Consistency
+    /\ ChosenWasProposed
+
+(* Liveness Property *)
+
+AllSlotsEventuallyChosen ==
+    \A s \in Slots : <>(chosen[s] /= {})
+
+===================================================================================

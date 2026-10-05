@@ -1,0 +1,121 @@
+```tla
+---------------------------- MODULE EvenOdd ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS N
+
+ASSUME N \in Nat
+
+VARIABLES pc, stack, xEven, xOdd, result
+
+vars == <<pc, stack, xEven, xOdd, result>>
+
+Init ==
+    /\ pc = "CallEven"
+    /\ stack = <<>>
+    /\ xEven = N
+    /\ xOdd = 0
+    /\ result = FALSE
+
+CallEven ==
+    /\ pc = "CallEven"
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<stack, xEven, xOdd, result>>
+
+EvenCheck ==
+    /\ pc = "EvenCheck"
+    /\ IF xEven = 0
+       THEN /\ pc' = "EvenReturn"
+            /\ result' = TRUE
+            /\ UNCHANGED <<stack, xOdd>>
+       ELSE /\ pc' = "EvenCallOdd"
+            /\ UNCHANGED <<stack, result, xOdd>>
+    /\ UNCHANGED xEven
+
+EvenCallOdd ==
+    /\ pc = "EvenCallOdd"
+    /\ stack' = Append(stack, [caller |-> "Even", x |-> xEven])
+    /\ xOdd' = xEven - 1
+    /\ pc' = "OddCheck"
+    /\ UNCHANGED <<xEven, result>>
+
+EvenReturn ==
+    /\ pc = "EvenReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE /\ LET frame == Head(stack)
+            IN  IF frame.caller = "Odd"
+                THEN /\ xOdd' = frame.x
+                     /\ pc' = "OddReturn"
+                     /\ UNCHANGED xEven
+                ELSE /\ xEven' = frame.x
+                     /\ pc' = "EvenReturn"
+                     /\ UNCHANGED xOdd
+            /\ stack' = Tail(stack)
+    /\ UNCHANGED result
+
+OddCheck ==
+    /\ pc = "OddCheck"
+    /\ IF xOdd = 0
+       THEN /\ pc' = "OddReturn"
+            /\ result' = FALSE
+            /\ UNCHANGED <<stack, xEven>>
+       ELSE /\ pc' = "OddCallEven"
+            /\ UNCHANGED <<stack, result, xEven>>
+    /\ UNCHANGED xOdd
+
+OddCallEven ==
+    /\ pc = "OddCallEven"
+    /\ stack' = Append(stack, [caller |-> "Odd", x |-> xOdd])
+    /\ xEven' = xOdd - 1
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<xOdd, result>>
+
+OddReturn ==
+    /\ pc = "OddReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE /\ LET frame == Head(stack)
+            IN  IF frame.caller = "Even"
+                THEN /\ xEven' = frame.x
+                     /\ pc' = "EvenReturn"
+                     /\ UNCHANGED xOdd
+                ELSE /\ xOdd' = frame.x
+                     /\ pc' = "OddReturn"
+                     /\ UNCHANGED xEven
+            /\ stack' = Tail(stack)
+    /\ UNCHANGED result
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ CallEven
+    \/ EvenCheck
+    \/ EvenCallOdd
+    \/ EvenReturn
+    \/ OddCheck
+    \/ OddCallEven
+    \/ OddReturn
+    \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+TypeOK ==
+    /\ pc \in {"CallEven", "EvenCheck", "EvenCallOdd", "EvenReturn", 
+               "OddCheck", "OddCallEven", "OddReturn", "Done"}
+    /\ xEven \in Nat
+    /\ xOdd \in Nat
+    /\ result \in BOOLEAN
+    /\ stack \in Seq([caller : {"Even", "Odd"}, x : Nat])
+
+ResultCorrect ==
+    pc = "Done" => (result = ((N % 2) = 0))
+
+Termination == <>(pc = "Done")
+
+==========================================================================
+```

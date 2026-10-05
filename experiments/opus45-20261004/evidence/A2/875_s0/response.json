@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTreeRandom ----------------------------\nEXTENDS Integers, FiniteSets, TLC\n\nCONSTANTS Nodes, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME MaxCardinality \\in Nat /\\ MaxCardinality >= Cardinality(Nodes)\n\n\\* Generate random undirected edges\nEdgesFrom(n) == RandomElement(SUBSET (Nodes \\ {n}))\nGeneratedEdges == UNION {{n, m} : n \\in Nodes, m \\in EdgesFrom(n)}\nEdges == {{n, m} \\in GeneratedEdges : n # m}\n\n\\* Neighbors of a node in the undirected graph\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges}\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\n\\* A node n can update if it has a neighbor m with dist[m] < dist[n] - 1\nCanUpdate(n, m) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n] - 1\n\nUpdate(n, m) ==\n    /\\ CanUpdate(n, m)\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes :\n        Update(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Post-condition for termination\nPostCondition ==\n    \\A n \\in Nodes :\n        \\/ (n = Root /\\ dist[n] = 0)\n        \\/ (dist[n] = MaxCardinality /\\ \\A m \\in Neighbors(n) : dist[m] = MaxCardinality)\n        \\/ (dist[n] = dist[mom[n]] + 1 /\\ mom[n] \\in Neighbors(n))\n\n\\* No further steps are enabled\nTermination == ~ENABLED Next\n\n\\* Safety: when terminated, post-condition holds\nSafety == Termination => PostCondition\n\n\\* Liveness: post-condition is eventually reached\nLiveness == <>PostCondition\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 530,
+    "outputTokens": 673,
+    "totalTokens": 1203,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10769
+  }
+}

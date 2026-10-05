@@ -1,0 +1,157 @@
+---------------------------- MODULE PlusCal ----------------------------
+
+EXTENDS Integers, Sequences, TLC
+
+CONSTANT defaultInitValue
+
+(* --algorithm AddAndConvert
+variables result = defaultInitValue, output = defaultInitValue;
+
+procedure Add(a, b)
+variable sum = defaultInitValue;
+begin
+  AddStep:
+    sum := a + b;
+  ReturnAdd:
+    result := sum;
+    return;
+end procedure;
+
+procedure IntToString(n)
+variable str = defaultInitValue;
+begin
+  AssertN:
+    assert n = 10;
+  ConvertStep:
+    str := "10";
+  ReturnStr:
+    output := str;
+    return;
+end procedure;
+
+fair process Main = 0
+begin
+  CallAdd:
+    call Add(5, 5);
+  CallIntToString:
+    call IntToString(result);
+  AssertOutput:
+    assert output = "10";
+  Done:
+    skip;
+end process;
+
+end algorithm *)
+
+\* BEGIN TRANSLATION
+VARIABLES result, output, pc, stack, a, b, sum, n, str
+
+vars == << result, output, pc, stack, a, b, sum, n, str >>
+
+ProcSet == {0}
+
+Init == (* Global variables *)
+        /\ result = defaultInitValue
+        /\ output = defaultInitValue
+        (* Procedure Add *)
+        /\ a = [ self \in ProcSet |-> defaultInitValue]
+        /\ b = [ self \in ProcSet |-> defaultInitValue]
+        /\ sum = [ self \in ProcSet |-> defaultInitValue]
+        (* Procedure IntToString *)
+        /\ n = [ self \in ProcSet |-> defaultInitValue]
+        /\ str = [ self \in ProcSet |-> defaultInitValue]
+        /\ stack = [self \in ProcSet |-> << >>]
+        /\ pc = [self \in ProcSet |-> "CallAdd"]
+
+AddStep(self) == /\ pc[self] = "AddStep"
+                 /\ sum' = [sum EXCEPT ![self] = a[self] + b[self]]
+                 /\ pc' = [pc EXCEPT ![self] = "ReturnAdd"]
+                 /\ UNCHANGED << result, output, stack, a, b, n, str >>
+
+ReturnAdd(self) == /\ pc[self] = "ReturnAdd"
+                   /\ result' = sum[self]
+                   /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
+                   /\ sum' = [sum EXCEPT ![self] = Head(stack[self]).sum]
+                   /\ a' = [a EXCEPT ![self] = Head(stack[self]).a]
+                   /\ b' = [b EXCEPT ![self] = Head(stack[self]).b]
+                   /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
+                   /\ UNCHANGED << output, n, str >>
+
+Add(self) == AddStep(self) \/ ReturnAdd(self)
+
+AssertN(self) == /\ pc[self] = "AssertN"
+                 /\ Assert(n[self] = 10, "Assertion failed: n = 10")
+                 /\ pc' = [pc EXCEPT ![self] = "ConvertStep"]
+                 /\ UNCHANGED << result, output, stack, a, b, sum, n, str >>
+
+ConvertStep(self) == /\ pc[self] = "ConvertStep"
+                     /\ str' = [str EXCEPT ![self] = "10"]
+                     /\ pc' = [pc EXCEPT ![self] = "ReturnStr"]
+                     /\ UNCHANGED << result, output, stack, a, b, sum, n >>
+
+ReturnStr(self) == /\ pc[self] = "ReturnStr"
+                   /\ output' = str[self]
+                   /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
+                   /\ str' = [str EXCEPT ![self] = Head(stack[self]).str]
+                   /\ n' = [n EXCEPT ![self] = Head(stack[self]).n]
+                   /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
+                   /\ UNCHANGED << result, a, b, sum >>
+
+IntToString(self) == AssertN(self) \/ ConvertStep(self) \/ ReturnStr(self)
+
+CallAdd(self) == /\ pc[self] = "CallAdd"
+                 /\ /\ a' = [a EXCEPT ![self] = 5]
+                    /\ b' = [b EXCEPT ![self] = 5]
+                    /\ stack' = [stack EXCEPT ![self] = << [procedure |-> "Add",
+                                                            pc |-> "CallIntToString",
+                                                            sum |-> sum[self],
+                                                            a |-> a[self],
+                                                            b |-> b[self]] >>
+                                                         \o stack[self]]
+                 /\ sum' = [sum EXCEPT ![self] = defaultInitValue]
+                 /\ pc' = [pc EXCEPT ![self] = "AddStep"]
+                 /\ UNCHANGED << result, output, n, str >>
+
+CallIntToString(self) == /\ pc[self] = "CallIntToString"
+                         /\ /\ n' = [n EXCEPT ![self] = result]
+                            /\ stack' = [stack EXCEPT ![self] = << [procedure |-> "IntToString",
+                                                                     pc |-> "AssertOutput",
+                                                                     str |-> str[self],
+                                                                     n |-> n[self]] >>
+                                                                  \o stack[self]]
+                         /\ str' = [str EXCEPT ![self] = defaultInitValue]
+                         /\ pc' = [pc EXCEPT ![self] = "AssertN"]
+                         /\ UNCHANGED << result, output, a, b, sum >>
+
+AssertOutput(self) == /\ pc[self] = "AssertOutput"
+                      /\ Assert(output = "10", "Assertion failed: output = \"10\"")
+                      /\ pc' = [pc EXCEPT ![self] = "Done"]
+                      /\ UNCHANGED << result, output, stack, a, b, sum, n, str >>
+
+Done(self) == /\ pc[self] = "Done"
+              /\ TRUE
+              /\ pc' = [pc EXCEPT ![self] = "Finished"]
+              /\ UNCHANGED << result, output, stack, a, b, sum, n, str >>
+
+Main(self) == CallAdd(self) \/ CallIntToString(self) \/ AssertOutput(self) \/ Done(self)
+
+(* Allow disjunctive action formula *)
+Next == (\E self \in ProcSet: Add(self) \/ IntToString(self))
+           \/ Main(0)
+           \/ (* Disjunct to prevent deadlock on termination *)
+              ((\A self \in ProcSet: pc[self] = "Finished") /\ UNCHANGED vars)
+
+Spec == /\ Init /\ [][Next]_vars
+        /\ WF_vars(Main(0))
+        /\ WF_vars(Add(0))
+        /\ WF_vars(IntToString(0))
+
+\* END TRANSLATION
+
+Termination == <>(\A self \in ProcSet: pc[self] = "Finished")
+
+ResultIs10 == [](pc[0] = "CallIntToString" => result = 10)
+
+OutputIs10 == [](pc[0] = "Finished" => output = "10")
+
+=============================================================================

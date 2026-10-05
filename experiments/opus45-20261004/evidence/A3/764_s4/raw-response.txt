@@ -1,0 +1,95 @@
+```tla
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N
+
+ASSUME N \in Nat /\ N >= 2
+
+Philosophers == 0..(N-1)
+
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+VARIABLES sem, pc
+
+vars == <<sem, pc>>
+
+TypeOK ==
+    /\ sem \in [0..(N-1) -> {0, 1}]
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating"}]
+
+Init ==
+    /\ sem = [f \in 0..(N-1) |-> 1]
+    /\ pc = [p \in Philosophers |-> "thinking"]
+
+\* Philosopher 0 acquires left fork first, then right fork
+\* Philosophers 1 to N-1 acquire right fork first, then left fork
+
+\* Become hungry (transition from thinking to hungry)
+BecomeHungry(p) ==
+    /\ pc[p] = "thinking"
+    /\ pc' = [pc EXCEPT ![p] = "hungry"]
+    /\ sem' = sem
+
+\* Acquire first fork
+AcquireFirstFork(p) ==
+    /\ pc[p] = "hungry"
+    /\ IF p = 0
+       THEN \* Philosopher 0 acquires left fork first
+            /\ sem[LeftFork(p)] = 1
+            /\ sem' = [sem EXCEPT ![LeftFork(p)] = 0]
+       ELSE \* Other philosophers acquire right fork first
+            /\ sem[RightFork(p)] = 1
+            /\ sem' = [sem EXCEPT ![RightFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "hasFirst"]
+
+\* Acquire second fork
+AcquireSecondFork(p) ==
+    /\ pc[p] = "hasFirst"
+    /\ IF p = 0
+       THEN \* Philosopher 0 acquires right fork second
+            /\ sem[RightFork(p)] = 1
+            /\ sem' = [sem EXCEPT ![RightFork(p)] = 0]
+       ELSE \* Other philosophers acquire left fork second
+            /\ sem[LeftFork(p)] = 1
+            /\ sem' = [sem EXCEPT ![LeftFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "eating"]
+
+\* Finish eating and release both forks
+FinishEating(p) ==
+    /\ pc[p] = "eating"
+    /\ sem' = [sem EXCEPT ![LeftFork(p)] = 1, ![RightFork(p)] = 1]
+    /\ pc' = [pc EXCEPT ![p] = "thinking"]
+
+\* All actions for philosopher p
+PhilosopherAction(p) ==
+    \/ BecomeHungry(p)
+    \/ AcquireFirstFork(p)
+    \/ AcquireSecondFork(p)
+    \/ FinishEating(p)
+
+Next ==
+    \E p \in Philosophers : PhilosopherAction(p)
+
+\* Strong fairness for each philosopher's actions
+Fairness ==
+    \A p \in Philosophers :
+        /\ SF_vars(BecomeHungry(p))
+        /\ SF_vars(AcquireFirstFork(p))
+        /\ SF_vars(AcquireSecondFork(p))
+        /\ SF_vars(FinishEating(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety: Adjacent philosophers never eat simultaneously
+MutualExclusion ==
+    \A p \in Philosophers :
+        ~(pc[p] = "eating" /\ pc[(p + 1) % N] = "eating")
+
+\* Liveness: Every philosopher eats infinitely often (starvation freedom)
+StarvationFreedom ==
+    \A p \in Philosophers : []<>(pc[p] = "eating")
+
+===================================================================================
+```

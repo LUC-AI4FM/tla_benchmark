@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME MaxCardinality \\in Nat\nASSUME MaxCardinality >= Cardinality(Nodes)\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges \\/ {m, n} \\in Edges}\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\nUpdate(n, m) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n]\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes : Update(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTerminated == ~ENABLED Next\n\nReachesRoot(n) ==\n    LET RECURSIVE Path(_, _)\n        Path(node, visited) ==\n            IF node = Root THEN TRUE\n            ELSE IF node \\in visited THEN FALSE\n            ELSE IF mom[node] = node THEN FALSE\n            ELSE Path(mom[node], visited \\cup {node})\n    IN Path(n, {})\n\nPostCondition ==\n    /\\ dist[Root] = 0\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes :\n        IF n = Root THEN TRUE\n        ELSE\n            /\\ mom[n] \\in Neighbors(n)\n            /\\ dist[n] = dist[mom[n]] + 1\n            /\\ ReachesRoot(n)\n\nSafety == Terminated => PostCondition\n\nLiveness == <>Terminated\n\nEventuallyRootParent == \\A n \\in Nodes : <>(mom[n] = Root)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 600,
+    "totalTokens": 893,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10169
+  }
+}

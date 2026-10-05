@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SharedDeque ----------------------------\nEXTENDS Sequences, Integers\n\nCONSTANTS Val, Procs, null\n\nVARIABLES queue, rV, pc\n\nvars == <<queue, rV, pc>>\n\nTypeOK ==\n    /\\ queue \\in Seq(Val)\n    /\\ rV \\in [Procs -> Val \\cup {null, \"empty\", \"full\"}]\n    /\\ pc \\in [Procs -> {\"L1\", \"L2\"}]\n\nInit ==\n    /\\ queue = <<>>\n    /\\ rV = [p \\in Procs |-> null]\n    /\\ pc = [p \\in Procs |-> \"L1\"]\n\nEnqueue(p, v) ==\n    /\\ pc[p] = \"L1\"\n    /\\ \\/ /\\ queue' = Append(queue, v)\n          /\\ rV' = [rV EXCEPT ![p] = v]\n       \\/ /\\ queue' = <<v>> \\o queue\n          /\\ rV' = [rV EXCEPT ![p] = v]\n       \\/ /\\ queue' = queue\n          /\\ rV' = [rV EXCEPT ![p] = \"full\"]\n    /\\ pc' = [pc EXCEPT ![p] = \"L2\"]\n\nDequeue(p) ==\n    /\\ pc[p] = \"L1\"\n    /\\ \\/ /\\ queue # <<>>\n          /\\ \\/ /\\ rV' = [rV EXCEPT ![p] = Head(queue)]\n                /\\ queue' = Tail(queue)\n             \\/ /\\ rV' = [rV EXCEPT ![p] = queue[Len(queue)]]\n                /\\ queue' = SubSeq(queue, 1, Len(queue) - 1)\n       \\/ /\\ queue = <<>>\n          /\\ rV' = [rV EXCEPT ![p] = \"empty\"]\n          /\\ queue' = queue\n    /\\ pc' = [pc EXCEPT ![p] = \"L2\"]\n\nL1(p) ==\n    \\/ \\E v \\in Val : Enqueue(p, v)\n    \\/ Dequeue(p)\n\nL2(p) ==\n    /\\ pc[p] = \"L2\"\n    /\\ rV' = [rV EXCEPT ![p] = null]\n    /\\ pc' = [pc EXCEPT ![p] = \"L1\"]\n    /\\ queue' = queue\n\nNext ==\n    \\E p \\in Procs : L1(p) \\/ L2(p)\n\nFairness == \\A p \\in Procs : WF_vars(L1(p) \\/ L2(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n-----------------------------------------------------------------------------\n\nQueueElementsValid == \\A i \\in 1..Len(queue) : queue[i] \\in Val\n\nReturnValuesValid == \\A p \\in Procs : rV[p] \\in Val \\cup {null, \"empty\", \"full\"}\n\nSafety == TypeOK /\\ QueueElementsValid /\\ ReturnValuesValid\n\nProgress == \\A p \\in Procs : pc[p] = \"L1\" ~> pc[p] = \"L2\"\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 433,
+    "outputTokens": 789,
+    "totalTokens": 1222,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11178
+  }
+}

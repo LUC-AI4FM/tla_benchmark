@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE TinyClockSystem ----------------------------\nEXTENDS Booleans\n\nVARIABLES clock\n\n(* Recursive operator to check if a value is a Boolean *)\nRECURSIVE Check(_)\nCheck(x) == IF x = TRUE THEN TRUE\n            ELSE IF x = FALSE THEN TRUE\n            ELSE FALSE\n\n(* Recursive operator to flip a Boolean value *)\nRECURSIVE Flip(_)\nFlip(x) == IF x = TRUE THEN FALSE\n           ELSE IF x = FALSE THEN TRUE\n           ELSE x\n\n(* Type invariant using the Check operator *)\nTypeOK == Check(clock)\n\n(* Initial state predicate - clock starts as FALSE *)\n(* Note: The recursive operator call Check(clock) in Init may show *)\n(* specific TLC coverage behavior during model checking *)\nInit == clock = FALSE /\\ Check(clock)\n\n(* Constraint-like state predicate using Check *)\nConstraint == Check(clock) = TRUE\n\n(* Next state relation - flips the Boolean value of clock *)\nNext == clock' = Flip(clock)\n\n(* Specification with weak fairness on the Next action *)\nSpec == Init /\\ [][Next]_clock /\\ WF_clock(Next)\n\n(* Safety invariant: clock is always a Boolean *)\nSafetyInvariant == clock \\in BOOLEAN\n\n(* Liveness property: clock eventually becomes TRUE *)\nEventuallyTrue == <>(\\E b \\in BOOLEAN : clock = TRUE)\n\n(* Liveness property: clock always eventually flips *)\nAlwaysEventuallyFlips == [](clock = TRUE => <>(clock = FALSE)) /\\ \n                         [](clock = FALSE => <>(clock = TRUE))\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 212,
+    "outputTokens": 404,
+    "totalTokens": 616,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8224
+  }
+}

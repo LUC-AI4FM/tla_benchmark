@@ -1,0 +1,168 @@
+```tla+
+---------------------------- MODULE HuangTermination ----------------------------
+EXTENDS Integers, FiniteSets, Sequences, Reals
+
+CONSTANTS Procs, Leader, MaxDenominator
+
+ASSUME Leader \in Procs
+ASSUME MaxDenominator > 0
+
+VARIABLES 
+    active,     \* active[p] = TRUE iff process p is active
+    weight,     \* weight[p] = <<numerator, denominator>> (dyadic rational)
+    queue       \* queue[p] = sequence of weights (messages in transit to p)
+
+vars == <<active, weight, queue>>
+
+\* Dyadic rational representation: <<n, d>> represents n/d where d is a power of 2
+\* We represent weight as <<numerator, denominator>>
+
+\* Convert dyadic rational to real for comparison
+ToReal(w) == w[1] / w[2]
+
+\* Add two dyadic rationals
+AddWeight(w1, w2) == 
+    LET d == IF w1[2] >= w2[2] THEN w1[2] ELSE w2[2]
+        n1 == w1[1] * (d \div w1[2])
+        n2 == w2[1] * (d \div w2[2])
+    IN <<n1 + n2, d>>
+
+\* Halve a dyadic rational
+HalveWeight(w) == <<w[1], w[2] * 2>>
+
+\* Zero weight
+ZeroWeight == <<0, 1>>
+
+\* Unit weight
+UnitWeight == <<1, 1>>
+
+\* Check if weight is zero
+IsZero(w) == w[1] = 0
+
+\* Check if weight is one
+IsOne(w) == w[1] = w[2]
+
+\* Sum of all weights in a sequence of weights
+SumSeqWeight(s) == 
+    IF s = <<>> THEN ZeroWeight
+    ELSE LET RECURSIVE SumRec(_)
+             SumRec(seq) == IF seq = <<>> THEN ZeroWeight
+                           ELSE AddWeight(Head(seq), SumRec(Tail(seq)))
+         IN SumRec(s)
+
+\* Sum of all process weights
+SumProcWeights == 
+    LET RECURSIVE SumProcs(_)
+        SumProcs(S) == IF S = {} THEN ZeroWeight
+                       ELSE LET p == CHOOSE x \in S : TRUE
+                            IN AddWeight(weight[p], SumProcs(S \ {p}))
+    IN SumProcs(Procs)
+
+\* Sum of all message weights in all queues
+SumQueueWeights == 
+    LET RECURSIVE SumQueues(_)
+        SumQueues(S) == IF S = {} THEN ZeroWeight
+                        ELSE LET p == CHOOSE x \in S : TRUE
+                             IN AddWeight(SumSeqWeight(queue[p]), SumQueues(S \ {p}))
+    IN SumQueues(Procs)
+
+\* Total weight in system
+TotalWeight == AddWeight(SumProcWeights, SumQueueWeights)
+
+\* Type invariant
+TypeOK == 
+    /\ active \in [Procs -> BOOLEAN]
+    /\ \A p \in Procs : weight[p][1] >= 0 /\ weight[p][2] > 0
+    /\ \A p \in Procs : \A i \in 1..Len(queue[p]) : 
+        queue[p][i][1] >= 0 /\ queue[p][i][2] > 0
+    /\ IsOne(TotalWeight)  \* Weight conservation
+
+\* Initial state
+Init == 
+    /\ active = [p \in Procs |-> p = Leader]
+    /\ weight = [p \in Procs |-> IF p = Leader THEN UnitWeight ELSE ZeroWeight]
+    /\ queue = [p \in Procs |-> <<>>]
+
+\* Send action: active process p sends message to process q
+Send(p, q) == 
+    /\ active[p]
+    /\ p # q
+    /\ ~IsZero(weight[p])
+    /\ weight' = [weight EXCEPT ![p] = HalveWeight(weight[p])]
+    /\ queue' = [queue EXCEPT ![q] = Append(queue[q], HalveWeight(weight[p]))]
+    /\ UNCHANGED active
+
+\* Receive action for non-leader: process p receives a message and becomes active
+Rcv(p) == 
+    /\ p # Leader
+    /\ queue[p] # <<>>
+    /\ active' = [active EXCEPT ![p] = TRUE]
+    /\ weight' = [weight EXCEPT ![p] = AddWeight(weight[p], Head(queue[p]))]
+    /\ queue' = [queue EXCEPT ![p] = Tail(queue[p])]
+
+\* Idle action for non-leader: process p goes idle, sends weight to Leader
+Idle(p) == 
+    /\ p # Leader
+    /\ active[p]
+    /\ ~IsZero(weight[p])
+    /\ active' = [active EXCEPT ![p] = FALSE]
+    /\ queue' = [queue EXCEPT ![Leader] = Append(queue[Leader], weight[p])]
+    /\ weight' = [weight EXCEPT ![p] = ZeroWeight]
+
+\* Leader becomes idle (does not send weight anywhere)
+IdleLdr == 
+    /\ active[Leader]
+    /\ active' = [active EXCEPT ![Leader] = FALSE]
+    /\ UNCHANGED <<weight, queue>>
+
+\* Leader receives message (absorbs weight without reactivating)
+RcvLdr == 
+    /\ queue[Leader] # <<>>
+    /\ weight' = [weight EXCEPT ![Leader] = AddWeight(weight[Leader], Head(queue[Leader]))]
+    /\ queue' = [queue EXCEPT ![Leader] = Tail(queue[Leader])]
+    /\ UNCHANGED active
+
+\* Next state relation
+Next == 
+    \/ \E p, q \in Procs : Send(p, q)
+    \/ \E p \in Procs \ {Leader} : Rcv(p)
+    \/ \E p \in Procs \ {Leader} : Idle(p)
+    \/ IdleLdr
+    \/ RcvLdr
+
+\* Fairness conditions
+Fairness == 
+    /\ \A p \in Procs \ {Leader} : WF_vars(Rcv(p))
+    /\ \A p \in Procs \ {Leader} : WF_vars(Idle(p))
+    /\ WF_vars(RcvLdr)
+    /\ WF_vars(IdleLdr)
+
+\* Temporal specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Termination detected: Leader is inactive and holds weight one
+TerminationDetected == ~active[Leader] /\ IsOne(weight[Leader])
+
+\* Actual termination: all processes inactive and all queues empty
+Terminated == 
+    /\ \A p \in Procs : ~active[p]
+    /\ \A p \in Procs : queue[p] = <<>>
+
+\* Safety property: detection implies termination (and remains so)
+Safe == TerminationDetected => Terminated
+
+\* Liveness property: termination is eventually detected
+Live == Terminated ~> TerminationDetected
+
+\* State constraint for bounded model checking
+StateConstraint == 
+    /\ \A p \in Procs : weight[p][2] <= MaxDenominator
+    /\ \A p \in Procs : \A i \in 1..Len(queue[p]) : queue[p][i][2] <= MaxDenominator
+
+\* Theorems
+THEOREM Spec => []TypeOK
+THEOREM Spec => []Safe
+THEOREM Spec => Live
+
+================================================================================
+```

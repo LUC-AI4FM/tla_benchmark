@@ -1,0 +1,159 @@
+---------------------------- MODULE BakeryAlgorithm ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N,          \* Number of processes
+          MaxTicket   \* Maximum ticket value for model checking
+
+ASSUME N \in Nat /\ N > 0
+ASSUME MaxTicket \in Nat /\ MaxTicket > 0
+
+Procs == 1..N
+
+VARIABLES pc,         \* Program counter for each process
+          num,        \* Ticket number for each process (0 means not in bakery)
+          flag,       \* Flag indicating process is choosing a number
+          j           \* Loop variable for each process (checking other processes)
+
+vars == <<pc, num, flag, j>>
+
+\* Program counter states
+\* "ncs"      - Non-critical section
+\* "choose"   - Start choosing a ticket number
+\* "picking"  - Setting the ticket number
+\* "wait"     - Waiting to enter critical section
+\* "check"    - Checking if other process is choosing
+\* "compare"  - Comparing ticket numbers
+\* "cs"       - Critical section
+\* "exit"     - Exiting critical section
+
+TypeOK == 
+    /\ pc \in [Procs -> {"ncs", "choose", "picking", "wait", "check", "compare", "cs", "exit"}]
+    /\ num \in [Procs -> 0..MaxTicket]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ j \in [Procs -> 0..N+1]
+
+Init ==
+    /\ pc = [i \in Procs |-> "ncs"]
+    /\ num = [i \in Procs |-> 0]
+    /\ flag = [i \in Procs |-> FALSE]
+    /\ j = [i \in Procs |-> 1]
+
+\* Non-critical section: process decides to enter bakery
+NCS(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "choose"]
+    /\ UNCHANGED <<num, flag, j>>
+
+\* Start choosing: set flag to indicate choosing
+Choose(self) ==
+    /\ pc[self] = "choose"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "picking"]
+    /\ UNCHANGED <<num, j>>
+
+\* Pick a ticket number: one more than the maximum of all current numbers
+Picking(self) ==
+    /\ pc[self] = "picking"
+    /\ LET maxNum == IF Procs = {} THEN 0 
+                     ELSE LET S == {num[i] : i \in Procs}
+                          IN CHOOSE x \in S : \A y \in S : x >= y
+       IN num' = [num EXCEPT ![self] = maxNum + 1]
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ j' = [j EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+
+\* Wait: begin checking other processes
+Wait(self) ==
+    /\ pc[self] = "wait"
+    /\ IF j[self] <= N
+       THEN /\ pc' = [pc EXCEPT ![self] = "check"]
+            /\ UNCHANGED <<num, flag, j>>
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<num, flag, j>>
+
+\* Check: wait until the other process is not choosing
+Check(self) ==
+    /\ pc[self] = "check"
+    /\ ~flag[j[self]]
+    /\ pc' = [pc EXCEPT ![self] = "compare"]
+    /\ UNCHANGED <<num, flag, j>>
+
+\* Compare: check ticket numbers with priority by process id
+\* Process can proceed if:
+\* - other process has ticket 0 (not in bakery), OR
+\* - this process has smaller ticket, OR
+\* - same ticket but smaller process id
+Compare(self) ==
+    /\ pc[self] = "compare"
+    /\ \/ num[j[self]] = 0
+       \/ num[self] < num[j[self]]
+       \/ (num[self] = num[j[self]] /\ self < j[self])
+    /\ j' = [j EXCEPT ![self] = j[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, flag>>
+
+\* Critical section: process is in critical section
+CS(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, j>>
+
+\* Exit: leave critical section and reset ticket
+Exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, j>>
+
+\* Process action: any step by process self
+Process(self) ==
+    \/ NCS(self)
+    \/ Choose(self)
+    \/ Picking(self)
+    \/ Wait(self)
+    \/ Check(self)
+    \/ Compare(self)
+    \/ CS(self)
+    \/ Exit(self)
+
+Next == \E self \in Procs : Process(self)
+
+\* Fairness: weak fairness for all process actions
+Fairness == \A self \in Procs : WF_vars(Process(self))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+--------------------------------------------------------------------------------
+\* Safety Invariants
+
+\* Mutual Exclusion: no two processes in critical section simultaneously
+MutualExclusion == 
+    \A i, k \in Procs : (i # k) => ~(pc[i] = "cs" /\ pc[k] = "cs")
+
+\* Alternative formulation: at most one process in CS
+AtMostOneInCS == Cardinality({i \in Procs : pc[i] = "cs"}) <= 1
+
+\* Ticket numbers are bounded (for TLC model checking)
+TicketBound == \A i \in Procs : num[i] <= MaxTicket
+
+\* Combined invariant
+Invariant == TypeOK /\ MutualExclusion /\ TicketBound
+
+--------------------------------------------------------------------------------
+\* Liveness Properties
+
+\* Every process that wants to enter CS eventually does
+\* (Starvation Freedom)
+StarvationFreedom == \A self \in Procs : 
+    (pc[self] = "choose") ~> (pc[self] = "cs")
+
+\* If a process is in CS, it eventually exits
+EventualExit == \A self \in Procs :
+    (pc[self] = "cs") ~> (pc[self] = "ncs")
+
+\* Deadlock freedom: if some process wants to enter, some process enters
+DeadlockFreedom == 
+    (\E self \in Procs : pc[self] \in {"choose", "picking", "wait", "check", "compare"})
+    ~> (\E self \in Procs : pc[self] = "cs")
+
+================================================================================

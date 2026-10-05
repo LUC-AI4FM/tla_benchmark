@@ -1,0 +1,166 @@
+------------------------------ MODULE SimpleRing ------------------------------
+EXTENDS Naturals, TLAPS
+
+CONSTANT N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+(*
+--algorithm SimpleRing {
+    variables x = [i \in 1..N |-> 0], y = [i \in 1..N |-> 0];
+    
+    fair process (proc \in 1..N)
+    {
+        s1: x[self] := 1;
+        s2: y[self] := x[IF self = 1 THEN N ELSE self - 1];
+    }
+}
+*)
+
+VARIABLES x, y, pc
+
+vars == << x, y, pc >>
+
+ProcSet == (1..N)
+
+Init == (* Global variables *)
+        /\ x = [i \in 1..N |-> 0]
+        /\ y = [i \in 1..N |-> 0]
+        /\ pc = [self \in ProcSet |-> "s1"]
+
+s1(self) == /\ pc[self] = "s1"
+            /\ x' = [x EXCEPT ![self] = 1]
+            /\ pc' = [pc EXCEPT ![self] = "s2"]
+            /\ y' = y
+
+s2(self) == /\ pc[self] = "s2"
+            /\ y' = [y EXCEPT ![self] = x[IF self = 1 THEN N ELSE self - 1]]
+            /\ pc' = [pc EXCEPT ![self] = "Done"]
+            /\ x' = x
+
+proc(self) == s1(self) \/ s2(self)
+
+(* Allow stuttering to prevent deadlock on termination *)
+Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
+               /\ UNCHANGED vars
+
+Next == (\E self \in 1..N: proc(self))
+        \/ Terminating
+
+Spec == /\ Init
+        /\ [][Next]_vars
+        /\ \A self \in 1..N : WF_vars(proc(self))
+
+Termination == <>(\A self \in ProcSet: pc[self] = "Done")
+
+(* Type correctness *)
+TypeOK == /\ x \in [1..N -> {0, 1}]
+          /\ y \in [1..N -> {0, 1}]
+          /\ pc \in [1..N -> {"s1", "s2", "Done"}]
+
+(* Safety property: when all processes are done, at least one has y[i] = 1 *)
+Safety == (\A i \in 1..N : pc[i] = "Done") => (\E i \in 1..N : y[i] = 1)
+
+(* Left neighbor function *)
+Left(i) == IF i = 1 THEN N ELSE i - 1
+
+(* Inductive invariant *)
+Inv == /\ TypeOK
+       /\ \A i \in 1..N : pc[i] \in {"s2", "Done"} => x[i] = 1
+       /\ \A i \in 1..N : pc[i] = "Done" => y[i] = x[Left(i)]
+       /\ \A i \in 1..N : (pc[i] = "Done" /\ pc[Left(i)] \in {"s2", "Done"}) => y[i] = 1
+       /\ (\A i \in 1..N : pc[i] = "Done") => 
+          (\A i \in 1..N : pc[Left(i)] \in {"s2", "Done"})
+
+(* Theorem: Invariant implies Safety *)
+THEOREM InvImpliesSafety == Inv => Safety
+<1>1. ASSUME Inv, \A i \in 1..N : pc[i] = "Done"
+      PROVE \E i \in 1..N : y[i] = 1
+  <2>1. 1 \in 1..N
+    BY NAssumption
+  <2>2. pc[1] = "Done"
+    BY <1>1, <2>1
+  <2>3. pc[Left(1)] \in {"s2", "Done"}
+    BY <1>1, <2>1, <2>2 DEF Inv, Left
+  <2>4. y[1] = 1
+    BY <1>1, <2>1, <2>2, <2>3 DEF Inv
+  <2>. QED BY <2>1, <2>4
+<1>. QED BY <1>1 DEF Safety
+
+(* Theorem: Init establishes Inv *)
+THEOREM InitImpliesInv == Init => Inv
+<1>. SUFFICES ASSUME Init PROVE Inv
+  OBVIOUS
+<1>1. TypeOK
+  BY DEF Init, TypeOK, ProcSet
+<1>2. \A i \in 1..N : pc[i] \in {"s2", "Done"} => x[i] = 1
+  BY DEF Init, ProcSet
+<1>3. \A i \in 1..N : pc[i] = "Done" => y[i] = x[Left(i)]
+  BY DEF Init, ProcSet
+<1>4. \A i \in 1..N : (pc[i] = "Done" /\ pc[Left(i)] \in {"s2", "Done"}) => y[i] = 1
+  BY DEF Init, ProcSet
+<1>5. (\A i \in 1..N : pc[i] = "Done") => (\A i \in 1..N : pc[Left(i)] \in {"s2", "Done"})
+  BY DEF Init, ProcSet
+<1>. QED BY <1>1, <1>2, <1>3, <1>4, <1>5 DEF Inv
+
+(* Theorem: Inv is preserved by Next *)
+THEOREM InvPreservedByNext == Inv /\ [Next]_vars => Inv'
+<1>. SUFFICES ASSUME Inv, [Next]_vars PROVE Inv'
+  OBVIOUS
+<1>1. CASE UNCHANGED vars
+  BY <1>1 DEF Inv, TypeOK, vars
+<1>2. CASE \E self \in 1..N: proc(self)
+  <2>. PICK self \in 1..N : proc(self)
+    BY <1>2
+  <2>1. CASE s1(self)
+    <3>1. TypeOK'
+      BY <2>1 DEF Inv, TypeOK, s1
+    <3>2. \A i \in 1..N : pc'[i] \in {"s2", "Done"} => x'[i] = 1
+      BY <2>1 DEF Inv, TypeOK, s1
+    <3>3. \A i \in 1..N : pc'[i] = "Done" => y'[i] = x'[Left(i)]
+      BY <2>1 DEF Inv, TypeOK, s1, Left
+    <3>4. \A i \in 1..N : (pc'[i] = "Done" /\ pc'[Left(i)] \in {"s2", "Done"}) => y'[i] = 1
+      BY <2>1 DEF Inv, TypeOK, s1, Left
+    <3>5. (\A i \in 1..N : pc'[i] = "Done") => (\A i \in 1..N : pc'[Left(i)] \in {"s2", "Done"})
+      BY <2>1 DEF Inv, TypeOK, s1, Left
+    <3>. QED BY <3>1, <3>2, <3>3, <3>4, <3>5 DEF Inv
+  <2>2. CASE s2(self)
+    <3>1. TypeOK'
+      BY <2>2 DEF Inv, TypeOK, s2
+    <3>2. \A i \in 1..N : pc'[i] \in {"s2", "Done"} => x'[i] = 1
+      BY <2>2 DEF Inv, TypeOK, s2
+    <3>3. \A i \in 1..N : pc'[i] = "Done" => y'[i] = x'[Left(i)]
+      BY <2>2 DEF Inv, TypeOK, s2, Left
+    <3>4. \A i \in 1..N : (pc'[i] = "Done" /\ pc'[Left(i)] \in {"s2", "Done"}) => y'[i] = 1
+      BY <2>2 DEF Inv, TypeOK, s2, Left
+    <3>5. (\A i \in 1..N : pc'[i] = "Done") => (\A i \in 1..N : pc'[Left(i)] \in {"s2", "Done"})
+      BY <2>2 DEF Inv, TypeOK, s2, Left
+    <3>. QED BY <3>1, <3>2, <3>3, <3>4, <3>5 DEF Inv
+  <2>. QED BY <2>1, <2>2 DEF proc
+<1>3. CASE Terminating
+  BY <1>3 DEF Inv, TypeOK, Terminating, vars
+<1>. QED BY <1>1, <1>2, <1>3 DEF Next
+
+(* Main correctness theorem - Version 1 *)
+THEOREM Correctness1 == Spec => []Safety
+<1>1. Init => Inv
+  BY InitImpliesInv
+<1>2. Inv /\ [Next]_vars => Inv'
+  BY InvPreservedByNext
+<1>3. Inv => Safety
+  BY InvImpliesSafety
+<1>. QED BY <1>1, <1>2, <1>3, PTL DEF Spec
+
+(* Main correctness theorem - Version 2 *)
+THEOREM Correctness2 == Spec => []((\A i \in 1..N : pc[i] = "Done") => (\E i \in 1..N : y[i] = 1))
+<1>1. Spec => []Inv
+  <2>1. Init => Inv
+    BY InitImpliesInv
+  <2>2. Inv /\ [Next]_vars => Inv'
+    BY InvPreservedByNext
+  <2>. QED BY <2>1, <2>2, PTL DEF Spec
+<1>2. Inv => ((\A i \in 1..N : pc[i] = "Done") => (\E i \in 1..N : y[i] = 1))
+  BY InvImpliesSafety DEF Safety
+<1>. QED BY <1>1, <1>2, PTL
+
+=============================================================================

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME MaxCardinality \\in Nat\nASSUME MaxCardinality >= Cardinality(Nodes)\nASSUME \\A e \\in Edges : e \\subseteq Nodes /\\ Cardinality(e) = 2\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges}\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\nImprove(n, m) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n] - 1\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes : Improve(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTerminated == ~ENABLED Next\n\nReachableFromRoot(n) ==\n    LET RECURSIVE Ancestors(_)\n        Ancestors(node) ==\n            IF node = Root THEN {Root}\n            ELSE IF mom[node] = node THEN {node}\n            ELSE {node} \\cup Ancestors(mom[node])\n    IN Root \\in Ancestors(n)\n\nPostCondition ==\n    /\\ dist[Root] = 0\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes :\n        IF ReachableFromRoot(n) THEN\n            /\\ (n = Root) \\/ (mom[n] \\in Neighbors(n) /\\ dist[n] = dist[mom[n]] + 1)\n        ELSE\n            /\\ dist[n] = MaxCardinality\n            /\\ mom[n] = n\n\nSafety == Terminated => PostCondition\n\nLiveness == <>Terminated\n\nEventuallyRootParent == \\A n \\in Nodes : <>(mom[n] = Root)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 639,
+    "totalTokens": 932,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11198
+  }
+}

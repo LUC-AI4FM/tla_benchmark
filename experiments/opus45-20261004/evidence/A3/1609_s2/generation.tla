@@ -1,0 +1,152 @@
+------------------------------ MODULE quicksort ------------------------------
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS ArrayLen
+
+ASSUME ArrayLen \in Nat /\ ArrayLen >= 0
+
+\* Set of possible array values
+ArrayValues == 1..ArrayLen
+
+\* Set of valid indices
+Indices == 1..ArrayLen
+
+\* IsPermutation checks if two sequences are permutations of each other
+IsPermutation(s1, s2) ==
+    /\ Len(s1) = Len(s2)
+    /\ \A v \in ArrayValues : 
+        Cardinality({i \in 1..Len(s1) : s1[i] = v}) = 
+        Cardinality({i \in 1..Len(s2) : s2[i] = v})
+
+\* IsSorted checks if array is sorted in nondecreasing order
+IsSorted(arr) ==
+    \A i, j \in 1..Len(arr) : i < j => arr[i] <= arr[j]
+
+\* PermutationsOf returns all permutations of a sequence restricted to indices lo..hi
+PermsOfRange(arr, lo, hi) ==
+    LET elems == {arr[i] : i \in lo..hi}
+        allSeqs == [lo..hi -> elems]
+    IN {s \in allSeqs : 
+        \A v \in elems : 
+            Cardinality({i \in lo..hi : s[i] = v}) = 
+            Cardinality({i \in lo..hi : arr[i] = v})}
+
+VARIABLES 
+    arr,        \* The array being sorted
+    arr0,       \* Initial array (for checking permutation property)
+    pc,         \* Program counter
+    stack,      \* Stack for recursive calls (sequence of [lo, hi] records)
+    lo,         \* Current low index
+    hi          \* Current high index
+
+vars == <<arr, arr0, pc, stack, lo, hi>>
+
+\* Type invariant
+TypeOK ==
+    /\ arr \in [1..ArrayLen -> ArrayValues]
+    /\ arr0 \in [1..ArrayLen -> ArrayValues]
+    /\ pc \in {"Start", "QS", "Partition", "RecurseLeft", "RecurseRight", "Return", "Done"}
+    /\ stack \in Seq([lo: 0..ArrayLen+1, hi: 0..ArrayLen+1])
+    /\ lo \in 0..ArrayLen+1
+    /\ hi \in 0..ArrayLen+1
+
+\* Initial state
+Init ==
+    /\ arr \in [1..ArrayLen -> ArrayValues]  \* Nondeterministic initial array
+    /\ arr0 = arr                             \* Save initial array
+    /\ pc = "Start"
+    /\ stack = <<>>
+    /\ lo = 1
+    /\ hi = ArrayLen
+
+\* Start the quicksort by calling QS(1, ArrayLen)
+StartAction ==
+    /\ pc = "Start"
+    /\ pc' = "QS"
+    /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* QS procedure entry: check if we need to sort this subarray
+QSAction ==
+    /\ pc = "QS"
+    /\ IF lo >= hi
+       THEN \* Base case: subarray of size 0 or 1, return
+            /\ pc' = "Return"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+       ELSE \* Need to partition
+            /\ pc' = "Partition"
+            /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* Partition: choose pivot nondeterministically and partition the subarray
+PartitionAction ==
+    /\ pc = "Partition"
+    /\ lo < hi
+    /\ \E pivotIdx \in lo..hi :
+       \E newArr \in PermsOfRange(arr, lo, hi) :
+          LET fullNewArr == [i \in 1..ArrayLen |-> IF i \in lo..hi THEN newArr[i] ELSE arr[i]]
+          IN \E p \in lo..hi :
+             \* Partition property: elements in lo..p are <= elements in p+1..hi
+             /\ (\A i \in lo..p, j \in (p+1)..hi : fullNewArr[i] <= fullNewArr[j])
+             /\ arr' = fullNewArr
+             /\ stack' = Append(stack, [lo |-> lo, hi |-> hi, pivot |-> p])
+             /\ lo' = lo
+             /\ hi' = p
+             /\ pc' = "RecurseLeft"
+             /\ UNCHANGED arr0
+
+\* RecurseLeft: recursively sort left partition
+RecurseLeftAction ==
+    /\ pc = "RecurseLeft"
+    /\ pc' = "QS"
+    /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* After returning from left recursion, set up right recursion
+AfterLeftAction ==
+    /\ pc = "Return"
+    /\ stack /= <<>>
+    /\ LET frame == Head(stack)
+       IN /\ lo' = frame.pivot + 1
+          /\ hi' = frame.hi
+          /\ stack' = Tail(stack)
+          /\ pc' = IF frame.pivot + 1 >= frame.hi 
+                   THEN "Return"  \* Right side trivial, continue returning
+                   ELSE "QS"      \* Sort right side
+          /\ UNCHANGED <<arr, arr0>>
+
+\* Return when stack is empty means we're done
+DoneAction ==
+    /\ pc = "Return"
+    /\ stack = <<>>
+    /\ pc' = "Done"
+    /\ UNCHANGED <<arr, arr0, stack, lo, hi>>
+
+\* Terminal state
+Terminated ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+\* Next state relation
+Next ==
+    \/ StartAction
+    \/ QSAction
+    \/ PartitionAction
+    \/ RecurseLeftAction
+    \/ AfterLeftAction
+    \/ DoneAction
+    \/ Terminated
+
+\* Specification with weak fairness
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety invariant: array is always a permutation of initial array
+PermutationInvariant ==
+    IsPermutation(arr, arr0)
+
+\* Termination property
+Termination == <>(pc = "Done")
+
+\* Final state property: array is sorted and is a permutation of initial
+FinalStateCorrect ==
+    pc = "Done" => (IsSorted(arr) /\ IsPermutation(arr, arr0))
+
+=============================================================================

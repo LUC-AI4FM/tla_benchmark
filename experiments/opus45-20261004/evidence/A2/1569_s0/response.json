@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE CBakery ----------------------------\nEXTENDS Integers, Naturals\n\nCONSTANTS NumProcs, MaxNum\n\nASSUME NumProcs \\in Nat /\\ NumProcs > 0\nASSUME MaxNum \\in Nat /\\ MaxNum > 0\n\nProcs == 1..NumProcs\n\nVARIABLES pc, num, choosing, read, max, nxt\n\nvars == <<pc, num, choosing, read, max, nxt>>\n\nTypeOK ==\n    /\\ pc \\in [Procs -> {\"d1\", \"d2\", \"d3\", \"w1\", \"w2\", \"cs\", \"exit\"}]\n    /\\ num \\in [Procs -> Nat]\n    /\\ choosing \\in [Procs -> BOOLEAN]\n    /\\ read \\in [Procs -> Procs \\cup {0}]\n    /\\ max \\in [Procs -> Nat]\n    /\\ nxt \\in [Procs -> Procs \\cup {0}]\n\nInit ==\n    /\\ pc = [p \\in Procs |-> \"d1\"]\n    /\\ num = [p \\in Procs |-> 0]\n    /\\ choosing = [p \\in Procs |-> FALSE]\n    /\\ read = [p \\in Procs |-> 0]\n    /\\ max = [p \\in Procs |-> 0]\n    /\\ nxt = [p \\in Procs |-> 0]\n\n(* Label d1: Begin choosing, initialize for scanning *)\nd1(self) ==\n    /\\ pc[self] = \"d1\"\n    /\\ choosing' = [choosing EXCEPT ![self] = TRUE]\n    /\\ read' = [read EXCEPT ![self] = 1]\n    /\\ max' = [max EXCEPT ![self] = 0]\n    /\\ pc' = [pc EXCEPT ![self] = \"d2\"]\n    /\\ UNCHANGED <<num, nxt>>\n\n(* Label d2: Scan all processes to find maximum ticket number *)\nd2(self) ==\n    /\\ pc[self] = \"d2\"\n    /\\ IF read[self] <= NumProcs\n       THEN\n           /\\ max' = [max EXCEPT ![self] = IF num[read[self]] > max[self] \n                                           THEN num[read[self]] \n                                           ELSE max[self]]\n           /\\ read' = [read EXCEPT ![self] = read[self] + 1]\n           /\\ pc' = [pc EXCEPT ![self] = \"d2\"]\n           /\\ UNCHANGED <<num, choosing, nxt>>\n       ELSE\n           /\\ pc' = [pc EXCEPT ![self] = \"d3\"]\n           /\\ UNCHANGED <<num, choosing, read, max, nxt>>\n\n(* Label d3: Set ticket number and clear choosing flag *)\nd3(self) ==\n    /\\ pc[self] = \"d3\"\n    /\\ num' = [num EXCEPT ![self] = max[self] + 1]\n    /\\ choosing' = [choosing EXCEPT ![self] = FALSE]\n    /\\ nxt' = [nxt EXCEPT ![self] = 1]\n    /\\ pc' = [pc EXCEPT ![self] = \"w1\"]\n    /\\ UNCHANGED <<read, max>>\n\n(* Label w1: Wait loop - check if done or wait for not choosing *)\nw1(self) ==\n    /\\ pc[self] = \"w1\"\n    /\\ IF nxt[self] <= NumProcs\n       THEN\n           IF nxt[self] = self\n           THEN\n               /\\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]\n               /\\ pc' = [pc EXCEPT ![self] = \"w1\"]\n               /\\ UNCHANGED <<num, choosing, read, max>>\n           ELSE\n               /\\ choosing[nxt[self]] = FALSE\n               /\\ pc' = [pc EXCEPT ![self] = \"w2\"]\n               /\\ UNCHANGED <<num, choosing, read, max, nxt>>\n       ELSE\n           /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n           /\\ UNCHANGED <<num, choosing, read, max, nxt>>\n\n(* Label w2: Wait for priority over process nxt[self] *)\nw2(self) ==\n    /\\ pc[self] = \"w2\"\n    /\\ \\/ num[nxt[self]] = 0\n       \\/ num[nxt[self]] > num[self]\n       \\/ (num[nxt[self]] = num[self] /\\ nxt[self] > self)\n    /\\ nxt' = [nxt EXCEPT ![self] = nxt[self] + 1]\n    /\\ pc' = [pc EXCEPT ![self] = \"w1\"]\n    /\\ UNCHANGED <<num, choosing, read, max>>\n\n(* Label cs: Critical section *)\ncs(self) ==\n    /\\ pc[self] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![self] = \"exit\"]\n    /\\ UNCHANGED <<num, choosing, read, max, nxt>>\n\n(* Label exit: Exit critical section and reset *)\nexit(self) ==\n    /\\ pc[self] = \"exit\"\n    /\\ num' = [num EXCEPT ![self] = 0]\n    /\\ pc' = [pc EXCEPT ![self] = \"d1\"]\n    /\\ UNCHANGED <<choosing, read, max, nxt>>\n\n(* Process actions *)\nproc(self) ==\n    \\/ d1(self)\n    \\/ d2(self)\n    \\/ d3(self)\n    \\/ w1(self)\n    \\/ w2(self)\n    \\/ cs(self)\n    \\/ exit(self)\n\nNext == \\E self \\in Procs : proc(self)\n\nSpec == Init /\\ [][Next]_vars\n\n(* State constraint for model checking *)\nStateConstraint == \\A p \\in Procs : num[p] <= MaxNum\n\n(* Mutual exclusion invariant *)\nMutualExclusion == \\A p, q \\in Procs : (p # q) => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\n=========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 476,
+    "outputTokens": 1520,
+    "totalTokens": 1996,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 17801
+  }
+}

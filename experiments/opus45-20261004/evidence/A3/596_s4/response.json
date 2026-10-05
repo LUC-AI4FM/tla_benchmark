@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE OneVarTransition ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nVARIABLES x\n\n\\* Initial condition: x starts at 0\nInit == x = 0\n\n\\* Transition relation:\n\\* - From 0, can move nondeterministically to either 1 or 2\n\\* - From any nonzero value, returns to 0\nNext ==\n    \\/ (x = 0 /\\ (x' = 1 \\/ x' = 2))\n    \\/ (x /= 0 /\\ x' = 0)\n\n\\* Main specification with weak fairness\nSpec == Init /\\ [][Next]_x /\\ WF_x(Next)\n\n\\* Safety invariant: x is always in {0, 1, 2}\nTypeInvariant == x \\in {0, 1, 2}\n\n\\* Temporal property: eventually stabilize away from 1\nEventuallyNotOne == <>[](x /= 1)\n\n\\* Temporal property: eventually stabilize away from 2\nEventuallyNotTwo == <>[](x /= 2)\n\n\\* Temporal property: eventual repeated return to zero (infinitely often)\nEventuallyRepeatedZero == []<>(x = 0)\n\n\\* Temporal property: eventually reach zero at least once\nEventuallyZero == <>(x = 0)\n\n\\* Negation of the property that x eventually stays at 1 forever\nNegationProperty == ~<>[](x = 1)\n\n\\* Alternative: negation that x never returns to zero\nNegationNeverZero == ~[](x /= 0)\n\n\\* Postcondition for checking TLC-generated counterexample traces\n\\* Encoded as records, tuples, and sets\nTraceRecord == [state: {\"s0\", \"s1\", \"s2\"}, value: {0, 1, 2}]\n\nTraceTuple == <<[state |-> \"s0\", value |-> 0],\n                [state |-> \"s1\", value |-> 1],\n                [state |-> \"s2\", value |-> 0]>>\n\nTraceSet == {[state |-> \"s0\", value |-> 0],\n             [state |-> \"s1\", value |-> 1],\n             [state |-> \"s1\", value |-> 2],\n             [state |-> \"s2\", value |-> 0]}\n\n\\* Postcondition check for trace validity\nTracePostcondition ==\n    LET trace == <<[x |-> 0], [x |-> 1], [x |-> 0], [x |-> 2], [x |-> 0]>>\n    IN /\\ trace[1].x = 0\n       /\\ \\A i \\in 1..(Len(trace)-1):\n            \\/ (trace[i].x = 0 /\\ trace[i+1].x \\in {1, 2})\n            \\/ (trace[i].x /= 0 /\\ trace[i+1].x = 0)\n\n\\* Combined liveness: system keeps cycling through states\nLiveness == []<>(x = 0) /\\ []<>(x /= 0)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 779,
+    "totalTokens": 1057,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12665
+  }
+}

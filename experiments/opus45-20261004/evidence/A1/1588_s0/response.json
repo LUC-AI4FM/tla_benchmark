@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------- MODULE Euclid -------------------------------\nEXTENDS Naturals\n\nCONSTANT N\n\n(*--algorithm Euclid\nvariables u = 24, v \\in 1..N, v_ini = v;\n\nbegin\n    loop:\n        while u # 0 do\n            if u < v then\n                u := v || v := u;\n            end if;\n            subtract:\n                u := u - v;\n        end while;\nend algorithm; *)\n\n\\* BEGIN TRANSLATION\nVARIABLES pc, u, v, v_ini\n\nvars == << pc, u, v, v_ini >>\n\nInit == (* Global variables *)\n        /\\ u = 24\n        /\\ v \\in 1..N\n        /\\ v_ini = v\n        /\\ pc = \"loop\"\n\nloop == /\\ pc = \"loop\"\n        /\\ IF u # 0\n              THEN /\\ IF u < v\n                         THEN /\\ /\\ u' = v\n                                 /\\ v' = u\n                         ELSE /\\ TRUE\n                              /\\ UNCHANGED << u, v >>\n                   /\\ pc' = \"subtract\"\n              ELSE /\\ pc' = \"Done\"\n                   /\\ UNCHANGED << u, v >>\n        /\\ v_ini' = v_ini\n\nsubtract == /\\ pc = \"subtract\"\n            /\\ u' = u - v\n            /\\ pc' = \"loop\"\n            /\\ UNCHANGED << v, v_ini >>\n\n(* Allow infinite stuttering to prevent deadlock on termination. *)\nTerminating == pc = \"Done\" /\\ UNCHANGED vars\n\nNext == loop \\/ subtract\n           \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n\\* END TRANSLATION\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 255,
+    "outputTokens": 445,
+    "totalTokens": 700,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9105
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE QuickSort ----------------------------\nEXTENDS Naturals, Sequences, FiniteSets, TLC\n\nCONSTANT N\n\nVARIABLES Ainit, A, S, pivot, pc\n\nvars == <<Ainit, A, S, pivot, pc>>\n\n----------------------------------------------------------------------------\n\nPermutations(f, lo, hi) ==\n    { g \\in [1..N -> 1..N] :\n        /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => g[i] = f[i]\n        /\\ \\A v \\in 1..N : Cardinality({i \\in lo..hi : g[i] = v}) = Cardinality({i \\in lo..hi : f[i] = v})\n    }\n\nPartitionedAt(g, lo, hi, p) ==\n    /\\ p \\in lo..hi\n    /\\ \\A i \\in lo..(p-1), j \\in p..hi : g[i] <= g[j]\n\n----------------------------------------------------------------------------\n\nInit ==\n    /\\ Ainit \\in [1..N -> 1..N]\n    /\\ A = Ainit\n    /\\ S = { <<1, N>> }\n    /\\ pivot = 1\n    /\\ pc = \"qs1\"\n\n----------------------------------------------------------------------------\n\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ S /= {}\n    /\\ \\E I \\in S :\n        IF I[1] >= I[2]\n        THEN\n            /\\ S' = S \\ {I}\n            /\\ UNCHANGED <<A, pivot>>\n            /\\ pc' = \"qs1\"\n        ELSE\n            /\\ \\E piv \\in I[1]..I[2] :\n                /\\ \\E Anew \\in Permutations(A, I[1], I[2]) :\n                    /\\ PartitionedAt(Anew, I[1], I[2], piv)\n                    /\\ A' = Anew\n                /\\ pivot' = piv\n                /\\ S' = (S \\ {I}) \\cup\n                        (IF piv > I[1] THEN { <<I[1], piv - 1>> } ELSE {}) \\cup\n                        (IF piv < I[2] THEN { <<piv + 1, I[2]>> } ELSE {})\n                /\\ pc' = \"qs1\"\n    /\\ UNCHANGED Ainit\n\nDone ==\n    /\\ pc = \"qs1\"\n    /\\ S = {}\n    /\\ pc' = \"Done\"\n    /\\ UNCHANGED <<Ainit, A, S, pivot>>\n\nTerminated ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == qs1 \\/ Done \\/ Terminated\n\n----------------------------------------------------------------------------\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 508,
+    "outputTokens": 727,
+    "totalTokens": 1235,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11851
+  }
+}

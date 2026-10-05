@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE StoneCutting ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE Sum(_)\nSum(s) == IF s = <<>> THEN 0 ELSE Head(s) + Sum(Tail(s))\n\nRECURSIVE OrderedPartitions(_, _)\nOrderedPartitions(total, parts) ==\n    IF parts = 0 THEN\n        IF total = 0 THEN {<<>>} ELSE {}\n    ELSE IF parts = 1 THEN\n        IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE\n        UNION {\n            {<<w>> \\o rest : rest \\in OrderedPartitions(total - w, parts - 1)}\n            : w \\in 1..total - (parts - 1)\n        }\n\nCoefficients == {-1, 0, 1}\n\nCoeffSeqs(n) ==\n    IF n = 0 THEN {<<>>}\n    ELSE {<<c>> \\o rest : c \\in Coefficients, rest \\in CoeffSeqs(n - 1)}\n\nRECURSIVE DotProduct(_, _)\nDotProduct(weights, coeffs) ==\n    IF weights = <<>> THEN 0\n    ELSE Head(weights) * Head(coeffs) + DotProduct(Tail(weights), Tail(coeffs))\n\nCanWeigh(weights, target) ==\n    \\E coeffs \\in CoeffSeqs(Len(weights)) :\n        DotProduct(weights, coeffs) = target\n\nIsSolution(weights) ==\n    /\\ Len(weights) = N\n    /\\ Sum(weights) = W\n    /\\ \\A t \\in 1..W : CanWeigh(weights, t)\n\nAllPartitions == OrderedPartitions(W, N)\n\nSolutions == {p \\in AllPartitions : IsSolution(p)}\n\nASSUME\n    LET sols == Solutions\n    IN IF sols # {} THEN\n           PrintT(<<\"Solution found:\", CHOOSE s \\in sols : TRUE>>)\n       ELSE\n           PrintT(\"No solution exists\")\n\nVARIABLE dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\nSolutionExists == Solutions # {}\n\nTypeInvariant == dummy \\in {0}\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 257,
+    "outputTokens": 571,
+    "totalTokens": 828,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10936
+  }
+}

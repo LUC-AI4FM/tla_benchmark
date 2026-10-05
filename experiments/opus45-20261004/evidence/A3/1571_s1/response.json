@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N >= 2\n\nPhilosophers == 0..(N-1)\n\n(* Each philosopher can be in one of these states:\n   \"thinking\" - initial state\n   \"hungry\" - wants to eat, trying to acquire forks\n   \"hasFirst\" - acquired first fork, waiting for second\n   \"eating\" - has both forks, eating\n   \"releasing\" - releasing forks after eating\n*)\n\nVARIABLES\n    pc,      \\* program counter for each philosopher\n    forks    \\* semaphore array: forks[i] = TRUE means fork i is available\n\nvars == <<pc, forks>>\n\n\\* Fork indices: philosopher i uses forks i (left) and (i+1) % N (right)\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\n\\* For philosopher 0: acquire left first, then right (opposite order)\n\\* For philosophers 1..N-1: acquire right first, then left\nFirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)\nSecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)\n\nTypeOK ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\", \"releasing\"}]\n    /\\ forks \\in [0..(N-1) -> BOOLEAN]\n\nInit ==\n    /\\ pc = [i \\in Philosophers |-> \"thinking\"]\n    /\\ forks = [i \\in 0..(N-1) |-> TRUE]\n\n\\* Philosopher becomes hungry and wants to eat\nBecomeHungry(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ UNCHANGED forks\n\n\\* Philosopher acquires first fork\nAcquireFirst(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ forks[FirstFork(i)] = TRUE\n    /\\ forks' = [forks EXCEPT ![FirstFork(i)] = FALSE]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\n\\* Philosopher acquires second fork and starts eating\nAcquireSecond(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ forks[SecondFork(i)] = TRUE\n    /\\ forks' = [forks EXCEPT ![SecondFork(i)] = FALSE]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\n\\* Philosopher finishes eating and starts releasing forks\nFinishEating(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ pc' = [pc EXCEPT ![i] = \"releasing\"]\n    /\\ UNCHANGED forks\n\n\\* Philosopher releases both forks and goes back to thinking\nReleaseForks(i) ==\n    /\\ pc[i] = \"releasing\"\n    /\\ forks' = [forks EXCEPT ![FirstFork(i)] = TRUE, ![SecondFork(i)] = TRUE]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\n\\* Action for philosopher i\nPhilosopherAction(i) ==\n    \\/ BecomeHungry(i)\n    \\/ AcquireFirst(i)\n    \\/ AcquireSecond(i)\n    \\/ FinishEating(i)\n    \\/ ReleaseForks(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\n\\* Strong fairness for each philosopher's actions\nFairness == \\A i \\in Philosophers : SF_vars(PhilosopherAction(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: Mutual exclusion for eating - adjacent philosophers cannot eat simultaneously\n\\* Two philosophers are adjacent if they share a fork\nMutualExclusion ==\n    \\A i \\in Philosophers :\n        ~(pc[i] = \"eating\" /\\ pc[(i + 1) % N] = \"eating\")\n\n\\* Alternative formulation: no two philosophers eating share a fork\nNoForkConflict ==\n    \\A i, j \\in Philosophers :\n        (i # j /\\ pc[i] = \"eating\" /\\ pc[j] = \"eating\") =>\n            (LeftFork(i) # LeftFork(j) /\\ LeftFork(i) # RightFork(j) /\\\n             RightFork(i) # LeftFork(j) /\\ RightFork(i) # RightFork(j))\n\n\\* Liveness: Starvation freedom - every hungry philosopher eventually eats\nStarvationFreedom == \\A i \\in Philosophers : (pc[i] = \"hungry\") ~> (pc[i] = \"eating\")\n\n\\* Additional liveness: every philosopher who wants to eat will eventually eat\nEventuallyEats == \\A i \\in Philosophers : [](pc[i] = \"hungry\" => <>(pc[i] = \"eating\"))\n\n\\* Invariant: forks consistency - a fork is unavailable iff some philosopher holds it\nForkConsistency ==\n    \\A f \\in 0..(N-1) :\n        forks[f] = FALSE <=>\n            \\E i \\in Philosophers :\n                /\\ (FirstFork(i) = f \\/ SecondFork(i) = f)\n                /\\ (pc[i] = \"hasFirst\" /\\ FirstFork(i) = f) \\/\n                   (pc[i] = \"eating\") \\/\n                   (pc[i] = \"releasing\")\n\n===============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 260,
+    "outputTokens": 1436,
+    "totalTokens": 1696,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19472
+  }
+}

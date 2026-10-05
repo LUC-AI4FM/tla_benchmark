@@ -1,0 +1,132 @@
+```tla+
+---------------------------- MODULE BakeryAlgorithm ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Procs, MaxTicketValue
+
+ASSUME Procs \subseteq Nat
+ASSUME Procs # {}
+ASSUME MaxTicketValue \in Nat
+
+VARIABLES num, flag, pc, localMax, nextProc, readSet
+
+vars == <<num, flag, pc, localMax, nextProc, readSet>>
+
+ProcSet == Procs
+
+Init ==
+    /\ num = [p \in Procs |-> 0]
+    /\ flag = [p \in Procs |-> FALSE]
+    /\ pc = [p \in Procs |-> "ncs"]
+    /\ localMax = [p \in Procs |-> 0]
+    /\ nextProc = [p \in Procs |-> CHOOSE q \in Procs : TRUE]
+    /\ readSet = [p \in Procs |-> {}]
+
+NCS(self) ==
+    /\ pc[self] = "ncs"
+    /\ pc' = [pc EXCEPT ![self] = "enter"]
+    /\ UNCHANGED <<num, flag, localMax, nextProc, readSet>>
+
+Enter(self) ==
+    /\ pc[self] = "enter"
+    /\ flag' = [flag EXCEPT ![self] = TRUE]
+    /\ readSet' = [readSet EXCEPT ![self] = Procs]
+    /\ localMax' = [localMax EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "findMax"]
+    /\ UNCHANGED <<num, nextProc>>
+
+FindMax(self) ==
+    /\ pc[self] = "findMax"
+    /\ IF readSet[self] # {}
+       THEN 
+            /\ \E q \in readSet[self]:
+                /\ localMax' = [localMax EXCEPT ![self] = 
+                    IF num[q] > localMax[self] THEN num[q] ELSE localMax[self]]
+                /\ readSet' = [readSet EXCEPT ![self] = readSet[self] \ {q}]
+            /\ pc' = [pc EXCEPT ![self] = "findMax"]
+            /\ UNCHANGED <<num, flag, nextProc>>
+       ELSE
+            /\ pc' = [pc EXCEPT ![self] = "chooseTicket"]
+            /\ UNCHANGED <<num, flag, localMax, nextProc, readSet>>
+
+ChooseTicket(self) ==
+    /\ pc[self] = "chooseTicket"
+    /\ num' = [num EXCEPT ![self] = localMax[self] + 1]
+    /\ flag' = [flag EXCEPT ![self] = FALSE]
+    /\ readSet' = [readSet EXCEPT ![self] = Procs \ {self}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<localMax, nextProc>>
+
+Wait(self) ==
+    /\ pc[self] = "wait"
+    /\ IF readSet[self] # {}
+       THEN
+            /\ \E q \in readSet[self]:
+                /\ nextProc' = [nextProc EXCEPT ![self] = q]
+                /\ pc' = [pc EXCEPT ![self] = "checkFlag"]
+            /\ UNCHANGED <<num, flag, localMax, readSet>>
+       ELSE
+            /\ pc' = [pc EXCEPT ![self] = "cs"]
+            /\ UNCHANGED <<num, flag, localMax, nextProc, readSet>>
+
+CheckFlag(self) ==
+    /\ pc[self] = "checkFlag"
+    /\ ~flag[nextProc[self]]
+    /\ pc' = [pc EXCEPT ![self] = "checkTicket"]
+    /\ UNCHANGED <<num, flag, localMax, nextProc, readSet>>
+
+CheckTicket(self) ==
+    /\ pc[self] = "checkTicket"
+    /\ LET other == nextProc[self]
+       IN \/ num[other] = 0
+          \/ num[self] < num[other]
+          \/ (num[self] = num[other] /\ self < other)
+    /\ readSet' = [readSet EXCEPT ![self] = readSet[self] \ {nextProc[self]}]
+    /\ pc' = [pc EXCEPT ![self] = "wait"]
+    /\ UNCHANGED <<num, flag, localMax, nextProc>>
+
+CS(self) ==
+    /\ pc[self] = "cs"
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<num, flag, localMax, nextProc, readSet>>
+
+Exit(self) ==
+    /\ pc[self] = "exit"
+    /\ num' = [num EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "ncs"]
+    /\ UNCHANGED <<flag, localMax, nextProc, readSet>>
+
+ProcStep(self) ==
+    \/ NCS(self)
+    \/ Enter(self)
+    \/ FindMax(self)
+    \/ ChooseTicket(self)
+    \/ Wait(self)
+    \/ CheckFlag(self)
+    \/ CheckTicket(self)
+    \/ CS(self)
+    \/ Exit(self)
+
+Next == \E self \in Procs: ProcStep(self)
+
+Spec == Init /\ [][Next]_vars /\ \A self \in Procs: WF_vars(ProcStep(self))
+
+TypeInvariant ==
+    /\ num \in [Procs -> Nat]
+    /\ flag \in [Procs -> BOOLEAN]
+    /\ pc \in [Procs -> {"ncs", "enter", "findMax", "chooseTicket", 
+                         "wait", "checkFlag", "checkTicket", "cs", "exit"}]
+    /\ localMax \in [Procs -> Nat]
+    /\ nextProc \in [Procs -> Procs]
+    /\ readSet \in [Procs -> SUBSET Procs]
+
+InCS(p) == pc[p] = "cs"
+
+MutualExclusion == \A p, q \in Procs: (p # q) => ~(InCS(p) /\ InCS(q))
+
+StateConstraint == \A p \in Procs: num[p] <= MaxTicketValue
+
+StarvationFreedom == \A p \in Procs: (pc[p] = "enter") ~> (pc[p] = "cs")
+
+================================================================================
+```

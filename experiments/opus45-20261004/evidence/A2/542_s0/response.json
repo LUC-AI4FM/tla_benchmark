@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SimpleCounter ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS ProcA, ProcB\n\nVARIABLES x, pc\n\nvars == << x, pc >>\n\nProcSet == {ProcA} \\cup {ProcB}\n\nInit == \n    /\\ x = 0\n    /\\ pc = [self \\in ProcSet |-> CASE self = ProcA -> \"a\"\n                                    [] self = ProcB -> \"b\"]\n\na == \n    /\\ pc[ProcA] = \"a\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcA] = \"Done\"]\n\nb == \n    /\\ pc[ProcB] = \"b\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcB] = \"Done\"]\n\nTerminating ==\n    /\\ \\A self \\in ProcSet: pc[self] = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == a \\/ b \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(\\A self \\in ProcSet: pc[self] = \"Done\")\n\nTypeOK ==\n    /\\ x \\in Int\n    /\\ pc \\in [ProcSet -> {\"a\", \"b\", \"Done\"}]\n\nFinalValue == (\\A self \\in ProcSet: pc[self] = \"Done\") => x = 2\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 398,
+    "outputTokens": 373,
+    "totalTokens": 771,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 6605
+  }
+}

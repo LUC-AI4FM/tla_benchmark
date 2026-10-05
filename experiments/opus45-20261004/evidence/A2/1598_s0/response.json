@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 0\n\nProcs == 1..N\n\n(*\n--algorithm FastMutex\nvariables x = 0, y = 0, b = [i \\in Procs |-> FALSE];\n\nprocess proc \\in Procs\nvariable S = {};\nbegin\nstart:\n    b[self] := TRUE;\nl1:\n    x := self;\nl2:\n    if y /= 0 then\n        b[self] := FALSE;\nl3:\n        await y = 0;\n        goto start;\n    end if;\nl4:\n    y := self;\nl5:\n    if x /= self then\n        b[self] := FALSE;\nl6:\n        S := Procs \\ {self};\nl7:\n        while S /= {} do\n            with p \\in S do\n                await ~b[p];\n                S := S \\ {p};\n            end with;\n        end while;\nl8:\n        if y /= self then\nl9:\n            await y = 0;\n            goto start;\n        end if;\n    end if;\ncs:\n    skip;\nl10:\n    y := 0;\n    b[self] := FALSE;\n    goto start;\nend process;\nend algorithm\n*)\n\nVARIABLES x, y, b, pc, S\n\nvars == << x, y, b, pc, S >>\n\nProcSet == (Procs)\n\nInit == \n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [i \\in Procs |-> FALSE]\n    /\\ S = [self \\in Procs |-> {}]\n    /\\ pc = [self \\in ProcSet |-> \"start\"]\n\nstart(self) == \n    /\\ pc[self] = \"start\"\n    /\\ b' = [b EXCEPT ![self] = TRUE]\n    /\\ pc' = [pc EXCEPT ![self] = \"l1\"]\n    /\\ UNCHANGED << x, y, S >>\n\nl1(self) == \n    /\\ pc[self] = \"l1\"\n    /\\ x' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"l2\"]\n    /\\ UNCHANGED << y, b, S >>\n\nl2(self) == \n    /\\ pc[self] = \"l2\"\n    /\\ IF y /= 0\n        THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n             /\\ pc' = [pc EXCEPT ![self] = \"l3\"]\n        ELSE /\\ pc' = [pc EXCEPT ![self] = \"l4\"]\n             /\\ b' = b\n    /\\ UNCHANGED << x, y, S >>\n\nl3(self) == \n    /\\ pc[self] = \"l3\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED << x, y, b, S >>\n\nl4(self) == \n    /\\ pc[self] = \"l4\"\n    /\\ y' = self\n    /\\ pc' = [pc EXCEPT ![self] = \"l5\"]\n    /\\ UNCHANGED << x, b, S >>\n\nl5(self) == \n    /\\ pc[self] = \"l5\"\n    /\\ IF x /= self\n        THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n             /\\ pc' = [pc EXCEPT ![self] = \"l6\"]\n        ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n             /\\ b' = b\n    /\\ UNCHANGED << x, y, S >>\n\nl6(self) == \n    /\\ pc[self] = \"l6\"\n    /\\ S' = [S EXCEPT ![self] = Procs \\ {self}]\n    /\\ pc' = [pc EXCEPT ![self] = \"l7\"]\n    /\\ UNCHANGED << x, y, b >>\n\nl7(self) == \n    /\\ pc[self] = \"l7\"\n    /\\ IF S[self] /= {}\n        THEN /\\ \\E p \\in S[self]:\n                /\\ ~b[p]\n                /\\ S' = [S EXCEPT ![self] = S[self] \\ {p}]\n             /\\ pc' = [pc EXCEPT ![self] = \"l7\"]\n        ELSE /\\ pc' = [pc EXCEPT ![self] = \"l8\"]\n             /\\ S' = S\n    /\\ UNCHANGED << x, y, b >>\n\nl8(self) == \n    /\\ pc[self] = \"l8\"\n    /\\ IF y /= self\n        THEN /\\ pc' = [pc EXCEPT ![self] = \"l9\"]\n        ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n    /\\ UNCHANGED << x, y, b, S >>\n\nl9(self) == \n    /\\ pc[self] = \"l9\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED << x, y, b, S >>\n\ncs(self) == \n    /\\ pc[self] = \"cs\"\n    /\\ TRUE\n    /\\ pc' = [pc EXCEPT ![self] = \"l10\"]\n    /\\ UNCHANGED << x, y, b, S >>\n\nl10(self) == \n    /\\ pc[self] = \"l10\"\n    /\\ y' = 0\n    /\\ b' = [b EXCEPT ![self] = FALSE]\n    /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n    /\\ UNCHANGED << x, S >>\n\nproc(self) == \n    \\/ start(self) \n    \\/ l1(self) \n    \\/ l2(self) \n    \\/ l3(self) \n    \\/ l4(self) \n    \\/ l5(self) \n    \\/ l6(self) \n    \\/ l7(self) \n    \\/ l8(self) \n    \\/ l9(self) \n    \\/ cs(self) \n    \\/ l10(self)\n\nNext == (\\E self \\in Procs: proc(self))\n\nSpec == Init /\\ [][Next]_vars /\\ \\A self \\in Procs: WF_vars(proc(self))\n\n\\* Safety: Mutual Exclusion\nInvariant == \\A i, j \\in Procs : (i /= j) => ~(pc[i] = \"cs\" /\\ pc[j] = \"cs\")\n\n\\* Liveness: Infinitely often some process is in the critical section\nLiveness == []<>(\\E self \\in Procs : pc[self] = \"cs\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 477,
+    "outputTokens": 1699,
+    "totalTokens": 2176,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19096
+  }
+}

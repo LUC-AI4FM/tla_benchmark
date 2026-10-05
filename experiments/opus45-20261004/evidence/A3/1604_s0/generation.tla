@@ -1,0 +1,158 @@
+---------------------------- MODULE PlusCalProcedures ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS IntToString(_)
+
+VARIABLES pc, stack, x, y, result, inputInt, outputStr
+
+vars == <<pc, stack, x, y, result, inputInt, outputStr>>
+
+\* Process identifier - single process with id 1
+ProcSet == {1}
+
+\* Initial state
+Init == 
+    /\ pc = [self \in ProcSet |-> "Start"]
+    /\ stack = [self \in ProcSet |-> << >>]
+    /\ x = [self \in ProcSet |-> 0]
+    /\ y = [self \in ProcSet |-> 0]
+    /\ result = [self \in ProcSet |-> 0]
+    /\ inputInt = [self \in ProcSet |-> 0]
+    /\ outputStr = [self \in ProcSet |-> ""]
+
+\* Main process starts and calls the Add procedure
+Start(self) ==
+    /\ pc[self] = "Start"
+    /\ stack' = [stack EXCEPT ![self] = << [procedure |-> "Add",
+                                             pc |-> "CallIntToStr",
+                                             x |-> x[self],
+                                             y |-> y[self],
+                                             result |-> result[self]] >> \o stack[self]]
+    /\ x' = [x EXCEPT ![self] = 5]
+    /\ y' = [y EXCEPT ![self] = 5]
+    /\ result' = [result EXCEPT ![self] = 0]
+    /\ pc' = [pc EXCEPT ![self] = "AddBody"]
+    /\ UNCHANGED <<inputInt, outputStr>>
+
+\* Add procedure body: computes result = x + y
+AddBody(self) ==
+    /\ pc[self] = "AddBody"
+    /\ result' = [result EXCEPT ![self] = x[self] + y[self]]
+    /\ pc' = [pc EXCEPT ![self] = "AddReturn"]
+    /\ UNCHANGED <<stack, x, y, inputInt, outputStr>>
+
+\* Add procedure return
+AddReturn(self) ==
+    /\ pc[self] = "AddReturn"
+    /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
+    /\ x' = [x EXCEPT ![self] = Head(stack[self]).x]
+    /\ y' = [y EXCEPT ![self] = Head(stack[self]).y]
+    /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
+    /\ UNCHANGED <<result, inputInt, outputStr>>
+
+\* Call IntToStr procedure with the result from Add
+CallIntToStr(self) ==
+    /\ pc[self] = "CallIntToStr"
+    /\ Assert(result[self] = 10, "Assert: result should be 10 before IntToStr call")
+    /\ stack' = [stack EXCEPT ![self] = << [procedure |-> "IntToStr",
+                                             pc |-> "Done",
+                                             inputInt |-> inputInt[self],
+                                             outputStr |-> outputStr[self]] >> \o stack[self]]
+    /\ inputInt' = [inputInt EXCEPT ![self] = result[self]]
+    /\ outputStr' = [outputStr EXCEPT ![self] = ""]
+    /\ pc' = [pc EXCEPT ![self] = "IntToStrBody"]
+    /\ UNCHANGED <<x, y, result>>
+
+\* IntToStr procedure body: converts integer to string
+IntToStrBody(self) ==
+    /\ pc[self] = "IntToStrBody"
+    /\ outputStr' = [outputStr EXCEPT ![self] = IntToString(inputInt[self])]
+    /\ pc' = [pc EXCEPT ![self] = "IntToStrReturn"]
+    /\ UNCHANGED <<stack, x, y, result, inputInt>>
+
+\* IntToStr procedure return
+IntToStrReturn(self) ==
+    /\ pc[self] = "IntToStrReturn"
+    /\ pc' = [pc EXCEPT ![self] = Head(stack[self]).pc]
+    /\ inputInt' = [inputInt EXCEPT ![self] = Head(stack[self]).inputInt]
+    /\ stack' = [stack EXCEPT ![self] = Tail(stack[self])]
+    /\ UNCHANGED <<x, y, result, outputStr>>
+
+\* Final state with assertion
+Done(self) ==
+    /\ pc[self] = "Done"
+    /\ Assert(outputStr[self] = "10", "Assert: outputStr should be \"10\"")
+    /\ pc' = [pc EXCEPT ![self] = "Terminated"]
+    /\ UNCHANGED <<stack, x, y, result, inputInt, outputStr>>
+
+\* Terminated state (stuttering)
+Terminated(self) ==
+    /\ pc[self] = "Terminated"
+    /\ UNCHANGED vars
+
+\* Next state relation for a single process
+ProcessStep(self) ==
+    \/ Start(self)
+    \/ AddBody(self)
+    \/ AddReturn(self)
+    \/ CallIntToStr(self)
+    \/ IntToStrBody(self)
+    \/ IntToStrReturn(self)
+    \/ Done(self)
+    \/ Terminated(self)
+
+\* Overall next state relation
+Next == \E self \in ProcSet : ProcessStep(self)
+
+\* Fairness condition for the fair process
+Fairness == \A self \in ProcSet : WF_vars(ProcessStep(self))
+
+\* Specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* ----- Safety Invariants -----
+
+\* Type invariant
+TypeOK ==
+    /\ pc \in [ProcSet -> {"Start", "AddBody", "AddReturn", "CallIntToStr", 
+                           "IntToStrBody", "IntToStrReturn", "Done", "Terminated"}]
+    /\ stack \in [ProcSet -> Seq([procedure : {"Add", "IntToStr"},
+                                   pc : {"Start", "AddBody", "AddReturn", "CallIntToStr",
+                                         "IntToStrBody", "IntToStrReturn", "Done", "Terminated"},
+                                   x : Int,
+                                   y : Int,
+                                   result : Int,
+                                   inputInt : Int,
+                                   outputStr : STRING])]
+    /\ x \in [ProcSet -> Int]
+    /\ y \in [ProcSet -> Int]
+    /\ result \in [ProcSet -> Int]
+    /\ inputInt \in [ProcSet -> Int]
+    /\ outputStr \in [ProcSet -> STRING]
+
+\* Safety: When we reach IntToStrBody, inputInt should be 10
+InputIs10 == \A self \in ProcSet : 
+    pc[self] = "IntToStrBody" => inputInt[self] = 10
+
+\* Safety: When terminated, outputStr should be "10"
+OutputIs10 == \A self \in ProcSet :
+    pc[self] = "Terminated" => outputStr[self] = "10"
+
+\* Combined safety invariant
+SafetyInvariant == InputIs10 /\ OutputIs10
+
+\* ----- Liveness Properties -----
+
+\* Termination: Every process eventually terminates
+Termination == \A self \in ProcSet : <>(pc[self] = "Terminated")
+
+\* Progress: If we start, we eventually reach the Done state
+Progress == \A self \in ProcSet : (pc[self] = "Start") ~> (pc[self] = "Terminated")
+
+\* The Add procedure eventually completes
+AddCompletes == \A self \in ProcSet : (pc[self] = "AddBody") ~> (pc[self] = "CallIntToStr")
+
+\* The IntToStr procedure eventually completes
+IntToStrCompletes == \A self \in ProcSet : (pc[self] = "IntToStrBody") ~> (pc[self] = "Terminated")
+
+=============================================================================

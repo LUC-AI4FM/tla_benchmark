@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets, Naturals\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME Edges \\subseteq (Nodes \\times Nodes)\nASSUME \\A e \\in Edges : e[1] # e[2]\nASSUME \\A e \\in Edges : <<e[2], e[1]>> \\in Edges\nASSUME MaxCardinality \\in Nat\nASSUME MaxCardinality >= Cardinality(Nodes)\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nNeighbors(n) == {m \\in Nodes : <<n, m>> \\in Edges}\n\nTypeInvariant ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\nUpdate(n, m) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n]\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes : Update(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTerminated ==\n    ~(\\E n \\in Nodes : \\E m \\in Neighbors(n) : dist[m] < dist[n] - 1)\n\nReachable == \n    LET RECURSIVE ReachableFrom(_)\n        ReachableFrom(S) ==\n            LET NewNodes == {m \\in Nodes : \\E n \\in S : <<n, m>> \\in Edges}\n            IN IF NewNodes \\subseteq S\n               THEN S\n               ELSE ReachableFrom(S \\cup NewNodes)\n    IN ReachableFrom({Root})\n\nIsTree ==\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes \\ {Root} : \n        (n \\in Reachable) => (mom[n] \\in Neighbors(n) /\\ dist[n] = dist[mom[n]] + 1)\n    /\\ \\A n \\in Nodes : \n        (n \\notin Reachable) => (mom[n] = n /\\ dist[n] = MaxCardinality)\n\nPostCondition ==\n    /\\ IsTree\n    /\\ \\A n \\in Reachable : dist[n] < MaxCardinality\n\nSafety == Terminated => PostCondition\n\nLiveness == <>Terminated\n\nRECURSIVE Ancestor(_, _)\nAncestor(n, k) ==\n    IF k = 0 THEN n\n    ELSE IF mom[n] = n THEN n\n    ELSE Ancestor(mom[n], k - 1)\n\nHasRootAsAncestor(n) ==\n    \\E k \\in 0..Cardinality(Nodes) : Ancestor(n, k) = Root\n\nEventuallyRootParent == \\A n \\in Reachable : <>(HasRootAsAncestor(n))\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 860,
+    "totalTokens": 1153,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13917
+  }
+}

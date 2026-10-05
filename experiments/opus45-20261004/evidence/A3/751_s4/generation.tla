@@ -1,0 +1,62 @@
+---------------------------- MODULE CigaretteSmokers ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS Ingredients, Offers
+
+VARIABLES smoking, offer
+
+vars == <<smoking, offer>>
+
+\* Structural assumption: each offer is a subset of Ingredients missing exactly one ingredient
+ASSUME \A o \in Offers : o \subseteq Ingredients /\ Cardinality(o) = Cardinality(Ingredients) - 1
+
+\* The missing ingredient for a given offer
+MissingIngredient(o) == CHOOSE i \in Ingredients : i \notin o
+
+\* Initially no one is smoking and no offer has been made
+Init == 
+    /\ smoking = [i \in Ingredients |-> FALSE]
+    /\ offer = {}
+
+\* Dealer makes an offer (only when no current offer and no one smoking)
+DealerOffer == 
+    /\ offer = {}
+    /\ \A i \in Ingredients : smoking[i] = FALSE
+    /\ \E o \in Offers : offer' = o
+    /\ UNCHANGED smoking
+
+\* Smoker with the missing ingredient starts smoking
+SmokerSmoke(i) ==
+    /\ offer /= {}
+    /\ i = MissingIngredient(offer)
+    /\ smoking[i] = FALSE
+    /\ smoking' = [smoking EXCEPT ![i] = TRUE]
+    /\ offer' = {}
+
+\* Smoker finishes smoking
+SmokerFinish(i) ==
+    /\ smoking[i] = TRUE
+    /\ smoking' = [smoking EXCEPT ![i] = FALSE]
+    /\ UNCHANGED offer
+
+\* Next state relation
+Next ==
+    \/ DealerOffer
+    \/ \E i \in Ingredients : SmokerSmoke(i)
+    \/ \E i \in Ingredients : SmokerFinish(i)
+
+\* Basic temporal specification
+Spec == Init /\ [][Next]_vars
+
+\* Specification with weak fairness
+FairSpec == Spec /\ WF_vars(Next)
+
+\* Safety invariant: at most one smoker is smoking at any time
+AtMostOne == Cardinality({i \in Ingredients : smoking[i] = TRUE}) <= 1
+
+\* Type invariant
+TypeOK ==
+    /\ smoking \in [Ingredients -> BOOLEAN]
+    /\ offer \subseteq Ingredients
+
+=============================================================================

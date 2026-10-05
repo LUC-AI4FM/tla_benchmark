@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE MultiConsensus ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Values, Slots\n\nASSUME ValuesAssumption == Values # {}\nASSUME SlotsAssumption == Slots # {}\n\nVARIABLES proposed, chosen\n\nvars == <<proposed, chosen>>\n\nTypeOK ==\n    /\\ proposed \\subseteq Values\n    /\\ chosen \\in [Slots -> SUBSET Values]\n    /\\ \\A s \\in Slots : IsFiniteSet(chosen[s])\n\nInit ==\n    /\\ proposed = {}\n    /\\ chosen = [s \\in Slots |-> {}]\n\nPropose ==\n    /\\ \\E v \\in Values :\n        /\\ v \\notin proposed\n        /\\ proposed' = proposed \\cup {v}\n        /\\ UNCHANGED chosen\n\nChoose ==\n    /\\ \\E s \\in Slots :\n        /\\ chosen[s] = {}\n        /\\ \\E v \\in proposed :\n            /\\ chosen' = [chosen EXCEPT ![s] = {v}]\n            /\\ UNCHANGED proposed\n\nNext == Propose \\/ Choose\n\nSpec == Init /\\ [][Next]_vars\n\nLiveSpec == Spec /\\ WF_vars(Next)\n\nNontriviality ==\n    \\A s \\in Slots : \\A v \\in chosen[s] : v \\in proposed\n\nStability ==\n    \\A s \\in Slots : \\A v \\in Values :\n        v \\in chosen[s] => [][v \\in chosen'[s]]_vars\n\nStabilityInv ==\n    \\A s \\in Slots : chosen[s] # {} => chosen'[s] = chosen[s]\n\nConsistency ==\n    \\A s \\in Slots : Cardinality(chosen[s]) <= 1\n\nLiveness ==\n    \\A s \\in Slots : <>(chosen[s] # {})\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 459,
+    "outputTokens": 460,
+    "totalTokens": 919,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8335
+  }
+}

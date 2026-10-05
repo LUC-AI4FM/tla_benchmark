@@ -1,0 +1,66 @@
+```tla
+---------------------------- MODULE SpanningTree ----------------------------
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS Nodes, Edges, Root, MaxCardinality
+
+ASSUME Root \in Nodes
+ASSUME MaxCardinality \in Nat
+ASSUME MaxCardinality >= Cardinality(Nodes)
+ASSUME \A e \in Edges : e \subseteq Nodes /\ Cardinality(e) = 2
+
+VARIABLES mom, dist
+
+vars == <<mom, dist>>
+
+Neighbors(n) == {m \in Nodes : {n, m} \in Edges}
+
+TypeOK ==
+    /\ mom \in [Nodes -> Nodes]
+    /\ dist \in [Nodes -> 0..MaxCardinality]
+
+Init ==
+    /\ mom = [n \in Nodes |-> n]
+    /\ dist = [n \in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]
+
+Improve(n, m) ==
+    /\ m \in Neighbors(n)
+    /\ dist[m] < dist[n] - 1
+    /\ \E d \in (dist[m] + 1)..(dist[n] - 1) :
+        /\ dist' = [dist EXCEPT ![n] = d]
+        /\ mom' = [mom EXCEPT ![n] = m]
+
+Next ==
+    \E n \in Nodes : \E m \in Nodes : Improve(n, m)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Terminated == ~ENABLED Next
+
+ReachableFromRoot(n) ==
+    LET RECURSIVE Ancestors(_)
+        Ancestors(node) ==
+            IF node = Root THEN {Root}
+            ELSE IF mom[node] = node THEN {node}
+            ELSE {node} \cup Ancestors(mom[node])
+    IN Root \in Ancestors(n)
+
+PostCondition ==
+    /\ dist[Root] = 0
+    /\ mom[Root] = Root
+    /\ \A n \in Nodes :
+        IF ReachableFromRoot(n) THEN
+            /\ (n = Root) \/ (mom[n] \in Neighbors(n) /\ dist[n] = dist[mom[n]] + 1)
+        ELSE
+            /\ dist[n] = MaxCardinality
+            /\ mom[n] = n
+
+Safety == Terminated => PostCondition
+
+Liveness == <>Terminated
+
+EventuallyRootParent == \A n \in Nodes : <>(mom[n] = Root)
+
+=============================================================================
+```

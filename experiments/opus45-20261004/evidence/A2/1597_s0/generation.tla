@@ -1,0 +1,438 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS N
+
+ASSUME N >= 2
+
+Proc1 == {1}
+Proc2 == 2..N
+Procs == 1..N
+
+(*
+--algorithm FastMutex {
+    variables x = 0, y = 0, b = [i \in Procs |-> FALSE];
+    
+    fair process (P1 \in Proc1)
+    variables j = 1, failed = FALSE;
+    {
+        start1: b[self] := TRUE;
+        setx1: x := self;
+        checky1: if (y /= 0) {
+            backoff1: b[self] := FALSE;
+            waity1: await y = 0;
+            goto start1;
+        };
+        sety1: y := self;
+        checkx1: if (x /= self) {
+            clearb1: b[self] := FALSE;
+            waitb1: j := 1;
+            loopb1: while (j <= N) {
+                checkb1: if (j /= self) {
+                    awaitb1: await ~b[j];
+                };
+                incj1: j := j + 1;
+            };
+            checky2_1: if (y /= self) {
+                failed1: failed := TRUE;
+            };
+        };
+        enter1: if (~failed) {
+            cs1: skip;
+        };
+        exit1: y := 0;
+               b[self] := FALSE;
+        reset1: failed := FALSE;
+               goto start1;
+    }
+    
+    fair process (P2 \in Proc2)
+    variables j2 = 1, failed2 = FALSE;
+    {
+        start2: b[self] := TRUE;
+        setx2: x := self;
+        checky2: if (y /= 0) {
+            backoff2: b[self] := FALSE;
+            waity2: await y = 0;
+            goto start2;
+        };
+        sety2: y := self;
+        checkx2: if (x /= self) {
+            clearb2: b[self] := FALSE;
+            waitb2: j2 := 1;
+            loopb2: while (j2 <= N) {
+                checkb2: if (j2 /= self) {
+                    awaitb2: await ~b[j2];
+                };
+                incj2: j2 := j2 + 1;
+            };
+            checky2_2: if (y /= self) {
+                failed2_2: failed2 := TRUE;
+            };
+        };
+        enter2: if (~failed2) {
+            cs2: skip;
+        };
+        exit2: y := 0;
+               b[self] := FALSE;
+        reset2: failed2 := FALSE;
+               goto start2;
+    }
+}
+*)
+
+VARIABLES x, y, b, pc, j, failed, j2, failed2
+
+vars == <<x, y, b, pc, j, failed, j2, failed2>>
+
+ProcSet == Proc1 \cup Proc2
+
+Init == 
+    /\ x = 0
+    /\ y = 0
+    /\ b = [i \in Procs |-> FALSE]
+    /\ pc = [self \in ProcSet |-> IF self \in Proc1 THEN "start1" ELSE "start2"]
+    /\ j = [self \in Proc1 |-> 1]
+    /\ failed = [self \in Proc1 |-> FALSE]
+    /\ j2 = [self \in Proc2 |-> 1]
+    /\ failed2 = [self \in Proc2 |-> FALSE]
+
+start1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "start1"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "setx1"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+setx1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "setx1"
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "checky1"]
+    /\ UNCHANGED <<y, b, j, failed, j2, failed2>>
+
+checky1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "checky1"
+    /\ IF y /= 0
+       THEN pc' = [pc EXCEPT ![self] = "backoff1"]
+       ELSE pc' = [pc EXCEPT ![self] = "sety1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+backoff1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "backoff1"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "waity1"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+waity1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "waity1"
+    /\ y = 0
+    /\ pc' = [pc EXCEPT ![self] = "start1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+sety1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "sety1"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkx1"]
+    /\ UNCHANGED <<x, b, j, failed, j2, failed2>>
+
+checkx1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "checkx1"
+    /\ IF x /= self
+       THEN pc' = [pc EXCEPT ![self] = "clearb1"]
+       ELSE pc' = [pc EXCEPT ![self] = "enter1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+clearb1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "clearb1"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "waitb1"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+waitb1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "waitb1"
+    /\ j' = [j EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "loopb1"]
+    /\ UNCHANGED <<x, y, b, failed, j2, failed2>>
+
+loopb1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "loopb1"
+    /\ IF j[self] <= N
+       THEN pc' = [pc EXCEPT ![self] = "checkb1"]
+       ELSE pc' = [pc EXCEPT ![self] = "checky2_1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+checkb1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "checkb1"
+    /\ IF j[self] /= self
+       THEN pc' = [pc EXCEPT ![self] = "awaitb1"]
+       ELSE pc' = [pc EXCEPT ![self] = "incj1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+awaitb1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "awaitb1"
+    /\ ~b[j[self]]
+    /\ pc' = [pc EXCEPT ![self] = "incj1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+incj1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "incj1"
+    /\ j' = [j EXCEPT ![self] = j[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "loopb1"]
+    /\ UNCHANGED <<x, y, b, failed, j2, failed2>>
+
+checky2_1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "checky2_1"
+    /\ IF y /= self
+       THEN pc' = [pc EXCEPT ![self] = "failed1"]
+       ELSE pc' = [pc EXCEPT ![self] = "enter1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+failed1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "failed1"
+    /\ failed' = [failed EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "enter1"]
+    /\ UNCHANGED <<x, y, b, j, j2, failed2>>
+
+enter1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "enter1"
+    /\ IF ~failed[self]
+       THEN pc' = [pc EXCEPT ![self] = "cs1"]
+       ELSE pc' = [pc EXCEPT ![self] = "exit1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+cs1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "cs1"
+    /\ TRUE
+    /\ pc' = [pc EXCEPT ![self] = "exit1"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+exit1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "exit1"
+    /\ y' = 0
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "reset1"]
+    /\ UNCHANGED <<x, j, failed, j2, failed2>>
+
+reset1(self) ==
+    /\ self \in Proc1
+    /\ pc[self] = "reset1"
+    /\ failed' = [failed EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "start1"]
+    /\ UNCHANGED <<x, y, b, j, j2, failed2>>
+
+P1(self) ==
+    \/ start1(self)
+    \/ setx1(self)
+    \/ checky1(self)
+    \/ backoff1(self)
+    \/ waity1(self)
+    \/ sety1(self)
+    \/ checkx1(self)
+    \/ clearb1(self)
+    \/ waitb1(self)
+    \/ loopb1(self)
+    \/ checkb1(self)
+    \/ awaitb1(self)
+    \/ incj1(self)
+    \/ checky2_1(self)
+    \/ failed1(self)
+    \/ enter1(self)
+    \/ cs1(self)
+    \/ exit1(self)
+    \/ reset1(self)
+
+start2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "start2"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "setx2"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+setx2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "setx2"
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "checky2"]
+    /\ UNCHANGED <<y, b, j, failed, j2, failed2>>
+
+checky2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "checky2"
+    /\ IF y /= 0
+       THEN pc' = [pc EXCEPT ![self] = "backoff2"]
+       ELSE pc' = [pc EXCEPT ![self] = "sety2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+backoff2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "backoff2"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "waity2"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+waity2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "waity2"
+    /\ y = 0
+    /\ pc' = [pc EXCEPT ![self] = "start2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+sety2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "sety2"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "checkx2"]
+    /\ UNCHANGED <<x, b, j, failed, j2, failed2>>
+
+checkx2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "checkx2"
+    /\ IF x /= self
+       THEN pc' = [pc EXCEPT ![self] = "clearb2"]
+       ELSE pc' = [pc EXCEPT ![self] = "enter2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+clearb2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "clearb2"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "waitb2"]
+    /\ UNCHANGED <<x, y, j, failed, j2, failed2>>
+
+waitb2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "waitb2"
+    /\ j2' = [j2 EXCEPT ![self] = 1]
+    /\ pc' = [pc EXCEPT ![self] = "loopb2"]
+    /\ UNCHANGED <<x, y, b, j, failed, failed2>>
+
+loopb2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "loopb2"
+    /\ IF j2[self] <= N
+       THEN pc' = [pc EXCEPT ![self] = "checkb2"]
+       ELSE pc' = [pc EXCEPT ![self] = "checky2_2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+checkb2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "checkb2"
+    /\ IF j2[self] /= self
+       THEN pc' = [pc EXCEPT ![self] = "awaitb2"]
+       ELSE pc' = [pc EXCEPT ![self] = "incj2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+awaitb2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "awaitb2"
+    /\ ~b[j2[self]]
+    /\ pc' = [pc EXCEPT ![self] = "incj2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+incj2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "incj2"
+    /\ j2' = [j2 EXCEPT ![self] = j2[self] + 1]
+    /\ pc' = [pc EXCEPT ![self] = "loopb2"]
+    /\ UNCHANGED <<x, y, b, j, failed, failed2>>
+
+checky2_2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "checky2_2"
+    /\ IF y /= self
+       THEN pc' = [pc EXCEPT ![self] = "failed2_2"]
+       ELSE pc' = [pc EXCEPT ![self] = "enter2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+failed2_2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "failed2_2"
+    /\ failed2' = [failed2 EXCEPT ![self] = TRUE]
+    /\ pc' = [pc EXCEPT ![self] = "enter2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2>>
+
+enter2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "enter2"
+    /\ IF ~failed2[self]
+       THEN pc' = [pc EXCEPT ![self] = "cs2"]
+       ELSE pc' = [pc EXCEPT ![self] = "exit2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+cs2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "cs2"
+    /\ TRUE
+    /\ pc' = [pc EXCEPT ![self] = "exit2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2, failed2>>
+
+exit2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "exit2"
+    /\ y' = 0
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "reset2"]
+    /\ UNCHANGED <<x, j, failed, j2, failed2>>
+
+reset2(self) ==
+    /\ self \in Proc2
+    /\ pc[self] = "reset2"
+    /\ failed2' = [failed2 EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "start2"]
+    /\ UNCHANGED <<x, y, b, j, failed, j2>>
+
+P2(self) ==
+    \/ start2(self)
+    \/ setx2(self)
+    \/ checky2(self)
+    \/ backoff2(self)
+    \/ waity2(self)
+    \/ sety2(self)
+    \/ checkx2(self)
+    \/ clearb2(self)
+    \/ waitb2(self)
+    \/ loopb2(self)
+    \/ checkb2(self)
+    \/ awaitb2(self)
+    \/ incj2(self)
+    \/ checky2_2(self)
+    \/ failed2_2(self)
+    \/ enter2(self)
+    \/ cs2(self)
+    \/ exit2(self)
+    \/ reset2(self)
+
+Next ==
+    \/ \E self \in Proc1: P1(self)
+    \/ \E self \in Proc2: P2(self)
+
+Spec == Init /\ [][Next]_vars 
+        /\ \A self \in Proc1: WF_vars(P1(self))
+        /\ \A self \in Proc2: WF_vars(P2(self))
+
+InCS(p) ==
+    \/ (p \in Proc1 /\ pc[p] = "cs1")
+    \/ (p \in Proc2 /\ pc[p] = "cs2")
+
+Invariant == \A p1, p2 \in ProcSet: (p1 /= p2) => ~(InCS(p1) /\ InCS(p2))
+
+Liveness == []<>(\E p \in ProcSet: InCS(p))
+
+==========================================================================

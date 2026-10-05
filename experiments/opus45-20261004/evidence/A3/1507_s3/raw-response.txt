@@ -1,0 +1,50 @@
+```tla+
+---------------------------- MODULE TinyClockSystem ----------------------------
+EXTENDS Booleans
+
+VARIABLES clock
+
+(* Recursive operator that checks if a value is a Boolean *)
+RECURSIVE Check(_)
+Check(x) == IF x = TRUE THEN TRUE
+            ELSE IF x = FALSE THEN TRUE
+            ELSE FALSE
+
+(* Recursive operator that flips a Boolean value *)
+RECURSIVE Flip(_)
+Flip(x) == IF x = TRUE THEN FALSE
+           ELSE IF x = FALSE THEN TRUE
+           ELSE x
+
+(* Type predicate using the Check operator *)
+TypeOK == Check(clock)
+
+(* Initial state predicate - clock starts as FALSE *)
+(* Note: TLC coverage may show the recursive Check operator call here *)
+Init == /\ clock \in BOOLEAN
+        /\ Check(clock)
+
+(* Constraint-like state predicate *)
+Constraint == Check(clock) /\ clock \in BOOLEAN
+
+(* Next state relation - flips the Boolean value of clock *)
+Next == clock' = Flip(clock)
+
+(* Specification with weak fairness on the Next action *)
+Spec == Init /\ [][Next]_clock /\ WF_clock(Next)
+
+(* Safety invariant: clock is always a valid Boolean *)
+SafetyInvariant == TypeOK
+
+(* Liveness property: clock eventually becomes TRUE *)
+EventuallyTrue == <>( clock = TRUE )
+
+(* Liveness property: clock eventually becomes FALSE *)
+EventuallyFalse == <>( clock = FALSE )
+
+(* Liveness property: clock keeps alternating *)
+AlwaysEventuallyTrue == []<>( clock = TRUE )
+AlwaysEventuallyFalse == []<>( clock = FALSE )
+
+================================================================================
+```

@@ -1,0 +1,327 @@
+-------------------------------- MODULE PlusCalTranslator --------------------------------
+(***************************************************************************)
+(* This module specifies the translation from the abstract syntax tree of  *)
+(* a global-naming PlusCal (+CAL) algorithm into a TLA+ specification.     *)
+(* It defines the grammar of legal abstract syntax trees for algorithms,   *)
+(* procedures, processes, labeled statements, and related constructs.      *)
+(***************************************************************************)
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    MaxLexemes,          \* Maximum number of lexemes in output
+    MaxStmts,            \* Maximum statements per block
+    MaxProcs,            \* Maximum number of processes
+    MaxVars,             \* Maximum variables
+    ProcIds,             \* Set of process identifiers
+    VarNames,            \* Set of variable names
+    LabelNames,          \* Set of label names
+    ExprTokens           \* Set of expression tokens
+
+(***************************************************************************)
+(* Fairness options for the generated specification                        *)
+(***************************************************************************)
+FairnessOptions == {"none", "wf_procs", "wf_next", "sf_procs"}
+
+(***************************************************************************)
+(* AST Node Types                                                          *)
+(***************************************************************************)
+NodeTypes == {"Algorithm", "Procedure", "Process", "LabeledStmt", 
+              "Assignment", "If", "While", "Either", "With", "Call",
+              "Return", "Goto", "Print", "Assert", "Skip", "Await",
+              "VarDecl", "PVarDecl"}
+
+StmtTypes == {"Assignment", "If", "While", "Either", "With", "Call",
+              "Return", "Goto", "Print", "Assert", "Skip", "Await"}
+
+(***************************************************************************)
+(* Lexeme types for TLA+ output                                            *)
+(***************************************************************************)
+LexemeTypes == {"KEYWORD", "IDENT", "OP", "PUNC", "NEWLINE", "INDENT", "STRING"}
+
+(***************************************************************************)
+(* Helper: Check if something is a valid sequence                          *)
+(***************************************************************************)
+IsSeq(s) == s = <<>> \/ (DOMAIN s = 1..Len(s))
+
+(***************************************************************************)
+(* Grammar predicates for AST nodes                                        *)
+(***************************************************************************)
+
+IsVarDecl(node) ==
+    /\ node.type = "VarDecl"
+    /\ node.name \in VarNames
+    /\ "init" \in DOMAIN node
+
+IsLabeledStmt(node) ==
+    /\ node.type = "LabeledStmt"
+    /\ node.label \in LabelNames
+    /\ IsSeq(node.stmts)
+    /\ Len(node.stmts) <= MaxStmts
+
+IsProcedure(node) ==
+    /\ node.type = "Procedure"
+    /\ node.name \in VarNames
+    /\ IsSeq(node.params)
+    /\ IsSeq(node.locals)
+    /\ IsSeq(node.body)
+
+IsProcess(node) ==
+    /\ node.type = "Process"
+    /\ node.id \in ProcIds
+    /\ "isSingle" \in DOMAIN node
+    /\ IsSeq(node.locals)
+    /\ IsSeq(node.body)
+
+IsAlgorithm(ast) ==
+    /\ ast.type = "Algorithm"
+    /\ "name" \in DOMAIN ast
+    /\ IsSeq(ast.globals)
+    /\ IsSeq(ast.procedures)
+    /\ IsSeq(ast.processes)
+    /\ "fairness" \in DOMAIN ast
+    /\ ast.fairness \in FairnessOptions
+
+(***************************************************************************)
+(* Lexeme constructors                                                     *)
+(***************************************************************************)
+Keyword(k) == [type |-> "KEYWORD", val |-> k]
+Ident(i) == [type |-> "IDENT", val |-> i]
+Op(o) == [type |-> "OP", val |-> o]
+Punc(p) == [type |-> "PUNC", val |-> p]
+Newline == [type |-> "NEWLINE", val |-> ""]
+Indent(n) == [type |-> "INDENT", val |-> n]
+
+(***************************************************************************)
+(* Translation state                                                       *)
+(***************************************************************************)
+VARIABLES
+    ast,              \* The input abstract syntax tree
+    lexemes,          \* The output sequence of lexemes (TLA+ text)
+    currentProc,      \* Current process being translated
+    currentLabel,     \* Current label being translated
+    pcSet,            \* Set of program counter values generated
+    translationDone,  \* Whether translation is complete
+    errorState        \* Error information if translation fails
+
+vars == <<ast, lexemes, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+(***************************************************************************)
+(* Type invariant                                                          *)
+(***************************************************************************)
+TypeOK ==
+    /\ IsSeq(lexemes)
+    /\ Len(lexemes) <= MaxLexemes
+    /\ currentProc \in ProcIds \cup {"-none-"}
+    /\ currentLabel \in LabelNames \cup {"-none-"}
+    /\ pcSet \subseteq LabelNames
+    /\ translationDone \in BOOLEAN
+    /\ errorState \in {"none", "syntax_error", "undefined_label", 
+                       "undefined_var", "duplicate_label"}
+
+(***************************************************************************)
+(* Generate lexemes for variable declarations                              *)
+(***************************************************************************)
+TranslateVarDecl(v) ==
+    <<Ident(v.name), Op("="), Ident("initVal")>>
+
+(***************************************************************************)
+(* Generate pc variable declaration                                        *)
+(***************************************************************************)
+TranslatePCDecl(initLabel) ==
+    <<Ident("pc"), Op("="), Punc("\""), Ident(initLabel), Punc("\"")>>
+
+(***************************************************************************)
+(* Generate Init predicate header                                          *)
+(***************************************************************************)
+InitHeader ==
+    <<Newline, Ident("Init"), Op("=="), Newline>>
+
+(***************************************************************************)
+(* Generate Next predicate based on process structure                      *)
+(***************************************************************************)
+NextHeader ==
+    <<Newline, Ident("Next"), Op("=="), Newline>>
+
+(***************************************************************************)
+(* Generate Spec with appropriate fairness                                 *)
+(***************************************************************************)
+SpecWithFairness(fairOpt, procNames) ==
+    LET base == <<Newline, Ident("Spec"), Op("=="), Ident("Init"), 
+                  Op("/\\"), Punc("[]"), Punc("["), Ident("Next"), 
+                  Punc("]"), Ident("_vars")>>
+    IN CASE fairOpt = "none" -> base
+         [] fairOpt = "wf_next" -> base \o <<Op("/\\"), Keyword("WF"), 
+                                             Ident("_vars"), Punc("("), 
+                                             Ident("Next"), Punc(")")>>
+         [] fairOpt = "wf_procs" -> base \o <<Op("/\\"), Ident("wf_procs_conj")>>
+         [] fairOpt = "sf_procs" -> base \o <<Op("/\\"), Ident("sf_procs_conj")>>
+         [] OTHER -> base
+
+(***************************************************************************)
+(* Generate Termination property                                           *)
+(***************************************************************************)
+TerminationProperty ==
+    <<Newline, Ident("Termination"), Op("=="), Punc("<>"), Punc("("), 
+      Op("\\A"), Ident("self"), Op("\\in"), Ident("ProcSet"), Op(":"), 
+      Ident("pc"), Punc("["), Ident("self"), Punc("]"), Op("="), 
+      Punc("\""), Ident("Done"), Punc("\""), Punc(")")>>
+
+(***************************************************************************)
+(* Initial state                                                           *)
+(***************************************************************************)
+Init ==
+    /\ ast \in [type: {"Algorithm"}, 
+                name: VarNames,
+                globals: SUBSET [type: {"VarDecl"}, name: VarNames, init: ExprTokens],
+                procedures: SUBSET [type: {"Procedure"}, name: VarNames, 
+                                   params: SUBSET VarNames, locals: SUBSET VarNames,
+                                   body: SUBSET LabelNames],
+                processes: SUBSET [type: {"Process"}, id: ProcIds, isSingle: BOOLEAN,
+                                  locals: SUBSET VarNames, body: SUBSET LabelNames],
+                fairness: FairnessOptions]
+    /\ lexemes = <<>>
+    /\ currentProc = "-none-"
+    /\ currentLabel = "-none-"
+    /\ pcSet = {}
+    /\ translationDone = FALSE
+    /\ errorState = "none"
+
+(***************************************************************************)
+(* Translation actions                                                     *)
+(***************************************************************************)
+
+\* Start translation - emit module header
+StartTranslation ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ lexemes = <<>>
+    /\ lexemes' = <<Keyword("MODULE"), Ident(ast.name), Newline,
+                    Keyword("EXTENDS"), Ident("Naturals"), Punc(","),
+                    Ident("Sequences"), Newline>>
+    /\ UNCHANGED <<ast, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+\* Translate variables section
+TranslateVariables ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ Len(lexemes) > 0
+    /\ Len(lexemes) < MaxLexemes - 10
+    /\ lexemes' = lexemes \o <<Keyword("VARIABLES"), Ident("pc")>> \o
+                  (IF Cardinality(ast.globals) > 0 
+                   THEN <<Punc(","), Ident("vars")>>
+                   ELSE <<>>)
+    /\ UNCHANGED <<ast, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+\* Generate Init definition
+GenerateInit ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ Len(lexemes) >= 4
+    /\ Len(lexemes) < MaxLexemes - 20
+    /\ lexemes' = lexemes \o InitHeader \o 
+                  <<Indent(2), Ident("pc"), Op("="), 
+                    Punc("\""), Ident("Start"), Punc("\"")>>
+    /\ pcSet' = pcSet \cup {"Start"}
+    /\ UNCHANGED <<ast, currentProc, currentLabel, translationDone, errorState>>
+
+\* Generate Next definition
+GenerateNext ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ "Start" \in pcSet
+    /\ Len(lexemes) < MaxLexemes - 20
+    /\ lexemes' = lexemes \o NextHeader \o
+                  <<Indent(2), Op("\\/"), Ident("step")>>
+    /\ UNCHANGED <<ast, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+\* Generate Spec definition with fairness
+GenerateSpec ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ "Start" \in pcSet
+    /\ Len(lexemes) < MaxLexemes - 30
+    /\ lexemes' = lexemes \o SpecWithFairness(ast.fairness, {})
+    /\ UNCHANGED <<ast, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+\* Generate Termination property
+GenerateTermination ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ Len(lexemes) < MaxLexemes - 20
+    /\ lexemes' = lexemes \o TerminationProperty
+    /\ UNCHANGED <<ast, currentProc, currentLabel, pcSet, translationDone, errorState>>
+
+\* Complete translation
+CompleteTranslation ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ Len(lexemes) > 10
+    /\ translationDone' = TRUE
+    /\ UNCHANGED <<ast, lexemes, currentProc, currentLabel, pcSet, errorState>>
+
+\* Handle translation error
+HandleError ==
+    /\ ~translationDone
+    /\ errorState = "none"
+    /\ \/ (Len(lexemes) >= MaxLexemes)
+       \/ (~IsAlgorithm(ast))
+    /\ errorState' = "syntax_error"
+    /\ translationDone' = TRUE
+    /\ UNCHANGED <<ast, lexemes, currentProc, currentLabel, pcSet>>
+
+(***************************************************************************)
+(* Next state relation                                                     *)
+(***************************************************************************)
+Next ==
+    \/ StartTranslation
+    \/ TranslateVariables
+    \/ GenerateInit
+    \/ GenerateNext
+    \/ GenerateSpec
+    \/ GenerateTermination
+    \/ CompleteTranslation
+    \/ HandleError
+
+(***************************************************************************)
+(* Fairness: weak fairness on translation completing                       *)
+(***************************************************************************)
+Fairness == WF_vars(Next)
+
+(***************************************************************************)
+(* Complete specification                                                  *)
+(***************************************************************************)
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(***************************************************************************)
+(* Safety invariants                                                       *)
+(***************************************************************************)
+
+\* Lexeme count never exceeds maximum
+LexemeBound == Len(lexemes) <= MaxLexemes
+
+\* No duplicate labels in pcSet
+NoDuplicateLabels == Cardinality(pcSet) = Cardinality(pcSet)
+
+\* Error state implies translation is done
+ErrorImpliesDone == (errorState # "none") => translationDone
+
+\* All invariants combined
+SafetyInvariant == TypeOK /\ LexemeBound /\ ErrorImpliesDone
+
+(***************************************************************************)
+(* Liveness properties                                                     *)
+(***************************************************************************)
+
+\* Translation eventually completes
+TranslationCompletes == <>(translationDone)
+
+\* If no error, output is non-empty
+SuccessfulTranslation == [](translationDone /\ errorState = "none" => Len(lexemes) > 0)
+
+\* Termination property is generated for valid algorithms
+TerminationGenerated == 
+    <>(translationDone => 
+       \E i \in 1..Len(lexemes): lexemes[i].val = "Termination")
+
+=============================================================================

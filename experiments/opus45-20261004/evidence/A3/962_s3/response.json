@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE AlternatingBit ----------------------------\n\nEXTENDS Integers, Sequences\n\nCONSTANTS Data\n\nVARIABLES sbit,      \\* Sender's current bit\n          abit,      \\* Sender's acknowledgement bit\n          rbit,      \\* Receiver's bit\n          sent,      \\* Data value being sent\n          rcvd       \\* Data value received\n\nvars == <<sbit, abit, rbit, sent, rcvd>>\n\nTypeInvariant ==\n    /\\ sbit \\in {0, 1}\n    /\\ abit \\in {0, 1}\n    /\\ rbit \\in {0, 1}\n    /\\ sent \\in Data\n    /\\ rcvd \\in Data \\union {<<>>}\n\n-----------------------------------------------------------------------------\n\nInit ==\n    /\\ sbit = 0\n    /\\ abit = 0\n    /\\ rbit = 1\n    /\\ sent \\in Data\n    /\\ rcvd = <<>>\n\n\\* Sender sends a new value when acknowledgement bit matches send bit\nSendNew(d) ==\n    /\\ abit = sbit\n    /\\ sent' = d\n    /\\ sbit' = 1 - sbit\n    /\\ UNCHANGED <<abit, rbit, rcvd>>\n\n\\* Receiver accepts message when receive bit differs from sender bit\nReceiveMsg ==\n    /\\ rbit /= sbit\n    /\\ rcvd' = sent\n    /\\ rbit' = sbit\n    /\\ UNCHANGED <<sbit, abit, sent>>\n\n\\* Sender accepts acknowledgement when receiver bit differs from sender acknowledgement bit\nReceiveAck ==\n    /\\ rbit /= abit\n    /\\ abit' = rbit\n    /\\ UNCHANGED <<sbit, rbit, sent, rcvd>>\n\nNext ==\n    \\/ \\E d \\in Data : SendNew(d)\n    \\/ ReceiveMsg\n    \\/ ReceiveAck\n\n-----------------------------------------------------------------------------\n\n\\* Fairness assumptions for message reception and acknowledgement reception\nFairness ==\n    /\\ WF_vars(ReceiveMsg)\n    /\\ WF_vars(ReceiveAck)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n-----------------------------------------------------------------------------\n\n\\* Safety invariant: type correctness\nSafety == TypeInvariant\n\n\\* Temporal property: sender bit and acknowledgement bit are infinitely often out of sync\nBitsOutOfSync == [](sbit /= abit)\nInfinitelyOftenOutOfSync == []<>(sbit /= abit)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 248,
+    "outputTokens": 620,
+    "totalTokens": 868,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9220
+  }
+}

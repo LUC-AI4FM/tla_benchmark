@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE QuickSort ------------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES A, S, pc\n\nvars == <<A, S, pc>>\n\nPerms(arr, lo, hi) ==\n    { arr2 \\in [1..N -> 1..N] :\n        /\\ \\A i \\in 1..N : (i < lo \\/ i > hi) => arr2[i] = arr[i]\n        /\\ LET sub1 == [j \\in 1..(hi - lo + 1) |-> arr[lo + j - 1]]\n               sub2 == [j \\in 1..(hi - lo + 1) |-> arr2[lo + j - 1]]\n           IN \\A v \\in 1..N : \n               Cardinality({j \\in 1..(hi - lo + 1) : sub1[j] = v}) = \n               Cardinality({j \\in 1..(hi - lo + 1) : sub2[j] = v})\n    }\n\nPartitioned(arr, lo, p, hi) ==\n    /\\ \\A i \\in lo..(p-1) : arr[i] <= arr[p]\n    /\\ \\A i \\in (p+1)..hi : arr[i] >= arr[p]\n\nInit ==\n    /\\ A \\in [1..N -> 1..N]\n    /\\ S = {<<1, N>>}\n    /\\ pc = \"qs1\"\n\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF S = {}\n       THEN /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<A, S>>\n       ELSE /\\ \\E interval \\in S :\n                 LET lo == interval[1]\n                     hi == interval[2]\n                 IN IF lo >= hi\n                    THEN /\\ S' = S \\ {interval}\n                         /\\ UNCHANGED A\n                    ELSE /\\ \\E p \\in lo..hi :\n                              \\E A2 \\in Perms(A, lo, hi) :\n                                 /\\ Partitioned(A2, lo, p, hi)\n                                 /\\ A' = A2\n                                 /\\ S' = (S \\ {interval}) \\cup \n                                         (IF p > lo THEN {<<lo, p - 1>>} ELSE {}) \\cup\n                                         (IF p < hi THEN {<<p + 1, hi>>} ELSE {})\n            /\\ pc' = \"qs1\"\n\nTerminating ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == qs1 \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeInvariant ==\n    /\\ A \\in [1..N -> 1..N]\n    /\\ S \\subseteq {<<lo, hi>> \\in (1..N) \\times (1..N) : lo <= hi} \\cup \n       {<<lo, hi>> \\in (1..N) \\times (0..N) : lo > hi}\n    /\\ pc \\in {\"qs1\", \"Done\"}\n\nTermination == <>(pc = \"Done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 827,
+    "totalTokens": 1096,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13588
+  }
+}

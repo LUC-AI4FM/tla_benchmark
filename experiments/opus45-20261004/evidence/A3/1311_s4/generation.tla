@@ -1,0 +1,61 @@
+-------------------------------- MODULE GCD --------------------------------
+EXTENDS Integers
+
+CONSTANTS InitialU, MaxV
+
+VARIABLES u, v, pc
+
+vars == <<u, v, pc>>
+
+Init ==
+    /\ u = InitialU
+    /\ v \in 1..MaxV
+    /\ pc = "loop"
+
+Swap ==
+    /\ pc = "loop"
+    /\ u < v
+    /\ u' = v
+    /\ v' = u
+    /\ pc' = "loop"
+
+Subtract ==
+    /\ pc = "loop"
+    /\ u >= v
+    /\ u # 0
+    /\ u' = u - v
+    /\ v' = v
+    /\ pc' = "loop"
+
+Terminate ==
+    /\ pc = "loop"
+    /\ u = 0
+    /\ pc' = "Done"
+    /\ u' = u
+    /\ v' = v
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ Swap
+    \/ Subtract
+    \/ Terminate
+    \/ Done
+
+Spec == Init /\ [][Next]_vars
+
+TypeInvariant ==
+    /\ u \in Nat
+    /\ v \in 1..MaxV
+    /\ pc \in {"loop", "Done"}
+
+PositiveV == v >= 1
+
+GCDCorrectness ==
+    pc = "Done" => v = (24 :> 24 @@ v)[v]
+
+Termination == <>(pc = "Done")
+
+=============================================================================

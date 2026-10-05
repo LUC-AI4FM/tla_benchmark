@@ -1,0 +1,59 @@
+```tla
+---------------------------- MODULE ABCSpec ----------------------------
+
+EXTENDS Integers, Sequences
+
+CONSTANTS Data
+
+VARIABLES sbit,      \* sender's current bit
+          sackbit,   \* sender's acknowledgement bit
+          rbit,      \* receiver's bit
+          sent,      \* data value being sent
+          rcvd       \* data value received
+
+vars == <<sbit, sackbit, rbit, sent, rcvd>>
+
+TypeInv == /\ sbit \in {0, 1}
+           /\ sackbit \in {0, 1}
+           /\ rbit \in {0, 1}
+           /\ sent \in Data
+           /\ rcvd \in Data
+
+Init == /\ sbit = 0
+        /\ sackbit = 0
+        /\ rbit = 1
+        /\ sent \in Data
+        /\ rcvd \in Data
+
+\* Sender sends a new value when acknowledgement bit matches send bit
+SendNew(d) == /\ sackbit = sbit
+              /\ sent' = d
+              /\ sbit' = 1 - sbit
+              /\ UNCHANGED <<sackbit, rbit, rcvd>>
+
+\* Receiver accepts message when receive bit differs from sender bit
+ReceiveMsg == /\ rbit /= sbit
+              /\ rcvd' = sent
+              /\ rbit' = sbit
+              /\ UNCHANGED <<sbit, sackbit, sent>>
+
+\* Sender accepts acknowledgement when receiver bit differs from sender ack bit
+ReceiveAck == /\ rbit /= sackbit
+              /\ sackbit' = rbit
+              /\ UNCHANGED <<sbit, rbit, sent, rcvd>>
+
+Next == \/ \E d \in Data : SendNew(d)
+        \/ ReceiveMsg
+        \/ ReceiveAck
+
+\* Fairness assumptions for message reception and acknowledgement reception
+Fairness == /\ WF_vars(ReceiveMsg)
+            /\ WF_vars(ReceiveAck)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Temporal property: sender and acknowledgement bits are infinitely often out of sync
+BitsOutOfSync == []<>(sbit /= sackbit)
+
+=============================================================================
+```

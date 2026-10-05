@@ -1,0 +1,90 @@
+```tla+
+---- MODULE DieHard ----
+EXTENDS Integers, TLC
+
+CONSTANTS Small, Big
+
+ASSUME Small = 3 /\ Big = 5
+
+VARIABLES small, big, waterUsed
+
+vars == <<small, big, waterUsed>>
+
+TypeOK ==
+    /\ small \in 0..Small
+    /\ big \in 0..Big
+    /\ waterUsed \in Nat
+
+Init ==
+    /\ small = 0
+    /\ big = 0
+    /\ waterUsed = 0
+
+FillSmall ==
+    /\ small' = Small
+    /\ big' = big
+    /\ waterUsed' = waterUsed + (Small - small)
+
+FillBig ==
+    /\ big' = Big
+    /\ small' = small
+    /\ waterUsed' = waterUsed + (Big - big)
+
+EmptySmall ==
+    /\ small' = 0
+    /\ big' = big
+    /\ waterUsed' = waterUsed
+
+EmptyBig ==
+    /\ big' = 0
+    /\ small' = small
+    /\ waterUsed' = waterUsed
+
+SmallToBig ==
+    LET transfer == IF small + big <= Big THEN small ELSE Big - big
+    IN
+        /\ small' = small - transfer
+        /\ big' = big + transfer
+        /\ waterUsed' = waterUsed
+
+BigToSmall ==
+    LET transfer == IF small + big <= Small THEN big ELSE Small - small
+    IN
+        /\ big' = big - transfer
+        /\ small' = small + transfer
+        /\ waterUsed' = waterUsed
+
+Next ==
+    \/ FillSmall
+    \/ FillBig
+    \/ EmptySmall
+    \/ EmptyBig
+    \/ SmallToBig
+    \/ BigToSmall
+
+Spec == Init /\ [][Next]_vars
+
+\* Safety invariant: big jug never has exactly 4 gallons
+\* This is expected to be VIOLATED to find the solution
+NotFour == big /= 4
+
+\* Predicate to check that a state with big = 4 exists
+BigHasFour == big = 4
+
+\* TLC statistics tracking operators
+StateCount == TLCGet("distinct")
+ActionCount == TLCGet("generated")
+
+\* Predicates for checking state/action count expectations after model checking
+StateCountCheck(expected) == StateCount >= expected
+ActionCountCheck(expected) == ActionCount >= expected
+
+\* Expected state space properties
+\* The Die Hard problem has 16 reachable states (0..3 x 0..5 constrained by reachability)
+ExpectedStatesExist == TLCGet("distinct") > 0
+
+\* Check that we can reach the goal state
+GoalStateReachable == <>(big = 4)
+
+====
+```

@@ -1,0 +1,16 @@
+{
+  "modelId": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "You are a TLA+ specification engineer. You will receive a natural language description of a system. Produce a complete, syntactically correct TLA+ specification that faithfully captures the described behavior. The output must be a valid TLA+ module that passes the SANY parser. Include the MODULE declaration, EXTENDS, CONSTANTS, VARIABLES, Init, Next and Spec. Include all safety invariants and liveness properties described, and any fairness conditions mentioned. Output only the TLA+ specification.\n\nSystem description: The module CBakery specifies Lamport's Bakery mutual exclusion algorithm for a configurable number of processes, translated from a PlusCal algorithm into TLA+. The system models `NumProcs` processes (identified by integers 1 through `NumProcs`) competing for access to a critical section using a ticket-based priority scheme.\n\nEach process has shared variables `num` (its bakery ticket number, initially 0) and `choosing` (a boolean flag indicating it is currently selecting a number), plus per-process local variables `read`, `max`, and `nxt`. A process begins each iteration by setting `choosing` to TRUE and scanning all other processes' ticket numbers (labels `d1`\u2013`d2`) to pick a number one greater than the current maximum. It then clears `choosing` (label `d3`) and enters a waiting loop (`w1`\u2013`w2`) that checks each other process: it waits until that process is not choosing, then waits until the other process either holds no ticket, holds a strictly higher ticket, or holds the same ticket but has a higher process ID. Once all processes have been checked, the process enters the critical section (`cs`) and upon exit resets its ticket to zero before looping again.\n\nThe temporal specification is `Init /\\ [][Next]_vars` (safety only, no fairness). The model-checking configuration sets `NumProcs = 2` and `MaxNum = 2`, enforces a state constraint bounding all ticket numbers to at most `MaxNum`, and checks the mutual exclusion invariant asserting that no two distinct processes are simultaneously at label `cs`."
+        }
+      ]
+    }
+  ],
+  "inferenceConfig": {
+    "maxTokens": 16000
+  }
+}

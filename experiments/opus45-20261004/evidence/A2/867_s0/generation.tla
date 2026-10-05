@@ -1,0 +1,124 @@
+---------------------------- MODULE Paxos ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS Values, Ballots, Replicas
+
+ASSUME Ballots \subseteq Nat
+ASSUME 0 \notin Ballots
+
+Quorums == {Q \in SUBSET Replicas : Cardinality(Q) = 3}
+
+VARIABLES messages, maxBallot, maxVBallot, maxValue, decision
+
+vars == <<messages, maxBallot, maxVBallot, maxValue, decision>>
+
+TypeOK ==
+    /\ messages \subseteq [type : {"1a", "1b", "2a", "2b"}, 
+                           bal : Ballots, 
+                           acc : Replicas, 
+                           mbal : Ballots \cup {-1}, 
+                           mval : Values \cup {None}]
+    /\ maxBallot \in [Replicas -> Ballots \cup {0}]
+    /\ maxVBallot \in [Replicas -> Ballots \cup {-1}]
+    /\ maxValue \in [Replicas -> Values \cup {None}]
+    /\ decision \in Values \cup {None}
+
+None == CHOOSE v : v \notin Values
+
+Init ==
+    /\ messages = {}
+    /\ maxBallot = [r \in Replicas |-> 0]
+    /\ maxVBallot = [r \in Replicas |-> -1]
+    /\ maxValue = [r \in Replicas |-> None]
+    /\ decision = None
+
+Send(m) == messages' = messages \cup {m}
+
+PaxosPrepare(b) ==
+    /\ b \in Ballots
+    /\ b > 0
+    /\ Send([type |-> "1a", bal |-> b, acc |-> CHOOSE r : r \in Replicas, mbal |-> -1, mval |-> None])
+    /\ UNCHANGED <<maxBallot, maxVBallot, maxValue, decision>>
+
+PaxosPromise(a, m) ==
+    /\ m \in messages
+    /\ m.type = "1a"
+    /\ m.bal > maxBallot[a]
+    /\ maxBallot' = [maxBallot EXCEPT ![a] = m.bal]
+    /\ Send([type |-> "1b", bal |-> m.bal, acc |-> a, mbal |-> maxVBallot[a], mval |-> maxValue[a]])
+    /\ UNCHANGED <<maxVBallot, maxValue, decision>>
+
+Phase1bMsgs(b) == {m \in messages : m.type = "1b" /\ m.bal = b}
+
+QuorumResponded(b) == \E Q \in Quorums : \A r \in Q : \E m \in Phase1bMsgs(b) : m.acc = r
+
+HighestAcceptedBallot(b) ==
+    LET msgs == Phase1bMsgs(b)
+        acceptedMsgs == {m \in msgs : m.mbal >= 0}
+    IN IF acceptedMsgs = {} 
+       THEN -1
+       ELSE CHOOSE maxB \in {m.mbal : m \in acceptedMsgs} : 
+            \A m \in acceptedMsgs : m.mbal <= maxB
+
+ForcedValue(b) ==
+    LET msgs == Phase1bMsgs(b)
+        highBal == HighestAcceptedBallot(b)
+    IN IF highBal = -1
+       THEN None
+       ELSE (CHOOSE m \in msgs : m.mbal = highBal).mval
+
+Phase2aNotSent(b) == ~\E m \in messages : m.type = "2a" /\ m.bal = b
+
+PaxosAccept(b, v) ==
+    /\ b \in Ballots
+    /\ QuorumResponded(b)
+    /\ Phase2aNotSent(b)
+    /\ \/ /\ ForcedValue(b) = None
+          /\ v \in Values
+       \/ /\ ForcedValue(b) # None
+          /\ v = ForcedValue(b)
+    /\ Send([type |-> "2a", bal |-> b, acc |-> CHOOSE r : r \in Replicas, mbal |-> -1, mval |-> v])
+    /\ UNCHANGED <<maxBallot, maxVBallot, maxValue, decision>>
+
+PaxosAccepted(a, m) ==
+    /\ m \in messages
+    /\ m.type = "2a"
+    /\ m.bal >= maxBallot[a]
+    /\ maxBallot' = [maxBallot EXCEPT ![a] = m.bal]
+    /\ maxVBallot' = [maxVBallot EXCEPT ![a] = m.bal]
+    /\ maxValue' = [maxValue EXCEPT ![a] = m.mval]
+    /\ Send([type |-> "2b", bal |-> m.bal, acc |-> a, mbal |-> m.bal, mval |-> m.mval])
+    /\ UNCHANGED <<decision>>
+
+Phase2bMsgs(b, v) == {m \in messages : m.type = "2b" /\ m.bal = b /\ m.mval = v}
+
+QuorumAccepted(b, v) == \E Q \in Quorums : \A r \in Q : \E m \in Phase2bMsgs(b, v) : m.acc = r
+
+PaxosDecide ==
+    /\ decision = None
+    /\ \E b \in Ballots, v \in Values :
+        /\ QuorumAccepted(b, v)
+        /\ decision' = v
+    /\ UNCHANGED <<messages, maxBallot, maxVBallot, maxValue>>
+
+Next ==
+    \/ \E b \in Ballots : PaxosPrepare(b)
+    \/ \E a \in Replicas, m \in messages : PaxosPromise(a, m)
+    \/ \E b \in Ballots, v \in Values : PaxosAccept(b, v)
+    \/ \E a \in Replicas, m \in messages : PaxosAccepted(a, m)
+    \/ PaxosDecide
+
+Fairness == SF_vars(PaxosDecide)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+ProposedValues == 
+    {m.mval : m \in {msg \in messages : msg.type = "2a" /\ msg.mval # None}}
+
+PaxosNontriviality == decision # None => decision \in ProposedValues
+
+PaxosConsistency == [][decision # None => decision' = decision]_vars
+
+Liveness == FALSE
+
+=======================================================================

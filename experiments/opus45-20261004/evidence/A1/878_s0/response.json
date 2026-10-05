@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Nodes, Edges, root, MaxCardinality\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\n-----------------------------------------------------------------------------\n\n\\* Helper: Get neighbors of a node in the undirected graph\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges \\/ {m, n} \\in Edges}\n\n-----------------------------------------------------------------------------\n\n\\* Type invariant\nTypeOK == /\\ mom \\in [Nodes -> Nodes]\n          /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\n\\* Initial state\nInit == /\\ mom = [n \\in Nodes |-> n]\n        /\\ dist = [n \\in Nodes |-> IF n = root THEN 0 ELSE MaxCardinality]\n\n\\* A node n can update if it has a neighbor m with smaller distance\n\\* and the new distance would be less than current distance\nUpdate(n) == \n    \\E m \\in Neighbors(n) :\n        /\\ dist[m] < dist[n]\n        /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) \\cup {dist[m] + 1} :\n            /\\ dist' = [dist EXCEPT ![n] = d]\n            /\\ mom' = [mom EXCEPT ![n] = m]\n\n\\* Next state relation\nNext == \\E n \\in Nodes : Update(n)\n\n\\* Termination: no more updates possible\nTerminated == ~ENABLED Next\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n-----------------------------------------------------------------------------\n\n\\* Postcondition: characterizes a correct rooted spanning tree\n\\* 1. Root has distance 0 and is its own parent\n\\* 2. Every other node has a parent that is a neighbor with smaller distance\n\\* 3. Distance of each node equals distance of parent + 1 (except root)\nPostcondition ==\n    /\\ dist[root] = 0\n    /\\ mom[root] = root\n    /\\ \\A n \\in Nodes \\ {root} :\n        /\\ mom[n] \\in Neighbors(n)\n        /\\ dist[n] = dist[mom[n]] + 1\n        /\\ dist[n] < MaxCardinality\n\n\\* Safety: termination implies postcondition\nSafety == Terminated => Postcondition\n\n\\* Liveness: eventual termination\nLiveness == <>Terminated\n\n\\* Additional temporal property: every node eventually has root as ancestor\n\\* (expressed as eventually having root as parent through the chain)\nEventuallyRootParent == \\A n \\in Nodes : <>(mom[n] = root \\/ n = root)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 313,
+    "outputTokens": 686,
+    "totalTokens": 999,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12621
+  }
+}

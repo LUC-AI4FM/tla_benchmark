@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE TwoPhaseCommit ----------------------------\nEXTENDS Sequences, FiniteSets\n\nCONSTANTS RM\n\nVARIABLES rmState\n\nvars == <<rmState>>\n\nTypeOK == rmState \\in [RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]\n\nTCTypeOK == TypeOK\n\nTCConsistent == \\A rm1, rm2 \\in RM : \n    ~(rmState[rm1] = \"aborted\" /\\ rmState[rm2] = \"committed\")\n\ncanCommit == \\A rm \\in RM : rmState[rm] \\in {\"prepared\", \"committed\"}\n\nnotCommitted == \\A rm \\in RM : rmState[rm] # \"committed\"\n\nPrepare(rm) == \n    /\\ rmState[rm] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![rm] = \"prepared\"]\n\nDecide(rm) == \n    \\/ /\\ rmState[rm] = \"prepared\"\n       /\\ canCommit\n       /\\ rmState' = [rmState EXCEPT ![rm] = \"committed\"]\n    \\/ /\\ rmState[rm] \\in {\"working\", \"prepared\"}\n       /\\ notCommitted\n       /\\ rmState' = [rmState EXCEPT ![rm] = \"aborted\"]\n\nTCNext == \\E rm \\in RM : Prepare(rm) \\/ Decide(rm)\n\nTCInit == rmState = [rm \\in RM |-> \"working\"]\n\nTCSpec == TCInit /\\ [][TCNext]_vars\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 472,
+    "outputTokens": 377,
+    "totalTokens": 849,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 6823
+  }
+}

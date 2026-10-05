@@ -1,0 +1,199 @@
+-------------------------------- MODULE Paxos --------------------------------
+\* This module specifies the Paxos consensus protocol without explicit leaders
+\* or learners, modeling the exchange of prepare, promise, accept, accepted,
+\* and decide messages among proposers and acceptors.
+\*
+\* NOTE: Paxos does not guarantee termination (liveness) under the asynchronous
+\* fault model. This is a consequence of the FLP impossibility result, which
+\* shows that no deterministic consensus protocol can guarantee termination
+\* in an asynchronous system with even one faulty process. Therefore, we
+\* explicitly set Liveness to FALSE in this specification.
+
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    Acceptors,      \* The set of acceptor processes
+    Proposers,      \* The set of proposer processes  
+    Values,         \* The set of possible values that can be proposed
+    Ballots,        \* The set of ballot numbers (typically a subset of Nat)
+    Quorums         \* The set of quorums (strict majorities with pairwise intersection)
+
+\* Assume quorums are subsets of acceptors with pairwise intersection
+ASSUME QuorumAssumption == 
+    /\ \A Q \in Quorums : Q \subseteq Acceptors
+    /\ \A Q1, Q2 \in Quorums : Q1 \cap Q2 /= {}
+
+\* A special "none" value to represent absence of a value
+CONSTANTS None
+
+ASSUME None \notin Values
+
+VARIABLES
+    messages,       \* The set of all sent messages
+    decision,       \* A representative decision value (None if no decision yet)
+    maxBal,         \* maxBal[a] = highest ballot seen by acceptor a
+    maxVBal,        \* maxVBal[a] = highest ballot accepted by acceptor a
+    maxVal          \* maxVal[a] = value accepted at maxVBal[a]
+
+vars == <<messages, decision, maxBal, maxVBal, maxVal>>
+
+\* Message types:
+\* - [type : "prepare", bal : Ballots, proposer : Proposers]
+\* - [type : "promise", bal : Ballots, acceptor : Acceptors, 
+\*                      maxVBal : Ballots \cup {-1}, maxVal : Values \cup {None}]
+\* - [type : "accept", bal : Ballots, val : Values, proposer : Proposers]
+\* - [type : "accepted", bal : Ballots, val : Values, acceptor : Acceptors]
+\* - [type : "decide", val : Values]
+
+\* Type definitions for messages
+PrepareMessage == [type : {"prepare"}, bal : Ballots, proposer : Proposers]
+
+PromiseMessage == [type : {"promise"}, bal : Ballots, acceptor : Acceptors,
+                   maxVBal : Ballots \cup {-1}, maxVal : Values \cup {None}]
+
+AcceptMessage == [type : {"accept"}, bal : Ballots, val : Values, proposer : Proposers]
+
+AcceptedMessage == [type : {"accepted"}, bal : Ballots, val : Values, acceptor : Acceptors]
+
+DecideMessage == [type : {"decide"}, val : Values]
+
+Message == PrepareMessage \cup PromiseMessage \cup AcceptMessage \cup 
+           AcceptedMessage \cup DecideMessage
+
+\* Type invariant
+TypeOK ==
+    /\ messages \subseteq Message
+    /\ decision \in Values \cup {None}
+    /\ maxBal \in [Acceptors -> Ballots \cup {-1}]
+    /\ maxVBal \in [Acceptors -> Ballots \cup {-1}]
+    /\ maxVal \in [Acceptors -> Values \cup {None}]
+
+\* Helper: Send a message
+Send(m) == messages' = messages \cup {m}
+
+\* Initial state
+Init ==
+    /\ messages = {}
+    /\ decision = None
+    /\ maxBal = [a \in Acceptors |-> -1]
+    /\ maxVBal = [a \in Acceptors |-> -1]
+    /\ maxVal = [a \in Acceptors |-> None]
+
+\* Phase 1a: Proposer sends prepare request with ballot b
+Prepare(p, b) ==
+    /\ Send([type |-> "prepare", bal |-> b, proposer |-> p])
+    /\ UNCHANGED <<decision, maxBal, maxVBal, maxVal>>
+
+\* Phase 1b: Acceptor responds to prepare with promise
+Promise(a, b) ==
+    /\ \E m \in messages :
+        /\ m.type = "prepare"
+        /\ m.bal = b
+        /\ b > maxBal[a]
+        /\ maxBal' = [maxBal EXCEPT ![a] = b]
+        /\ Send([type |-> "promise", bal |-> b, acceptor |-> a,
+                 maxVBal |-> maxVBal[a], maxVal |-> maxVal[a]])
+        /\ UNCHANGED <<decision, maxVBal, maxVal>>
+
+\* Phase 2a: Proposer sends accept request after receiving promises from a quorum
+Accept(p, b, v) ==
+    /\ \E Q \in Quorums :
+        \* All acceptors in quorum have sent promise for ballot b
+        LET promises == {m \in messages : m.type = "promise" /\ m.bal = b /\ m.acceptor \in Q}
+        IN
+        /\ \A a \in Q : \E m \in promises : m.acceptor = a
+        \* Value v is either:
+        \* - any value if no acceptor has accepted anything (all maxVBal = -1)
+        \* - the value from the highest maxVBal among the promises
+        /\ \/ /\ \A m \in promises : m.maxVBal = -1
+              /\ v \in Values
+           \/ /\ \E m \in promises : m.maxVBal /= -1
+              /\ \E m \in promises :
+                  /\ m.maxVal = v
+                  /\ \A m2 \in promises : m2.maxVBal <= m.maxVBal
+    /\ Send([type |-> "accept", bal |-> b, val |-> v, proposer |-> p])
+    /\ UNCHANGED <<decision, maxBal, maxVBal, maxVal>>
+
+\* Phase 2b: Acceptor accepts the value if it hasn't promised a higher ballot
+Accepted(a, b, v) ==
+    /\ \E m \in messages :
+        /\ m.type = "accept"
+        /\ m.bal = b
+        /\ m.val = v
+        /\ b >= maxBal[a]
+        /\ maxBal' = [maxBal EXCEPT ![a] = b]
+        /\ maxVBal' = [maxVBal EXCEPT ![a] = b]
+        /\ maxVal' = [maxVal EXCEPT ![a] = v]
+        /\ Send([type |-> "accepted", bal |-> b, val |-> v, acceptor |-> a])
+        /\ UNCHANGED decision
+
+\* Decide: When a quorum of acceptors have accepted a value at some ballot
+Decide(v) ==
+    /\ decision = None
+    /\ \E b \in Ballots, Q \in Quorums :
+        \A a \in Q : [type |-> "accepted", bal |-> b, val |-> v, acceptor |-> a] \in messages
+    /\ decision' = v
+    /\ Send([type |-> "decide", val |-> v])
+    /\ UNCHANGED <<maxBal, maxVBal, maxVal>>
+
+\* Next state relation
+Next ==
+    \/ \E p \in Proposers, b \in Ballots : Prepare(p, b)
+    \/ \E a \in Acceptors, b \in Ballots : Promise(a, b)
+    \/ \E p \in Proposers, b \in Ballots, v \in Values : Accept(p, b, v)
+    \/ \E a \in Acceptors, b \in Ballots, v \in Values : Accepted(a, b, v)
+    \/ \E v \in Values : Decide(v)
+
+\* Specification (no fairness - Paxos doesn't guarantee termination)
+Spec == Init /\ [][Next]_vars
+
+\* ----- SAFETY INVARIANTS -----
+
+\* Non-triviality: Only proposed values can be learned
+\* A value is "proposed" if there exists an accept message for it
+ProposedValues == {m.val : m \in {msg \in messages : msg.type = "accept"}}
+
+NonTriviality ==
+    decision /= None => decision \in ProposedValues
+
+\* Consistency: At most one value is ever decided
+\* (This is an invariant since decision can only be set once)
+Consistency ==
+    \A m1, m2 \in messages :
+        (m1.type = "decide" /\ m2.type = "decide") => m1.val = m2.val
+
+\* Agreement: The decision value, once set, corresponds to decide messages
+Agreement ==
+    decision /= None => [type |-> "decide", val |-> decision] \in messages
+
+\* Combined safety invariant
+Safety == TypeOK /\ NonTriviality /\ Consistency /\ Agreement
+
+\* ----- TEMPORAL PROPERTIES -----
+
+\* Consistency-related temporal property: Once a decision is made, it stays decided
+\* and the same value remains
+DecisionStability == 
+    [](decision /= None => [](decision = decision))
+
+\* Actually express stability properly using a helper
+DecisionOnceSet ==
+    \A v \in Values : [](decision = v => [](decision = v))
+
+\* ----- LIVENESS -----
+
+\* NOTE: We explicitly set Liveness to FALSE.
+\* Paxos does NOT guarantee termination under the asynchronous fault model.
+\* This is a direct consequence of the FLP impossibility result (Fischer, Lynch, 
+\* Paterson, 1985), which proves that no deterministic consensus protocol can
+\* guarantee termination in an asynchronous system where even a single process
+\* may fail. In practice, Paxos relies on eventual leader election and 
+\* sufficient synchrony periods to make progress, but these cannot be 
+\* guaranteed in a purely asynchronous model.
+
+Liveness == FALSE
+
+\* The full specification with the temporal property
+FullSpec == Spec /\ DecisionOnceSet
+
+=============================================================================

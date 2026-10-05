@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE PrisonerLightSwitch ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS\n    N,              \\* Number of prisoners (N >= 2)\n    KnownInitial    \\* TRUE if initial light state is known to be off, FALSE otherwise\n\nVARIABLES\n    light,          \\* Current state of the lamp: TRUE = on, FALSE = off\n    counter,        \\* Counter maintained by the designated counter prisoner (prisoner 0)\n    visited,        \\* Set of prisoners who have visited the cell at least once\n    signaled,       \\* Function mapping each non-counter prisoner to number of times they turned on the light\n    announced,      \\* TRUE if victory has been announced\n    turn            \\* The prisoner currently in the cell (or \"none\" if no one is in)\n\nvars == <<light, counter, visited, signaled, announced, turn>>\n\nPrisoners == 0..(N-1)\nCounterPrisoner == 0\nNonCounterPrisoners == 1..(N-1)\n\n\\* Maximum times a non-counter prisoner can signal\nMaxSignals == IF KnownInitial THEN 1 ELSE 2\n\n\\* Threshold for counter to announce victory\nThreshold == IF KnownInitial THEN N - 1 ELSE 2 * N - 3\n\nTypeOK ==\n    /\\ light \\in BOOLEAN\n    /\\ counter \\in Nat\n    /\\ visited \\subseteq Prisoners\n    /\\ signaled \\in [NonCounterPrisoners -> 0..MaxSignals]\n    /\\ announced \\in BOOLEAN\n    /\\ turn \\in Prisoners \\cup {\"none\"}\n\nInit ==\n    /\\ light = IF KnownInitial THEN FALSE ELSE FALSE  \\* Model starts with light off (unknown case explores both)\n    /\\ counter = 0\n    /\\ visited = {}\n    /\\ signaled = [p \\in NonCounterPrisoners |-> 0]\n    /\\ announced = FALSE\n    /\\ turn = \"none\"\n\n\\* Alternative init for unknown initial state (light could be on)\nInitUnknown ==\n    /\\ light \\in BOOLEAN\n    /\\ counter = 0\n    /\\ visited = {}\n    /\\ signaled = [p \\in NonCounterPrisoners |-> 0]\n    /\\ announced = FALSE\n    /\\ turn = \"none\"\n\n\\* Warden selects a prisoner to enter the cell\nWardenSelects(p) ==\n    /\\ turn = \"none\"\n    /\\ ~announced\n    /\\ turn' = p\n    /\\ visited' = visited \\cup {p}\n    /\\ UNCHANGED <<light, counter, signaled, announced>>\n\n\\* Counter prisoner's action in the cell\nCounterAction ==\n    /\\ turn = CounterPrisoner\n    /\\ ~announced\n    /\\ IF light = TRUE\n       THEN /\\ counter' = counter + 1\n            /\\ light' = FALSE\n            /\\ IF counter' >= Threshold\n               THEN announced' = TRUE\n               ELSE announced' = FALSE\n       ELSE /\\ UNCHANGED <<light, counter, announced>>\n    /\\ turn' = \"none\"\n    /\\ UNCHANGED <<visited, signaled>>\n\n\\* Non-counter prisoner's action in the cell\nNonCounterAction(p) ==\n    /\\ turn = p\n    /\\ p \\in NonCounterPrisoners\n    /\\ ~announced\n    /\\ IF light = FALSE /\\ signaled[p] < MaxSignals\n       THEN /\\ light' = TRUE\n            /\\ signaled' = [signaled EXCEPT ![p] = @ + 1]\n       ELSE UNCHANGED <<light, signaled>>\n    /\\ turn' = \"none\"\n    /\\ UNCHANGED <<counter, visited, announced>>\n\n\\* Combined prisoner action (either counter or non-counter acts)\nPrisonerActs ==\n    \\/ CounterAction\n    \\/ \\E p \\in NonCounterPrisoners : NonCounterAction(p)\n\n\\* Next state relation\nNext ==\n    \\/ \\E p \\in Prisoners : WardenSelects(p)\n    \\/ PrisonerActs\n\n\\* Fairness: warden must be fair in selecting each prisoner\nFairness ==\n    /\\ \\A p \\in Prisoners : WF_vars(WardenSelects(p))\n    /\\ WF_vars(PrisonerActs)\n\n\\* Specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Specification for unknown initial state\nSpecUnknown == InitUnknown /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: If victory is announced, all prisoners have visited\nSafetyInvariant ==\n    announced => (visited = Prisoners)\n\n\\* Liveness: Eventually victory is announced\nLivenessProperty ==\n    <>(announced = TRUE)\n\n\\* All prisoners eventually visit (helper property)\nAllVisit ==\n    <>(visited = Prisoners)\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 247,
+    "outputTokens": 1203,
+    "totalTokens": 1450,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19598
+  }
+}

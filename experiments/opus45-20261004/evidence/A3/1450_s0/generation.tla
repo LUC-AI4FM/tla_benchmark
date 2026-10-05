@@ -1,0 +1,32 @@
+---------------------------- MODULE RandomFunctionSampling ----------------------------
+\* This module specifies a single-variable system used to sample a random subset
+\* of the function set [S -> T], where S is a finite set of nine integers and T
+\* is the integer range 1..10.
+\*
+\* The full function space [S -> T] has 10^9 elements (10 choices for each of 9
+\* elements in S), which is far too large to explicitly enumerate. Instead, we
+\* use RandomSubset to sample 1000 functions from this space and initialize x
+\* to one of them.
+\*
+\* After initialization, the system exhibits pure stuttering behavior (no state
+\* changes). The specification includes a trivial invariant Inv == TRUE rather
+\* than a substantive safety or liveness property.
+
+EXTENDS Integers, FiniteSets, TLC
+
+CONSTANTS S, T
+
+ASSUME S = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+ASSUME T = 1..10
+
+VARIABLES x
+
+Init == x \in RandomSubset(1000, [S -> T])
+
+Next == UNCHANGED x
+
+Spec == Init /\ [][Next]_x
+
+Inv == TRUE
+
+=============================================================================

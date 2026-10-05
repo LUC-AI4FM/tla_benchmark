@@ -1,0 +1,51 @@
+---------------------------- MODULE EuclidAlgorithm ----------------------------
+EXTENDS Naturals, TLC
+
+CONSTANT N
+
+VARIABLES pc, u, v, v_ini
+
+vars == <<pc, u, v, v_ini>>
+
+Init ==
+    /\ pc = "start"
+    /\ u = 24
+    /\ v_ini \in 1..N
+    /\ v = v_ini
+
+Next ==
+    \/ /\ pc = "start"
+       /\ pc' = "loop"
+       /\ UNCHANGED <<u, v, v_ini>>
+    \/ /\ pc = "loop"
+       /\ u # v
+       /\ IF u > v
+          THEN /\ u' = u - v
+               /\ v' = v
+          ELSE /\ v' = v - u
+               /\ u' = u
+       /\ pc' = "loop"
+       /\ UNCHANGED v_ini
+    \/ /\ pc = "loop"
+       /\ u = v
+       /\ pc' = "Done"
+       /\ UNCHANGED <<u, v, v_ini>>
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+TypeInvariant ==
+    /\ pc \in {"start", "loop", "Done"}
+    /\ u \in Nat
+    /\ v \in Nat
+    /\ v_ini \in 1..N
+
+PositiveInvariant ==
+    /\ u >= 1
+    /\ v >= 1
+
+GCDProperty ==
+    pc = "Done" => u = v
+
+Termination == <>(pc = "Done")
+
+================================================================================

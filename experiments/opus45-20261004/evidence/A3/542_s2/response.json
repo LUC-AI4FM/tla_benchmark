@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE TwoProcessIncrement ----------------------------\nEXTENDS Integers, TLC\n\nVARIABLES x, pc\n\nvars == <<x, pc>>\n\nProcSet == {\"ProcA\", \"ProcB\"}\n\nInit ==\n    /\\ x = 0\n    /\\ pc = [p \\in ProcSet |-> \"inc\"]\n\nProcA ==\n    /\\ pc[\"ProcA\"] = \"inc\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![\"ProcA\"] = \"Done\"]\n\nProcB ==\n    /\\ pc[\"ProcB\"] = \"inc\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![\"ProcB\"] = \"Done\"]\n\nTerminating ==\n    /\\ \\A p \\in ProcSet : pc[p] = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ ProcA\n    \\/ ProcB\n    \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeInvariant ==\n    /\\ x \\in 0..2\n    /\\ pc \\in [ProcSet -> {\"inc\", \"Done\"}]\n\nSafetyInvariant ==\n    /\\ x >= 0\n    /\\ x <= 2\n\nTermination == <>(\\A p \\in ProcSet : pc[p] = \"Done\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 242,
+    "outputTokens": 354,
+    "totalTokens": 596,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7386
+  }
+}

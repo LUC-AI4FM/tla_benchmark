@@ -1,0 +1,177 @@
+---------------------------- MODULE SimpleAllocator ----------------------------
+(***************************************************************************)
+(* This module specifies a simple resource allocator for a finite set of   *)
+(* resources and a set of clients. Clients issue requests only when they   *)
+(* currently hold no resources and have no outstanding unsatisfied         *)
+(* request; requests may then be partially fulfilled over time, and        *)
+(* clients may return held resources even before a request is completely   *)
+(* satisfied.                                                              *)
+(***************************************************************************)
+
+EXTENDS FiniteSets, Sequences, TLC
+
+CONSTANTS
+    Clients,      \* Set of all clients
+    Resources     \* Set of all resources
+
+VARIABLES
+    unsat,        \* unsat[c] is the set of resources client c has requested but not yet received
+    alloc         \* alloc[c] is the set of resources currently allocated to client c
+
+vars == <<unsat, alloc>>
+
+(***************************************************************************)
+(* Type correctness invariant                                              *)
+(***************************************************************************)
+TypeInvariant ==
+    /\ unsat \in [Clients -> SUBSET Resources]
+    /\ alloc \in [Clients -> SUBSET Resources]
+
+(***************************************************************************)
+(* Available resources are those not allocated to any client               *)
+(***************************************************************************)
+available == Resources \ (UNION {alloc[c] : c \in Clients})
+
+(***************************************************************************)
+(* Initial state: no requests, no allocations                              *)
+(***************************************************************************)
+Init ==
+    /\ unsat = [c \in Clients |-> {}]
+    /\ alloc = [c \in Clients |-> {}]
+
+(***************************************************************************)
+(* A client requests a non-empty set of resources only when it holds no    *)
+(* resources and has no outstanding unsatisfied request                    *)
+(***************************************************************************)
+Request(c, S) ==
+    /\ unsat[c] = {}
+    /\ alloc[c] = {}
+    /\ S # {}
+    /\ S \subseteq Resources
+    /\ unsat' = [unsat EXCEPT ![c] = S]
+    /\ UNCHANGED alloc
+
+(***************************************************************************)
+(* Allocate a non-empty subset of available resources to satisfy part of   *)
+(* a client's unsatisfied request                                          *)
+(***************************************************************************)
+Allocate(c, S) ==
+    /\ S # {}
+    /\ S \subseteq available \cap unsat[c]
+    /\ alloc' = [alloc EXCEPT ![c] = alloc[c] \cup S]
+    /\ unsat' = [unsat EXCEPT ![c] = unsat[c] \ S]
+
+(***************************************************************************)
+(* A client returns all resources it currently holds                       *)
+(***************************************************************************)
+Return(c) ==
+    /\ alloc[c] # {}
+    /\ alloc' = [alloc EXCEPT ![c] = {}]
+    /\ UNCHANGED unsat
+
+(***************************************************************************)
+(* Next-state relation                                                     *)
+(***************************************************************************)
+Next ==
+    \/ \E c \in Clients, S \in SUBSET Resources : Request(c, S)
+    \/ \E c \in Clients, S \in SUBSET Resources : Allocate(c, S)
+    \/ \E c \in Clients : Return(c)
+
+(***************************************************************************)
+(* System specification without fairness                                   *)
+(***************************************************************************)
+Spec == Init /\ [][Next]_vars
+
+(***************************************************************************)
+(* Weak fairness specification                                             *)
+(***************************************************************************)
+FairSpec == 
+    Spec /\ WF_vars(Next)
+
+(***************************************************************************)
+(* Strong fairness specification - ensures allocations happen when         *)
+(* resources become available                                              *)
+(***************************************************************************)
+StrongFairSpec ==
+    Spec 
+    /\ \A c \in Clients : WF_vars(Return(c))
+    /\ \A c \in Clients : SF_vars(\E S \in SUBSET Resources : Allocate(c, S))
+
+(***************************************************************************)
+(* SAFETY PROPERTIES                                                       *)
+(***************************************************************************)
+
+(***************************************************************************)
+(* Mutual exclusion: no resource is allocated to more than one client      *)
+(***************************************************************************)
+MutualExclusion ==
+    \A c1, c2 \in Clients : c1 # c2 => alloc[c1] \cap alloc[c2] = {}
+
+(***************************************************************************)
+(* Resources are only allocated from available pool or to satisfy requests *)
+(***************************************************************************)
+ResourceCoherence ==
+    \A c \in Clients : alloc[c] \subseteq Resources
+
+(***************************************************************************)
+(* Combined safety invariant                                               *)
+(***************************************************************************)
+Safety == TypeInvariant /\ MutualExclusion /\ ResourceCoherence
+
+(***************************************************************************)
+(* LIVENESS PROPERTIES                                                     *)
+(***************************************************************************)
+
+(***************************************************************************)
+(* If a client holds resources, it will eventually return them             *)
+(***************************************************************************)
+EventualReturn ==
+    \A c \in Clients : alloc[c] # {} ~> alloc[c] = {}
+
+(***************************************************************************)
+(* If a client has an unsatisfied request, it will eventually be satisfied *)
+(***************************************************************************)
+EventualObtainment ==
+    \A c \in Clients : unsat[c] # {} ~> unsat[c] = {}
+
+(***************************************************************************)
+(* Infinitely often, there are no unsatisfied requests                     *)
+(***************************************************************************)
+InfinitelyOftenNoUnsat ==
+    []<>(\A c \in Clients : unsat[c] = {})
+
+(***************************************************************************)
+(* Infinitely often, all resources are available                           *)
+(***************************************************************************)
+InfinitelyOftenAllAvailable ==
+    []<>(available = Resources)
+
+(***************************************************************************)
+(* SYMMETRY for state space reduction                                      *)
+(***************************************************************************)
+Symmetry == Permutations(Clients) \cup Permutations(Resources)
+
+(***************************************************************************)
+(* Concrete counterexample values for testing                              *)
+(***************************************************************************)
+CounterexampleClients == {"c1", "c2"}
+CounterexampleResources == {"r1", "r2"}
+
+(***************************************************************************)
+(* A state that demonstrates potential deadlock without fairness           *)
+(***************************************************************************)
+PotentialDeadlock ==
+    /\ \E c \in Clients : unsat[c] # {}
+    /\ \A c \in Clients : alloc[c] = {}
+
+(***************************************************************************)
+(* THEOREMS                                                                *)
+(***************************************************************************)
+
+THEOREM SafetyTheorem == Spec => []Safety
+
+THEOREM LivenessTheorem == StrongFairSpec => EventualObtainment
+
+THEOREM InfinitelyOftenTheorem == StrongFairSpec => InfinitelyOftenNoUnsat
+
+================================================================================

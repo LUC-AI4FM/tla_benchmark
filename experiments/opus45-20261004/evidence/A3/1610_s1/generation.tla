@@ -1,0 +1,67 @@
+------------------------------ MODULE QuickSort ------------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N
+
+ASSUME N \in Nat /\ N > 0
+
+VARIABLES A, S, pc
+
+vars == <<A, S, pc>>
+
+Perms(arr, lo, hi) ==
+    { arr2 \in [1..N -> 1..N] :
+        /\ \A i \in 1..N : (i < lo \/ i > hi) => arr2[i] = arr[i]
+        /\ LET sub1 == [j \in 1..(hi - lo + 1) |-> arr[lo + j - 1]]
+               sub2 == [j \in 1..(hi - lo + 1) |-> arr2[lo + j - 1]]
+           IN \A v \in 1..N : 
+               Cardinality({j \in 1..(hi - lo + 1) : sub1[j] = v}) = 
+               Cardinality({j \in 1..(hi - lo + 1) : sub2[j] = v})
+    }
+
+Partitioned(arr, lo, p, hi) ==
+    /\ \A i \in lo..(p-1) : arr[i] <= arr[p]
+    /\ \A i \in (p+1)..hi : arr[i] >= arr[p]
+
+Init ==
+    /\ A \in [1..N -> 1..N]
+    /\ S = {<<1, N>>}
+    /\ pc = "qs1"
+
+qs1 ==
+    /\ pc = "qs1"
+    /\ IF S = {}
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<A, S>>
+       ELSE /\ \E interval \in S :
+                 LET lo == interval[1]
+                     hi == interval[2]
+                 IN IF lo >= hi
+                    THEN /\ S' = S \ {interval}
+                         /\ UNCHANGED A
+                    ELSE /\ \E p \in lo..hi :
+                              \E A2 \in Perms(A, lo, hi) :
+                                 /\ Partitioned(A2, lo, p, hi)
+                                 /\ A' = A2
+                                 /\ S' = (S \ {interval}) \cup 
+                                         (IF p > lo THEN {<<lo, p - 1>>} ELSE {}) \cup
+                                         (IF p < hi THEN {<<p + 1, hi>>} ELSE {})
+            /\ pc' = "qs1"
+
+Terminating ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == qs1 \/ Terminating
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+TypeInvariant ==
+    /\ A \in [1..N -> 1..N]
+    /\ S \subseteq {<<lo, hi>> \in (1..N) \times (1..N) : lo <= hi} \cup 
+       {<<lo, hi>> \in (1..N) \times (0..N) : lo > hi}
+    /\ pc \in {"qs1", "Done"}
+
+Termination == <>(pc = "Done")
+
+=============================================================================

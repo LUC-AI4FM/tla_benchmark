@@ -1,0 +1,134 @@
+```tla+
+---------------------------- MODULE MergeSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS ArrayLen, N
+
+ASSUME ArrayLen \in Nat /\ ArrayLen >= 0
+ASSUME N \in Nat /\ N >= 1
+
+VARIABLES pc, a, b, stack
+
+vars == <<pc, a, b, stack>>
+
+\* Stack frame: [proc |-> "MergeSort" or "Merge", lo |-> ..., hi |-> ..., mid |-> ..., returnTo |-> ...]
+
+Min(x, y) == IF x <= y THEN x ELSE y
+Max(x, y) == IF x >= y THEN x ELSE y
+
+\* All possible arrays of length 0 to ArrayLen with values in 1..N
+AllArrays == UNION {[1..len -> 1..N] : len \in 0..ArrayLen}
+
+IsSorted(arr) ==
+    \A i, j \in DOMAIN arr : i <= j => arr[i] <= arr[j]
+
+Init ==
+    /\ a \in AllArrays
+    /\ b = [i \in DOMAIN a |-> 1]
+    /\ stack = IF Len(a) <= 1 
+               THEN <<>>
+               ELSE <<[proc |-> "MergeSort", lo |-> 1, hi |-> Len(a), phase |-> "start"]>>
+    /\ pc = IF Len(a) <= 1 THEN "Done" ELSE "Run"
+
+\* Merge subroutine: merge a[lo..mid] and a[mid+1..hi] into a[lo..hi]
+\* Returns new array a' with merged section
+MergeArrays(arr, buf, lo, mid, hi) ==
+    LET 
+        \* Copy to buffer
+        buf1 == [i \in DOMAIN buf |-> IF i >= lo /\ i <= hi THEN arr[i] ELSE buf[i]]
+        \* Merge back
+        MergeStep(state, idx) ==
+            IF idx > hi THEN state
+            ELSE 
+                LET 
+                    i == state.i
+                    j == state.j
+                    newArr == state.arr
+                IN
+                IF i > mid THEN 
+                    [arr |-> [newArr EXCEPT ![idx] = buf1[j]], i |-> i, j |-> j + 1]
+                ELSE IF j > hi THEN
+                    [arr |-> [newArr EXCEPT ![idx] = buf1[i]], i |-> i + 1, j |-> j]
+                ELSE IF buf1[i] <= buf1[j] THEN
+                    [arr |-> [newArr EXCEPT ![idx] = buf1[i]], i |-> i + 1, j |-> j]
+                ELSE
+                    [arr |-> [newArr EXCEPT ![idx] = buf1[j]], i |-> i, j |-> j + 1]
+        \* Iteratively merge
+        indices == lo..hi
+        FinalState == 
+            LET 
+                RECURSIVE DoMerge(_, _, _, _)
+                DoMerge(arr2, ii, jj, idx) ==
+                    IF idx > hi THEN arr2
+                    ELSE IF ii > mid THEN 
+                        DoMerge([arr2 EXCEPT ![idx] = buf1[jj]], ii, jj + 1, idx + 1)
+                    ELSE IF jj > hi THEN
+                        DoMerge([arr2 EXCEPT ![idx] = buf1[ii]], ii + 1, jj, idx + 1)
+                    ELSE IF buf1[ii] <= buf1[jj] THEN
+                        DoMerge([arr2 EXCEPT ![idx] = buf1[ii]], ii + 1, jj, idx + 1)
+                    ELSE
+                        DoMerge([arr2 EXCEPT ![idx] = buf1[jj]], ii, jj + 1, idx + 1)
+            IN DoMerge(arr, lo, mid + 1, lo)
+    IN FinalState
+
+\* Execute one step of the mergesort algorithm
+Next ==
+    /\ pc = "Run"
+    /\ stack /= <<>>
+    /\ LET frame == Head(stack)
+           rest == Tail(stack)
+       IN
+       CASE frame.proc = "MergeSort" /\ frame.phase = "start" ->
+            \* Starting MergeSort(lo, hi)
+            IF frame.hi <= frame.lo THEN
+                \* Base case: single element or empty, return
+                /\ stack' = rest
+                /\ pc' = IF rest = <<>> THEN "Done" ELSE "Run"
+                /\ UNCHANGED <<a, b>>
+            ELSE
+                \* Compute mid and recurse on left half first
+                LET mid == (frame.lo + frame.hi) \div 2
+                    newFrame == [proc |-> "MergeSort", lo |-> frame.lo, hi |-> mid, phase |-> "start"]
+                    updatedFrame == [frame EXCEPT !.mid = mid, !.phase = "afterLeft"]
+                IN
+                /\ stack' = <<newFrame, updatedFrame>> \o rest
+                /\ pc' = "Run"
+                /\ UNCHANGED <<a, b>>
+                
+       [] frame.proc = "MergeSort" /\ frame.phase = "afterLeft" ->
+            \* Left half done, now recurse on right half
+            LET newFrame == [proc |-> "MergeSort", lo |-> frame.mid + 1, hi |-> frame.hi, phase |-> "start"]
+                updatedFrame == [frame EXCEPT !.phase = "afterRight"]
+            IN
+            /\ stack' = <<newFrame, updatedFrame>> \o rest
+            /\ pc' = "Run"
+            /\ UNCHANGED <<a, b>>
+            
+       [] frame.proc = "MergeSort" /\ frame.phase = "afterRight" ->
+            \* Both halves sorted, now merge
+            /\ a' = MergeArrays(a, b, frame.lo, frame.mid, frame.hi)
+            /\ stack' = rest
+            /\ pc' = IF rest = <<>> THEN "Done" ELSE "Run"
+            /\ UNCHANGED <<b>>
+
+Terminating ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Spec == Init /\ [][Next \/ Terminating]_vars /\ WF_vars(Next)
+
+\* Safety: when done, array is sorted
+Sorted == pc = "Done" => IsSorted(a)
+
+\* Liveness: eventually terminates
+Terminates == <>(pc = "Done")
+
+\* Type invariant
+TypeOK ==
+    /\ pc \in {"Run", "Done"}
+    /\ a \in AllArrays
+    /\ DOMAIN b = DOMAIN a
+    /\ \A i \in DOMAIN b : b[i] \in 1..N
+
+==========================================================================
+```

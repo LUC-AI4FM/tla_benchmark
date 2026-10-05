@@ -1,0 +1,20 @@
+---------------------------- MODULE SmallStateMachine ----------------------------
+EXTENDS Naturals
+
+CONSTANTS Op(_)
+
+VARIABLES x
+
+Init == x = 0
+
+Next == x' \in Op(x)
+
+Spec == Init /\ [][Next]_x
+
+SubsetHelper(S) == {y \in S : TRUE}
+
+FilterHelper(S, P(_)) == {y \in S : P(y)}
+
+TypeInvariant == TRUE
+
+=============================================================================

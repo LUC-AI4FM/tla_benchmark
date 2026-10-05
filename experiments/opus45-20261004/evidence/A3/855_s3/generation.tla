@@ -1,0 +1,103 @@
+---------------------------- MODULE PrisonersAndSwitches ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS NumPrisoners
+
+ASSUME NumPrisoners >= 2
+
+VARIABLES
+    switchA,           \* Boolean: TRUE = up, FALSE = down
+    switchB,           \* Boolean: used for random flipping
+    count,             \* Counter's count of switch A ups observed
+    timesFlippedA,     \* Function mapping non-counter prisoners to times they've flipped A up
+    declared,          \* Boolean: TRUE when counter declares all have visited
+    visited,           \* Set of prisoners who have visited the room
+    currentPrisoner    \* The prisoner currently in the room (for fairness)
+
+Prisoners == 1..NumPrisoners
+Counter == 1
+NonCounters == 2..NumPrisoners
+
+TypeOK ==
+    /\ switchA \in BOOLEAN
+    /\ switchB \in BOOLEAN
+    /\ count \in 0..(2 * (NumPrisoners - 1))
+    /\ timesFlippedA \in [NonCounters -> 0..2]
+    /\ declared \in BOOLEAN
+    /\ visited \subseteq Prisoners
+    /\ currentPrisoner \in Prisoners
+
+Init ==
+    /\ switchA = FALSE
+    /\ switchB = FALSE
+    /\ count = 0
+    /\ timesFlippedA = [p \in NonCounters |-> 0]
+    /\ declared = FALSE
+    /\ visited = {}
+    /\ currentPrisoner \in Prisoners
+
+\* Counter enters the room
+CounterAction ==
+    /\ currentPrisoner = Counter
+    /\ ~declared
+    /\ visited' = visited \cup {Counter}
+    /\ IF switchA = TRUE
+       THEN /\ switchA' = FALSE
+            /\ count' = count + 1
+            /\ IF count + 1 = 2 * (NumPrisoners - 1)
+               THEN declared' = TRUE
+               ELSE declared' = FALSE
+            /\ switchB' = switchB
+       ELSE /\ switchB' = ~switchB
+            /\ switchA' = switchA
+            /\ count' = count
+            /\ declared' = declared
+    /\ timesFlippedA' = timesFlippedA
+    /\ currentPrisoner' \in Prisoners
+
+\* Non-counter prisoner enters the room
+NonCounterAction(p) ==
+    /\ currentPrisoner = p
+    /\ p \in NonCounters
+    /\ ~declared
+    /\ visited' = visited \cup {p}
+    /\ IF switchA = FALSE /\ timesFlippedA[p] < 2
+       THEN /\ switchA' = TRUE
+            /\ timesFlippedA' = [timesFlippedA EXCEPT ![p] = @ + 1]
+            /\ switchB' = switchB
+       ELSE /\ switchB' = ~switchB
+            /\ switchA' = switchA
+            /\ timesFlippedA' = timesFlippedA
+    /\ count' = count
+    /\ declared' = declared
+    /\ currentPrisoner' \in Prisoners
+
+\* Stutter step when declared (protocol finished)
+Done ==
+    /\ declared
+    /\ UNCHANGED <<switchA, switchB, count, timesFlippedA, declared, visited>>
+    /\ currentPrisoner' \in Prisoners
+
+Next ==
+    \/ CounterAction
+    \/ \E p \in NonCounters : NonCounterAction(p)
+    \/ Done
+
+\* Fairness: each prisoner is brought into the room infinitely often
+\* We express this as weak fairness on choosing each prisoner
+CounterEnabled == currentPrisoner = Counter /\ ~declared
+NonCounterEnabled(p) == currentPrisoner = p /\ p \in NonCounters /\ ~declared
+
+Fairness ==
+    /\ WF_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>>(CounterAction)
+    /\ \A p \in NonCounters : WF_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>>(NonCounterAction(p))
+
+Spec == Init /\ [][Next]_<<switchA, switchB, count, timesFlippedA, declared, visited, currentPrisoner>> /\ Fairness
+
+\* Safety: If declared, then all prisoners have visited
+Safety == declared => (visited = Prisoners)
+
+\* Liveness: Eventually the counter declares
+Liveness == <>(declared)
+
+=============================================================================

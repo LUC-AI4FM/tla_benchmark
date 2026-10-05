@@ -1,0 +1,206 @@
+---------------------------- MODULE FastMutex ----------------------------
+EXTENDS Integers, TLAPS
+
+CONSTANTS N, M
+
+ASSUME NType == N \in Nat /\ N > 0
+ASSUME MType == M \in Nat /\ M > 0 /\ M < N
+
+VARIABLES x, y, b, pc
+
+vars == <<x, y, b, pc>>
+
+ProcSet == (1..M) \cup ((M+1)..N)
+
+Init == 
+    /\ x = 0
+    /\ y = 0
+    /\ b = [i \in ProcSet |-> FALSE]
+    /\ pc = [self \in ProcSet |-> "start"]
+
+\* Process class 1: processes 1..M
+start1(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "start"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "check1"]
+    /\ y' = y
+
+check1(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "check1"
+    /\ IF y /= 0
+       THEN /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "wait1"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "setY"]
+            /\ b' = b
+    /\ x' = x
+    /\ y' = y
+
+wait1(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "wait1"
+    /\ y = 0
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b>>
+
+setY(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "setY"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "check2"]
+    /\ UNCHANGED <<x, b>>
+
+check2(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "check2"
+    /\ IF x /= self
+       THEN /\ pc' = [pc EXCEPT ![self] = "wait2"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+    /\ UNCHANGED <<x, y, b>>
+
+wait2(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "wait2"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "wait3"]
+    /\ UNCHANGED <<x, y>>
+
+wait3(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "wait3"
+    /\ y = self
+    /\ pc' = [pc EXCEPT ![self] = "cs"]
+    /\ UNCHANGED <<x, y, b>>
+
+cs1(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "cs"
+    /\ TRUE  \* Critical section
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<x, y, b>>
+
+exit1(self) ==
+    /\ self \in 1..M
+    /\ pc[self] = "exit"
+    /\ y' = 0
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ x' = x
+
+\* Process class 2: processes (M+1)..N
+start2(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "start"
+    /\ b' = [b EXCEPT ![self] = TRUE]
+    /\ x' = self
+    /\ pc' = [pc EXCEPT ![self] = "check1"]
+    /\ y' = y
+
+check1b(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "check1"
+    /\ IF y /= 0
+       THEN /\ b' = [b EXCEPT ![self] = FALSE]
+            /\ pc' = [pc EXCEPT ![self] = "wait1"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "setY"]
+            /\ b' = b
+    /\ x' = x
+    /\ y' = y
+
+wait1b(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "wait1"
+    /\ y = 0
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ UNCHANGED <<x, y, b>>
+
+setYb(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "setY"
+    /\ y' = self
+    /\ pc' = [pc EXCEPT ![self] = "check2"]
+    /\ UNCHANGED <<x, b>>
+
+check2b(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "check2"
+    /\ IF x /= self
+       THEN /\ pc' = [pc EXCEPT ![self] = "wait2"]
+       ELSE /\ pc' = [pc EXCEPT ![self] = "cs"]
+    /\ UNCHANGED <<x, y, b>>
+
+wait2b(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "wait2"
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "wait3"]
+    /\ UNCHANGED <<x, y>>
+
+wait3b(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "wait3"
+    /\ y = self
+    /\ pc' = [pc EXCEPT ![self] = "cs"]
+    /\ UNCHANGED <<x, y, b>>
+
+cs2(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "cs"
+    /\ TRUE  \* Critical section
+    /\ pc' = [pc EXCEPT ![self] = "exit"]
+    /\ UNCHANGED <<x, y, b>>
+
+exit2(self) ==
+    /\ self \in (M+1)..N
+    /\ pc[self] = "exit"
+    /\ y' = 0
+    /\ b' = [b EXCEPT ![self] = FALSE]
+    /\ pc' = [pc EXCEPT ![self] = "start"]
+    /\ x' = x
+
+\* Combined actions for each process class
+proc1(self) ==
+    \/ start1(self)
+    \/ check1(self)
+    \/ wait1(self)
+    \/ setY(self)
+    \/ check2(self)
+    \/ wait2(self)
+    \/ wait3(self)
+    \/ cs1(self)
+    \/ exit1(self)
+
+proc2(self) ==
+    \/ start2(self)
+    \/ check1b(self)
+    \/ wait1b(self)
+    \/ setYb(self)
+    \/ check2b(self)
+    \/ wait2b(self)
+    \/ wait3b(self)
+    \/ cs2(self)
+    \/ exit2(self)
+
+Next ==
+    \/ \E self \in 1..M : proc1(self)
+    \/ \E self \in (M+1)..N : proc2(self)
+
+Spec == 
+    /\ Init 
+    /\ [][Next]_vars
+    /\ \A self \in 1..M : WF_vars(proc1(self))
+    /\ \A self \in (M+1)..N : WF_vars(proc2(self))
+
+\* Mutual exclusion invariant: no two distinct processes in CS simultaneously
+InCS(i) == pc[i] = "cs"
+
+MutualExclusion == \A i, j \in ProcSet : (i /= j) => ~(InCS(i) /\ InCS(j))
+
+Invariant == MutualExclusion
+
+\* Liveness: some process enters CS infinitely often
+Liveness == []<>(\E i \in ProcSet : pc[i] = "cs")
+
+==========================================================================

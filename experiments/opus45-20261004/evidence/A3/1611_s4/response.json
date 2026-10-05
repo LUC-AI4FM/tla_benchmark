@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE mergesort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS ArrayLen, N\n\nASSUME ArrayLen \\in Nat /\\ ArrayLen >= 0\nASSUME N \\in Nat /\\ N >= 1\n\nVARIABLES a, b, pc, stack, lo, hi, mid\n\nvars == <<a, b, pc, stack, lo, hi, mid>>\n\nValues == 1..N\nIndexes == 1..ArrayLen\n\nIsSorted(arr, from, to) ==\n    \\A i, j \\in from..to : i < j => arr[i] <= arr[j]\n\nArrayIsSorted ==\n    pc = \"Done\" => IsSorted(a, 1, ArrayLen)\n\nInit ==\n    /\\ a \\in [1..ArrayLen -> Values]\n    /\\ b = [i \\in 1..ArrayLen |-> 1]\n    /\\ pc = IF ArrayLen <= 1 THEN \"Done\" ELSE \"MergeSort\"\n    /\\ stack = <<>>\n    /\\ lo = 1\n    /\\ hi = ArrayLen\n    /\\ mid = 1\n\nMergeSort ==\n    /\\ pc = \"MergeSort\"\n    /\\ IF hi - lo < 1\n       THEN /\\ pc' = \"Return\"\n            /\\ UNCHANGED <<a, b, stack, lo, hi, mid>>\n       ELSE /\\ mid' = lo + ((hi - lo) \\div 2)\n            /\\ pc' = \"SortLeft\"\n            /\\ UNCHANGED <<a, b, stack, lo, hi>>\n\nSortLeft ==\n    /\\ pc = \"SortLeft\"\n    /\\ stack' = <<[lo |-> lo, hi |-> hi, mid |-> mid, ret |-> \"SortRight\"]>> \\o stack\n    /\\ hi' = mid\n    /\\ pc' = \"MergeSort\"\n    /\\ UNCHANGED <<a, b, lo, mid>>\n\nSortRight ==\n    /\\ pc = \"SortRight\"\n    /\\ stack' = <<[lo |-> lo, hi |-> hi, mid |-> mid, ret |-> \"Merge\"]>> \\o stack\n    /\\ lo' = mid + 1\n    /\\ pc' = \"MergeSort\"\n    /\\ UNCHANGED <<a, b, hi, mid>>\n\nMerge ==\n    /\\ pc = \"Merge\"\n    /\\ LET \n           left == lo\n           right == mid + 1\n           MergeLoop[state \\in [l: Nat, r: Nat, k: Nat, buf: [1..ArrayLen -> Values]]] ==\n               IF state.k > hi\n               THEN state.buf\n               ELSE IF state.l > mid\n                    THEN MergeLoop[[l |-> state.l, r |-> state.r + 1, k |-> state.k + 1,\n                                    buf |-> [state.buf EXCEPT ![state.k] = a[state.r]]]]\n                    ELSE IF state.r > hi\n                         THEN MergeLoop[[l |-> state.l + 1, r |-> state.r, k |-> state.k + 1,\n                                         buf |-> [state.buf EXCEPT ![state.k] = a[state.l]]]]\n                         ELSE IF a[state.l] <= a[state.r]\n                              THEN MergeLoop[[l |-> state.l + 1, r |-> state.r, k |-> state.k + 1,\n                                              buf |-> [state.buf EXCEPT ![state.k] = a[state.l]]]]\n                              ELSE MergeLoop[[l |-> state.l, r |-> state.r + 1, k |-> state.k + 1,\n                                              buf |-> [state.buf EXCEPT ![state.k] = a[state.r]]]]\n           mergedBuf == MergeLoop[[l |-> left, r |-> right, k |-> lo, buf |-> b]]\n           CopyBack[arr \\in [1..ArrayLen -> Values], idx \\in Nat] ==\n               IF idx > hi\n               THEN arr\n               ELSE CopyBack[[arr EXCEPT ![idx] = mergedBuf[idx]], idx + 1]\n       IN\n           /\\ b' = mergedBuf\n           /\\ a' = CopyBack[a, lo]\n           /\\ pc' = \"Return\"\n           /\\ UNCHANGED <<stack, lo, hi, mid>>\n\nReturn ==\n    /\\ pc = \"Return\"\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<a, b, stack, lo, hi, mid>>\n       ELSE /\\ LET frame == Head(stack)\n            IN /\\ lo' = frame.lo\n               /\\ hi' = frame.hi\n               /\\ mid' = frame.mid\n               /\\ pc' = frame.ret\n               /\\ stack' = Tail(stack)\n            /\\ UNCHANGED <<a, b>>\n\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ MergeSort\n    \\/ SortLeft\n    \\/ SortRight\n    \\/ Merge\n    \\/ Return\n    \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeInvariant ==\n    /\\ a \\in [1..ArrayLen -> Values]\n    /\\ b \\in [1..ArrayLen -> Values]\n    /\\ pc \\in {\"MergeSort\", \"SortLeft\", \"SortRight\", \"Merge\", \"Return\", \"Done\"}\n    /\\ lo \\in 1..ArrayLen\n    /\\ hi \\in 1..ArrayLen\n    /\\ mid \\in 1..ArrayLen\n\nSafety == ArrayIsSorted\n\nTermination == <>(pc = \"Done\")\n\n=========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 216,
+    "outputTokens": 1435,
+    "totalTokens": 1651,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19863
+  }
+}

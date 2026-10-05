@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE Paxos ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Values, Ballots, Replicas\n\nASSUME Ballots \\subseteq Nat\nASSUME 0 \\notin Ballots\n\nQuorums == {Q \\in SUBSET Replicas : Cardinality(Q) = 3}\n\nVARIABLES messages, maxBallot, maxVBallot, maxValue, decision\n\nvars == <<messages, maxBallot, maxVBallot, maxValue, decision>>\n\nTypeOK ==\n    /\\ messages \\subseteq [type : {\"1a\", \"1b\", \"2a\", \"2b\"}, \n                           bal : Ballots, \n                           acc : Replicas, \n                           mbal : Ballots \\cup {-1}, \n                           mval : Values \\cup {None}]\n    /\\ maxBallot \\in [Replicas -> Ballots \\cup {0}]\n    /\\ maxVBallot \\in [Replicas -> Ballots \\cup {-1}]\n    /\\ maxValue \\in [Replicas -> Values \\cup {None}]\n    /\\ decision \\in Values \\cup {None}\n\nNone == CHOOSE v : v \\notin Values\n\nInit ==\n    /\\ messages = {}\n    /\\ maxBallot = [r \\in Replicas |-> 0]\n    /\\ maxVBallot = [r \\in Replicas |-> -1]\n    /\\ maxValue = [r \\in Replicas |-> None]\n    /\\ decision = None\n\nSend(m) == messages' = messages \\cup {m}\n\nPaxosPrepare(b) ==\n    /\\ b \\in Ballots\n    /\\ b > 0\n    /\\ Send([type |-> \"1a\", bal |-> b, acc |-> CHOOSE r : r \\in Replicas, mbal |-> -1, mval |-> None])\n    /\\ UNCHANGED <<maxBallot, maxVBallot, maxValue, decision>>\n\nPaxosPromise(a, m) ==\n    /\\ m \\in messages\n    /\\ m.type = \"1a\"\n    /\\ m.bal > maxBallot[a]\n    /\\ maxBallot' = [maxBallot EXCEPT ![a] = m.bal]\n    /\\ Send([type |-> \"1b\", bal |-> m.bal, acc |-> a, mbal |-> maxVBallot[a], mval |-> maxValue[a]])\n    /\\ UNCHANGED <<maxVBallot, maxValue, decision>>\n\nPhase1bMsgs(b) == {m \\in messages : m.type = \"1b\" /\\ m.bal = b}\n\nQuorumResponded(b) == \\E Q \\in Quorums : \\A r \\in Q : \\E m \\in Phase1bMsgs(b) : m.acc = r\n\nHighestAcceptedBallot(b) ==\n    LET msgs == Phase1bMsgs(b)\n        acceptedMsgs == {m \\in msgs : m.mbal >= 0}\n    IN IF acceptedMsgs = {} \n       THEN -1\n       ELSE CHOOSE maxB \\in {m.mbal : m \\in acceptedMsgs} : \n            \\A m \\in acceptedMsgs : m.mbal <= maxB\n\nForcedValue(b) ==\n    LET msgs == Phase1bMsgs(b)\n        highBal == HighestAcceptedBallot(b)\n    IN IF highBal = -1\n       THEN None\n       ELSE (CHOOSE m \\in msgs : m.mbal = highBal).mval\n\nPhase2aNotSent(b) == ~\\E m \\in messages : m.type = \"2a\" /\\ m.bal = b\n\nPaxosAccept(b, v) ==\n    /\\ b \\in Ballots\n    /\\ QuorumResponded(b)\n    /\\ Phase2aNotSent(b)\n    /\\ \\/ /\\ ForcedValue(b) = None\n          /\\ v \\in Values\n       \\/ /\\ ForcedValue(b) # None\n          /\\ v = ForcedValue(b)\n    /\\ Send([type |-> \"2a\", bal |-> b, acc |-> CHOOSE r : r \\in Replicas, mbal |-> -1, mval |-> v])\n    /\\ UNCHANGED <<maxBallot, maxVBallot, maxValue, decision>>\n\nPaxosAccepted(a, m) ==\n    /\\ m \\in messages\n    /\\ m.type = \"2a\"\n    /\\ m.bal >= maxBallot[a]\n    /\\ maxBallot' = [maxBallot EXCEPT ![a] = m.bal]\n    /\\ maxVBallot' = [maxVBallot EXCEPT ![a] = m.bal]\n    /\\ maxValue' = [maxValue EXCEPT ![a] = m.mval]\n    /\\ Send([type |-> \"2b\", bal |-> m.bal, acc |-> a, mbal |-> m.bal, mval |-> m.mval])\n    /\\ UNCHANGED <<decision>>\n\nPhase2bMsgs(b, v) == {m \\in messages : m.type = \"2b\" /\\ m.bal = b /\\ m.mval = v}\n\nQuorumAccepted(b, v) == \\E Q \\in Quorums : \\A r \\in Q : \\E m \\in Phase2bMsgs(b, v) : m.acc = r\n\nPaxosDecide ==\n    /\\ decision = None\n    /\\ \\E b \\in Ballots, v \\in Values :\n        /\\ QuorumAccepted(b, v)\n        /\\ decision' = v\n    /\\ UNCHANGED <<messages, maxBallot, maxVBallot, maxValue>>\n\nNext ==\n    \\/ \\E b \\in Ballots : PaxosPrepare(b)\n    \\/ \\E a \\in Replicas, m \\in messages : PaxosPromise(a, m)\n    \\/ \\E b \\in Ballots, v \\in Values : PaxosAccept(b, v)\n    \\/ \\E a \\in Replicas, m \\in messages : PaxosAccepted(a, m)\n    \\/ PaxosDecide\n\nFairness == SF_vars(PaxosDecide)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nProposedValues == \n    {m.mval : m \\in {msg \\in messages : msg.type = \"2a\" /\\ msg.mval # None}}\n\nPaxosNontriviality == decision # None => decision \\in ProposedValues\n\nPaxosConsistency == [][decision # None => decision' = decision]_vars\n\nLiveness == FALSE\n\n=======================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 502,
+    "outputTokens": 1709,
+    "totalTokens": 2211,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 21907
+  }
+}

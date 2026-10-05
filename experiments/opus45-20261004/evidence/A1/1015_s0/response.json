@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE voucher ----------------------------\n\nEXTENDS Naturals\n\nCONSTANT V\n\nVARIABLES voucher, lifecycle\n\nv2 == <<voucher, lifecycle>>\n\nVoucherStates == {\"phantom\", \"valid\", \"redeemed\", \"cancelled\"}\nLifecycleStates == {\"pre_issue\", \"issued\", \"terminal\"}\n\nVTypeOK == \n    /\\ voucher \\in [V -> VoucherStates]\n    /\\ lifecycle \\in [V -> LifecycleStates]\n\nVConsistent ==\n    \\A vid \\in V :\n        /\\ (voucher[vid] = \"phantom\") => (lifecycle[vid] = \"pre_issue\")\n        /\\ (voucher[vid] = \"valid\") => (lifecycle[vid] = \"issued\")\n        /\\ (voucher[vid] \\in {\"redeemed\", \"cancelled\"}) => (lifecycle[vid] = \"terminal\")\n\nVInit ==\n    /\\ voucher = [vid \\in V |-> \"phantom\"]\n    /\\ lifecycle = [vid \\in V |-> \"pre_issue\"]\n\nIssue(vid) ==\n    /\\ voucher[vid] = \"phantom\"\n    /\\ lifecycle[vid] = \"pre_issue\"\n    /\\ voucher' = [voucher EXCEPT ![vid] = \"valid\"]\n    /\\ lifecycle' = [lifecycle EXCEPT ![vid] = \"issued\"]\n\nRedeem(vid) ==\n    /\\ voucher[vid] = \"valid\"\n    /\\ lifecycle[vid] = \"issued\"\n    /\\ voucher' = [voucher EXCEPT ![vid] = \"redeemed\"]\n    /\\ lifecycle' = [lifecycle EXCEPT ![vid] = \"terminal\"]\n\nCancel(vid) ==\n    /\\ voucher[vid] = \"valid\"\n    /\\ lifecycle[vid] = \"issued\"\n    /\\ voucher' = [voucher EXCEPT ![vid] = \"cancelled\"]\n    /\\ lifecycle' = [lifecycle EXCEPT ![vid] = \"terminal\"]\n\nTransfer(vid) ==\n    /\\ voucher[vid] = \"valid\"\n    /\\ lifecycle[vid] = \"issued\"\n    /\\ voucher' = voucher\n    /\\ lifecycle' = lifecycle\n\nVNext ==\n    \\E vid \\in V :\n        \\/ Issue(vid)\n        \\/ Redeem(vid)\n        \\/ Cancel(vid)\n        \\/ Transfer(vid)\n\nVSpec == VInit /\\ [][VNext]_v2\n\nTHEOREM VSpec => [](VTypeOK /\\ VConsistent)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 608,
+    "totalTokens": 886,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8212
+  }
+}

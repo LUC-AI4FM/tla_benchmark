@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PCR ----------------------------\nEXTENDS Naturals\n\nCONSTANTS InitTemp, InitPrimers, InitDNA, InitTemplates, InitHybrids,\n          HeatTemp, CoolTemp, AnnealTemp, ExtendTemp\n\nVARIABLES temp, primers, dna, templates, hybrids, phase\n\nvars == <<temp, primers, dna, templates, hybrids, phase>>\n\nPhases == {\"heating\", \"cooling\", \"annealing\", \"extension\"}\n\nTypeOK == /\\ temp \\in Nat\n          /\\ primers \\in Nat\n          /\\ dna \\in Nat\n          /\\ templates \\in Nat\n          /\\ hybrids \\in Nat\n          /\\ phase \\in Phases\n\nprimerPositive == primers >= 0\n\n\\* The total count of primers plus hybrids plus twice the DNA should be preserved\n\\* This captures that primers are consumed to form hybrids, and hybrids become DNA\n\\* Actually, we track: primers + hybrids + 2*dna + templates should relate to initial values\n\\* Simplified: total genetic material is conserved in some form\npreservationInvariant == (primers + hybrids + 2 * dna + templates) = \n                         (InitPrimers + InitHybrids + 2 * InitDNA + InitTemplates)\n\n\\* Alternative preservation: primers + hybrids stays related to consumption\npreservationProperty == primers + hybrids <= InitPrimers + InitHybrids\n\nInit == /\\ temp = InitTemp\n        /\\ primers = InitPrimers\n        /\\ dna = InitDNA\n        /\\ templates = InitTemplates\n        /\\ hybrids = InitHybrids\n        /\\ phase = \"heating\"\n\n\\* Heating phase: raise temperature to denature DNA into single-stranded templates\nHeat == /\\ phase = \"heating\"\n        /\\ temp' = HeatTemp\n        /\\ templates' = templates + 2 * dna  \\* Each dsDNA becomes 2 ssDNA templates\n        /\\ dna' = 0\n        /\\ primers' = primers\n        /\\ hybrids' = hybrids\n        /\\ phase' = \"cooling\"\n\n\\* Cooling phase: lower temperature to prepare for annealing\nCool == /\\ phase = \"cooling\"\n        /\\ temp' = CoolTemp\n        /\\ primers' = primers\n        /\\ dna' = dna\n        /\\ templates' = templates\n        /\\ hybrids' = hybrids\n        /\\ phase' = \"annealing\"\n\n\\* Annealing phase: primers bind to templates nondeterministically\n\\* Some number k of primers and templates form hybrids\nAnneal == /\\ phase = \"annealing\"\n          /\\ temp' = AnnealTemp\n          /\\ \\E k \\in 0..primers :\n               /\\ k <= templates\n               /\\ primers' = primers - k\n               /\\ templates' = templates - k\n               /\\ hybrids' = hybrids + k\n               /\\ dna' = dna\n          /\\ phase' = \"extension\"\n\n\\* Extension phase: hybrids are extended by polymerase to form new dsDNA\nExtend == /\\ phase = \"extension\"\n          /\\ temp' = ExtendTemp\n          /\\ dna' = dna + hybrids  \\* Each hybrid becomes a new dsDNA\n          /\\ hybrids' = 0\n          /\\ primers' = primers\n          /\\ templates' = templates\n          /\\ phase' = \"heating\"\n\nNext == Heat \\/ Cool \\/ Anneal \\/ Extend\n\n\\* Fairness: we require weak fairness on all actions to reason about liveness\nFairness == /\\ WF_vars(Heat)\n            /\\ WF_vars(Cool)\n            /\\ WF_vars(Anneal)\n            /\\ WF_vars(Extend)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Liveness property: eventually primers are depleted\n\\* NOTE: This property does NOT hold in general because annealing can\n\\* nondeterministically choose k=0, never consuming primers\nEventualPrimerDepletion == <>(primers = 0)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 301,
+    "outputTokens": 1019,
+    "totalTokens": 1320,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16140
+  }
+}

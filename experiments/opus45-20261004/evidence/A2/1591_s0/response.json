@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE EvenOdd ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nCONSTANT N\n\nVARIABLES pc, result, stack, xEven, xOdd\n\nvars == <<pc, result, stack, xEven, xOdd>>\n\nInit ==\n    /\\ pc = \"main\"\n    /\\ result = FALSE\n    /\\ stack = <<>>\n    /\\ xEven = 0\n    /\\ xOdd = 0\n\nCallEven(n) ==\n    /\\ pc = \"main\"\n    /\\ xEven' = n\n    /\\ stack' = Append(stack, <<\"main\", xEven, xOdd>>)\n    /\\ pc' = \"Even\"\n    /\\ UNCHANGED <<result, xOdd>>\n\nEvenBase ==\n    /\\ pc = \"Even\"\n    /\\ xEven = 0\n    /\\ result' = TRUE\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"print\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE LET top == Head(stack)\n            IN /\\ stack' = Tail(stack)\n               /\\ pc' = top[1]\n               /\\ xEven' = top[2]\n               /\\ xOdd' = top[3]\n\nEvenRecurse ==\n    /\\ pc = \"Even\"\n    /\\ xEven > 0\n    /\\ xOdd' = xEven - 1\n    /\\ stack' = Append(stack, <<\"EvenReturn\", xEven, xOdd>>)\n    /\\ pc' = \"Odd\"\n    /\\ UNCHANGED <<result, xEven>>\n\nEvenReturn ==\n    /\\ pc = \"EvenReturn\"\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"print\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE LET top == Head(stack)\n            IN /\\ stack' = Tail(stack)\n               /\\ pc' = top[1]\n               /\\ xEven' = top[2]\n               /\\ xOdd' = top[3]\n    /\\ UNCHANGED <<result>>\n\nOddBase ==\n    /\\ pc = \"Odd\"\n    /\\ xOdd = 0\n    /\\ result' = FALSE\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"print\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE LET top == Head(stack)\n            IN /\\ stack' = Tail(stack)\n               /\\ pc' = top[1]\n               /\\ xEven' = top[2]\n               /\\ xOdd' = top[3]\n\nOddRecurse ==\n    /\\ pc = \"Odd\"\n    /\\ xOdd > 0\n    /\\ xEven' = xOdd - 1\n    /\\ stack' = Append(stack, <<\"OddReturn\", xEven, xOdd>>)\n    /\\ pc' = \"Even\"\n    /\\ UNCHANGED <<result, xOdd>>\n\nOddReturn ==\n    /\\ pc = \"OddReturn\"\n    /\\ IF stack = <<>>\n       THEN /\\ pc' = \"print\"\n            /\\ UNCHANGED <<stack, xEven, xOdd>>\n       ELSE LET top == Head(stack)\n            IN /\\ stack' = Tail(stack)\n               /\\ pc' = top[1]\n               /\\ xEven' = top[2]\n               /\\ xOdd' = top[3]\n    /\\ UNCHANGED <<result>>\n\nPrint ==\n    /\\ pc = \"print\"\n    /\\ PrintT(result)\n    /\\ pc' = \"Done\"\n    /\\ UNCHANGED <<result, stack, xEven, xOdd>>\n\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ CallEven(N)\n    \\/ EvenBase\n    \\/ EvenRecurse\n    \\/ EvenReturn\n    \\/ OddBase\n    \\/ OddRecurse\n    \\/ OddReturn\n    \\/ Print\n    \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTypeInvariant ==\n    /\\ pc \\in {\"main\", \"Even\", \"EvenReturn\", \"Odd\", \"OddReturn\", \"print\", \"Done\"}\n    /\\ result \\in BOOLEAN\n    /\\ xEven \\in 0..N\n    /\\ xOdd \\in 0..N\n\nTermination == <>(pc = \"Done\")\n\nCorrectResult == pc = \"Done\" => result = TRUE\n\nInOdd == pc = \"Odd\"\n\nCallOdd == pc = \"Odd\" /\\ xOdd > 0\n\nInOdd_POSSIBLE == InOdd\nCallOdd_POSSIBLE == CallOdd\n\nPossibleCounts ==\n    /\\ TLCGet(\"stats\").InOdd_POSSIBLE = 3\n    /\\ TLCGet(\"stats\").CallOdd_POSSIBLE = 3\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 438,
+    "outputTokens": 1253,
+    "totalTokens": 1691,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14864
+  }
+}

@@ -1,0 +1,44 @@
+```tla
+---------------------------- MODULE LiveHourClock ----------------------------
+EXTENDS Naturals
+
+CONSTANT HCini
+
+VARIABLE hr
+
+HCnxt == hr' = IF hr = 12 THEN 1 ELSE hr + 1
+
+HCini_def == hr \in (1..12)
+
+HC == HCini_def /\ [][HCnxt]_hr
+
+Init == HCini_def
+
+Next == HCnxt
+
+Spec == HC
+
+LSpec == HC /\ WF_hr(HCnxt)
+
+TypeOK == hr \in (1..12)
+
+Ticking == []<><<HCnxt>>_hr
+
+HourRecurs(h) == []<>(hr = h)
+
+AllHoursRecur == \A h \in 1..12 : HourRecurs(h)
+
+AlwaysTypeOK == []TypeOK
+
+THEOREM LSpec => Ticking /\ AllHoursRecur /\ AlwaysTypeOK
+
+Settling == <>[](hr = 1)
+
+CounterexampleSettling == 
+    /\ hr = 1
+    /\ [][HCnxt]_hr
+    /\ []<><<HCnxt>>_hr
+    /\ ~Settling
+
+=============================================================================
+```

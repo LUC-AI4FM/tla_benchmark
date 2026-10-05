@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE AsyncTerminationDetection ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat \\ {0}\n\nVARIABLES\n    active,      \\* active[i] = TRUE iff node i is active\n    pending,     \\* pending[i] = number of pending messages at node i\n    detected     \\* detected = TRUE iff termination has been detected\n\nvars == <<active, pending, detected>>\n\nNodes == 0..(N-1)\n\nTypeOK ==\n    /\\ active \\in [Nodes -> BOOLEAN]\n    /\\ pending \\in [Nodes -> Nat]\n    /\\ detected \\in BOOLEAN\n\n-----------------------------------------------------------------------------\n(* Initial state: all nodes are active, no pending messages, not detected *)\n\nInit ==\n    /\\ active = [i \\in Nodes |-> TRUE]\n    /\\ pending = [i \\in Nodes |-> 0]\n    /\\ detected = FALSE\n\n-----------------------------------------------------------------------------\n(* Actions *)\n\n(* A node terminates (becomes inactive) *)\nTerminate(i) ==\n    /\\ active[i] = TRUE\n    /\\ active' = [active EXCEPT ![i] = FALSE]\n    /\\ UNCHANGED <<pending, detected>>\n\n(* An active node sends a message to another node *)\nSendMsg(i, j) ==\n    /\\ active[i] = TRUE\n    /\\ pending' = [pending EXCEPT ![j] = pending[j] + 1]\n    /\\ UNCHANGED <<active, detected>>\n\n(* A node receives a pending message and becomes active *)\nReceiveMsg(i) ==\n    /\\ pending[i] > 0\n    /\\ pending' = [pending EXCEPT ![i] = pending[i] - 1]\n    /\\ active' = [active EXCEPT ![i] = TRUE]\n    /\\ UNCHANGED <<detected>>\n\n(* Global termination: all nodes inactive and no pending messages *)\nTerminated ==\n    /\\ \\A i \\in Nodes : active[i] = FALSE\n    /\\ \\A i \\in Nodes : pending[i] = 0\n\n(* Detection occurs when actual termination has occurred *)\nDetectTermination ==\n    /\\ Terminated\n    /\\ detected = FALSE\n    /\\ detected' = TRUE\n    /\\ UNCHANGED <<active, pending>>\n\n-----------------------------------------------------------------------------\n(* Next state relation *)\n\nNext ==\n    \\/ \\E i \\in Nodes : Terminate(i)\n    \\/ \\E i \\in Nodes : \\E j \\in Nodes : SendMsg(i, j)\n    \\/ \\E i \\in Nodes : ReceiveMsg(i)\n    \\/ DetectTermination\n\n-----------------------------------------------------------------------------\n(* Fairness and Specification *)\n\nFairness == WF_vars(DetectTermination)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n-----------------------------------------------------------------------------\n(* Safety Invariants *)\n\n(* Detection implies actual termination *)\nDetectionSafety ==\n    detected => Terminated\n\n(* Main safety invariant *)\nSafety == TypeOK /\\ DetectionSafety\n\n-----------------------------------------------------------------------------\n(* Auxiliary Invariants *)\n\n(* Pending messages are bounded by some reasonable value during model checking *)\nPendingBounded == \\A i \\in Nodes : pending[i] <= 3 * N\n\n(* At least one node must be active or have pending messages, or termination occurred *)\nAuxInvariant ==\n    \\/ \\E i \\in Nodes : active[i] = TRUE\n    \\/ \\E i \\in Nodes : pending[i] > 0\n    \\/ Terminated\n\n-----------------------------------------------------------------------------\n(* Stability: Once terminated and detected, it stays detected and terminated *)\n\nStableTermination ==\n    [](Terminated /\\ detected => [](Terminated /\\ detected))\n\n(* Once terminated (without detection), system remains terminated *)\nTerminatedStable ==\n    [](Terminated => []Terminated)\n\n-----------------------------------------------------------------------------\n(* Liveness Properties *)\n\n(* If termination occurs, detection eventually follows *)\nLivenessDetection ==\n    Terminated ~> detected\n\n(* Eventually either some activity or detection *)\nEventualProgress ==\n    <>(\\E i \\in Nodes : active[i] \\/ detected)\n\n-----------------------------------------------------------------------------\n(* State constraint for bounded model checking *)\n\nStateConstraint ==\n    /\\ \\A i \\in Nodes : pending[i] <= 3\n\n-----------------------------------------------------------------------------\n(* Theorems to check *)\n\nTHEOREM Spec => []TypeOK\nTHEOREM Spec => []DetectionSafety\nTHEOREM Spec => LivenessDetection\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 251,
+    "outputTokens": 1093,
+    "totalTokens": 1344,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16807
+  }
+}

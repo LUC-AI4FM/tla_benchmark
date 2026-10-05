@@ -1,0 +1,138 @@
+---------------------------- MODULE PCRCycle ----------------------------
+EXTENDS Naturals
+
+CONSTANTS
+    InitPrimers,        \* Initial number of primers
+    InitDNA,            \* Initial number of double-stranded DNA molecules
+    MaxTemp             \* Maximum temperature (for typing)
+
+VARIABLES
+    temp,               \* Current temperature (abstract: 0 = low, 1 = medium, 2 = high)
+    primers,            \* Count of available primers
+    dsDNA,              \* Count of double-stranded DNA
+    ssDNA,              \* Count of single-stranded DNA templates
+    hybrids,            \* Count of template-primer hybrids
+    phase               \* Current phase: "heating", "cooling", "annealing", "extension"
+
+vars == <<temp, primers, dsDNA, ssDNA, hybrids, phase>>
+
+\* Type invariant
+TypeOK ==
+    /\ temp \in 0..MaxTemp
+    /\ primers \in Nat
+    /\ dsDNA \in Nat
+    /\ ssDNA \in Nat
+    /\ hybrids \in Nat
+    /\ phase \in {"heating", "cooling", "annealing", "extension"}
+
+\* All counts must be non-negative (implied by Nat but explicit for clarity)
+NonNegativity ==
+    /\ primers >= 0
+    /\ dsDNA >= 0
+    /\ ssDNA >= 0
+    /\ hybrids >= 0
+
+\* Conservation invariant: total "template units" are preserved
+\* Each dsDNA contributes 2 template strands, ssDNA contributes 1, hybrids contribute 1
+\* Primers are separate but we track that primers + 2*hybrids should relate to initial
+\* Simpler conservation: total strands (2*dsDNA + ssDNA + hybrids) should be non-decreasing
+\* Actually, for PCR: primers + hybrids should equal initial primers (primers are consumed into hybrids)
+\* And 2*dsDNA + ssDNA + hybrids should be conserved (strands)
+CountPreservation ==
+    /\ primers + hybrids <= InitPrimers
+    /\ 2 * dsDNA + ssDNA + hybrids = 2 * InitDNA + ssDNA + hybrids
+
+\* Refined conservation: total template strands are preserved
+\* When heating: dsDNA -> 2 ssDNA (strands conserved)
+\* When annealing: ssDNA + primer -> hybrid (strands conserved, primers consumed)
+\* When extension: hybrid -> dsDNA (strand becomes part of dsDNA... actually creates new strand)
+\* This is approximate - real PCR doubles DNA each cycle
+
+\* Simplified conservation that should hold:
+\* primers consumed = hybrids created, so primers + hybrids <= InitPrimers
+PrimerConservation ==
+    primers + hybrids <= InitPrimers
+
+\* Initial state
+Init ==
+    /\ temp = 0
+    /\ primers = InitPrimers
+    /\ dsDNA = InitDNA
+    /\ ssDNA = 0
+    /\ hybrids = 0
+    /\ phase = "heating"
+
+\* Heating: denature dsDNA into ssDNA (each dsDNA becomes 2 ssDNA)
+Heat ==
+    /\ phase = "heating"
+    /\ temp' = 2                     \* High temperature
+    /\ ssDNA' = ssDNA + 2 * dsDNA    \* Denature all dsDNA
+    /\ dsDNA' = 0
+    /\ primers' = primers
+    /\ hybrids' = hybrids
+    /\ phase' = "cooling"
+
+\* Cooling: lower temperature to prepare for annealing
+Cool ==
+    /\ phase = "cooling"
+    /\ temp' = 1                     \* Medium temperature
+    /\ primers' = primers
+    /\ dsDNA' = dsDNA
+    /\ ssDNA' = ssDNA
+    /\ hybrids' = hybrids
+    /\ phase' = "annealing"
+
+\* Annealing: primers bind to ssDNA templates (nondeterministic amount)
+\* Each annealing event consumes 1 primer and 1 ssDNA to create 1 hybrid
+Anneal ==
+    /\ phase = "annealing"
+    /\ temp = 1
+    /\ \E n \in 0..primers:
+        /\ n <= ssDNA              \* Can't anneal more than available templates
+        /\ primers' = primers - n
+        /\ ssDNA' = ssDNA - n
+        /\ hybrids' = hybrids + n
+        /\ dsDNA' = dsDNA
+        /\ temp' = temp
+    /\ phase' = "extension"
+
+\* Extension: DNA polymerase extends hybrids into dsDNA
+\* Each hybrid becomes a dsDNA (simplified model)
+Extend ==
+    /\ phase = "extension"
+    /\ temp' = 1                     \* Extension temperature (medium)
+    /\ dsDNA' = dsDNA + hybrids      \* All hybrids become dsDNA
+    /\ hybrids' = 0
+    /\ primers' = primers
+    /\ ssDNA' = ssDNA
+    /\ phase' = "heating"            \* Back to heating for next cycle
+
+\* Next state relation
+Next ==
+    \/ Heat
+    \/ Cool
+    \/ Anneal
+    \/ Extend
+
+\* Fairness: each action should eventually be taken if enabled
+Fairness ==
+    /\ WF_vars(Heat)
+    /\ WF_vars(Cool)
+    /\ WF_vars(Anneal)
+    /\ WF_vars(Extend)
+
+\* Specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariants
+Safety ==
+    /\ TypeOK
+    /\ NonNegativity
+    /\ PrimerConservation
+
+\* Liveness property: eventually primers are depleted
+\* NOTE: This property does NOT hold because annealing can nondeterministically
+\* choose n=0, meaning primers may never be consumed even with fairness
+EventualPrimerDepletion == <>(primers = 0)
+
+=========================================================================

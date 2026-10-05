@@ -1,0 +1,419 @@
+---------------------------- MODULE XPlusCal ----------------------------
+(**************************************************************************)
+(* A formal specification of the translation from +CAL algorithm ASTs     *)
+(* to their corresponding TLA+ descriptions.                              *)
+(* Originally written by Leslie Lamport in 2005.                          *)
+(**************************************************************************)
+
+EXTENDS Sequences, Integers, TLC, FiniteSets
+
+CONSTANTS ast, fairness
+
+(**************************************************************************)
+(* TLA+ expressions are represented as sequences of string lexemes        *)
+(**************************************************************************)
+
+Lexeme == STRING
+TLAExpr == Seq(Lexeme)
+
+(**************************************************************************)
+(* Grammar of +CAL ASTs using record-valued sets                          *)
+(**************************************************************************)
+
+RECURSIVE IsVarDecl(_), IsPVarDecl(_), IsExpr(_), IsStmt(_), IsSimpleStmt(_)
+RECURSIVE IsLabeledStmt(_), IsLabelSeq(_), IsLabelIf(_), IsLabelEither(_)
+RECURSIVE IsFinalStmt(_), IsAssign(_), IsCallOrReturn(_), IsGoto(_)
+RECURSIVE IsWhile(_), IsProcedure(_), IsProcess(_), IsAlgorithm(_)
+RECURSIVE IsStmtSeq(_), IsFinalStmtSeq(_)
+
+IsExpr(e) == e \in Seq(STRING)
+
+IsVarDecl(v) ==
+    /\ v \in [type: {"VarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}]
+
+IsPVarDecl(v) ==
+    /\ v \in [type: {"PVarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}]
+
+IsAssign(s) ==
+    /\ s \in [type: {"Assign"}, lhs: STRING, rhs: TLAExpr]
+
+IsGoto(s) ==
+    /\ s \in [type: {"Goto"}, target: STRING]
+
+IsCallOrReturn(s) ==
+    \/ s \in [type: {"Call"}, proc: STRING, args: Seq(TLAExpr)]
+    \/ s \in [type: {"Return"}]
+    \/ s \in [type: {"CallReturn"}, proc: STRING, args: Seq(TLAExpr)]
+
+IsSimpleStmt(s) ==
+    \/ IsAssign(s)
+    \/ IsGoto(s)
+    \/ IsCallOrReturn(s)
+    \/ s \in [type: {"Skip"}]
+    \/ s \in [type: {"Print"}, expr: TLAExpr]
+    \/ s \in [type: {"Assert"}, expr: TLAExpr]
+    \/ s \in [type: {"Await"}, expr: TLAExpr]
+
+IsStmtSeq(ss) ==
+    /\ ss \in Seq([type: STRING] \cup {})
+    /\ \A i \in 1..Len(ss): IsSimpleStmt(ss[i]) \/ IsStmt(ss[i])
+
+IsFinalStmtSeq(ss) ==
+    /\ ss \in Seq([type: STRING] \cup {})
+
+IsWhile(s) ==
+    /\ s.type = "While"
+    /\ IsExpr(s.test)
+
+IsLabelIf(s) ==
+    /\ s.type = "LabelIf"
+    /\ IsExpr(s.test)
+
+IsLabelEither(s) ==
+    /\ s.type = "LabelEither"
+
+IsFinalStmt(s) ==
+    \/ IsGoto(s)
+    \/ IsCallOrReturn(s)
+    \/ s.type = "If" /\ IsExpr(s.test)
+    \/ s.type = "Either"
+    \/ s.type = "With" /\ IsExpr(s.var)
+
+IsLabelSeq(ls) ==
+    /\ ls \in Seq([type: STRING, label: STRING])
+    /\ \A i \in 1..Len(ls): IsLabeledStmt(ls[i])
+
+IsStmt(s) ==
+    \/ IsSimpleStmt(s)
+    \/ IsWhile(s)
+    \/ s.type = "If" /\ IsExpr(s.test)
+    \/ s.type = "Either"
+    \/ s.type = "With"
+
+IsLabeledStmt(ls) ==
+    /\ ls \in [type: {"LabeledStmt"}, label: STRING, stmts: Seq([type: STRING])]
+
+IsProcedure(p) ==
+    /\ p \in [type: {"Procedure"}, 
+              name: STRING, 
+              params: Seq([type: {"PVarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}]),
+              decls: Seq([type: {"PVarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}]),
+              body: Seq([type: {"LabeledStmt"}, label: STRING, stmts: Seq([type: STRING])])]
+
+IsProcess(p) ==
+    /\ p \in [type: {"Process"}, 
+              name: STRING,
+              id: TLAExpr,
+              decls: Seq([type: {"VarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}]),
+              body: Seq([type: {"LabeledStmt"}, label: STRING, stmts: Seq([type: STRING])])]
+
+IsAlgorithm(a) ==
+    \/ /\ a.type = "UniprocessAlgorithm"
+       /\ a.name \in STRING
+       /\ a.decls \in Seq([type: {"VarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}])
+       /\ a.procs \in Seq([type: {"Procedure"}, name: STRING, params: Seq([type: STRING]), 
+                           decls: Seq([type: STRING]), body: Seq([type: STRING])])
+       /\ a.body \in Seq([type: {"LabeledStmt"}, label: STRING, stmts: Seq([type: STRING])])
+    \/ /\ a.type = "MultiprocessAlgorithm"
+       /\ a.name \in STRING
+       /\ a.decls \in Seq([type: {"VarDecl"}, name: STRING, init: TLAExpr \cup {<<>>}])
+       /\ a.procs \in Seq([type: {"Procedure"}, name: STRING, params: Seq([type: STRING]),
+                           decls: Seq([type: STRING]), body: Seq([type: STRING])])
+       /\ a.processes \in Seq([type: {"Process"}, name: STRING, id: TLAExpr,
+                               decls: Seq([type: STRING]), body: Seq([type: STRING])])
+
+(**************************************************************************)
+(* Helper operators for lexeme sequence manipulation                      *)
+(**************************************************************************)
+
+Concat(s1, s2) == s1 \o s2
+
+ConcatSeq(ss) ==
+    IF ss = <<>> THEN <<>>
+    ELSE IF Len(ss) = 1 THEN ss[1]
+    ELSE ss[1] \o ConcatSeq(Tail(ss))
+
+Wrap(before, content, after) == <<before>> \o content \o <<after>>
+
+Indent(n, s) == 
+    LET spaces == [i \in 1..n |-> " "]
+    IN <<ConcatSeq([i \in 1..n |-> " "])>> \o s
+
+Newline == <<"\n">>
+
+(**************************************************************************)
+(* Explode: Convert labeled statements into simple labeled statements     *)
+(**************************************************************************)
+
+RECURSIVE Explode(_), ExplodeSeq(_), FullyExplode(_), FullyExplodeSeq(_)
+
+Explode(stmt) ==
+    CASE stmt.type = "LabeledStmt" ->
+            <<[type |-> "SimpleLabeledStmt", 
+               label |-> stmt.label, 
+               stmts |-> stmt.stmts]>>
+    []  stmt.type = "While" ->
+            <<[type |-> "SimpleLabeledStmt",
+               label |-> stmt.label,
+               stmts |-> <<[type |-> "If", 
+                           test |-> stmt.test,
+                           then |-> stmt.body,
+                           else |-> <<[type |-> "Goto", target |-> stmt.exitLabel]>>]>>]>>
+    []  stmt.type = "LabelIf" ->
+            <<[type |-> "SimpleLabeledStmt",
+               label |-> stmt.label,
+               stmts |-> <<[type |-> "If",
+                           test |-> stmt.test,
+                           then |-> stmt.thenBody,
+                           else |-> stmt.elseBody]>>]>>
+    []  stmt.type = "LabelEither" ->
+            <<[type |-> "SimpleLabeledStmt",
+               label |-> stmt.label,
+               stmts |-> <<[type |-> "Either",
+                           branches |-> stmt.branches]>>]>>
+    []  OTHER -> <<stmt>>
+
+ExplodeSeq(stmts) ==
+    IF stmts = <<>> THEN <<>>
+    ELSE Explode(Head(stmts)) \o ExplodeSeq(Tail(stmts))
+
+FullyExplode(stmt) == Explode(stmt)
+
+FullyExplodeSeq(stmts) == ExplodeSeq(stmts)
+
+(**************************************************************************)
+(* Translation of control flow statements                                  *)
+(**************************************************************************)
+
+XlateGoto(target, self) ==
+    IF self = <<>> 
+    THEN <<"pc", "'", "=", "\"", target, "\"">>
+    ELSE <<"pc", "'", "=", "[", "pc", "EXCEPT", "!", "[", "self", "]", "=", "\"", target, "\"", "]">>
+
+XlateCall(proc, args, returnLabel, self) ==
+    LET stackPush == 
+        IF self = <<>>
+        THEN <<"stack", "'", "=", "<<", "[", "procedure", "|->", "\"", proc, "\"", ",",
+               "pc", "|->", "\"", returnLabel, "\"", "]", ">>", "\\o", "stack">>
+        ELSE <<"stack", "'", "=", "[", "stack", "EXCEPT", "!", "[", "self", "]", "=",
+               "<<", "[", "procedure", "|->", "\"", proc, "\"", ",",
+               "pc", "|->", "\"", returnLabel, "\"", "]", ">>", "\\o", "@", "]">>
+    IN stackPush \o <<"/\\">> \o XlateGoto(proc, self)
+
+XlateReturn(self) ==
+    LET stackPop ==
+        IF self = <<>>
+        THEN <<"pc", "'", "=", "Head", "(", "stack", ")", ".", "pc", "/\\",
+               "stack", "'", "=", "Tail", "(", "stack", ")">>
+        ELSE <<"pc", "'", "=", "Head", "(", "stack", "[", "self", "]", ")", ".", "pc", "/\\",
+               "stack", "'", "=", "[", "stack", "EXCEPT", "!", "[", "self", "]", "=", 
+               "Tail", "(", "@", ")", "]">>
+    IN stackPop
+
+XlateCallReturn(proc, args, self) ==
+    LET stackUpdate ==
+        IF self = <<>>
+        THEN <<"pc", "'", "=", "\"", proc, "\"", "/\\",
+               "stack", "'", "=", "Tail", "(", "stack", ")">>
+        ELSE <<"pc", "'", "=", "[", "pc", "EXCEPT", "!", "[", "self", "]", "=", "\"", proc, "\"", "]", "/\\",
+               "stack", "'", "=", "[", "stack", "EXCEPT", "!", "[", "self", "]", "=", "Tail", "(", "@", ")", "]">>
+    IN stackUpdate
+
+(**************************************************************************)
+(* Adding subscripts for process-local variables                           *)
+(**************************************************************************)
+
+AddSubscript(expr, var, self) ==
+    IF self = <<>> THEN expr
+    ELSE [i \in 1..Len(expr) |-> 
+            IF expr[i] = var 
+            THEN var \o "[" \o "self" \o "]"
+            ELSE expr[i]]
+
+ProcessVars(decls) ==
+    {decls[i].name : i \in 1..Len(decls)}
+
+(**************************************************************************)
+(* Generate variable declarations                                          *)
+(**************************************************************************)
+
+GenVarDecl(decl) ==
+    IF decl.init = <<>>
+    THEN <<decl.name>>
+    ELSE <<decl.name, "=", "(", "*", "initial", "value", "*", ")">> \o decl.init
+
+GenVarDecls(decls) ==
+    IF decls = <<>> THEN <<>>
+    ELSE IF Len(decls) = 1 THEN GenVarDecl(decls[1])
+    ELSE GenVarDecl(Head(decls)) \o <<",">> \o GenVarDecls(Tail(decls))
+
+(**************************************************************************)
+(* Generate Init predicate                                                 *)
+(**************************************************************************)
+
+RECURSIVE GenInitVar(_), GenInitVars(_)
+
+GenInitVar(decl) ==
+    IF decl.init = <<>>
+    THEN <<decl.name, "\\in", "{}">>
+    ELSE <<decl.name, "=">> \o decl.init
+
+GenInitVars(decls) ==
+    IF decls = <<>> THEN <<>>
+    ELSE IF Len(decls) = 1 THEN GenInitVar(decls[1])
+    ELSE GenInitVar(Head(decls)) \o <<"/\\">> \o Newline \o GenInitVars(Tail(decls))
+
+GenInit(alg) ==
+    LET varInits == GenInitVars(alg.decls)
+        pcInit == 
+            IF alg.type = "UniprocessAlgorithm"
+            THEN <<"pc", "=", "\"", alg.body[1].label, "\"">>
+            ELSE <<"pc", "=", "[", "self", "\\in", "ProcSet", "|->", "CASE", "...", "]">>
+        stackInit == <<"stack", "=", 
+            IF alg.type = "UniprocessAlgorithm" THEN <<"<<", ">>">>
+            ELSE <<"[", "self", "\\in", "ProcSet", "|->", "<<", ">>", "]">>>>
+    IN <<"Init", "==", "/\\">> \o varInits \o <<"/\\">> \o pcInit \o <<"/\\">> \o ConcatSeq(stackInit)
+
+(**************************************************************************)
+(* Generate action definitions                                             *)
+(**************************************************************************)
+
+RECURSIVE GenStmt(_,_), GenStmts(_,_)
+
+GenStmt(stmt, self) ==
+    CASE stmt.type = "Assign" ->
+            <<stmt.lhs, "'", "=">> \o AddSubscript(stmt.rhs, stmt.lhs, self)
+    []  stmt.type = "Skip" -> <<"TRUE">>
+    []  stmt.type = "Goto" -> XlateGoto(stmt.target, self)
+    []  stmt.type = "Call" -> XlateCall(stmt.proc, stmt.args, "Done", self)
+    []  stmt.type = "Return" -> XlateReturn(self)
+    []  stmt.type = "CallReturn" -> XlateCallReturn(stmt.proc, stmt.args, self)
+    []  stmt.type = "Print" -> <<"PrintT", "(">> \o stmt.expr \o <<")">>
+    []  stmt.type = "Assert" -> <<"Assert", "(">> \o stmt.expr \o <<")">>
+    []  stmt.type = "Await" -> stmt.expr
+    []  OTHER -> <<"TRUE">>
+
+GenStmts(stmts, self) ==
+    IF stmts = <<>> THEN <<"TRUE">>
+    ELSE IF Len(stmts) = 1 THEN GenStmt(stmts[1], self)
+    ELSE GenStmt(Head(stmts), self) \o <<"/\\">> \o GenStmts(Tail(stmts), self)
+
+GenLabeledAction(ls, self) ==
+    <<ls.label, "(", IF self = <<>> THEN "" ELSE "self", ")", "==", "/\\">> \o
+    <<"pc">> \o (IF self = <<>> THEN <<"">> ELSE <<"[", "self", "]">>) \o
+    <<"=", "\"", ls.label, "\"", "/\\">> \o
+    GenStmts(ls.stmts, self)
+
+RECURSIVE GenLabeledActions(_,_)
+
+GenLabeledActions(body, self) ==
+    IF body = <<>> THEN <<>>
+    ELSE GenLabeledAction(Head(body), self) \o Newline \o Newline \o 
+         GenLabeledActions(Tail(body), self)
+
+(**************************************************************************)
+(* Generate procedure actions                                              *)
+(**************************************************************************)
+
+GenProcedure(proc) ==
+    LET explodedBody == FullyExplodeSeq(proc.body)
+    IN <<"(", "*", "Procedure", proc.name, "*", ")">> \o Newline \o
+       GenLabeledActions(explodedBody, <<>>)
+
+RECURSIVE GenProcedures(_)
+
+GenProcedures(procs) ==
+    IF procs = <<>> THEN <<>>
+    ELSE GenProcedure(Head(procs)) \o Newline \o GenProcedures(Tail(procs))
+
+(**************************************************************************)
+(* Generate process actions                                                *)
+(**************************************************************************)
+
+GenProcess(proc) ==
+    LET explodedBody == FullyExplodeSeq(proc.body)
+        self == <<"self">>
+    IN <<"(", "*", "Process", proc.name, "*", ")">> \o Newline \o
+       GenLabeledActions(explodedBody, self)
+
+RECURSIVE GenProcesses(_)
+
+GenProcesses(processes) ==
+    IF processes = <<>> THEN <<>>
+    ELSE GenProcess(Head(processes)) \o Newline \o GenProcesses(Tail(processes))
+
+(**************************************************************************)
+(* Generate Next-state action                                              *)
+(**************************************************************************)
+
+RECURSIVE GenNextDisjuncts(_,_)
+
+GenNextDisjuncts(body, self) ==
+    IF body = <<>> THEN <<>>
+    ELSE IF Len(body) = 1 
+         THEN <<Head(body).label, "(", IF self = <<>> THEN "" ELSE "self", ")">>
+         ELSE <<Head(body).label, "(", IF self = <<>> THEN "" ELSE "self", ")", "\\/">> \o 
+              GenNextDisjuncts(Tail(body), self)
+
+GenNext(alg) ==
+    IF alg.type = "UniprocessAlgorithm"
+    THEN LET explodedBody == FullyExplodeSeq(alg.body)
+         IN <<"Next", "==", "(", "\\/">> \o GenNextDisjuncts(explodedBody, <<>>) \o
+            <<")", "\\/", "(", "pc", "=", "\"Done\"", "/\\", "UNCHANGED", "vars", ")">>
+    ELSE <<"Next", "==", "(", "\\E", "self", "\\in", "ProcSet", ":", 
+           "\\/">> \o <<"...", ")", "\\/", "(", "\\A", "self", "\\in", "ProcSet", ":",
+           "pc", "[", "self", "]", "=", "\"Done\"", ")", "/\\", "UNCHANGED", "vars">>
+
+(**************************************************************************)
+(* Generate Spec formula with fairness                                     *)
+(**************************************************************************)
+
+GenSpec(alg, fair) ==
+    LET baseSpec == <<"Spec", "==", "Init", "/\\", "[]", "[", "Next", "]", "_", "vars">>
+        fairness == 
+            CASE fair = "" -> <<>>
+            []  fair = "wf" -> <<"/\\", "WF_vars", "(", "Next", ")">>
+            []  fair = "wfNext" -> <<"/\\", "WF_vars", "(", "Next", ")">>
+            []  fair = "sf" -> <<"/\\", "SF_vars", "(", "Next", ")">>
+            []  OTHER -> <<>>
+    IN baseSpec \o fairness
+
+(**************************************************************************)
+(* Generate Termination property                                           *)
+(**************************************************************************)
+
+GenTermination(alg) ==
+    IF alg.type = "UniprocessAlgorithm"
+    THEN <<"Termination", "==", "<>", "(", "pc", "=", "\"Done\"", ")">>
+    ELSE <<"Termination", "==", "<>", "(", "\\A", "self", "\\in", "ProcSet", ":",
+           "pc", "[", "self", "]", "=", "\"Done\"", ")">>
+
+(**************************************************************************)
+(* Main Translation operator                                               *)
+(**************************************************************************)
+
+Translation(alg, fairnessOption) ==
+    LET header == <<"----", "MODULE", alg.name, "----">> \o Newline \o
+                  <<"EXTENDS", "Naturals", ",", "Sequences">> \o Newline \o Newline
+        
+        variables == <<"VARIABLES">> \o GenVarDecls(alg.decls) \o <<",", "pc", ",", "stack">> \o 
+                     Newline \o Newline \o
+                     <<"vars", "==", "<<">> \o GenVarDecls(alg.decls) \o 
+                     <<",", "pc", ",", "stack", ">>">> \o Newline \o Newline
+        
+        init == GenInit(alg) \o Newline \o Newline
+        
+        procedures == GenProcedures(alg.procs) \o Newline
+        
+        mainActions == 
+            IF alg.type = "UniprocessAlgorithm"
+            THEN GenLabeledActions(FullyExplodeSeq(alg.body), <<>>)
+            ELSE GenProcesses(alg.processes)
+        
+        next == GenNext(alg) \o Newline \o Newline
+        
+        spec == GenSpec(alg, fairnessOption) \o Newline \o Newline
+        
+        termination == GenTermination(alg) \o Newline \o Newline
+        
+        footer == <<"====

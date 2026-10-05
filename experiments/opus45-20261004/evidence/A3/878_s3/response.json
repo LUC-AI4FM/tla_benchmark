@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS Nodes, Edges, Root, MaxCardinality\n\nASSUME Root \\in Nodes\nASSUME MaxCardinality \\in Nat\nASSUME MaxCardinality >= Cardinality(Nodes)\nASSUME \\A e \\in Edges : e \\subseteq Nodes /\\ Cardinality(e) = 2\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\nNeighbors(n) == {m \\in Nodes : {n, m} \\in Edges}\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxCardinality]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxCardinality]\n\nUpdate(n, m) ==\n    /\\ m \\in Neighbors(n)\n    /\\ dist[m] < dist[n]\n    /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n        /\\ dist' = [dist EXCEPT ![n] = d]\n        /\\ mom' = [mom EXCEPT ![n] = m]\n\nNext ==\n    \\E n \\in Nodes : \\E m \\in Nodes : Update(n, m)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTerminated == ~ENABLED Next\n\nReachable(n) ==\n    LET RECURSIVE ReachableFrom(_,_)\n        ReachableFrom(current, visited) ==\n            IF current = Root THEN TRUE\n            ELSE IF current \\in visited THEN FALSE\n            ELSE IF mom[current] = current THEN FALSE\n            ELSE ReachableFrom(mom[current], visited \\cup {current})\n    IN ReachableFrom(n, {})\n\nPostCondition ==\n    /\\ dist[Root] = 0\n    /\\ mom[Root] = Root\n    /\\ \\A n \\in Nodes \\ {Root} :\n        /\\ mom[n] \\in Neighbors(n)\n        /\\ dist[n] = dist[mom[n]] + 1\n        /\\ Reachable(n)\n\nSafety == Terminated => PostCondition\n\nLiveness == <>Terminated\n\nAllReachRoot == \\A n \\in Nodes : <>(Reachable(n))\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 619,
+    "totalTokens": 912,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10637
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "modelId": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "You are a TLA+ specification engineer. You will receive a natural language description of a system. Produce a complete, syntactically correct TLA+ specification that faithfully captures the described behavior. The output must be a valid TLA+ module that passes the SANY parser. Include the MODULE declaration, EXTENDS, CONSTANTS, VARIABLES, Init, Next and Spec. Include all safety invariants and liveness properties described, and any fairness conditions mentioned. Output only the TLA+ specification.\n\nSystem description: The module specifies Lamport's Bakery mutual-exclusion algorithm for a configurable number of processes (`NumProcs`), with `MaxNum` bounding ticket values for model checking. Each process `i` in `Proc = 1..NumProcs` maintains a shared ticket number `num[i]` and a `choosing[i]` flag, plus local variables `read`, `max`, and `nxt` used during execution.\n\nEach process repeatedly cycles through a fixed sequence of labeled steps. In the \"choosing\" phase (`loop`, `d1`, `d2`, `d3`), a process sets its `choosing` flag, scans all other processes to find the current maximum ticket number, assigns itself `max + 1`, then clears its flag. In the waiting phase (`w1`, `w2`), it iterates over all other processes: for each, it first waits until that process is not currently choosing, then waits until either that process holds no ticket, holds a strictly larger ticket, or holds an equal ticket but has a higher process ID \u2014 the standard lexicographic priority rule. Once all processes have been checked, the process enters the critical section (`cs`) and resets its ticket to zero on exit before looping again.\n\nThe temporal specification `Spec` is a safety-only stuttering-closed specification (`Init /\\ [][Next]_vars`) with no fairness conditions. The checked invariant `Invariant` asserts mutual exclusion: no two distinct processes can simultaneously be at label `cs`. A state constraint `Constraint` bounds ticket values to at most `MaxNum` to keep the state space finite. The configuration also tracks possible-state counts for `InCS` and `ChooseNumber` via a `PossibleCounts` postcondition, verified against expected values of 113 and 180 respectively."
+        }
+      ]
+    }
+  ],
+  "inferenceConfig": {
+    "maxTokens": 16000
+  }
+}

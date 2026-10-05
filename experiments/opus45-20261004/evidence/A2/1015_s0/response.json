@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE VoucherLifeCycle ----------------------------\nEXTENDS Naturals\n\nCONSTANTS V\n\nVARIABLES vState, vlcState\n\nvars == <<vState, vlcState>>\n\nVoucherStates == {\"phantom\", \"valid\", \"redeemed\", \"cancelled\"}\nVLCStates == {\"init\", \"working\", \"done\"}\n\nVTypeOK ==\n    /\\ vState \\in [V -> VoucherStates]\n    /\\ vlcState \\in [V -> VLCStates]\n\nVConsistent ==\n    \\A v \\in V:\n        /\\ (vState[v] = \"phantom\") <=> (vlcState[v] = \"init\")\n        /\\ (vState[v] = \"valid\") <=> (vlcState[v] = \"working\")\n        /\\ (vState[v] \\in {\"redeemed\", \"cancelled\"}) <=> (vlcState[v] = \"done\")\n\nInit ==\n    /\\ vState = [v \\in V |-> \"phantom\"]\n    /\\ vlcState = [v \\in V |-> \"init\"]\n\nIssue(v) ==\n    /\\ vState[v] = \"phantom\"\n    /\\ vlcState[v] = \"init\"\n    /\\ vState' = [vState EXCEPT ![v] = \"valid\"]\n    /\\ vlcState' = [vlcState EXCEPT ![v] = \"working\"]\n\nTransfer(v) ==\n    /\\ vState[v] = \"valid\"\n    /\\ UNCHANGED vars\n\nRedeem(v) ==\n    /\\ vState[v] = \"valid\"\n    /\\ vlcState[v] = \"working\"\n    /\\ vState' = [vState EXCEPT ![v] = \"redeemed\"]\n    /\\ vlcState' = [vlcState EXCEPT ![v] = \"done\"]\n\nCancel(v) ==\n    /\\ vState[v] = \"valid\"\n    /\\ vlcState[v] = \"working\"\n    /\\ vState' = [vState EXCEPT ![v] = \"cancelled\"]\n    /\\ vlcState' = [vlcState EXCEPT ![v] = \"done\"]\n\nVNext ==\n    \\E v \\in V:\n        \\/ Issue(v)\n        \\/ Transfer(v)\n        \\/ Redeem(v)\n        \\/ Cancel(v)\n\nVSpec == Init /\\ [][VNext]_vars\n\nTHEOREM VSpec => [](VTypeOK /\\ VConsistent)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 507,
+    "outputTokens": 606,
+    "totalTokens": 1113,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7438
+  }
+}

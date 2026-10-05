@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DieHard ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS SmallCap, BigCap\n\nVARIABLES small, big, waterUsed\n\nvars == <<small, big, waterUsed>>\n\nTypeOK == /\\ small \\in 0..SmallCap\n          /\\ big \\in 0..BigCap\n          /\\ waterUsed \\in Nat\n\nInit == /\\ small = 0\n        /\\ big = 0\n        /\\ waterUsed = 0\n\nFillSmall == /\\ small' = SmallCap\n             /\\ big' = big\n             /\\ waterUsed' = waterUsed + (SmallCap - small)\n\nFillBig == /\\ big' = BigCap\n           /\\ small' = small\n           /\\ waterUsed' = waterUsed + (BigCap - big)\n\nEmptySmall == /\\ small' = 0\n              /\\ big' = big\n              /\\ waterUsed' = waterUsed\n\nEmptyBig == /\\ big' = 0\n            /\\ small' = small\n            /\\ waterUsed' = waterUsed\n\nSmallToBig == LET transfer == IF small + big <= BigCap \n                              THEN small \n                              ELSE BigCap - big\n              IN /\\ big' = big + transfer\n                 /\\ small' = small - transfer\n                 /\\ waterUsed' = waterUsed\n\nBigToSmall == LET transfer == IF small + big <= SmallCap \n                              THEN big \n                              ELSE SmallCap - small\n              IN /\\ small' = small + transfer\n                 /\\ big' = big - transfer\n                 /\\ waterUsed' = waterUsed\n\nNext == \\/ FillSmall\n        \\/ FillBig\n        \\/ EmptySmall\n        \\/ EmptyBig\n        \\/ SmallToBig\n        \\/ BigToSmall\n\nSpec == Init /\\ [][Next]_vars\n\n-----------------------------------------------------------------------------\n(* Safety Invariants *)\n\nNotFourGallons == big /= 4\n\nSmallInRange == small >= 0 /\\ small <= SmallCap\nBigInRange == big >= 0 /\\ big <= BigCap\n\n-----------------------------------------------------------------------------\n(* Predicates for checking state space *)\n\nBigHasFour == big = 4\n\nGoalReachable == TLCGet(\"level\") > 0 => \\E s \\in {big} : TRUE\n\n-----------------------------------------------------------------------------\n(* TLC Statistics and Inspection Operators *)\n\nStatesGenerated == TLCGet(\"generated\")\nDistinctStates == TLCGet(\"distinct\")\nCurrentLevel == TLCGet(\"level\")\n\nExpectedDistinctStates == 16\nExpectedActions == 6\n\nStatesCountCheck == DistinctStates <= 100\n\nActionCountExpectation == \n    TLCGet(\"generated\") >= 0\n\nPostCondition ==\n    /\\ PrintT(<<\"States Generated:\", StatesGenerated>>)\n    /\\ PrintT(<<\"Distinct States:\", DistinctStates>>)\n    /\\ PrintT(<<\"Water Used Counter Available\">>)\n\n-----------------------------------------------------------------------------\n(* Liveness Properties *)\n\nEventuallyFour == <>(big = 4)\n\n-----------------------------------------------------------------------------\n(* Fairness Conditions *)\n\nFairSpec == Spec /\\ WF_vars(Next)\n\nLiveSpec == FairSpec => EventuallyFour\n\n-----------------------------------------------------------------------------\n(* Default values for constants *)\n\nSmallCapDef == 3\nBigCapDef == 5\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 267,
+    "outputTokens": 863,
+    "totalTokens": 1130,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13843
+  }
+}

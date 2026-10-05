@@ -1,0 +1,41 @@
+---------------------------- MODULE ArithmeticAssertion ----------------------------
+EXTENDS Integers
+
+VARIABLES x, pc
+
+vars == << x, pc >>
+
+Init == 
+    /\ x \in 1..10
+    /\ pc = "Lbl_1"
+
+Lbl_1 == 
+    /\ pc = "Lbl_1"
+    /\ Assert(x * x <= 100, "Assertion failed: x^2 <= 100")
+    /\ pc' = "Done"
+    /\ x' = x
+
+Terminating == 
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == 
+    \/ Lbl_1
+    \/ Terminating
+
+Spec == Init /\ [][Next]_vars
+
+Termination == <>(pc = "Done")
+
+\* Safety invariant: x squared is always at most 100
+XSquaredBounded == x * x <= 100
+
+\* Type invariant
+TypeOK == 
+    /\ x \in 1..10
+    /\ pc \in {"Lbl_1", "Done"}
+
+\* Helper operator for assertions (standard TLC definition)
+Assert(condition, message) == condition
+
+===================================================================================

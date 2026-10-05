@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE EvenOdd ----------------------------\nEXTENDS Integers, Sequences, TLC\n\nCONSTANT N\n\nASSUME N \\in Nat\n\nVARIABLES pc, stack, xEven, xOdd, result\n\nvars == <<pc, stack, xEven, xOdd, result>>\n\nInit ==\n    /\\ pc = \"Start\"\n    /\\ stack = <<>>\n    /\\ xEven = 0\n    /\\ xOdd = 0\n    /\\ result = FALSE\n\nStart ==\n    /\\ pc = \"Start\"\n    /\\ stack' = <<[caller |-> \"Start\", var |-> N]>>\n    /\\ xEven' = N\n    /\\ pc' = \"EvenCheck\"\n    /\\ UNCHANGED <<xOdd, result>>\n\nEvenCheck ==\n    /\\ pc = \"EvenCheck\"\n    /\\ IF xEven = 0\n       THEN /\\ result' = TRUE\n            /\\ IF Len(stack) = 1\n               THEN /\\ pc' = \"Done\"\n                    /\\ stack' = <<>>\n                    /\\ UNCHANGED <<xEven, xOdd>>\n               ELSE /\\ LET frame == Head(Tail(stack))\n                    IN IF frame.caller = \"Even\"\n                       THEN /\\ pc' = \"EvenReturn\"\n                            /\\ stack' = Tail(stack)\n                            /\\ UNCHANGED <<xEven, xOdd>>\n                       ELSE /\\ pc' = \"OddReturn\"\n                            /\\ stack' = Tail(stack)\n                            /\\ UNCHANGED <<xEven, xOdd>>\n       ELSE /\\ xOdd' = xEven - 1\n            /\\ stack' = Append(stack, [caller |-> \"Even\", var |-> xEven])\n            /\\ pc' = \"OddCheck\"\n            /\\ UNCHANGED <<xEven, result>>\n\nOddCheck ==\n    /\\ pc = \"OddCheck\"\n    /\\ IF xOdd = 0\n       THEN /\\ result' = FALSE\n            /\\ IF Len(stack) = 1\n               THEN /\\ pc' = \"Done\"\n                    /\\ stack' = <<>>\n                    /\\ UNCHANGED <<xEven, xOdd>>\n               ELSE /\\ LET frame == Head(Tail(stack))\n                    IN IF frame.caller = \"Even\"\n                       THEN /\\ pc' = \"EvenReturn\"\n                            /\\ stack' = Tail(stack)\n                            /\\ UNCHANGED <<xEven, xOdd>>\n                       ELSE /\\ pc' = \"OddReturn\"\n                            /\\ stack' = Tail(stack)\n                            /\\ UNCHANGED <<xEven, xOdd>>\n       ELSE /\\ xEven' = xOdd - 1\n            /\\ stack' = Append(stack, [caller |-> \"Odd\", var |-> xOdd])\n            /\\ pc' = \"EvenCheck\"\n            /\\ UNCHANGED <<xOdd, result>>\n\nEvenReturn ==\n    /\\ pc = \"EvenReturn\"\n    /\\ IF Len(stack) = 0\n       THEN /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<stack, xEven, xOdd, result>>\n       ELSE /\\ LET frame == Head(stack)\n            IN IF frame.caller = \"Start\"\n               THEN /\\ pc' = \"Done\"\n                    /\\ stack' = Tail(stack)\n                    /\\ UNCHANGED <<xEven, xOdd, result>>\n               ELSE IF frame.caller = \"Even\"\n                    THEN /\\ pc' = \"EvenReturn\"\n                         /\\ stack' = Tail(stack)\n                         /\\ UNCHANGED <<xEven, xOdd, result>>\n                    ELSE /\\ pc' = \"OddReturn\"\n                         /\\ stack' = Tail(stack)\n                         /\\ UNCHANGED <<xEven, xOdd, result>>\n\nOddReturn ==\n    /\\ pc = \"OddReturn\"\n    /\\ IF Len(stack) = 0\n       THEN /\\ pc' = \"Done\"\n            /\\ UNCHANGED <<stack, xEven, xOdd, result>>\n       ELSE /\\ LET frame == Head(stack)\n            IN IF frame.caller = \"Start\"\n               THEN /\\ pc' = \"Done\"\n                    /\\ stack' = Tail(stack)\n                    /\\ UNCHANGED <<xEven, xOdd, result>>\n               ELSE IF frame.caller = \"Even\"\n                    THEN /\\ pc' = \"EvenReturn\"\n                         /\\ stack' = Tail(stack)\n                         /\\ UNCHANGED <<xEven, xOdd, result>>\n                    ELSE /\\ pc' = \"OddReturn\"\n                         /\\ stack' = Tail(stack)\n                         /\\ UNCHANGED <<xEven, xOdd, result>>\n\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ Start\n    \\/ EvenCheck\n    \\/ OddCheck\n    \\/ EvenReturn\n    \\/ OddReturn\n    \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 267,
+    "outputTokens": 1300,
+    "totalTokens": 1567,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13735
+  }
+}

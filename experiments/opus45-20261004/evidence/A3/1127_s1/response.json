@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n-------------------------------- MODULE TwoPhaseCommit --------------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS RM \\* The set of resource managers\n\nVARIABLES rmState \\* rmState[r] is the state of resource manager r\n\nTypeOK ==\n    rmState \\in [RM -> {\"working\", \"prepared\", \"committed\", \"aborted\"}]\n\nInit ==\n    rmState = [r \\in RM |-> \"working\"]\n\n\\* RM r prepares to commit\nPrepare(r) ==\n    /\\ rmState[r] = \"working\"\n    /\\ rmState' = [rmState EXCEPT ![r] = \"prepared\"]\n\n\\* Check if all RMs are prepared (no RM is still working)\nAllPrepared ==\n    \\A r \\in RM : rmState[r] \\in {\"prepared\", \"committed\"}\n\n\\* Check if any RM has aborted\nSomeAborted ==\n    \\E r \\in RM : rmState[r] = \"aborted\"\n\n\\* Check if any RM has committed\nSomeCommitted ==\n    \\E r \\in RM : rmState[r] = \"committed\"\n\n\\* RM r decides to commit\n\\* Can only commit if all RMs are prepared and none has aborted\nDecideCommit(r) ==\n    /\\ rmState[r] = \"prepared\"\n    /\\ AllPrepared\n    /\\ ~SomeAborted\n    /\\ rmState' = [rmState EXCEPT ![r] = \"committed\"]\n\n\\* RM r decides to abort\n\\* Can abort from working or prepared state, but not if someone has already committed\nDecideAbort(r) ==\n    /\\ rmState[r] \\in {\"working\", \"prepared\"}\n    /\\ ~SomeCommitted\n    /\\ rmState' = [rmState EXCEPT ![r] = \"aborted\"]\n\n\\* The Decide action for RM r\nDecide(r) ==\n    \\/ DecideCommit(r)\n    \\/ DecideAbort(r)\n\n\\* Next-state relation: disjunction of all RM actions\nNext ==\n    \\E r \\in RM :\n        \\/ Prepare(r)\n        \\/ Decide(r)\n\n\\* Fairness: weak fairness on all RM actions\nFairness ==\n    \\A r \\in RM :\n        /\\ WF_rmState(Prepare(r))\n        /\\ WF_rmState(Decide(r))\n\n\\* The complete specification\nSpec == Init /\\ [][Next]_rmState /\\ Fairness\n\n\\* Safety invariant: No two RMs can reach conflicting decisions\n\\* (one committed and one aborted)\nConsistency ==\n    ~(\\E r1, r2 \\in RM : rmState[r1] = \"committed\" /\\ rmState[r2] = \"aborted\")\n\n\\* Combined invariant for type correctness and consistency\nInvariant == TypeOK /\\ Consistency\n\n\\* Liveness property: Eventually all RMs reach the same terminal state\n\\* Either all commit or all abort\nAllCommitted == \\A r \\in RM : rmState[r] = \"committed\"\nAllAborted == \\A r \\in RM : rmState[r] = \"aborted\"\n\nTermination == <>(AllCommitted \\/ AllAborted)\n\n\\* Agreement: If any RM commits, eventually all will commit\nAgreement == \\A r \\in RM : (rmState[r] = \"committed\") => <>(AllCommitted)\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 847,
+    "totalTokens": 1125,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12814
+  }
+}

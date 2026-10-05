@@ -1,0 +1,61 @@
+---------------------------- MODULE GameOfLife ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANT N
+
+ASSUME N \in Nat /\ N > 0
+
+VARIABLES grid
+
+\* Set of all board coordinates
+Coords == (0..(N-1)) \X (0..(N-1))
+
+\* Sum values over a finite set using a function f
+RECURSIVE SumSet(_, _)
+SumSet(S, f) ==
+    IF S = {} THEN 0
+    ELSE LET x == CHOOSE x \in S : TRUE
+         IN f[x] + SumSet(S \ {x}, f)
+
+\* Check if a position is within the board boundaries
+InBounds(x, y) == x >= 0 /\ x < N /\ y >= 0 /\ y < N
+
+\* Get cell value, treating out-of-bounds cells as dead
+CellValue(x, y) ==
+    IF InBounds(x, y) THEN
+        IF grid[<<x, y>>] THEN 1 ELSE 0
+    ELSE 0
+
+\* Count live neighbors of a cell at position (x, y)
+CountLiveNeighbors(x, y) ==
+    CellValue(x-1, y-1) + CellValue(x, y-1) + CellValue(x+1, y-1) +
+    CellValue(x-1, y) + CellValue(x+1, y) +
+    CellValue(x-1, y+1) + CellValue(x, y+1) + CellValue(x+1, y+1)
+
+\* Compute next state of a cell based on Conway's Game of Life rules
+NextCellState(x, y) ==
+    LET neighbors == CountLiveNeighbors(x, y)
+        alive == grid[<<x, y>>]
+    IN IF alive THEN
+           \* Live cell survives with 2 or 3 neighbors
+           neighbors = 2 \/ neighbors = 3
+       ELSE
+           \* Dead cell becomes alive with exactly 3 neighbors
+           neighbors = 3
+
+\* Type invariant: grid is a function from Coords to Boolean
+TypeInvariant ==
+    grid \in [Coords -> BOOLEAN]
+
+\* Initial condition: any valid grid configuration
+Init ==
+    grid \in [Coords -> BOOLEAN]
+
+\* Next state: apply Game of Life rules to all cells simultaneously
+Next ==
+    grid' = [pos \in Coords |-> NextCellState(pos[1], pos[2])]
+
+\* Temporal specification with stuttering allowed
+Spec == Init /\ [][Next]_grid
+
+=============================================================================

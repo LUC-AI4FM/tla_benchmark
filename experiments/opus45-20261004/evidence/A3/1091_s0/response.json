@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE PCR ------------------------------\nEXTENDS Naturals\n\nCONSTANTS\n    InitPrimers,      \\* Initial number of primers\n    InitDNA,          \\* Initial number of double-stranded DNA molecules\n    MaxTemp,          \\* Maximum temperature (for denaturation)\n    MinTemp,          \\* Minimum temperature (for annealing)\n    MidTemp           \\* Medium temperature (for extension)\n\nVARIABLES\n    temp,             \\* Current temperature\n    primers,          \\* Count of available primers\n    dsDNA,            \\* Count of double-stranded DNA\n    ssDNA,            \\* Count of single-stranded DNA templates\n    hybrids           \\* Count of template-primer hybrids\n\nvars == <<temp, primers, dsDNA, ssDNA, hybrids>>\n\n\\* Type invariant\nTypeOK ==\n    /\\ temp \\in {MinTemp, MidTemp, MaxTemp}\n    /\\ primers \\in Nat\n    /\\ dsDNA \\in Nat\n    /\\ ssDNA \\in Nat\n    /\\ hybrids \\in Nat\n\n\\* All counts must be non-negative\nNonNegative ==\n    /\\ primers >= 0\n    /\\ dsDNA >= 0\n    /\\ ssDNA >= 0\n    /\\ hybrids >= 0\n\n\\* Conservation of genetic material: total \"DNA units\" preserved\n\\* Each dsDNA contains 2 strands, each ssDNA is 1 strand, each hybrid is 1 strand with primer\n\\* We track: 2*dsDNA + ssDNA + hybrids = constant (strands)\n\\* And: primers + hybrids = constant (primer units, since hybrids consume primers)\nInitialStrands == 2 * InitDNA\nInitialPrimerUnits == InitPrimers\n\nCountPreservation ==\n    /\\ (2 * dsDNA + ssDNA + hybrids) = InitialStrands\n    /\\ (primers + hybrids) = InitialPrimerUnits\n\n\\* Initial state\nInit ==\n    /\\ temp = MidTemp\n    /\\ primers = InitPrimers\n    /\\ dsDNA = InitDNA\n    /\\ ssDNA = 0\n    /\\ hybrids = 0\n\n\\* Heating: denature dsDNA into ssDNA (at high temperature)\n\\* Each dsDNA becomes 2 ssDNA strands\nHeat ==\n    /\\ temp # MaxTemp\n    /\\ temp' = MaxTemp\n    /\\ ssDNA' = ssDNA + (2 * dsDNA)\n    /\\ dsDNA' = 0\n    /\\ UNCHANGED <<primers, hybrids>>\n\n\\* Cooling: lower temperature to allow annealing\nCool ==\n    /\\ temp = MaxTemp\n    /\\ temp' = MinTemp\n    /\\ UNCHANGED <<primers, dsDNA, ssDNA, hybrids>>\n\n\\* Annealing: primers bind to ssDNA templates (at low temperature)\n\\* Nondeterministically choose how many primers bind\n\\* Each annealing consumes 1 primer and 1 ssDNA, producing 1 hybrid\nAnneal ==\n    /\\ temp = MinTemp\n    /\\ \\E n \\in 0..primers:\n        /\\ n <= ssDNA\n        /\\ primers' = primers - n\n        /\\ ssDNA' = ssDNA - n\n        /\\ hybrids' = hybrids + n\n        /\\ UNCHANGED <<temp, dsDNA>>\n\n\\* Raise temperature for extension\nRaiseForExtension ==\n    /\\ temp = MinTemp\n    /\\ temp' = MidTemp\n    /\\ UNCHANGED <<primers, dsDNA, ssDNA, hybrids>>\n\n\\* Extension: DNA polymerase extends hybrids into complete dsDNA (at medium temperature)\n\\* Each hybrid becomes a dsDNA\nExtend ==\n    /\\ temp = MidTemp\n    /\\ hybrids > 0\n    /\\ dsDNA' = dsDNA + hybrids\n    /\\ hybrids' = 0\n    /\\ UNCHANGED <<temp, primers, ssDNA>>\n\n\\* Next state relation\nNext ==\n    \\/ Heat\n    \\/ Cool\n    \\/ Anneal\n    \\/ RaiseForExtension\n    \\/ Extend\n\n\\* Fairness: weak fairness on all actions to ensure progress\nFairness ==\n    /\\ WF_vars(Heat)\n    /\\ WF_vars(Cool)\n    /\\ WF_vars(Anneal)\n    /\\ WF_vars(RaiseForExtension)\n    /\\ WF_vars(Extend)\n\n\\* Complete specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety invariants\nSafety ==\n    /\\ TypeOK\n    /\\ NonNegative\n\n\\* Liveness property: eventual primer depletion\n\\* NOTE: This property does NOT hold in general because:\n\\* 1. Annealing can nondeterministically choose n=0\n\\* 2. The system can cycle without ever consuming primers\n\\* This is intentionally included to demonstrate a property that fails\nEventualPrimerDepletion == <>(primers = 0)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 272,
+    "outputTokens": 1280,
+    "totalTokens": 1552,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18406
+  }
+}

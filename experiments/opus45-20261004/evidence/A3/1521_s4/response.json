@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE CoffeeCanBean ----------------------------\nEXTENDS Naturals\n\nCONSTANTS MaxBeans\n\nVARIABLES can, init_white_parity\n\nTypeOK ==\n    /\\ can \\in [black: 0..MaxBeans, white: 0..MaxBeans]\n    /\\ init_white_parity \\in {0, 1}\n\nTotalBeans == can.black + can.white\n\nTerminated == TotalBeans = 1\n\n\\* Remove two black beans, put one black bean back\n\\* Net effect: remove one black bean\nRemoveTwoBlack ==\n    /\\ can.black >= 2\n    /\\ can' = [can EXCEPT !.black = @ - 1]\n    /\\ UNCHANGED init_white_parity\n\n\\* Remove two white beans, put one black bean back\n\\* Net effect: remove two white beans, add one black bean\nRemoveTwoWhite ==\n    /\\ can.white >= 2\n    /\\ can' = [can EXCEPT !.black = can.black + 1, !.white = can.white - 2]\n    /\\ UNCHANGED init_white_parity\n\n\\* Remove one black and one white bean, put one white bean back\n\\* Net effect: remove one black bean\nRemoveOneEach ==\n    /\\ can.black >= 1\n    /\\ can.white >= 1\n    /\\ can' = [can EXCEPT !.black = @ - 1]\n    /\\ UNCHANGED init_white_parity\n\n\\* Stuttering when terminated\nStutter ==\n    /\\ Terminated\n    /\\ UNCHANGED <<can, init_white_parity>>\n\nInit ==\n    /\\ can \\in [black: 0..MaxBeans, white: 0..MaxBeans]\n    /\\ TotalBeans >= 1\n    /\\ init_white_parity = can.white % 2\n\nNext ==\n    \\/ RemoveTwoBlack\n    \\/ RemoveTwoWhite\n    \\/ RemoveOneEach\n    \\/ Stutter\n\nSpec == Init /\\ [][Next]_<<can, init_white_parity>> /\\ WF_<<can, init_white_parity>>(Next)\n\n\\* Safety: Total bean count monotonically decreases (or stays same when terminated)\nMonotonicDecrease ==\n    [][TotalBeans' <= TotalBeans]_<<can, init_white_parity>>\n\n\\* Liveness: Eventually terminates\nEventualTermination == <>(Terminated)\n\n\\* Loop invariant: Parity of white beans is preserved\n\\* The number of white beans changes by 0 or -2, so parity is invariant\nWhiteParityInvariant == can.white % 2 = init_white_parity\n\n\\* Hypothesis: If initial white count is odd, final bean is white\n\\* If initial white count is even, final bean is black\nFinalBeanHypothesis ==\n    Terminated => \n        IF init_white_parity = 1 \n        THEN can.white = 1 /\\ can.black = 0\n        ELSE can.white = 0 /\\ can.black = 1\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 280,
+    "outputTokens": 774,
+    "totalTokens": 1054,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12103
+  }
+}

@@ -1,0 +1,130 @@
+```tla
+---------------------------- MODULE KeyValueStore ----------------------------
+EXTENDS Naturals, TLC
+
+CONSTANTS Keys, Vals, MISSING
+
+VARIABLES store, op, args, retval, state
+
+vars == <<store, op, args, retval, state>>
+
+TypeOK ==
+    /\ store \in [Keys -> Vals \cup {MISSING}]
+    /\ op \in {"get", "insert", "update", "delete", "none"}
+    /\ args \in (Keys \times Vals) \cup Keys \cup {<<>>}
+    /\ retval \in Vals \cup {MISSING, "ok", "error", "none"}
+    /\ state \in {"ready", "working"}
+
+Init ==
+    /\ store = [k \in Keys |-> MISSING]
+    /\ op = "none"
+    /\ args = <<>>
+    /\ retval = "none"
+    /\ state = "ready"
+
+GetRequest(k) ==
+    /\ state = "ready"
+    /\ op' = "get"
+    /\ args' = k
+    /\ state' = "working"
+    /\ UNCHANGED <<store, retval>>
+
+GetResponse ==
+    /\ state = "working"
+    /\ op = "get"
+    /\ args \in Keys
+    /\ retval' = store[args]
+    /\ state' = "ready"
+    /\ op' = "none"
+    /\ args' = <<>>
+    /\ UNCHANGED store
+
+InsertRequest(k, v) ==
+    /\ state = "ready"
+    /\ op' = "insert"
+    /\ args' = <<k, v>>
+    /\ state' = "working"
+    /\ UNCHANGED <<store, retval>>
+
+InsertResponse ==
+    /\ state = "working"
+    /\ op = "insert"
+    /\ args \in Keys \times Vals
+    /\ LET k == args[1]
+           v == args[2]
+       IN IF store[k] = MISSING
+          THEN /\ store' = [store EXCEPT ![k] = v]
+               /\ retval' = "ok"
+          ELSE /\ retval' = "error"
+               /\ UNCHANGED store
+    /\ state' = "ready"
+    /\ op' = "none"
+    /\ args' = <<>>
+
+UpdateRequest(k, v) ==
+    /\ state = "ready"
+    /\ op' = "update"
+    /\ args' = <<k, v>>
+    /\ state' = "working"
+    /\ UNCHANGED <<store, retval>>
+
+UpdateResponse ==
+    /\ state = "working"
+    /\ op = "update"
+    /\ args \in Keys \times Vals
+    /\ LET k == args[1]
+           v == args[2]
+       IN IF store[k] # MISSING
+          THEN /\ store' = [store EXCEPT ![k] = v]
+               /\ retval' = "ok"
+          ELSE /\ retval' = "error"
+               /\ UNCHANGED store
+    /\ state' = "ready"
+    /\ op' = "none"
+    /\ args' = <<>>
+
+DeleteRequest(k) ==
+    /\ state = "ready"
+    /\ op' = "delete"
+    /\ args' = k
+    /\ state' = "working"
+    /\ UNCHANGED <<store, retval>>
+
+DeleteResponse ==
+    /\ state = "working"
+    /\ op = "delete"
+    /\ args \in Keys
+    /\ IF store[args] # MISSING
+       THEN /\ store' = [store EXCEPT ![args] = MISSING]
+            /\ retval' = "ok"
+       ELSE /\ retval' = "error"
+            /\ UNCHANGED store
+    /\ state' = "ready"
+    /\ op' = "none"
+    /\ args' = <<>>
+
+Next ==
+    \/ \E k \in Keys : GetRequest(k)
+    \/ GetResponse
+    \/ \E k \in Keys, v \in Vals : InsertRequest(k, v)
+    \/ InsertResponse
+    \/ \E k \in Keys, v \in Vals : UpdateRequest(k, v)
+    \/ UpdateResponse
+    \/ \E k \in Keys : DeleteRequest(k)
+    \/ DeleteResponse
+
+DeleteRequestAction == \E k \in Keys : DeleteRequest(k)
+
+Spec == Init /\ [][Next]_vars /\ WF_op(DeleteRequestAction)
+
+StoreConsistency ==
+    \A k \in Keys : store[k] \in Vals \cup {MISSING}
+
+ReadyImpliesNoOp ==
+    state = "ready" => op = "none"
+
+WorkingImpliesOp ==
+    state = "working" => op \in {"get", "insert", "update", "delete"}
+
+=============================================================================
+```

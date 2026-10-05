@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N >= 2\n\nPhilosophers == 0..(N-1)\n\nVARIABLES pc, sem\n\nvars == <<pc, sem>>\n\n\\* Fork indices: philosopher i has fork i on their left and fork (i+1) % N on their right\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\n\\* Program counter states:\n\\* \"thinking\" - philosopher is thinking\n\\* \"hungry\" - philosopher wants to eat, hasn't picked up any fork\n\\* \"hasFirst\" - philosopher has picked up first fork, waiting for second\n\\* \"eating\" - philosopher has both forks and is eating\n\nTypeOK ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\"}]\n    /\\ sem \\in [0..(N-1) -> {0, 1}]\n\nInit ==\n    /\\ pc = [i \\in Philosophers |-> \"thinking\"]\n    /\\ sem = [i \\in 0..(N-1) |-> 1]\n\n\\* Philosopher becomes hungry\nBecomeHungry(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ sem' = sem\n\n\\* First fork for philosopher 0 is left fork, for others it's right fork\nFirstFork(i) == IF i = 0 THEN LeftFork(i) ELSE RightFork(i)\nSecondFork(i) == IF i = 0 THEN RightFork(i) ELSE LeftFork(i)\n\n\\* Pick up first fork\nPickUpFirst(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ sem[FirstFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![FirstFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\n\\* Pick up second fork\nPickUpSecond(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ sem[SecondFork(i)] = 1\n    /\\ sem' = [sem EXCEPT ![SecondFork(i)] = 0]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\n\\* Put down both forks and return to thinking\nFinishEating(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ sem' = [sem EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\n\\* All actions for philosopher i\nPhilosopherAction(i) ==\n    \\/ BecomeHungry(i)\n    \\/ PickUpFirst(i)\n    \\/ PickUpSecond(i)\n    \\/ FinishEating(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\n\\* Strong fairness for each philosopher's actions\nFairness == \\A i \\in Philosophers : SF_vars(PhilosopherAction(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: Adjacent philosophers do not eat simultaneously\n\\* Two philosophers are adjacent if they share a fork\nMutualExclusion ==\n    \\A i \\in Philosophers :\n        ~(pc[i] = \"eating\" /\\ pc[(i + 1) % N] = \"eating\")\n\n\\* Liveness: Each philosopher eats infinitely often (starvation freedom)\nStarvationFreedom == \\A i \\in Philosophers : []<>(pc[i] = \"eating\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 274,
+    "outputTokens": 951,
+    "totalTokens": 1225,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13861
+  }
+}

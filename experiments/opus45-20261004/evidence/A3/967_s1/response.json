@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE StoneCutting ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nCONSTANTS W, N\n\nRECURSIVE Sum(_)\nSum(seq) ==\n    IF seq = << >>\n    THEN 0\n    ELSE Head(seq) + Sum(Tail(seq))\n\nRECURSIVE OrderedPartitions(_, _)\nOrderedPartitions(total, parts) ==\n    IF parts = 0\n    THEN IF total = 0 THEN {<< >>} ELSE {}\n    ELSE IF parts = 1\n    THEN IF total >= 1 THEN {<<total>>} ELSE {}\n    ELSE LET maxFirst == total - parts + 1\n         IN UNION {\n             {<<w>> \\o rest : rest \\in OrderedPartitions(total - w, parts - 1)}\n             : w \\in 1..maxFirst\n         }\n\nCoefficients == {-1, 0, 1}\n\nAllCoeffSeqs(n) ==\n    IF n = 0\n    THEN {<< >>}\n    ELSE {<<c>> \\o rest : c \\in Coefficients, rest \\in AllCoeffSeqs(n - 1)}\n\nRECURSIVE DotProduct(_, _)\nDotProduct(seq1, seq2) ==\n    IF seq1 = << >> \\/ seq2 = << >>\n    THEN 0\n    ELSE (Head(seq1) * Head(seq2)) + DotProduct(Tail(seq1), Tail(seq2))\n\nCanWeigh(weights, target) ==\n    \\E coeffs \\in AllCoeffSeqs(Len(weights)) :\n        DotProduct(coeffs, weights) = target\n\nIsSolution(weights) ==\n    /\\ Len(weights) = N\n    /\\ Sum(weights) = W\n    /\\ \\A target \\in 1..W : CanWeigh(weights, target)\n\nSolutions == {weights \\in OrderedPartitions(W, N) : IsSolution(weights)}\n\nSolutionExists == Solutions /= {}\n\nASSUME\n    IF SolutionExists\n    THEN PrintT(<<\"Solution found:\", CHOOSE sol \\in Solutions : TRUE>>)\n    ELSE PrintT(\"No solution exists\")\n\nVARIABLES dummy\n\nInit == dummy = 0\n\nNext == UNCHANGED dummy\n\nSpec == Init /\\ [][Next]_dummy\n\nTypeInvariant == dummy = 0\n\nSolutionInvariant ==\n    \\A sol \\in Solutions :\n        /\\ Len(sol) = N\n        /\\ Sum(sol) = W\n        /\\ \\A t \\in 1..W : CanWeigh(sol, t)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 257,
+    "outputTokens": 646,
+    "totalTokens": 903,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11477
+  }
+}

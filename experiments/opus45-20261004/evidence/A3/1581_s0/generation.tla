@@ -1,0 +1,77 @@
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N
+
+ASSUME N >= 2
+
+Philosophers == 0..(N-1)
+
+VARIABLES pc, sem
+
+vars == <<pc, sem>>
+
+TypeOK ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating"}]
+    /\ sem \in [Philosophers -> {0, 1}]
+
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+Init ==
+    /\ pc = [i \in Philosophers |-> "thinking"]
+    /\ sem = [i \in Philosophers |-> 1]
+
+BecomeHungry(i) ==
+    /\ pc[i] = "thinking"
+    /\ pc' = [pc EXCEPT ![i] = "hungry"]
+    /\ sem' = sem
+
+PickUpFirstFork(i) ==
+    /\ pc[i] = "hungry"
+    /\ IF i = 0
+       THEN /\ sem[LeftFork(i)] = 1
+            /\ sem' = [sem EXCEPT ![LeftFork(i)] = 0]
+       ELSE /\ sem[RightFork(i)] = 1
+            /\ sem' = [sem EXCEPT ![RightFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "hasFirst"]
+
+PickUpSecondFork(i) ==
+    /\ pc[i] = "hasFirst"
+    /\ IF i = 0
+       THEN /\ sem[RightFork(i)] = 1
+            /\ sem' = [sem EXCEPT ![RightFork(i)] = 0]
+       ELSE /\ sem[LeftFork(i)] = 1
+            /\ sem' = [sem EXCEPT ![LeftFork(i)] = 0]
+    /\ pc' = [pc EXCEPT ![i] = "eating"]
+
+FinishEating(i) ==
+    /\ pc[i] = "eating"
+    /\ sem' = [sem EXCEPT ![LeftFork(i)] = 1, ![RightFork(i)] = 1]
+    /\ pc' = [pc EXCEPT ![i] = "thinking"]
+
+PhilosopherAction(i) ==
+    \/ BecomeHungry(i)
+    \/ PickUpFirstFork(i)
+    \/ PickUpSecondFork(i)
+    \/ FinishEating(i)
+
+Next == \E i \in Philosophers : PhilosopherAction(i)
+
+Fairness ==
+    \A i \in Philosophers :
+        /\ SF_vars(BecomeHungry(i))
+        /\ SF_vars(PickUpFirstFork(i))
+        /\ SF_vars(PickUpSecondFork(i))
+        /\ SF_vars(FinishEating(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+MutualExclusion ==
+    \A i \in Philosophers :
+        ~(pc[i] = "eating" /\ pc[(i + 1) % N] = "eating")
+
+StarvationFreedom ==
+    \A i \in Philosophers : []<>(pc[i] = "eating")
+
+===================================================================================

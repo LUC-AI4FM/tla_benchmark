@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CigaretteSmokers ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Ingredients, Offers\n\nVARIABLES smoking, offer\n\nvars == <<smoking, offer>>\n\n----------------------------------------------------------------------------\n\nASSUME /\\ Ingredients # {}\n       /\\ Offers \\subseteq SUBSET Ingredients\n       /\\ \\A o \\in Offers : Cardinality(o) = Cardinality(Ingredients) - 1\n\n----------------------------------------------------------------------------\n\nMissingIngredient(o) == CHOOSE i \\in Ingredients : i \\notin o\n\nTypeOK == /\\ smoking \\in [Ingredients -> BOOLEAN]\n          /\\ offer \\in Offers \\cup {{}}}\n\nInit == /\\ smoking = [i \\in Ingredients |-> FALSE]\n        /\\ offer = {}\n\nDealerOffer == /\\ offer = {}\n               /\\ \\E o \\in Offers : offer' = o\n               /\\ smoking' = smoking\n\nSmokerSmokes == /\\ offer # {}\n                /\\ LET missing == MissingIngredient(offer)\n                   IN /\\ smoking' = [smoking EXCEPT ![missing] = TRUE]\n                      /\\ offer' = offer\n\nSmokerFinishes == /\\ \\E i \\in Ingredients : smoking[i] = TRUE\n                  /\\ smoking' = [i \\in Ingredients |-> FALSE]\n                  /\\ offer' = {}\n\nNext == DealerOffer \\/ SmokerSmokes \\/ SmokerFinishes\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\n----------------------------------------------------------------------------\n\nAtMostOne == Cardinality({i \\in Ingredients : smoking[i] = TRUE}) <= 1\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 282,
+    "outputTokens": 421,
+    "totalTokens": 703,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8225
+  }
+}

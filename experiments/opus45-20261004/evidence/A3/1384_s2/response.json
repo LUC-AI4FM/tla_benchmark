@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE BoundedSeqGraphSpec ----------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\n\\* Helper operators for bounded sequences\nBoundedSeq(S, n) == UNION {[1..m -> S] : m \\in 0..n}\n\n\\* Helper operators for directed graphs\nDirectedGraph(Nodes) == [nodes : SUBSET Nodes, edges : SUBSET (Nodes \\X Nodes)]\n\nEdges(G) == G.edges\n\n\\* Constants for the graph\nCONSTANTS Nodes\n\n\\* Define a constant graph based on Nodes\nConstGraph == [nodes |-> Nodes, edges |-> Nodes \\X Nodes]\n\n\\* Variables ranging over the edge set\nVARIABLES x, y\n\nvars == <<x, y>>\n\n\\* The edge set of the constant graph\nEdgeSet == Edges(ConstGraph)\n\n\\* Assumption about cardinality of nested bounded-sequence construction\n\\* This checks that the nested construction has expected cardinality\nASSUME Cardinality(BoundedSeq(BoundedSeq({1, 2}, 2), 2)) > 0\n\n\\* Test graph derived from current state\n\\* The caching behavior of TLCEval matters for correctness of the invariant\nTestGraph == [nodes |-> Nodes, edges |-> {e \\in EdgeSet : e[1] \\in Nodes /\\ e[2] \\in Nodes}]\n\nTestEdges == TLCEval(Edges(TestGraph))\n\n\\* Fixed cardinality computation using TLCEval\n\\* Caching ensures this is evaluated once and reused\nFixedCard == TLCEval(Cardinality(EdgeSet))\n\n\\* Type invariant checking membership in edge set\nTypeOK == /\\ x \\in EdgeSet\n          /\\ y \\in EdgeSet\n\n\\* Main invariant combining type membership and derived graph membership\n\\* The TLCEval-computed cardinality check is included\nInvariant == /\\ TypeOK\n             /\\ x \\in TestEdges\n             /\\ y \\in TestEdges\n             /\\ FixedCard = Cardinality(Nodes) * Cardinality(Nodes)\n\n\\* Initial state: select edges from the edge set\n\\* Uses RandomElement to force evaluation in TLC context\nInit == /\\ x = IF EdgeSet # {} \n             THEN RandomElement(EdgeSet) \n             ELSE CHOOSE e \\in Nodes \\X Nodes : TRUE\n        /\\ y = IF EdgeSet # {} \n             THEN RandomElement(EdgeSet) \n             ELSE CHOOSE e \\in Nodes \\X Nodes : TRUE\n\n\\* Next state: transition to new edges in the edge set\n\\* TLCEval forces evaluation of the edge set before selection\nNext == \\/ /\\ x' = RandomElement(TLCEval(EdgeSet))\n           /\\ y' = y\n        \\/ /\\ y' = RandomElement(TLCEval(EdgeSet))\n           /\\ x' = x\n        \\/ /\\ x' = RandomElement(EdgeSet)\n           /\\ y' = RandomElement(EdgeSet)\n\n\\* Fairness condition: weak fairness on transitions\nFairness == WF_vars(Next)\n\n\\* Complete specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Liveness property: the system can always make progress\nLiveness == []<>(ENABLED Next)\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 246,
+    "outputTokens": 834,
+    "totalTokens": 1080,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15058
+  }
+}

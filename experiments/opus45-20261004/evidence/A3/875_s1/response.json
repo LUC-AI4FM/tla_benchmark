@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets, TLC\n\nCONSTANTS Nodes, Root\n\nASSUME Root \\in Nodes\n\n\\* Generate random edges using TLC's RandomElement\n\\* For each node, choose a random subset of other nodes as neighbors\nEdgesFrom(n) == RandomElement(SUBSET (Nodes \\ {n}))\n\n\\* Edges is defined as a set of undirected edges (unordered pairs)\n\\* We generate it by creating edges from each node to its random neighbors\nEdges == UNION { { {n, m} : m \\in EdgesFrom(n) } : n \\in Nodes }\n\n\\* Neighbors of a node in the undirected graph\nNeighbors(n) == { m \\in Nodes : {n, m} \\in Edges }\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\n\\* Type correctness invariant\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> Nat \\cup {-1}]\n\n\\* Initial state: every node points to itself, only root has distance 0\n\\* Other nodes have distance -1 (representing infinity/unreachable initially,\n\\* but we'll use a large number for comparison purposes)\nMaxDist == Cardinality(Nodes)\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxDist + 1]\n\n\\* A node can adopt a neighbor with strictly smaller distance\n\\* and choose an intermediate distance value\nNext ==\n    \\E n \\in Nodes :\n        \\E m \\in Neighbors(n) :\n            /\\ dist[m] < dist[n]\n            /\\ dist[m] + 1 < dist[n]\n            /\\ \\E d \\in (dist[m] + 1)..(dist[n] - 1) :\n                /\\ mom' = [mom EXCEPT ![n] = m]\n                /\\ dist' = [dist EXCEPT ![n] = d]\n\n\\* Check if the system is quiescent (no more moves possible)\nQuiescent ==\n    ~ENABLED Next\n\n\\* A node is reachable if there's a path from root to it via edges\n\\* We define reachability through the parent pointers forming a valid path\n\\* A node is in the spanning tree if following mom pointers leads to Root\n\n\\* Compute the ancestor chain from a node (limited to avoid infinite loops)\nRECURSIVE AncestorChain(_, _)\nAncestorChain(n, depth) ==\n    IF depth = 0 THEN {n}\n    ELSE IF n = mom[n] THEN {n}\n    ELSE {n} \\cup AncestorChain(mom[n], depth - 1)\n\nReachesRoot(n) ==\n    Root \\in AncestorChain(n, Cardinality(Nodes))\n\n\\* A node is connected to root in the original graph\nRECURSIVE GraphReachable(_, _)\nGraphReachable(visited, frontier) ==\n    IF frontier = {} THEN visited\n    ELSE LET newNodes == UNION { Neighbors(n) : n \\in frontier } \\ visited\n         IN GraphReachable(visited \\cup frontier, newNodes)\n\nNodesReachableFromRoot == GraphReachable({}, {Root})\n\n\\* Postcondition: characterizes a rooted spanning-tree or unreachable nodes\n\\* - Every reachable node (from root via graph edges) has a valid parent leading to root\n\\* - Every unreachable node points to itself\n\\* - Distance values are correct (actual distance from root)\nPostcondition ==\n    \\A n \\in Nodes :\n        IF n \\in NodesReachableFromRoot\n        THEN /\\ ReachesRoot(n)\n             /\\ (n = Root => mom[n] = Root /\\ dist[n] = 0)\n             /\\ (n # Root => \n                    /\\ mom[n] \\in Neighbors(n)\n                    /\\ dist[n] = dist[mom[n]] + 1)\n        ELSE /\\ mom[n] = n\n             /\\ dist[n] = MaxDist + 1\n\n\\* Safety property: quiescence implies postcondition\nSafetyQuiescenceImpliesPostcondition ==\n    Quiescent => Postcondition\n\n\\* Liveness property: eventually the postcondition holds\nLivenessEventuallyPostcondition ==\n    <>Postcondition\n\n\\* Specification with weak fairness\nSpec ==\n    /\\ Init\n    /\\ [][Next]_vars\n    /\\ WF_vars(Next)\n\n\\* Invariants to check\nInvariants ==\n    /\\ TypeOK\n    /\\ SafetyQuiescenceImpliesPostcondition\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 322,
+    "outputTokens": 1198,
+    "totalTokens": 1520,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19552
+  }
+}

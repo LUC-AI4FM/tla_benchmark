@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANT N, K\n\nASSUME NAssumption == N > 0\nASSUME KAssumption == K > N\n\nVARIABLE x\n\nvars == <<x>>\n\nProc == 0..(N-1)\n\nInit == x \\in [Proc -> 0..(K-1)]\n\nHasToken(i) ==\n    IF i = 0\n    THEN x[0] = x[N-1]\n    ELSE x[i] # x[i-1]\n\nProcess0 ==\n    /\\ HasToken(0)\n    /\\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]\n\nProcessI(i) ==\n    /\\ i > 0\n    /\\ HasToken(i)\n    /\\ x' = [x EXCEPT ![i] = x[i-1]]\n\nNext ==\n    \\/ Process0\n    \\/ \\E i \\in 1..(N-1) : ProcessI(i)\n\nFairness ==\n    /\\ WF_vars(Process0)\n    /\\ \\A i \\in 1..(N-1) : WF_vars(ProcessI(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nTokenCount == Cardinality({i \\in Proc : HasToken(i)})\n\nTypeOK == x \\in [Proc -> 0..(K-1)]\n\nAtLeastOneToken == \\E i \\in Proc : HasToken(i)\n\nExactlyOneToken == TokenCount = 1\n\nStabilization == <>[]ExactlyOneToken\n\nTHEOREM TypeCorrect == Spec => []TypeOK\nPROOF OMITTED\n\nTHEOREM Safety == Spec => []AtLeastOneToken\nPROOF OMITTED\n\nTHEOREM Liveness == Spec => Stabilization\nPROOF OMITTED\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 473,
+    "totalTokens": 731,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8730
+  }
+}

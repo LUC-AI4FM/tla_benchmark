@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Integers, Naturals\n\nCONSTANTS K, N\n\nASSUME NPositive == N > 0\nASSUME KGreaterThanN == K > N\n\nVARIABLES x\n\nvars == <<x>>\n\nTypeOK == x \\in [0..(N-1) -> 0..(K-1)]\n\n\\* Process 0 has a token if its value equals the value of the last process\nHasToken0 == x[0] = x[N-1]\n\n\\* Process i (for i > 0) has a token if its value differs from its predecessor\nHasTokenI(i) == x[i] # x[i-1]\n\n\\* General predicate: process i has a token\nHasToken(i) == IF i = 0 THEN HasToken0 ELSE HasTokenI(i)\n\n\\* Count the number of token holders\nTokenCount == Cardinality({i \\in 0..(N-1) : HasToken(i)})\n\n\\* The set of processes that currently hold a token\nTokenHolders == {i \\in 0..(N-1) : HasToken(i)}\n\n\\* Helper: cardinality for finite sets\nCardinality(S) == \n    LET Card[T \\in SUBSET S] == \n        IF T = {} THEN 0\n        ELSE LET elem == CHOOSE e \\in T : TRUE\n             IN 1 + Card[T \\ {elem}]\n    IN Card[S]\n\n\\* Initial state: arbitrary values for all processes\nInit == x \\in [0..(N-1) -> 0..(K-1)]\n\n\\* Process 0 action: increment value mod K when it matches the last process\nMove0 == \n    /\\ x[0] = x[N-1]\n    /\\ x' = [x EXCEPT ![0] = (x[0] + 1) % K]\n\n\\* Process i (i > 0) action: copy predecessor's value when they differ\nMoveI(i) == \n    /\\ i > 0\n    /\\ x[i] # x[i-1]\n    /\\ x' = [x EXCEPT ![i] = x[i-1]]\n\n\\* A process can move if it holds a token\nMove(i) == IF i = 0 THEN Move0 ELSE MoveI(i)\n\n\\* Next state relation: some process with a token makes a move\nNext == \\E i \\in 0..(N-1) : Move(i)\n\n\\* Fairness: weak fairness for each process action\nFairness == \\A i \\in 0..(N-1) : WF_vars(Move(i))\n\n\\* Complete specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n--------------------------------------------------------------------------------\n\\* Safety and Liveness Properties\n--------------------------------------------------------------------------------\n\n\\* Safety: There is always at least one token holder\nAtLeastOneToken == TokenHolders # {}\n\n\\* A legitimate state has exactly one token\nSingleToken == Cardinality(TokenHolders) = 1\n\n\\* Liveness: Eventually we reach a state with exactly one token\nEventuallySingleToken == <>SingleToken\n\n\\* Once we have a single token, we always have exactly one token\n\\* (This is the stability property of the legitimate state)\nStableSingleToken == [](SingleToken => []SingleToken)\n\n\\* Combined convergence property: eventually stabilize to single token\nConvergence == <>[]SingleToken\n\n--------------------------------------------------------------------------------\n\\* Theorems\n--------------------------------------------------------------------------------\n\nTHEOREM Safety == Spec => []AtLeastOneToken\n\nTHEOREM Liveness == Spec => EventuallySingleToken\n\nTHEOREM Stability == Spec => StableSingleToken\n\nTHEOREM ConvergenceTheorem == Spec => Convergence\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 923,
+    "totalTokens": 1181,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15445
+  }
+}

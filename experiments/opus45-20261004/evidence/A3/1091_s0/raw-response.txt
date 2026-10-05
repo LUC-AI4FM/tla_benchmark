@@ -1,0 +1,129 @@
+```tla+
+------------------------------ MODULE PCR ------------------------------
+EXTENDS Naturals
+
+CONSTANTS
+    InitPrimers,      \* Initial number of primers
+    InitDNA,          \* Initial number of double-stranded DNA molecules
+    MaxTemp,          \* Maximum temperature (for denaturation)
+    MinTemp,          \* Minimum temperature (for annealing)
+    MidTemp           \* Medium temperature (for extension)
+
+VARIABLES
+    temp,             \* Current temperature
+    primers,          \* Count of available primers
+    dsDNA,            \* Count of double-stranded DNA
+    ssDNA,            \* Count of single-stranded DNA templates
+    hybrids           \* Count of template-primer hybrids
+
+vars == <<temp, primers, dsDNA, ssDNA, hybrids>>
+
+\* Type invariant
+TypeOK ==
+    /\ temp \in {MinTemp, MidTemp, MaxTemp}
+    /\ primers \in Nat
+    /\ dsDNA \in Nat
+    /\ ssDNA \in Nat
+    /\ hybrids \in Nat
+
+\* All counts must be non-negative
+NonNegative ==
+    /\ primers >= 0
+    /\ dsDNA >= 0
+    /\ ssDNA >= 0
+    /\ hybrids >= 0
+
+\* Conservation of genetic material: total "DNA units" preserved
+\* Each dsDNA contains 2 strands, each ssDNA is 1 strand, each hybrid is 1 strand with primer
+\* We track: 2*dsDNA + ssDNA + hybrids = constant (strands)
+\* And: primers + hybrids = constant (primer units, since hybrids consume primers)
+InitialStrands == 2 * InitDNA
+InitialPrimerUnits == InitPrimers
+
+CountPreservation ==
+    /\ (2 * dsDNA + ssDNA + hybrids) = InitialStrands
+    /\ (primers + hybrids) = InitialPrimerUnits
+
+\* Initial state
+Init ==
+    /\ temp = MidTemp
+    /\ primers = InitPrimers
+    /\ dsDNA = InitDNA
+    /\ ssDNA = 0
+    /\ hybrids = 0
+
+\* Heating: denature dsDNA into ssDNA (at high temperature)
+\* Each dsDNA becomes 2 ssDNA strands
+Heat ==
+    /\ temp # MaxTemp
+    /\ temp' = MaxTemp
+    /\ ssDNA' = ssDNA + (2 * dsDNA)
+    /\ dsDNA' = 0
+    /\ UNCHANGED <<primers, hybrids>>
+
+\* Cooling: lower temperature to allow annealing
+Cool ==
+    /\ temp = MaxTemp
+    /\ temp' = MinTemp
+    /\ UNCHANGED <<primers, dsDNA, ssDNA, hybrids>>
+
+\* Annealing: primers bind to ssDNA templates (at low temperature)
+\* Nondeterministically choose how many primers bind
+\* Each annealing consumes 1 primer and 1 ssDNA, producing 1 hybrid
+Anneal ==
+    /\ temp = MinTemp
+    /\ \E n \in 0..primers:
+        /\ n <= ssDNA
+        /\ primers' = primers - n
+        /\ ssDNA' = ssDNA - n
+        /\ hybrids' = hybrids + n
+        /\ UNCHANGED <<temp, dsDNA>>
+
+\* Raise temperature for extension
+RaiseForExtension ==
+    /\ temp = MinTemp
+    /\ temp' = MidTemp
+    /\ UNCHANGED <<primers, dsDNA, ssDNA, hybrids>>
+
+\* Extension: DNA polymerase extends hybrids into complete dsDNA (at medium temperature)
+\* Each hybrid becomes a dsDNA
+Extend ==
+    /\ temp = MidTemp
+    /\ hybrids > 0
+    /\ dsDNA' = dsDNA + hybrids
+    /\ hybrids' = 0
+    /\ UNCHANGED <<temp, primers, ssDNA>>
+
+\* Next state relation
+Next ==
+    \/ Heat
+    \/ Cool
+    \/ Anneal
+    \/ RaiseForExtension
+    \/ Extend
+
+\* Fairness: weak fairness on all actions to ensure progress
+Fairness ==
+    /\ WF_vars(Heat)
+    /\ WF_vars(Cool)
+    /\ WF_vars(Anneal)
+    /\ WF_vars(RaiseForExtension)
+    /\ WF_vars(Extend)
+
+\* Complete specification with fairness
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariants
+Safety ==
+    /\ TypeOK
+    /\ NonNegative
+
+\* Liveness property: eventual primer depletion
+\* NOTE: This property does NOT hold in general because:
+\* 1. Annealing can nondeterministically choose n=0
+\* 2. The system can cycle without ever consuming primers
+\* This is intentionally included to demonstrate a property that fails
+EventualPrimerDepletion == <>(primers = 0)
+
+=============================================================================
+```

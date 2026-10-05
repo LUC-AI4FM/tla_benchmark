@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE dijkstra ----------------------------\nEXTENDS Naturals\n\nCONSTANTS N, M\n\nASSUME /\\ N >= 1\n       /\\ M >= 1\n       /\\ N <= M + 1\n\nVARIABLES counter\n\nvars == <<counter>>\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nTypeOK == counter \\in [Nodes -> Values]\n\nInit == counter \\in [Nodes -> Values]\n\nHasToken(i) ==\n    IF i = 0\n    THEN counter[i] = counter[N-1]\n    ELSE counter[i] # counter[i-1]\n\nTokenCount == Cardinality({i \\in Nodes : HasToken(i)})\n\nCardinality(S) ==\n    LET CardinalityHelper[T \\in SUBSET S] ==\n        IF T = {} THEN 0\n        ELSE 1 + CardinalityHelper[T \\ {CHOOSE x \\in T : TRUE}]\n    IN CardinalityHelper[S]\n\nNode0Action ==\n    /\\ HasToken(0)\n    /\\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]\n\nNodeIAction(i) ==\n    /\\ i > 0\n    /\\ HasToken(i)\n    /\\ counter' = [counter EXCEPT ![i] = counter[i-1]]\n\nNext ==\n    \\/ Node0Action\n    \\/ \\E i \\in 1..(N-1) : NodeIAction(i)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nStable == TokenCount = 1\n\nStabilization == <>[]Stable\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 259,
+    "outputTokens": 418,
+    "totalTokens": 677,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8737
+  }
+}

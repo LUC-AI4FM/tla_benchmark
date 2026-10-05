@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE PCRCycle ----------------------------\nEXTENDS Naturals\n\nCONSTANTS InitPrimers, InitDNA, MaxTemp, MinTemp\n\nVARIABLES temp, primers, dsDNA, ssDNA, hybrids, phase\n\nvars == <<temp, primers, dsDNA, ssDNA, hybrids, phase>>\n\nPhases == {\"heating\", \"cooling\", \"annealing\", \"extension\"}\n\nTypeOK ==\n    /\\ temp \\in Nat\n    /\\ primers \\in Nat\n    /\\ dsDNA \\in Nat\n    /\\ ssDNA \\in Nat\n    /\\ hybrids \\in Nat\n    /\\ phase \\in Phases\n\nInit ==\n    /\\ temp = MinTemp\n    /\\ primers = InitPrimers\n    /\\ dsDNA = InitDNA\n    /\\ ssDNA = 0\n    /\\ hybrids = 0\n    /\\ phase = \"heating\"\n\nHeat ==\n    /\\ phase = \"heating\"\n    /\\ temp' = MaxTemp\n    /\\ ssDNA' = ssDNA + (2 * dsDNA)\n    /\\ dsDNA' = 0\n    /\\ primers' = primers\n    /\\ hybrids' = hybrids\n    /\\ phase' = \"cooling\"\n\nCool ==\n    /\\ phase = \"cooling\"\n    /\\ temp' = MinTemp\n    /\\ primers' = primers\n    /\\ dsDNA' = dsDNA\n    /\\ ssDNA' = ssDNA\n    /\\ hybrids' = hybrids\n    /\\ phase' = \"annealing\"\n\nAnneal ==\n    /\\ phase = \"annealing\"\n    /\\ \\E n \\in 0..primers :\n        /\\ n <= ssDNA\n        /\\ primers' = primers - n\n        /\\ ssDNA' = ssDNA - n\n        /\\ hybrids' = hybrids + n\n        /\\ dsDNA' = dsDNA\n        /\\ temp' = temp\n        /\\ phase' = \"extension\"\n\nExtend ==\n    /\\ phase = \"extension\"\n    /\\ dsDNA' = dsDNA + hybrids\n    /\\ hybrids' = 0\n    /\\ primers' = primers\n    /\\ ssDNA' = ssDNA\n    /\\ temp' = temp\n    /\\ phase' = \"heating\"\n\nNext == Heat \\/ Cool \\/ Anneal \\/ Extend\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nNonNegativity ==\n    /\\ primers >= 0\n    /\\ dsDNA >= 0\n    /\\ ssDNA >= 0\n    /\\ hybrids >= 0\n\nCountPreservation ==\n    (2 * dsDNA) + ssDNA + hybrids + primers = (2 * InitDNA) + InitPrimers\n\nSafetyInvariant ==\n    /\\ TypeOK\n    /\\ NonNegativity\n    /\\ CountPreservation\n\nPrimerDepletion == <>(primers = 0)\n\n=========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 272,
+    "outputTokens": 743,
+    "totalTokens": 1015,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9765
+  }
+}

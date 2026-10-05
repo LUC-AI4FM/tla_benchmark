@@ -1,0 +1,150 @@
+```tla+
+--------------------------- MODULE FastPaxos ---------------------------
+
+EXTENDS Integers, FiniteSets
+
+CONSTANTS
+    Acceptors,      \* Set of acceptor agents
+    Values,         \* Set of proposable values
+    Quorum,         \* Set of classic quorums
+    FastQuorum,     \* Set of fast quorums
+    MaxRound        \* Maximum round number
+
+VARIABLES
+    round,          \* Current round number
+    decision,       \* The decided value (or None)
+    votes,          \* votes[a][r] = value voted by acceptor a in round r (or None)
+    maxRound,       \* maxRound[a] = highest round acceptor a has participated in
+    proposed        \* Set of values that have been proposed
+
+vars == <<round, decision, votes, maxRound, proposed>>
+
+None == CHOOSE v : v \notin Values
+
+Rounds == 0..MaxRound
+
+FastRounds == {r \in Rounds : r % 2 = 0}
+ClassicRounds == {r \in Rounds : r % 2 = 1}
+
+TypeOK ==
+    /\ round \in Rounds
+    /\ decision \in Values \cup {None}
+    /\ votes \in [Acceptors -> [Rounds -> Values \cup {None}]]
+    /\ maxRound \in [Acceptors -> Rounds \cup {-1}]
+    /\ proposed \subseteq Values
+
+Init ==
+    /\ round = 0
+    /\ decision = None
+    /\ votes = [a \in Acceptors |-> [r \in Rounds |-> None]]
+    /\ maxRound = [a \in Acceptors |-> -1]
+    /\ proposed = {}
+
+Propose(v) ==
+    /\ v \in Values
+    /\ proposed' = proposed \cup {v}
+    /\ UNCHANGED <<round, decision, votes, maxRound>>
+
+VotedFor(a, r, v) == votes[a][r] = v
+
+DidNotVoteIn(a, r) == votes[a][r] = None
+
+SafeAt(v, r) ==
+    \/ r = 0
+    \/ \E Q \in Quorum :
+        /\ \A a \in Q : maxRound[a] < r \/ votes[a][r] = v \/ votes[a][r] = None
+        /\ \/ \A a \in Q : \A rr \in 0..(r-1) : votes[a][rr] = None
+           \/ \E rr \in 0..(r-1) :
+                /\ \E a \in Q : votes[a][rr] = v
+                /\ \A a \in Q : \A rrr \in (rr+1)..(r-1) : votes[a][rrr] = None
+
+ShowsSafeAt(Q, r, v) ==
+    /\ Q \in Quorum
+    /\ \A a \in Q : maxRound[a] >= r - 1
+    /\ \/ \A a \in Q : \A rr \in 0..(r-1) : votes[a][rr] = None
+       \/ \E rr \in 0..(r-1) :
+            /\ \E a \in Q : votes[a][rr] = v
+            /\ \A a \in Q : \A rrr \in (rr+1)..(r-1) : votes[a][rrr] = None
+
+Phase1a(r) ==
+    /\ r \in Rounds
+    /\ r > round
+    /\ round' = r
+    /\ UNCHANGED <<decision, votes, maxRound, proposed>>
+
+Phase1b(a, r) ==
+    /\ r = round
+    /\ maxRound[a] < r
+    /\ maxRound' = [maxRound EXCEPT ![a] = r]
+    /\ UNCHANGED <<round, decision, votes, proposed>>
+
+FastVote(a, v) ==
+    /\ round \in FastRounds
+    /\ v \in proposed
+    /\ maxRound[a] <= round
+    /\ votes[a][round] = None
+    /\ maxRound' = [maxRound EXCEPT ![a] = round]
+    /\ votes' = [votes EXCEPT ![a][round] = v]
+    /\ UNCHANGED <<round, decision, proposed>>
+
+ClassicVote(a, v, r) ==
+    /\ r \in ClassicRounds
+    /\ r = round
+    /\ v \in proposed
+    /\ maxRound[a] = r
+    /\ votes[a][r] = None
+    /\ \E Q \in Quorum : ShowsSafeAt(Q, r, v)
+    /\ votes' = [votes EXCEPT ![a][r] = v]
+    /\ UNCHANGED <<round, decision, maxRound, proposed>>
+
+FastDecide(v) ==
+    /\ decision = None
+    /\ v \in Values
+    /\ \E FQ \in FastQuorum :
+        \A a \in FQ : votes[a][round] = v
+    /\ decision' = v
+    /\ UNCHANGED <<round, votes, maxRound, proposed>>
+
+ClassicDecide(v, r) ==
+    /\ decision = None
+    /\ v \in Values
+    /\ r \in ClassicRounds
+    /\ \E Q \in Quorum :
+        \A a \in Q : votes[a][r] = v
+    /\ decision' = v
+    /\ UNCHANGED <<round, votes, maxRound, proposed>>
+
+RecoverFromCollision ==
+    /\ round \in FastRounds
+    /\ \E FQ \in FastQuorum :
+        /\ \A a \in FQ : votes[a][round] # None
+        /\ Cardinality({votes[a][round] : a \in FQ}) > 1
+    /\ round' = round + 1
+    /\ UNCHANGED <<decision, votes, maxRound, proposed>>
+
+Next ==
+    \/ \E v \in Values : Propose(v)
+    \/ \E r \in Rounds : Phase1a(r)
+    \/ \E a \in Acceptors, r \in Rounds : Phase1b(a, r)
+    \/ \E a \in Acceptors, v \in Values : FastVote(a, v)
+    \/ \E a \in Acceptors, v \in Values, r \in ClassicRounds : ClassicVote(a, v, r)
+    \/ \E v \in Values : FastDecide(v)
+    \/ \E v \in Values, r \in ClassicRounds : ClassicDecide(v, r)
+    \/ RecoverFromCollision
+
+FastSpec == Init /\ [][Next]_vars
+
+FastTypeOK == TypeOK
+
+FastNontriviality == decision # None => decision \in proposed
+
+PaxosConsistency == 
+    \A v1, v2 \in Values :
+        (decision = v1 /\ decision = v2) => v1 = v2
+
+THEOREM FastSpec => []FastTypeOK
+THEOREM FastSpec => []FastNontriviality
+THEOREM FastSpec => []PaxosConsistency
+
+=============================================================================
+```

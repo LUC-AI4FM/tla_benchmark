@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANTS N, M\n\nASSUME NAssumption == N >= 1\nASSUME MAssumption == M >= 1\nASSUME NMAssumption == N <= M + 1\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nVARIABLES counter\n\nTypeInvariant == counter \\in [Nodes -> Values]\n\n\\* Node 0 has a token if its value equals the value of the last node (N-1)\n\\* Other nodes have a token if their value differs from their predecessor\nHasToken(i) ==\n    IF i = 0\n    THEN counter[i] = counter[N-1]\n    ELSE counter[i] # counter[i-1]\n\n\\* Count the number of tokens in the system\nTokenCount == Cardinality({i \\in Nodes : HasToken(i)})\n\n\\* The system is stable when there is exactly one token\nStable == TokenCount = 1\n\n\\* Node 0 action: increment counter modulo M when it has a token\nNode0Action ==\n    /\\ HasToken(0)\n    /\\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]\n\n\\* Other node action: copy predecessor's value when values differ (has token)\nNodeIAction(i) ==\n    /\\ i > 0\n    /\\ HasToken(i)\n    /\\ counter' = [counter EXCEPT ![i] = counter[i-1]]\n\n\\* Initial state: any configuration of counter values\nInit == counter \\in [Nodes -> Values]\n\n\\* Next state: either node 0 acts or some other node acts\nNext ==\n    \\/ Node0Action\n    \\/ \\E i \\in Nodes \\ {0} : NodeIAction(i)\n\n\\* Fairness: weak fairness on all node actions\nFairness ==\n    /\\ WF_counter(Node0Action)\n    /\\ \\A i \\in Nodes \\ {0} : WF_counter(NodeIAction(i))\n\n\\* Full specification with fairness\nSpec == Init /\\ [][Next]_counter /\\ Fairness\n\n\\* Safety invariant: type correctness is always maintained\nSafety == TypeInvariant\n\n\\* Helper: Cardinality function for finite sets\nRECURSIVE Cardinality(_)\nCardinality(S) ==\n    IF S = {} THEN 0\n    ELSE 1 + Cardinality(S \\ {CHOOSE x \\in S : TRUE})\n\n\\* Liveness property: eventually the system stabilizes and stays stable\n\\* (eventually always exactly one token)\nStabilization == <>[]Stable\n\n\\* Alternative formulation: eventually reaches a stable state\nEventuallyStable == <>Stable\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 250,
+    "outputTokens": 685,
+    "totalTokens": 935,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12906
+  }
+}

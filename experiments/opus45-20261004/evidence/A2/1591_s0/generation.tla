@@ -1,0 +1,134 @@
+---------------------------- MODULE EvenOdd ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+CONSTANT N
+
+VARIABLES pc, result, stack, xEven, xOdd
+
+vars == <<pc, result, stack, xEven, xOdd>>
+
+Init ==
+    /\ pc = "main"
+    /\ result = FALSE
+    /\ stack = <<>>
+    /\ xEven = 0
+    /\ xOdd = 0
+
+CallEven(n) ==
+    /\ pc = "main"
+    /\ xEven' = n
+    /\ stack' = Append(stack, <<"main", xEven, xOdd>>)
+    /\ pc' = "Even"
+    /\ UNCHANGED <<result, xOdd>>
+
+EvenBase ==
+    /\ pc = "Even"
+    /\ xEven = 0
+    /\ result' = TRUE
+    /\ IF stack = <<>>
+       THEN /\ pc' = "print"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE LET top == Head(stack)
+            IN /\ stack' = Tail(stack)
+               /\ pc' = top[1]
+               /\ xEven' = top[2]
+               /\ xOdd' = top[3]
+
+EvenRecurse ==
+    /\ pc = "Even"
+    /\ xEven > 0
+    /\ xOdd' = xEven - 1
+    /\ stack' = Append(stack, <<"EvenReturn", xEven, xOdd>>)
+    /\ pc' = "Odd"
+    /\ UNCHANGED <<result, xEven>>
+
+EvenReturn ==
+    /\ pc = "EvenReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "print"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE LET top == Head(stack)
+            IN /\ stack' = Tail(stack)
+               /\ pc' = top[1]
+               /\ xEven' = top[2]
+               /\ xOdd' = top[3]
+    /\ UNCHANGED <<result>>
+
+OddBase ==
+    /\ pc = "Odd"
+    /\ xOdd = 0
+    /\ result' = FALSE
+    /\ IF stack = <<>>
+       THEN /\ pc' = "print"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE LET top == Head(stack)
+            IN /\ stack' = Tail(stack)
+               /\ pc' = top[1]
+               /\ xEven' = top[2]
+               /\ xOdd' = top[3]
+
+OddRecurse ==
+    /\ pc = "Odd"
+    /\ xOdd > 0
+    /\ xEven' = xOdd - 1
+    /\ stack' = Append(stack, <<"OddReturn", xEven, xOdd>>)
+    /\ pc' = "Even"
+    /\ UNCHANGED <<result, xOdd>>
+
+OddReturn ==
+    /\ pc = "OddReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "print"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE LET top == Head(stack)
+            IN /\ stack' = Tail(stack)
+               /\ pc' = top[1]
+               /\ xEven' = top[2]
+               /\ xOdd' = top[3]
+    /\ UNCHANGED <<result>>
+
+Print ==
+    /\ pc = "print"
+    /\ PrintT(result)
+    /\ pc' = "Done"
+    /\ UNCHANGED <<result, stack, xEven, xOdd>>
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ CallEven(N)
+    \/ EvenBase
+    \/ EvenRecurse
+    \/ EvenReturn
+    \/ OddBase
+    \/ OddRecurse
+    \/ OddReturn
+    \/ Print
+    \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+TypeInvariant ==
+    /\ pc \in {"main", "Even", "EvenReturn", "Odd", "OddReturn", "print", "Done"}
+    /\ result \in BOOLEAN
+    /\ xEven \in 0..N
+    /\ xOdd \in 0..N
+
+Termination == <>(pc = "Done")
+
+CorrectResult == pc = "Done" => result = TRUE
+
+InOdd == pc = "Odd"
+
+CallOdd == pc = "Odd" /\ xOdd > 0
+
+InOdd_POSSIBLE == InOdd
+CallOdd_POSSIBLE == CallOdd
+
+PossibleCounts ==
+    /\ TLCGet("stats").InOdd_POSSIBLE = 3
+    /\ TLCGet("stats").CallOdd_POSSIBLE = 3
+
+==========================================================================

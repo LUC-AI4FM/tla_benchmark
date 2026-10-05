@@ -1,0 +1,56 @@
+```tla+
+---------------------------- MODULE GameOfLife ----------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANT N
+
+ASSUME N \in Nat /\ N > 0
+
+Positions == (0..N-1) \X (0..N-1)
+
+VARIABLE grid
+
+TypeOK == grid \in [Positions -> BOOLEAN]
+
+RECURSIVE SumSet(_, _)
+SumSet(f, S) ==
+    IF S = {} THEN 0
+    ELSE LET x == CHOOSE x \in S : TRUE
+         IN f[x] + SumSet(f, S \ {x})
+
+Neighbors(x, y) ==
+    {<<x + dx, y + dy>> : dx \in {-1, 0, 1}, dy \in {-1, 0, 1}} \ {<<x, y>>}
+
+IsAlive(pos) ==
+    IF pos \in Positions THEN grid[pos] ELSE FALSE
+
+LiveNeighborCount(x, y) ==
+    LET neighborSet == Neighbors(x, y)
+        aliveFunc == [p \in neighborSet |-> IF IsAlive(p) THEN 1 ELSE 0]
+    IN SumSet(aliveFunc, neighborSet)
+
+NextCellState(x, y) ==
+    LET count == LiveNeighborCount(x, y)
+        alive == grid[<<x, y>>]
+    IN IF alive
+       THEN count \in {2, 3}
+       ELSE count = 3
+
+Init == grid \in [Positions -> BOOLEAN]
+
+Next == grid' = [pos \in Positions |-> NextCellState(pos[1], pos[2])]
+
+Spec == Init /\ [][Next]_grid
+
+AllDead == \A pos \in Positions : ~grid[pos]
+AllAlive == \A pos \in Positions : grid[pos]
+AtLeastOneAlive == \E pos \in Positions : grid[pos]
+
+PopulationCount ==
+    LET countFunc == [pos \in Positions |-> IF grid[pos] THEN 1 ELSE 0]
+    IN SumSet(countFunc, Positions)
+
+GridBounded == PopulationCount <= N * N
+
+=============================================================================
+```

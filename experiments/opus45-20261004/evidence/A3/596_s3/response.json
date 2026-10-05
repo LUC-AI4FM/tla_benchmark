@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE one_variable ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\nVARIABLES x\n\n(* Initial state: x starts at 0 *)\nInit == x = 0\n\n(* Next state relation:\n   - From 0, can move nondeterministically to 1 or 2\n   - From any nonzero value, returns to 0 *)\nNext ==\n    \\/ (x = 0 /\\ (x' = 1 \\/ x' = 2))\n    \\/ (x /= 0 /\\ x' = 0)\n\n(* Main specification with stuttering and weak fairness *)\nSpec == Init /\\ [][Next]_x /\\ WF_x(Next)\n\n(* Safety invariant: x is always in {0, 1, 2} *)\nTypeInvariant == x \\in {0, 1, 2}\n\n(* Temporal property: eventually stabilize away from 1 *)\nEventuallyNotOne == <>[](x /= 1)\n\n(* Temporal property: eventually stabilize away from 2 *)\nEventuallyNotTwo == <>[](x /= 2)\n\n(* Temporal property: eventually stabilize away from 1 or 2 *)\nEventuallyStabilizeAwayFrom1Or2 == EventuallyNotOne \\/ EventuallyNotTwo\n\n(* Liveness property: eventual repeated return to zero *)\nEventuallyAlwaysReturnsToZero == []<>(x = 0)\n\n(* Negation of a temporal property (e.g., not always eventually at 1) *)\nNegatedProperty == ~[]<>(x = 1)\n\n(* Alternative negated property *)\nNegatedEventuallyStable == ~<>[](x = 0)\n\n(* Postcondition for TLC counterexample trace checking *)\n(* Encoded as records, tuples, and sets *)\nCounterexampleTrace == \n    LET \n        trace == <<\n            [x |-> 0],\n            [x |-> 1],\n            [x |-> 0],\n            [x |-> 2],\n            [x |-> 0]\n        >>\n        validStates == {0, 1, 2}\n        traceRecord == [\n            states |-> trace,\n            length |-> Len(trace),\n            validValues |-> validStates\n        ]\n    IN\n        /\\ \\A i \\in 1..Len(trace) : trace[i].x \\in validStates\n        /\\ traceRecord.length > 0\n\n(* Check that a trace element is valid *)\nValidTraceElement(elem) == elem.x \\in {0, 1, 2}\n\n(* Postcondition predicate for TLC trace checking *)\nPostCondition ==\n    LET\n        exampleStates == {[x |-> 0], [x |-> 1], [x |-> 2]}\n        transitions == {<<0, 1>>, <<0, 2>>, <<1, 0>>, <<2, 0>>}\n    IN\n        /\\ x \\in {0, 1, 2}\n        /\\ \\A s \\in exampleStates : s.x \\in {0, 1, 2}\n        /\\ \\A t \\in transitions : t[1] \\in {0, 1, 2} /\\ t[2] \\in {0, 1, 2}\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 278,
+    "outputTokens": 835,
+    "totalTokens": 1113,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13450
+  }
+}

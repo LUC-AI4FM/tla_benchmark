@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---- MODULE DieHard ----\nEXTENDS Integers, TLC\n\nCONSTANTS Small, Big\n\nASSUME Small = 3 /\\ Big = 5\n\nVARIABLES small, big, waterUsed\n\nvars == <<small, big, waterUsed>>\n\nTypeOK ==\n    /\\ small \\in 0..Small\n    /\\ big \\in 0..Big\n    /\\ waterUsed \\in Nat\n\nInit ==\n    /\\ small = 0\n    /\\ big = 0\n    /\\ waterUsed = 0\n\nFillSmall ==\n    /\\ small' = Small\n    /\\ big' = big\n    /\\ waterUsed' = waterUsed + (Small - small)\n\nFillBig ==\n    /\\ big' = Big\n    /\\ small' = small\n    /\\ waterUsed' = waterUsed + (Big - big)\n\nEmptySmall ==\n    /\\ small' = 0\n    /\\ big' = big\n    /\\ waterUsed' = waterUsed\n\nEmptyBig ==\n    /\\ big' = 0\n    /\\ small' = small\n    /\\ waterUsed' = waterUsed\n\nSmallToBig ==\n    LET transfer == IF small + big <= Big THEN small ELSE Big - big\n    IN\n        /\\ small' = small - transfer\n        /\\ big' = big + transfer\n        /\\ waterUsed' = waterUsed\n\nBigToSmall ==\n    LET transfer == IF small + big <= Small THEN big ELSE Small - small\n    IN\n        /\\ big' = big - transfer\n        /\\ small' = small + transfer\n        /\\ waterUsed' = waterUsed\n\nNext ==\n    \\/ FillSmall\n    \\/ FillBig\n    \\/ EmptySmall\n    \\/ EmptyBig\n    \\/ SmallToBig\n    \\/ BigToSmall\n\nSpec == Init /\\ [][Next]_vars\n\n\\* Safety invariant: big jug never has exactly 4 gallons\n\\* This is expected to be VIOLATED to find the solution\nNotFour == big /= 4\n\n\\* Predicate to check that a state with big = 4 exists\nBigHasFour == big = 4\n\n\\* TLC statistics tracking operators\nStateCount == TLCGet(\"distinct\")\nActionCount == TLCGet(\"generated\")\n\n\\* Predicates for checking state/action count expectations after model checking\nStateCountCheck(expected) == StateCount >= expected\nActionCountCheck(expected) == ActionCount >= expected\n\n\\* Expected state space properties\n\\* The Die Hard problem has 16 reachable states (0..3 x 0..5 constrained by reachability)\nExpectedStatesExist == TLCGet(\"distinct\") > 0\n\n\\* Check that we can reach the goal state\nGoalStateReachable == <>(big = 4)\n\n====\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 267,
+    "outputTokens": 700,
+    "totalTokens": 967,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11761
+  }
+}

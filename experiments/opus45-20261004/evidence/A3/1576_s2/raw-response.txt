@@ -1,0 +1,97 @@
+```tla+
+---------------------------- MODULE ConcurrentQueue ----------------------------
+EXTENDS Integers, Sequences
+
+CONSTANTS Procs, Val, N
+
+VARIABLES queue, rV, pc
+
+vars == <<queue, rV, pc>>
+
+\* Possible operations for each process
+Operations == {"EnqueueFront", "EnqueueBack", "DequeueHead", "DequeueTail"}
+
+\* Possible return values
+ReturnValues == {"okay", "full", "empty", "null"} \cup Val
+
+Init ==
+    /\ queue = <<>>
+    /\ rV = [p \in Procs |-> "null"]
+    /\ pc = [p \in Procs |-> "choose"]
+
+\* Choose which operation to perform
+Choose(self) ==
+    /\ pc[self] = "choose"
+    /\ \E op \in Operations : pc' = [pc EXCEPT ![self] = op]
+    /\ UNCHANGED <<queue, rV>>
+
+\* Enqueue at front of queue
+EnqueueFront(self) ==
+    /\ pc[self] = "EnqueueFront"
+    /\ IF Len(queue) < N
+       THEN /\ \E v \in Val : queue' = <<v>> \o queue
+            /\ rV' = [rV EXCEPT ![self] = "okay"]
+       ELSE /\ rV' = [rV EXCEPT ![self] = "full"]
+            /\ UNCHANGED queue
+    /\ pc' = [pc EXCEPT ![self] = "choose"]
+
+\* Enqueue at back of queue
+EnqueueBack(self) ==
+    /\ pc[self] = "EnqueueBack"
+    /\ IF Len(queue) < N
+       THEN /\ \E v \in Val : queue' = Append(queue, v)
+            /\ rV' = [rV EXCEPT ![self] = "okay"]
+       ELSE /\ rV' = [rV EXCEPT ![self] = "full"]
+            /\ UNCHANGED queue
+    /\ pc' = [pc EXCEPT ![self] = "choose"]
+
+\* Dequeue from head of queue
+DequeueHead(self) ==
+    /\ pc[self] = "DequeueHead"
+    /\ IF Len(queue) > 0
+       THEN /\ rV' = [rV EXCEPT ![self] = Head(queue)]
+            /\ queue' = Tail(queue)
+       ELSE /\ rV' = [rV EXCEPT ![self] = "empty"]
+            /\ UNCHANGED queue
+    /\ pc' = [pc EXCEPT ![self] = "choose"]
+
+\* Dequeue from tail of queue
+DequeueTail(self) ==
+    /\ pc[self] = "DequeueTail"
+    /\ IF Len(queue) > 0
+       THEN /\ rV' = [rV EXCEPT ![self] = queue[Len(queue)]]
+            /\ queue' = SubSeq(queue, 1, Len(queue) - 1)
+       ELSE /\ rV' = [rV EXCEPT ![self] = "empty"]
+            /\ UNCHANGED queue
+    /\ pc' = [pc EXCEPT ![self] = "choose"]
+
+\* Process action for a single process
+P(self) ==
+    \/ Choose(self)
+    \/ EnqueueFront(self)
+    \/ EnqueueBack(self)
+    \/ DequeueHead(self)
+    \/ DequeueTail(self)
+
+Next == \E self \in Procs : P(self)
+
+\* State constraint to bound queue length
+StateConstraint == Len(queue) <= N
+
+\* Temporal specification with weak fairness for each process
+Spec == Init /\ [][Next]_vars /\ \A self \in Procs : WF_vars(P(self))
+
+\* Safety invariant: queue length never exceeds N
+QueueBounded == Len(queue) <= N
+
+\* Safety invariant: return values are valid
+ValidReturnValues == \A p \in Procs : rV[p] \in ReturnValues
+
+\* Type invariant
+TypeInvariant ==
+    /\ queue \in Seq(Val)
+    /\ rV \in [Procs -> ReturnValues]
+    /\ pc \in [Procs -> {"choose"} \cup Operations]
+
+================================================================================
+```

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE MutualExclusion ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS Proc\n\nVARIABLES pc, lock\n\nvars == <<pc, lock>>\n\nTypeOK ==\n    /\\ pc \\in [Proc -> {\"ncs\", \"l1\", \"cs\"}]\n    /\\ lock \\in Proc \\cup {0}\n\nMutualExclusion ==\n    \\A p1, p2 \\in Proc : (pc[p1] = \"cs\" /\\ pc[p2] = \"cs\") => (p1 = p2)\n\nInit ==\n    /\\ pc = [p \\in Proc |-> \"ncs\"]\n    /\\ lock = 0\n\nTryAcquire(p) ==\n    /\\ pc[p] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"l1\"]\n    /\\ lock' = lock\n\nAcquire(p) ==\n    /\\ pc[p] = \"l1\"\n    /\\ lock = 0\n    /\\ lock' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n\nRelease(p) ==\n    /\\ pc[p] = \"cs\"\n    /\\ lock' = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"ncs\"]\n\nNext ==\n    \\E p \\in Proc :\n        \\/ TryAcquire(p)\n        \\/ Acquire(p)\n        \\/ Release(p)\n\nFairness ==\n    \\A p \\in Proc :\n        /\\ WF_vars(TryAcquire(p))\n        /\\ WF_vars(Acquire(p))\n        /\\ WF_vars(Release(p))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nLiveness == (pc[1] = \"l1\") ~> (pc[1] = \"cs\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 243,
+    "outputTokens": 473,
+    "totalTokens": 716,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8326
+  }
+}

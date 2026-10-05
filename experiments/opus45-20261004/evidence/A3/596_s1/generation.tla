@@ -1,0 +1,83 @@
+---------------------------- MODULE SimpleTransition ----------------------------
+EXTENDS Integers, TLC, Sequences
+
+VARIABLES x
+
+(* Initial condition: x starts at 0 *)
+Init == x = 0
+
+(* Next state relation:
+   - From 0, move nondeterministically to either 1 or 2
+   - From any nonzero value, return to 0 *)
+Next == 
+    \/ (x = 0 /\ (x' = 1 \/ x' = 2))
+    \/ (x /= 0 /\ x' = 0)
+
+(* Main specification with stuttering and weak fairness *)
+Spec == Init /\ [][Next]_x /\ WF_x(Next)
+
+(* Safety invariant: x is always in {0, 1, 2} *)
+TypeInvariant == x \in {0, 1, 2}
+
+(* Safety invariant: x is always non-negative *)
+NonNegative == x >= 0
+
+(* Temporal property: eventually stabilize away from 1 (always eventually not 1) *)
+EventuallyNotOne == <>~(x = 1)
+
+(* Temporal property: eventually stabilize away from 2 (always eventually not 2) *)
+EventuallyNotTwo == <>~(x = 2)
+
+(* Temporal property: eventually stabilize away from 1 or 2 *)
+EventuallyAwayFrom1Or2 == <>(x /= 1) /\ <>(x /= 2)
+
+(* Temporal property: eventual repeated return to zero (always eventually x = 0) *)
+AlwaysEventuallyZero == []<>(x = 0)
+
+(* Temporal property: infinitely often x is nonzero *)
+InfinitelyOftenNonzero == []<>(x /= 0)
+
+(* Combined liveness: system oscillates between 0 and nonzero infinitely *)
+Oscillation == []<>(x = 0) /\ []<>(x /= 0)
+
+(* Negation of a temporal property: not always eventually at 1 *)
+NotAlwaysEventuallyOne == ~([]<>(x = 1))
+
+(* Alternative negation: eventually always not at 1 (x eventually stays away from 1) *)
+EventuallyAlwaysNotOne == <>[](x /= 1)
+
+(* Postcondition for TLC counterexample trace checking *)
+(* This defines a structure for encoding counterexample traces as records, tuples, and sets *)
+TraceRecord == [state: {0, 1, 2}, step: Nat]
+
+(* Example trace encoded as a set of records *)
+ExampleTrace == {
+    [state |-> 0, step |-> 0],
+    [state |-> 1, step |-> 1],
+    [state |-> 0, step |-> 2]
+}
+
+(* Tuple representation of a trace *)
+TraceTuple == <<0, 1, 0, 2, 0>>
+
+(* Postcondition check: verify trace validity *)
+TracePostcondition == 
+    LET trace == <<0, 1, 0, 2, 0>>
+    IN /\ trace[1] = 0  \* Starts at 0
+       /\ \A i \in 1..(Len(trace)-1):
+            \/ (trace[i] = 0 /\ trace[i+1] \in {1, 2})
+            \/ (trace[i] /= 0 /\ trace[i+1] = 0)
+
+(* Counterexample trace as a set of state-step pairs *)
+CounterexampleTraceSet == {<<0, 0>>, <<1, 1>>, <<0, 2>>}
+
+(* Check if a trace element is valid *)
+ValidTraceElement(elem) == 
+    /\ elem[1] \in {0, 1, 2}
+    /\ elem[2] \in Nat
+
+(* Postcondition for counterexample validation *)
+CounterexamplePostcondition ==
+    \A elem \in CounterexampleTraceSet: ValidTraceElement(elem)
+
+=============================================================================

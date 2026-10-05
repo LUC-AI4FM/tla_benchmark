@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE LockHS ----------------------------\n\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT Procs\n\nVARIABLES pc, h_turn, s\n\nvars == <<pc, h_turn, s>>\n\n-----------------------------------------------------------------------------\n\n(* Initial state *)\nInit ==\n    /\\ pc = [p \\in Procs |-> \"idle\"]\n    /\\ h_turn = CHOOSE p \\in Procs : TRUE\n    /\\ s = [p \\in Procs |-> 0]\n\n(* Type invariant with history and stuttering variables *)\nTypeOKHS ==\n    /\\ pc \\in [Procs -> {\"idle\", \"waiting\", \"cs\"}]\n    /\\ h_turn \\in Procs\n    /\\ s \\in [Procs -> 0..3]\n\n(* Process p requests to enter critical section *)\nRequest(p) ==\n    /\\ pc[p] = \"idle\"\n    /\\ s[p] = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"waiting\"]\n    /\\ h_turn' = p\n    /\\ s' = [s EXCEPT ![p] = 1]\n\n(* Stuttering step 1 - mimics flag[p] := TRUE in Peterson *)\nStutter1(p) ==\n    /\\ pc[p] = \"waiting\"\n    /\\ s[p] = 1\n    /\\ s' = [s EXCEPT ![p] = 2]\n    /\\ pc' = pc\n    /\\ h_turn' = h_turn\n\n(* Stuttering step 2 - mimics turn := other in Peterson *)\nStutter2(p) ==\n    /\\ pc[p] = \"waiting\"\n    /\\ s[p] = 2\n    /\\ s' = [s EXCEPT ![p] = 3]\n    /\\ pc' = pc\n    /\\ h_turn' = IF \\E q \\in Procs : q # p /\\ pc[q] = \"waiting\" /\\ s[q] >= 2\n                 THEN CHOOSE q \\in Procs : q # p /\\ pc[q] = \"waiting\" /\\ s[q] >= 2\n                 ELSE h_turn\n\n(* Process p enters critical section *)\nEnter(p) ==\n    /\\ pc[p] = \"waiting\"\n    /\\ s[p] = 3\n    /\\ \\A q \\in Procs \\ {p} : pc[q] # \"cs\"\n    /\\ \\/ h_turn = p\n       \\/ \\A q \\in Procs \\ {p} : pc[q] = \"idle\"\n    /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n    /\\ s' = s\n    /\\ h_turn' = h_turn\n\n(* Process p exits critical section *)\nExit(p) ==\n    /\\ pc[p] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"idle\"]\n    /\\ s' = [s EXCEPT ![p] = 0]\n    /\\ h_turn' = h_turn\n\n(* Next state relation *)\nNext ==\n    \\E p \\in Procs :\n        \\/ Request(p)\n        \\/ Stutter1(p)\n        \\/ Stutter2(p)\n        \\/ Enter(p)\n        \\/ Exit(p)\n\n(* Specification with history and stuttering *)\nSpecHS == Init /\\ [][Next]_vars\n\n-----------------------------------------------------------------------------\n\n(* Mutual exclusion invariant *)\nMutualExclusion ==\n    \\A p, q \\in Procs : p # q => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\n(* Invariant for the history/stuttering specification *)\nInvHS ==\n    /\\ TypeOKHS\n    /\\ MutualExclusion\n\n(* Lock invariant - core safety property *)\nLockInv == MutualExclusion\n\n-----------------------------------------------------------------------------\n\n(* Original Lock specification without auxiliary variables *)\n\nVARIABLES pc0\n\nvarsLock == <<pc0>>\n\nInitLock ==\n    pc0 = [p \\in Procs |-> \"idle\"]\n\nTypeOKLock ==\n    pc0 \\in [Procs -> {\"idle\", \"waiting\", \"cs\"}]\n\nRequestLock(p) ==\n    /\\ pc0[p] = \"idle\"\n    /\\ pc0' = [pc0 EXCEPT ![p] = \"waiting\"]\n\nEnterLock(p) ==\n    /\\ pc0[p] = \"waiting\"\n    /\\ \\A q \\in Procs \\ {p} : pc0[q] # \"cs\"\n    /\\ pc0' = [pc0 EXCEPT ![p] = \"cs\"]\n\nExitLock(p) ==\n    /\\ pc0[p] = \"cs\"\n    /\\ pc0' = [pc0 EXCEPT ![p] = \"idle\"]\n\nNextLock ==\n    \\E p \\in Procs :\n        \\/ RequestLock(p)\n        \\/ EnterLock(p)\n        \\/ ExitLock(p)\n\nSpec == InitLock /\\ [][NextLock]_varsLock\n\n-----------------------------------------------------------------------------\n\n(* Peterson specification instantiation *)\n\n(* Map from LockHS to Peterson's algorithm states *)\nPetersonPC(p) ==\n    CASE pc[p] = \"idle\" -> \"idle\"\n      [] pc[p] = \"waiting\" /\\ s[p] = 1 -> \"a1\"\n      [] pc[p] = \"waiting\" /\\ s[p] = 2 -> \"a2\"\n      [] pc[p] = \"waiting\" /\\ s[p] = 3 -> \"a3\"\n      [] pc[p] = \"cs\" -> \"cs\"\n      [] OTHER -> \"idle\"\n\nPetersonFlag(p) ==\n    pc[p] # \"idle\"\n\nPetersonTurn ==\n    h_turn\n\n(* Peterson specification - instantiated with mappings from LockHS *)\nPSpec ==\n    /\\ \\A p \\in Procs : PetersonPC(p) \\in {\"idle\", \"a1\", \"a2\", \"a3\", \"cs\"}\n    /\\ \\A p \\in Procs : PetersonFlag(p) \\in BOOLEAN\n    /\\ PetersonTurn \\in Procs\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 279,
+    "outputTokens": 1541,
+    "totalTokens": 1820,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 20115
+  }
+}

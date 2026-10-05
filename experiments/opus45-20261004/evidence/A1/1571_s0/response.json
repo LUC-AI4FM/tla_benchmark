@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE DiningPhilosophers ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N >= 2\n\nVARIABLES pc, forks\n\nvars == <<pc, forks>>\n\nPhilosophers == 0..(N-1)\n\nLeftFork(i) == i\nRightFork(i) == (i + 1) % N\n\nInit ==\n    /\\ pc = [i \\in Philosophers |-> \"thinking\"]\n    /\\ forks = [i \\in Philosophers |-> 1]\n\nThink(i) ==\n    /\\ pc[i] = \"thinking\"\n    /\\ pc' = [pc EXCEPT ![i] = \"hungry\"]\n    /\\ UNCHANGED forks\n\nAcquireFirstFork(i) ==\n    /\\ pc[i] = \"hungry\"\n    /\\ IF i = 0\n       THEN /\\ forks[LeftFork(i)] > 0\n            /\\ forks' = [forks EXCEPT ![LeftFork(i)] = @ - 1]\n       ELSE /\\ forks[RightFork(i)] > 0\n            /\\ forks' = [forks EXCEPT ![RightFork(i)] = @ - 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"hasFirst\"]\n\nAcquireSecondFork(i) ==\n    /\\ pc[i] = \"hasFirst\"\n    /\\ IF i = 0\n       THEN /\\ forks[RightFork(i)] > 0\n            /\\ forks' = [forks EXCEPT ![RightFork(i)] = @ - 1]\n       ELSE /\\ forks[LeftFork(i)] > 0\n            /\\ forks' = [forks EXCEPT ![LeftFork(i)] = @ - 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"eating\"]\n\nEat(i) ==\n    /\\ pc[i] = \"eating\"\n    /\\ pc' = [pc EXCEPT ![i] = \"done\"]\n    /\\ UNCHANGED forks\n\nReleaseForks(i) ==\n    /\\ pc[i] = \"done\"\n    /\\ forks' = [forks EXCEPT ![LeftFork(i)] = @ + 1, ![RightFork(i)] = @ + 1]\n    /\\ pc' = [pc EXCEPT ![i] = \"thinking\"]\n\nPhilosopherAction(i) ==\n    \\/ Think(i)\n    \\/ AcquireFirstFork(i)\n    \\/ AcquireSecondFork(i)\n    \\/ Eat(i)\n    \\/ ReleaseForks(i)\n\nNext == \\E i \\in Philosophers : PhilosopherAction(i)\n\nFairness ==\n    \\A i \\in Philosophers :\n        /\\ SF_vars(AcquireFirstFork(i))\n        /\\ SF_vars(AcquireSecondFork(i))\n        /\\ SF_vars(Eat(i))\n        /\\ SF_vars(ReleaseForks(i))\n        /\\ WF_vars(Think(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nMutualExclusion ==\n    \\A i, j \\in Philosophers :\n        (i # j /\\ (RightFork(i) = LeftFork(j) \\/ LeftFork(i) = RightFork(j))) =>\n        ~(pc[i] = \"eating\" /\\ pc[j] = \"eating\")\n\nAdjacentMutualExclusion ==\n    \\A i \\in Philosophers :\n        LET j == (i + 1) % N\n        IN ~(pc[i] = \"eating\" /\\ pc[j] = \"eating\")\n\nInvariant == MutualExclusion\n\nStarvationFreedom ==\n    \\A i \\in Philosophers : pc[i] = \"hungry\" ~> pc[i] = \"eating\"\n\nTypeInvariant ==\n    /\\ pc \\in [Philosophers -> {\"thinking\", \"hungry\", \"hasFirst\", \"eating\", \"done\"}]\n    /\\ forks \\in [Philosophers -> 0..1]\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 276,
+    "outputTokens": 1047,
+    "totalTokens": 1323,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 13293
+  }
+}

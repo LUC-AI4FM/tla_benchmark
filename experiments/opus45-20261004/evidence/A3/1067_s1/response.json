@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE TerminationDetection ----------------------------\nEXTENDS Integers, FiniteSets, Naturals\n\nCONSTANTS Node\n\nVARIABLES active, terminationDetected\n\nvars == <<active, terminationDetected>>\n\n-----------------------------------------------------------------------------\n\nTypeOK ==\n    /\\ active \\in [Node -> BOOLEAN]\n    /\\ terminationDetected \\in BOOLEAN\n\n-----------------------------------------------------------------------------\n\nInit ==\n    /\\ active \\in [Node -> BOOLEAN]\n    /\\ terminationDetected = FALSE\n\n-----------------------------------------------------------------------------\n\nTerminate(n) ==\n    /\\ active[n] = TRUE\n    /\\ active' = [active EXCEPT ![n] = FALSE]\n    /\\ terminationDetected' = terminationDetected\n\nWakeup(n, m) ==\n    /\\ active[n] = TRUE\n    /\\ n # m\n    /\\ active' = [active EXCEPT ![m] = TRUE]\n    /\\ terminationDetected' = terminationDetected\n\nAllInactive ==\n    \\A n \\in Node : active[n] = FALSE\n\nDetectTermination ==\n    /\\ AllInactive\n    /\\ terminationDetected = FALSE\n    /\\ terminationDetected' = TRUE\n    /\\ active' = active\n\n-----------------------------------------------------------------------------\n\nNext ==\n    \\/ \\E n \\in Node : Terminate(n)\n    \\/ \\E n, m \\in Node : Wakeup(n, m)\n    \\/ DetectTermination\n\nFairness == WF_vars(DetectTermination)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n-----------------------------------------------------------------------------\n\nSafe ==\n    terminationDetected => AllInactive\n\nCorrectness ==\n    [](terminationDetected => AllInactive)\n\nQuiescence ==\n    [](terminationDetected => []terminationDetected)\n\nLiveness ==\n    [](AllInactive => <>terminationDetected)\n\nStableTermination ==\n    []([](AllInactive) => <>[]terminationDetected)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 229,
+    "outputTokens": 480,
+    "totalTokens": 709,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 8433
+  }
+}

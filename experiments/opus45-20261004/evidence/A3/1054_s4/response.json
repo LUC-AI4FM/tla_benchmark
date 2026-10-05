@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANTS N, M\n\nASSUME NAssumption == N >= 1\nASSUME MAssumption == M >= 1\nASSUME NMAssumption == N <= M + 1\n\nNodes == 0..(N-1)\nValues == 0..(M-1)\n\nVARIABLE counter\n\nTypeInvariant == counter \\in [Nodes -> Values]\n\nHasToken(i) ==\n    IF i = 0\n    THEN counter[0] = counter[N-1]\n    ELSE counter[i] # counter[i-1]\n\nTokenCount == Cardinality({i \\in Nodes : HasToken(i)})\n\nUniqueToken == TokenCount = 1\n\nStabilized == \\E i \\in Nodes : HasToken(i) /\\ \\A j \\in Nodes : j # i => ~HasToken(j)\n\nInit == counter \\in [Nodes -> Values]\n\nNode0Action ==\n    /\\ HasToken(0)\n    /\\ counter' = [counter EXCEPT ![0] = (counter[0] + 1) % M]\n\nNodeIAction(i) ==\n    /\\ i # 0\n    /\\ HasToken(i)\n    /\\ counter' = [counter EXCEPT ![i] = counter[i-1]]\n\nNext == \n    \\/ Node0Action\n    \\/ \\E i \\in Nodes \\ {0} : NodeIAction(i)\n\nFairness == WF_counter(Next)\n\nSpec == Init /\\ [][Next]_counter /\\ Fairness\n\nAtLeastOneToken == \\E i \\in Nodes : HasToken(i)\n\nSafetyInvariant == TypeInvariant\n\nStabilization == <>[]UniqueToken\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 250,
+    "outputTokens": 440,
+    "totalTokens": 690,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9364
+  }
+}

@@ -1,0 +1,38 @@
+```tla
+---------------------------- MODULE TwoStateProcess ----------------------------
+EXTENDS Sequences, Naturals
+
+CONSTANTS MaxHistoryLength
+
+VARIABLES pc, history
+
+vars == <<pc, history>>
+
+TypeOK ==
+    /\ pc \in {"A", "B"}
+    /\ history \in Seq({"A", "B"})
+
+Init ==
+    /\ pc = "A"
+    /\ history = <<>>
+
+A ==
+    /\ pc = "A"
+    /\ pc' = "B"
+    /\ history' = Append(history, pc)
+
+B ==
+    /\ pc = "B"
+    /\ pc' = "A"
+    /\ history' = history
+
+Next == A \/ B
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+StateConstraint == Len(history) <= MaxHistoryLength
+
+EventuallyDone == <>(pc = "Done")
+
+================================================================================
+```

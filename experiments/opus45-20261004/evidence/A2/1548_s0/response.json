@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE ByzantineConsensus ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N, T, F\n\nASSUME /\\ N > 3 * T\n       /\\ 3 * T >= 3 * F\n       /\\ 3 * F >= 0\n       /\\ N > 0\n\nProc == 1..N\n\nStatus == {\"V0\", \"V1\", \"S0\", \"S1\", \"D0\", \"D1\", \"U0\", \"U1\", \"BYZ\"}\n\nVARIABLES\n    pc,\n    nSnt0,\n    nSnt1,\n    nSnt0F,\n    nSnt1F,\n    nRcvd0,\n    nRcvd1,\n    nFaulty\n\nvars == <<pc, nSnt0, nSnt1, nSnt0F, nSnt1F, nRcvd0, nRcvd1, nFaulty>>\n\nTypeOK ==\n    /\\ pc \\in [Proc -> Status]\n    /\\ nSnt0 \\in 0..N\n    /\\ nSnt1 \\in 0..N\n    /\\ nSnt0F \\in 0..N\n    /\\ nSnt1F \\in 0..N\n    /\\ nRcvd0 \\in [Proc -> 0..N]\n    /\\ nRcvd1 \\in [Proc -> 0..N]\n    /\\ nFaulty \\in 0..N\n\nInit ==\n    /\\ pc \\in [Proc -> {\"V0\", \"V1\"}]\n    /\\ nSnt0 = 0\n    /\\ nSnt1 = 0\n    /\\ nSnt0F = 0\n    /\\ nSnt1F = 0\n    /\\ nRcvd0 = [p \\in Proc |-> 0]\n    /\\ nRcvd1 = [p \\in Proc |-> 0]\n    /\\ nFaulty = 0\n\nPropose(p) ==\n    /\\ pc[p] \\in {\"V0\", \"V1\"}\n    /\\ IF pc[p] = \"V0\"\n       THEN /\\ pc' = [pc EXCEPT ![p] = \"S0\"]\n            /\\ nSnt0' = nSnt0 + 1\n            /\\ nSnt1' = nSnt1\n       ELSE /\\ pc' = [pc EXCEPT ![p] = \"S1\"]\n            /\\ nSnt1' = nSnt1 + 1\n            /\\ nSnt0' = nSnt0\n    /\\ UNCHANGED <<nSnt0F, nSnt1F, nRcvd0, nRcvd1, nFaulty>>\n\nReceive(p) ==\n    /\\ pc[p] \\notin {\"BYZ\"}\n    /\\ \\/ /\\ nRcvd0[p] < nSnt0 + nSnt0F\n          /\\ nRcvd0' = [nRcvd0 EXCEPT ![p] = nRcvd0[p] + 1]\n          /\\ UNCHANGED nRcvd1\n       \\/ /\\ nRcvd1[p] < nSnt1 + nSnt1F\n          /\\ nRcvd1' = [nRcvd1 EXCEPT ![p] = nRcvd1[p] + 1]\n          /\\ UNCHANGED nRcvd0\n    /\\ UNCHANGED <<pc, nSnt0, nSnt1, nSnt0F, nSnt1F, nFaulty>>\n\nDecide(p) ==\n    /\\ pc[p] \\in {\"S0\", \"S1\"}\n    /\\ nRcvd0[p] + nRcvd1[p] >= N - T\n    /\\ IF nRcvd0[p] >= N - T\n       THEN pc' = [pc EXCEPT ![p] = \"D0\"]\n       ELSE IF nRcvd1[p] >= N - T\n            THEN pc' = [pc EXCEPT ![p] = \"D1\"]\n            ELSE IF pc[p] = \"S0\"\n                 THEN pc' = [pc EXCEPT ![p] = \"U0\"]\n                 ELSE pc' = [pc EXCEPT ![p] = \"U1\"]\n    /\\ UNCHANGED <<nSnt0, nSnt1, nSnt0F, nSnt1F, nRcvd0, nRcvd1, nFaulty>>\n\nFaulty(p) ==\n    /\\ pc[p] # \"BYZ\"\n    /\\ nFaulty < F\n    /\\ pc' = [pc EXCEPT ![p] = \"BYZ\"]\n    /\\ nFaulty' = nFaulty + 1\n    /\\ \\E inc0 \\in 0..(N - nSnt0F) : \\E inc1 \\in 0..(N - nSnt1F) :\n         /\\ nSnt0F' = nSnt0F + inc0\n         /\\ nSnt1F' = nSnt1F + inc1\n    /\\ UNCHANGED <<nSnt0, nSnt1, nRcvd0, nRcvd1>>\n\nProposeAction == \\E p \\in Proc : Propose(p)\nReceiveAction == \\E p \\in Proc : Receive(p)\nDecideAction == \\E p \\in Proc : Decide(p)\nFaultyAction == \\E p \\in Proc : Faulty(p)\n\nNext ==\n    \\/ ProposeAction\n    \\/ ReceiveAction\n    \\/ DecideAction\n    \\/ FaultyAction\n\nFairness ==\n    /\\ WF_vars(ProposeAction)\n    /\\ WF_vars(ReceiveAction)\n    /\\ WF_vars(DecideAction)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nAllInitiallyZero == \\A p \\in Proc : pc[p] = \"V0\"\n\nAllInitiallyOne == \\A p \\in Proc : pc[p] = \"V1\"\n\nNoUndecidedOrDecideOne ==\n    \\A p \\in Proc : pc[p] \\notin {\"U0\", \"U1\", \"D1\"}\n\nNoUndecidedOrDecideZero ==\n    \\A p \\in Proc : pc[p] \\notin {\"U0\", \"U1\", \"D0\"}\n\nValidity0 ==\n    AllInitiallyZero => []NoUndecidedOrDecideOne\n\nValidity1 ==\n    AllInitiallyOne => <>NoUndecidedOrDecideZero\n\nAllDecideOne ==\n    <>(\\A p \\in Proc : pc[p] = \"D1\" \\/ pc[p] = \"BYZ\")\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 547,
+    "outputTokens": 1714,
+    "totalTokens": 2261,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 19229
+  }
+}

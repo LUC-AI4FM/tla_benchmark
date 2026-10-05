@@ -1,0 +1,131 @@
+---------------------------- MODULE QuickSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT ArrayLen
+
+ASSUME ArrayLen \in Nat /\ ArrayLen >= 0
+
+ArrayRange == 1..ArrayLen
+
+PermsOf(S) == {f \in [S -> S] : \A y \in S : \E x \in S : f[x] = y}
+
+IsSorted(arr, lo, hi) == \A i, j \in lo..hi : i <= j => arr[i] <= arr[j]
+
+IsPermutation(arr1, arr2) == 
+    /\ DOMAIN arr1 = DOMAIN arr2
+    /\ \A v \in ArrayRange : 
+        Cardinality({i \in DOMAIN arr1 : arr1[i] = v}) = 
+        Cardinality({i \in DOMAIN arr2 : arr2[i] = v})
+
+VARIABLES Ainit, A, pc, stack, qlo, qhi, pivot
+
+vars == <<Ainit, A, pc, stack, qlo, qhi, pivot>>
+
+Init ==
+    /\ Ainit \in [1..ArrayLen -> ArrayRange]
+    /\ A = Ainit
+    /\ pc = "main"
+    /\ stack = <<>>
+    /\ qlo = 1
+    /\ qhi = 1
+    /\ pivot = 1
+
+main ==
+    /\ pc = "main"
+    /\ IF ArrayLen > 0
+       THEN /\ stack' = <<[procedure |-> "QS", 
+                           qlo |-> qlo, 
+                           qhi |-> qhi, 
+                           pivot |-> pivot,
+                           pc |-> "test"]>> \o stack
+            /\ qlo' = 1
+            /\ qhi' = ArrayLen
+            /\ pivot' = 1
+            /\ pc' = "qs1"
+       ELSE /\ pc' = "test"
+            /\ UNCHANGED <<stack, qlo, qhi, pivot>>
+    /\ UNCHANGED <<Ainit, A>>
+
+qs1 ==
+    /\ pc = "qs1"
+    /\ IF qhi > qlo
+       THEN \E p \in qlo..(qhi-1) :
+            \E newA \in [1..ArrayLen -> ArrayRange] :
+                /\ (\A i \in 1..ArrayLen : (i < qlo \/ i > qhi) => newA[i] = A[i])
+                /\ (\A i \in qlo..p, j \in (p+1)..qhi : newA[i] <= newA[j])
+                /\ (\A v \in ArrayRange : 
+                    Cardinality({i \in qlo..qhi : A[i] = v}) = 
+                    Cardinality({i \in qlo..qhi : newA[i] = v}))
+                /\ A' = newA
+                /\ pivot' = p
+                /\ pc' = "qs2"
+       ELSE /\ pc' = "qs4"
+            /\ UNCHANGED <<A, pivot>>
+    /\ UNCHANGED <<Ainit, stack, qlo, qhi>>
+
+qs2 ==
+    /\ pc = "qs2"
+    /\ stack' = <<[procedure |-> "QS",
+                   qlo |-> qlo,
+                   qhi |-> qhi,
+                   pivot |-> pivot,
+                   pc |-> "qs3"]>> \o stack
+    /\ qhi' = pivot
+    /\ pivot' = 1
+    /\ pc' = "qs1"
+    /\ UNCHANGED <<Ainit, A, qlo>>
+
+qs3 ==
+    /\ pc = "qs3"
+    /\ stack' = <<[procedure |-> "QS",
+                   qlo |-> qlo,
+                   qhi |-> qhi,
+                   pivot |-> pivot,
+                   pc |-> "qs4"]>> \o stack
+    /\ qlo' = pivot + 1
+    /\ pivot' = 1
+    /\ pc' = "qs1"
+    /\ UNCHANGED <<Ainit, A, qhi>>
+
+qs4 ==
+    /\ pc = "qs4"
+    /\ IF stack # <<>>
+       THEN /\ qlo' = Head(stack).qlo
+            /\ qhi' = Head(stack).qhi
+            /\ pivot' = Head(stack).pivot
+            /\ pc' = Head(stack).pc
+            /\ stack' = Tail(stack)
+       ELSE /\ pc' = "test"
+            /\ UNCHANGED <<stack, qlo, qhi, pivot>>
+    /\ UNCHANGED <<Ainit, A>>
+
+test ==
+    /\ pc = "test"
+    /\ IsPermutation(A, Ainit)
+    /\ IsSorted(A, 1, ArrayLen)
+    /\ pc' = "Done"
+    /\ UNCHANGED <<Ainit, A, stack, qlo, qhi, pivot>>
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+Next == main \/ qs1 \/ qs2 \/ qs3 \/ qs4 \/ test \/ Done
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+Termination == <>(pc = "Done")
+
+TypeInvariant ==
+    /\ Ainit \in [1..ArrayLen -> ArrayRange]
+    /\ A \in [1..ArrayLen -> ArrayRange]
+    /\ pc \in {"main", "qs1", "qs2", "qs3", "qs4", "test", "Done"}
+    /\ qlo \in 1..ArrayLen \/ (ArrayLen = 0 /\ qlo = 1)
+    /\ qhi \in 1..ArrayLen \/ (ArrayLen = 0 /\ qhi = 1)
+    /\ pivot \in 1..ArrayLen \/ (ArrayLen = 0 /\ pivot = 1)
+
+PermutationInvariant == IsPermutation(A, Ainit)
+
+SortedWhenDone == pc = "Done" => IsSorted(A, 1, ArrayLen)
+
+==========================================================================

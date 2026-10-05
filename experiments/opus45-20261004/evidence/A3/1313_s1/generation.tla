@@ -1,0 +1,115 @@
+---------------------------- MODULE DieHard ----------------------------
+EXTENDS Integers, TLC
+
+CONSTANTS SmallCap, BigCap
+
+VARIABLES small, big, waterUsed
+
+vars == <<small, big, waterUsed>>
+
+TypeOK == /\ small \in 0..SmallCap
+          /\ big \in 0..BigCap
+          /\ waterUsed \in Nat
+
+Init == /\ small = 0
+        /\ big = 0
+        /\ waterUsed = 0
+
+FillSmall == /\ small' = SmallCap
+             /\ big' = big
+             /\ waterUsed' = waterUsed + (SmallCap - small)
+
+FillBig == /\ big' = BigCap
+           /\ small' = small
+           /\ waterUsed' = waterUsed + (BigCap - big)
+
+EmptySmall == /\ small' = 0
+              /\ big' = big
+              /\ waterUsed' = waterUsed
+
+EmptyBig == /\ big' = 0
+            /\ small' = small
+            /\ waterUsed' = waterUsed
+
+SmallToBig == LET amount == IF small + big <= BigCap
+                            THEN small
+                            ELSE BigCap - big
+              IN /\ big' = big + amount
+                 /\ small' = small - amount
+                 /\ waterUsed' = waterUsed
+
+BigToSmall == LET amount == IF small + big <= SmallCap
+                            THEN big
+                            ELSE SmallCap - small
+              IN /\ small' = small + amount
+                 /\ big' = big - amount
+                 /\ waterUsed' = waterUsed
+
+Next == \/ FillSmall
+        \/ FillBig
+        \/ EmptySmall
+        \/ EmptyBig
+        \/ SmallToBig
+        \/ BigToSmall
+
+Spec == Init /\ [][Next]_vars
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+NotFourGallons == big /= 4
+
+BigNeverFour == []NotFourGallons
+
+SmallInRange == small >= 0 /\ small <= SmallCap
+
+BigInRange == big >= 0 /\ big <= BigCap
+
+SafetyInvariant == TypeOK
+
+-----------------------------------------------------------------------------
+(* Goal State Predicate *)
+
+GoalReached == big = 4
+
+GoalReachable == <>(big = 4)
+
+-----------------------------------------------------------------------------
+(* TLC Statistics and Inspection Operators *)
+
+CheckStateSpace == 
+    LET stats == TLCGet("stats")
+    IN PrintT(<<"States generated:", stats>>)
+
+StateCountCheck == 
+    TLCGet("distinct") > 0
+
+ActionCountCheck ==
+    TLCGet("generated") > 0
+
+PostCondition ==
+    /\ TLCGet("distinct") >= 1
+    /\ TLCGet("generated") >= 1
+
+InspectState == 
+    PrintT(<<"Current state - small:", small, "big:", big, "waterUsed:", waterUsed>>)
+
+-----------------------------------------------------------------------------
+(* State Space Exploration Helpers *)
+
+AllStates == (0..SmallCap) \X (0..BigCap)
+
+GoalStateExists == \E s \in 0..SmallCap, b \in 0..BigCap : b = 4
+
+ExpectedDistinctStates == (SmallCap + 1) * (BigCap + 1)
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+EventuallyFour == <>(big = 4)
+
+FairSpec == Spec /\ WF_vars(Next)
+
+LiveSpec == FairSpec => EventuallyFour
+
+=============================================================================

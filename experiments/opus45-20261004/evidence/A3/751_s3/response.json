@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE CigaretteSmokers ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS Ingredients, Offers\n\nVARIABLES smoking, offer\n\nvars == <<smoking, offer>>\n\n\\* Structural constraint: each offer is missing exactly one ingredient\nASSUME \\A o \\in Offers : o \\subseteq Ingredients /\\ Cardinality(Ingredients \\ o) = 1\n\n\\* The smokers are identified by the ingredient they have (the one missing from an offer)\nSmokers == Ingredients\n\n\\* Get the smoker who has the missing ingredient for a given offer\nSmokerForOffer(o) == CHOOSE i \\in Ingredients : i \\notin o\n\nInit ==\n    /\\ smoking = [s \\in Smokers |-> FALSE]\n    /\\ offer = {}\n\n\\* Dealer makes an offer (when no offer is currently on the table)\nDealerOffer ==\n    /\\ offer = {}\n    /\\ \\E o \\in Offers : offer' = o\n    /\\ UNCHANGED smoking\n\n\\* Smoker with the missing ingredient picks up the offer and starts smoking\nSmokerPickUp ==\n    /\\ offer /= {}\n    /\\ LET s == SmokerForOffer(offer)\n       IN /\\ smoking' = [smoking EXCEPT ![s] = TRUE]\n          /\\ offer' = {}\n\n\\* Smoker finishes smoking\nSmokerFinish ==\n    /\\ \\E s \\in Smokers : smoking[s]\n    /\\ \\E s \\in Smokers : \n        /\\ smoking[s]\n        /\\ smoking' = [smoking EXCEPT ![s] = FALSE]\n    /\\ UNCHANGED offer\n\nNext ==\n    \\/ DealerOffer\n    \\/ SmokerPickUp\n    \\/ SmokerFinish\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\n\\* Safety invariant: at most one smoker is smoking at any time\nAtMostOne == Cardinality({s \\in Smokers : smoking[s]}) <= 1\n\n\\* Type invariant for completeness\nTypeOK ==\n    /\\ smoking \\in [Smokers -> BOOLEAN]\n    /\\ offer \\in (SUBSET Ingredients)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 263,
+    "outputTokens": 553,
+    "totalTokens": 816,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10880
+  }
+}

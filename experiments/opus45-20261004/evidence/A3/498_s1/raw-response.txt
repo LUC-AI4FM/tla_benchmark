@@ -1,0 +1,78 @@
+```tla+
+------------------------------ MODULE MultiSlotConsensus ------------------------------
+EXTENDS Integers, FiniteSets
+
+CONSTANTS 
+    Values,      \* The set of all possible values that can be proposed
+    Slots        \* The set of slot identifiers
+
+VARIABLES 
+    proposed,    \* The set of values that have been proposed
+    chosen       \* A function from Slots to sets of values (empty or singleton)
+
+vars == <<proposed, chosen>>
+
+\* Type invariant
+TypeOK ==
+    /\ proposed \subseteq Values
+    /\ chosen \in [Slots -> SUBSET Values]
+    /\ \A s \in Slots : Cardinality(chosen[s]) <= 1
+
+\* Initial state: nothing proposed, all slots empty
+Init ==
+    /\ proposed = {}
+    /\ chosen = [s \in Slots |-> {}]
+
+\* Action: propose a new value (add a previously unproposed value to proposed set)
+Propose(v) ==
+    /\ v \notin proposed
+    /\ proposed' = proposed \cup {v}
+    /\ UNCHANGED chosen
+
+\* Action: choose a proposed value for an empty slot
+Choose(s, v) ==
+    /\ chosen[s] = {}           \* Slot must be empty
+    /\ v \in proposed           \* Value must have been proposed
+    /\ chosen' = [chosen EXCEPT ![s] = {v}]
+    /\ UNCHANGED proposed
+
+\* Next state relation
+Next ==
+    \/ \E v \in Values : Propose(v)
+    \/ \E s \in Slots, v \in Values : Choose(s, v)
+
+\* Specification with weak fairness on Next for liveness
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Safety property: Nontriviality - only proposed values can be chosen
+Nontriviality ==
+    \A s \in Slots : chosen[s] \subseteq proposed
+
+\* Safety property: Stability - once a value is chosen for a slot, it remains chosen
+\* (This is implicit in the Choose action which only acts on empty slots)
+\* We express it as: if a slot has a value, it keeps that value
+Stability ==
+    \A s \in Slots : chosen[s] # {} => chosen[s]' = chosen[s]
+
+\* Safety property: Per-slot consistency - at most one value is chosen per slot
+Consistency ==
+    \A s \in Slots : Cardinality(chosen[s]) <= 1
+
+\* Combined safety invariant
+Safety ==
+    /\ TypeOK
+    /\ Nontriviality
+    /\ Consistency
+
+\* Liveness property: eventually every slot becomes nonempty
+\* (requires that there are values to propose)
+AllSlotsEventuallyChosen ==
+    \A s \in Slots : <>(chosen[s] # {})
+
+\* Additional liveness: if a value is proposed, eventually some slot may choose it
+\* (Note: this is not guaranteed without additional fairness, stating for completeness)
+EventualProgress ==
+    \A s \in Slots : <>(chosen[s] # {})
+
+===============================================================================
+```

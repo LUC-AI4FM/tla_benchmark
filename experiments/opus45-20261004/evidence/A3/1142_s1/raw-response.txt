@@ -1,0 +1,305 @@
+```tla+
+---------------------------- MODULE TLAPlusPCalMapping ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS
+    MaxLine,        \* Maximum line number
+    MaxCol,         \* Maximum column number
+    MaxTokens,      \* Maximum number of tokens
+    MaxDepth        \* Maximum parenthesis depth
+
+VARIABLES
+    tlaRegion,      \* Current TLA+ region being analyzed
+    pcalRegion,     \* Corresponding PlusCal region
+    tokens,         \* Sequence of tokens in the region
+    currentToken,   \* Index of current token being processed
+    parenDepth,     \* Current parenthesis depth
+    tokenPositions, \* Mapping from token index to position
+    regionMapping,  \* Mapping from TLA+ regions to PCal regions
+    pc,             \* Program counter for the algorithm
+    stack           \* Stack for parenthesis matching
+
+(* Data structure definitions using records *)
+
+(* A location is a record with line and column *)
+Location == [line: 1..MaxLine, col: 1..MaxCol]
+
+(* A region is a record with begin and end locations *)
+Region == [begin: Location, end: Location]
+
+(* A token is a record with type, position, and optional value *)
+TokenType == {"LPAREN", "RPAREN", "IDENT", "KEYWORD", "OPERATOR", "LITERAL", "EOF"}
+Token == [type: TokenType, pos: Location]
+
+(* Translation object maps TLA+ region to PCal region *)
+TranslationObj == [tlaReg: Region, pcalReg: Region]
+
+(* Predicates for well-formedness *)
+
+(* Check if a location is valid *)
+ValidLocation(loc) ==
+    /\ loc.line >= 1
+    /\ loc.line <= MaxLine
+    /\ loc.col >= 1
+    /\ loc.col <= MaxCol
+
+(* Check if a region is well-formed (begin <= end) *)
+WellFormedRegion(reg) ==
+    /\ ValidLocation(reg.begin)
+    /\ ValidLocation(reg.end)
+    /\ \/ reg.begin.line < reg.end.line
+       \/ /\ reg.begin.line = reg.end.line
+          /\ reg.begin.col <= reg.end.col
+
+(* Location ordering: loc1 is before or equal to loc2 *)
+LocationLEQ(loc1, loc2) ==
+    \/ loc1.line < loc2.line
+    \/ /\ loc1.line = loc2.line
+       /\ loc1.col <= loc2.col
+
+(* Location ordering: loc1 is strictly before loc2 *)
+LocationLT(loc1, loc2) ==
+    \/ loc1.line < loc2.line
+    \/ /\ loc1.line = loc2.line
+       /\ loc1.col < loc2.col
+
+(* Check if a location is within a region *)
+LocationInRegion(loc, reg) ==
+    /\ LocationLEQ(reg.begin, loc)
+    /\ LocationLEQ(loc, reg.end)
+
+(* Check if two regions overlap *)
+RegionsOverlap(reg1, reg2) ==
+    /\ LocationLEQ(reg1.begin, reg2.end)
+    /\ LocationLEQ(reg2.begin, reg1.end)
+
+(* Check if reg1 is contained within reg2 *)
+RegionContained(reg1, reg2) ==
+    /\ LocationLEQ(reg2.begin, reg1.begin)
+    /\ LocationLEQ(reg1.end, reg2.end)
+
+(* Well-formedness of translation object *)
+WellFormedTranslation(trans) ==
+    /\ WellFormedRegion(trans.tlaReg)
+    /\ WellFormedRegion(trans.pcalReg)
+
+(* Token sequence well-formedness: tokens are ordered by position *)
+TokensWellOrdered(toks) ==
+    \A i, j \in 1..Len(toks):
+        i < j => LocationLT(toks[i].pos, toks[j].pos)
+
+(* Check if all tokens are within a region *)
+TokensInRegion(toks, reg) ==
+    \A i \in 1..Len(toks): LocationInRegion(toks[i].pos, reg)
+
+(* Initial predicate *)
+Init ==
+    /\ tlaRegion = [begin |-> [line |-> 1, col |-> 1],
+                    end |-> [line |-> 1, col |-> 1]]
+    /\ pcalRegion = [begin |-> [line |-> 1, col |-> 1],
+                     end |-> [line |-> 1, col |-> 1]]
+    /\ tokens = <<>>
+    /\ currentToken = 0
+    /\ parenDepth = 0
+    /\ tokenPositions = <<>>
+    /\ regionMapping = {}
+    /\ pc = "Start"
+    /\ stack = <<>>
+
+(* Action: Start analysis of a new region *)
+StartAnalysis ==
+    /\ pc = "Start"
+    /\ \E begLine \in 1..MaxLine, begCol \in 1..MaxCol,
+          endLine \in 1..MaxLine, endCol \in 1..MaxCol:
+        /\ \/ begLine < endLine
+           \/ /\ begLine = endLine
+              /\ begCol <= endCol
+        /\ tlaRegion' = [begin |-> [line |-> begLine, col |-> begCol],
+                         end |-> [line |-> endLine, col |-> endCol]]
+        /\ pcalRegion' = [begin |-> [line |-> begLine, col |-> begCol],
+                          end |-> [line |-> endLine, col |-> endCol]]
+    /\ tokens' = <<>>
+    /\ currentToken' = 0
+    /\ parenDepth' = 0
+    /\ tokenPositions' = <<>>
+    /\ stack' = <<>>
+    /\ pc' = "Tokenize"
+    /\ UNCHANGED regionMapping
+
+(* Action: Generate tokens for the region *)
+Tokenize ==
+    /\ pc = "Tokenize"
+    /\ Len(tokens) < MaxTokens
+    /\ \E tokType \in TokenType \ {"EOF"}:
+        \E line \in tlaRegion.begin.line..tlaRegion.end.line:
+            \E col \in 1..MaxCol:
+                /\ LocationInRegion([line |-> line, col |-> col], tlaRegion)
+                /\ \/ tokens = <<>>
+                   \/ LocationLT(tokens[Len(tokens)].pos, [line |-> line, col |-> col])
+                /\ tokens' = Append(tokens, [type |-> tokType, pos |-> [line |-> line, col |-> col]])
+                /\ tokenPositions' = Append(tokenPositions, [line |-> line, col |-> col])
+    /\ UNCHANGED <<tlaRegion, pcalRegion, currentToken, parenDepth, regionMapping, pc, stack>>
+
+(* Action: Finish tokenization *)
+FinishTokenize ==
+    /\ pc = "Tokenize"
+    /\ \/ Len(tokens) >= MaxTokens
+       \/ Len(tokens) > 0
+    /\ Len(tokens) > 0
+    /\ pc' = "Analyze"
+    /\ currentToken' = 1
+    /\ UNCHANGED <<tlaRegion, pcalRegion, tokens, parenDepth, tokenPositions, regionMapping, stack>>
+
+(* Action: Analyze current token for parenthesis depth *)
+AnalyzeToken ==
+    /\ pc = "Analyze"
+    /\ currentToken <= Len(tokens)
+    /\ currentToken >= 1
+    /\ LET tok == tokens[currentToken]
+       IN
+        /\ IF tok.type = "LPAREN"
+           THEN /\ parenDepth' = parenDepth + 1
+                /\ parenDepth + 1 <= MaxDepth
+                /\ stack' = Append(stack, tok.pos)
+           ELSE IF tok.type = "RPAREN"
+                THEN /\ parenDepth > 0
+                     /\ parenDepth' = parenDepth - 1
+                     /\ stack' = IF Len(stack) > 0 
+                                 THEN SubSeq(stack, 1, Len(stack) - 1)
+                                 ELSE <<>>
+                ELSE /\ UNCHANGED <<parenDepth, stack>>
+        /\ currentToken' = currentToken + 1
+    /\ UNCHANGED <<tlaRegion, pcalRegion, tokens, tokenPositions, regionMapping, pc>>
+
+(* Action: Finish analysis *)
+FinishAnalysis ==
+    /\ pc = "Analyze"
+    /\ currentToken > Len(tokens)
+    /\ parenDepth = 0  \* Assertion: parentheses must be balanced
+    /\ stack = <<>>    \* Stack must be empty
+    /\ pc' = "MapRegion"
+    /\ UNCHANGED <<tlaRegion, pcalRegion, tokens, currentToken, parenDepth, tokenPositions, regionMapping, stack>>
+
+(* Action: Create region mapping *)
+MapRegion ==
+    /\ pc = "MapRegion"
+    /\ WellFormedRegion(tlaRegion)
+    /\ WellFormedRegion(pcalRegion)
+    /\ TokensInRegion(tokens, tlaRegion)
+    /\ \/ tokens = <<>>
+       \/ TokensWellOrdered(tokens)
+    /\ regionMapping' = regionMapping \cup 
+                        {[tlaReg |-> tlaRegion, pcalReg |-> pcalRegion]}
+    /\ pc' = "Done"
+    /\ UNCHANGED <<tlaRegion, pcalRegion, tokens, currentToken, parenDepth, tokenPositions, stack>>
+
+(* Action: Reset for next iteration *)
+Reset ==
+    /\ pc = "Done"
+    /\ pc' = "Start"
+    /\ UNCHANGED <<tlaRegion, pcalRegion, tokens, currentToken, parenDepth, tokenPositions, regionMapping, stack>>
+
+(* Next state relation *)
+Next ==
+    \/ StartAnalysis
+    \/ Tokenize
+    \/ FinishTokenize
+    \/ AnalyzeToken
+    \/ FinishAnalysis
+    \/ MapRegion
+    \/ Reset
+
+(* Fairness conditions *)
+Fairness ==
+    /\ WF_<<tlaRegion, pcalRegion, tokens, currentToken, parenDepth, tokenPositions, regionMapping, pc, stack>>(Next)
+
+(* Specification *)
+Spec == Init /\ [][Next]_<<tlaRegion, pcalRegion, tokens, currentToken, parenDepth, tokenPositions, regionMapping, pc, stack>> /\ Fairness
+
+(* ==================== SAFETY INVARIANTS ==================== *)
+
+(* Invariant: Parenthesis depth is always non-negative *)
+ParenDepthNonNegative ==
+    parenDepth >= 0
+
+(* Invariant: Parenthesis depth never exceeds maximum *)
+ParenDepthBounded ==
+    parenDepth <= MaxDepth
+
+(* Invariant: Current token index is valid *)
+CurrentTokenValid ==
+    currentToken >= 0 /\ currentToken <= Len(tokens) + 1
+
+(* Invariant: TLA+ region is always well-formed when not in Start state *)
+TLARegionWellFormed ==
+    pc /= "Start" => WellFormedRegion(tlaRegion)
+
+(* Invariant: PCal region is always well-formed when not in Start state *)
+PCalRegionWellFormed ==
+    pc /= "Start" => WellFormedRegion(pcalRegion)
+
+(* Invariant: Tokens are ordered by position *)
+TokensOrdered ==
+    TokensWellOrdered(tokens)
+
+(* Invariant: All tokens are within the TLA+ region *)
+TokensWithinRegion ==
+    pc \notin {"Start", "Tokenize"} => TokensInRegion(tokens, tlaRegion)
+
+(* Invariant: Token positions sequence matches tokens *)
+TokenPositionsConsistent ==
+    Len(tokenPositions) = Len(tokens)
+
+(* Invariant: Stack depth matches parenthesis depth *)
+StackDepthConsistent ==
+    Len(stack) = parenDepth
+
+(* Invariant: All mappings in regionMapping are well-formed *)
+MappingsWellFormed ==
+    \A mapping \in regionMapping: WellFormedTranslation(mapping)
+
+(* Invariant: Program counter is valid *)
+ValidPC ==
+    pc \in {"Start", "Tokenize", "Analyze", "MapRegion", "Done"}
+
+(* Combined type invariant *)
+TypeInvariant ==
+    /\ tlaRegion \in Region
+    /\ pcalRegion \in Region
+    /\ currentToken \in 0..(MaxTokens + 1)
+    /\ parenDepth \in 0..MaxDepth
+    /\ pc \in {"Start", "Tokenize", "Analyze", "MapRegion", "Done"}
+
+(* Master safety invariant *)
+SafetyInvariant ==
+    /\ ParenDepthNonNegative
+    /\ ParenDepthBounded
+    /\ CurrentTokenValid
+    /\ TLARegionWellFormed
+    /\ PCalRegionWellFormed
+    /\ TokensOrdered
+    /\ TokenPositionsConsistent
+    /\ StackDepthConsistent
+    /\ MappingsWellFormed
+    /\ ValidPC
+
+(* ==================== LIVENESS PROPERTIES ==================== *)
+
+(* Liveness: If we start analysis, we eventually finish *)
+AnalysisEventuallyCompletes ==
+    pc = "Start" ~> pc = "Done"
+
+(* Liveness: Tokenization eventually completes *)
+TokenizationCompletes ==
+    pc = "Tokenize" ~> pc \in {"Analyze", "Done"}
+
+(* Liveness: Token analysis eventually completes *)
+TokenAnalysisCompletes ==
+    pc = "Analyze" ~> pc \in {"MapRegion", "Done"}
+
+(* Liveness: Region mapping is eventually created *)
+MappingEventuallyCreated ==
+    pc = "MapRegion" ~> pc = "Done"
+
+===================================================================================
+```

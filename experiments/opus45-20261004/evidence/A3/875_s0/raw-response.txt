@@ -1,0 +1,109 @@
+```tla
+---------------------------- MODULE SpanningTree ----------------------------
+
+EXTENDS Integers, FiniteSets, TLC
+
+CONSTANTS Nodes, Root
+
+ASSUME Root \in Nodes
+
+VARIABLES mom, dist
+
+vars == <<mom, dist>>
+
+-----------------------------------------------------------------------------
+(* Define Edges using RandomElement to generate a random undirected graph *)
+
+RandomSubset(S) == RandomElement(SUBSET S)
+
+EdgesFrom(n) == RandomSubset(Nodes \ {n})
+
+Edges == UNION {{{n, m} : m \in EdgesFrom(n)} : n \in Nodes}
+
+Neighbors(n) == {m \in Nodes : {n, m} \in Edges}
+
+-----------------------------------------------------------------------------
+(* Type definitions *)
+
+TypeOK == /\ mom \in [Nodes -> Nodes]
+          /\ dist \in [Nodes -> Nat \cup {-1}]
+
+-----------------------------------------------------------------------------
+(* Initial state *)
+
+Init == /\ mom = [n \in Nodes |-> n]
+        /\ dist = [n \in Nodes |-> IF n = Root THEN 0 ELSE -1]
+
+-----------------------------------------------------------------------------
+(* Next state action: a node adopts a neighbor with strictly smaller distance *)
+
+(* A node n can adopt neighbor m if m has a valid distance and either
+   n has no distance yet (-1) or m's distance is strictly smaller *)
+CanAdopt(n, m) == /\ m \in Neighbors(n)
+                  /\ dist[m] >= 0
+                  /\ \/ dist[n] = -1
+                     \/ dist[m] < dist[n]
+
+(* Choose a new distance strictly between m's distance and n's current distance (or any larger value) *)
+ChooseDistance(n, m) == 
+    IF dist[n] = -1 
+    THEN dist[m] + 1
+    ELSE CHOOSE d \in (dist[m]+1)..(dist[n]-1) : TRUE
+
+AdoptNeighbor(n, m) ==
+    /\ CanAdopt(n, m)
+    /\ mom' = [mom EXCEPT ![n] = m]
+    /\ dist' = [dist EXCEPT ![n] = IF dist[n] = -1 
+                                   THEN dist[m] + 1
+                                   ELSE CHOOSE d \in {d \in (dist[m]+1)..dist[n] : d < dist[n]} : TRUE]
+
+Next == \E n \in Nodes : \E m \in Nodes : AdoptNeighbor(n, m)
+
+-----------------------------------------------------------------------------
+(* Postcondition: characterizes a rooted spanning-tree or unreachable nodes *)
+
+(* A node is reachable if it can reach Root through the graph *)
+ReachableNodes == {n \in Nodes : \E path \in Seq(Nodes) : 
+                    /\ Len(path) > 0
+                    /\ path[1] = n
+                    /\ path[Len(path)] = Root
+                    /\ \A i \in 1..(Len(path)-1) : {path[i], path[i+1]} \in Edges}
+
+(* Postcondition for spanning tree:
+   - Root points to itself with distance 0
+   - Each reachable non-root node points to a neighbor with smaller distance
+   - Unreachable nodes point to themselves with distance -1 *)
+Postcondition ==
+    /\ mom[Root] = Root
+    /\ dist[Root] = 0
+    /\ \A n \in Nodes \ {Root} :
+        \/ /\ dist[n] >= 1
+           /\ mom[n] \in Neighbors(n)
+           /\ dist[n] = dist[mom[n]] + 1
+        \/ /\ dist[n] = -1
+           /\ mom[n] = n
+
+-----------------------------------------------------------------------------
+(* Safety property: quiescence implies postcondition *)
+
+Quiescent == ~ENABLED Next
+
+SafetyProperty == Quiescent => Postcondition
+
+-----------------------------------------------------------------------------
+(* Liveness property: eventually the postcondition holds *)
+
+LivenessProperty == <>Postcondition
+
+-----------------------------------------------------------------------------
+(* Specification with weak fairness *)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+-----------------------------------------------------------------------------
+(* Invariants to check *)
+
+Invariant == TypeOK
+
+=============================================================================
+```

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n--------------------------- MODULE Quicksort ---------------------------\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANT ArrayLen\n\nASSUME ArrayLen \\in Nat /\\ ArrayLen > 0\n\n\\* Helper operator: set of all permutations of a sequence\nPermutationsOf(s) ==\n    LET Domain == 1..Len(s)\n        Perms == {f \\in [Domain -> Domain] : \\A i, j \\in Domain : i # j => f[i] # f[j]}\n    IN {[i \\in Domain |-> s[f[i]]] : f \\in Perms}\n\n\\* Check if sequence is sorted\nIsSorted(arr) ==\n    \\A i, j \\in DOMAIN arr : i < j => arr[i] <= arr[j]\n\n\\* Check if two sequences are permutations of each other\nIsPermutation(arr1, arr2) ==\n    /\\ Len(arr1) = Len(arr2)\n    /\\ LET Bag(s) == [v \\in {s[i] : i \\in DOMAIN s} |-> Cardinality({i \\in DOMAIN s : s[i] = v})]\n       IN Bag(arr1) = Bag(arr2)\n\nVARIABLES \n    A,           \\* The array being sorted\n    A0,          \\* Initial array (for checking permutation property)\n    pc,          \\* Program counter\n    stack,       \\* Stack for recursive calls\n    lo,          \\* Current lower bound\n    hi           \\* Current upper bound\n\nvars == <<A, A0, pc, stack, lo, hi>>\n\n\\* Initial state: array contains values 1..ArrayLen in some order, starting call to QS(1, ArrayLen)\nInit ==\n    /\\ A \\in PermutationsOf([i \\in 1..ArrayLen |-> i])\n    /\\ A0 = A\n    /\\ pc = \"QS\"\n    /\\ stack = <<>>\n    /\\ lo = 1\n    /\\ hi = ArrayLen\n\n\\* Partition and recursive call logic\n\\* When pc = \"QS\": if lo >= hi, return; otherwise partition and recurse\nQS ==\n    /\\ pc = \"QS\"\n    /\\ IF lo >= hi\n       THEN \\* Base case: subarray of size 0 or 1, return\n            IF stack = <<>>\n            THEN /\\ pc' = \"Done\"\n                 /\\ UNCHANGED <<A, A0, stack, lo, hi>>\n            ELSE /\\ pc' = \"QS\"\n                 /\\ lo' = Head(stack).lo\n                 /\\ hi' = Head(stack).hi\n                 /\\ stack' = Tail(stack)\n                 /\\ UNCHANGED <<A, A0>>\n       ELSE \\* Choose pivot and partition\n            \\E pivotIdx \\in lo..hi :\n                \\E newA \\in [1..ArrayLen -> 1..ArrayLen] :\n                    \\* newA must be a valid partitioned permutation\n                    /\\ \\A i \\in 1..ArrayLen : \n                        (i < lo \\/ i > hi) => newA[i] = A[i]\n                    /\\ {newA[i] : i \\in lo..hi} = {A[i] : i \\in lo..hi}\n                    /\\ \\A i \\in lo..pivotIdx, j \\in (pivotIdx+1)..hi :\n                        (i <= hi /\\ j <= hi /\\ i >= lo /\\ j >= lo) => newA[i] <= newA[j]\n                    /\\ A' = newA\n                    /\\ IF pivotIdx + 1 < hi\n                       THEN \\* Need to recurse on right subarray after left\n                            /\\ stack' = <<[lo |-> pivotIdx + 1, hi |-> hi]>> \\o stack\n                            /\\ lo' = lo\n                            /\\ hi' = pivotIdx - 1\n                            /\\ pc' = \"QS\"\n                       ELSE \\* Only left subarray needs processing\n                            /\\ stack' = stack\n                            /\\ lo' = lo\n                            /\\ hi' = pivotIdx - 1\n                            /\\ pc' = \"QS\"\n                    /\\ UNCHANGED A0\n\n\\* Terminal state\nDone ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == QS \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety invariant: A is always a permutation of A0\nTypeInvariant ==\n    /\\ A \\in [1..ArrayLen -> 1..ArrayLen]\n    /\\ A0 \\in [1..ArrayLen -> 1..ArrayLen]\n    /\\ pc \\in {\"QS\", \"Done\"}\n    /\\ lo \\in 1..ArrayLen\n    /\\ hi \\in 0..ArrayLen \\/ hi \\in 1..ArrayLen\n\nPermutationInvariant ==\n    IsPermutation(A, A0)\n\n\\* Termination property\nTermination == <>(pc = \"Done\")\n\n\\* Final state property: array is sorted and is a permutation of initial\nFinalStateCorrect ==\n    pc = \"Done\" => (IsSorted(A) /\\ IsPermutation(A, A0))\n\n=========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 303,
+    "outputTokens": 1302,
+    "totalTokens": 1605,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 21410
+  }
+}

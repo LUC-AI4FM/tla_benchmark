@@ -1,0 +1,60 @@
+---------------------------- MODULE CoffeeCan ----------------------------
+EXTENDS Naturals
+
+CONSTANT MaxBeanCount
+
+VARIABLE can
+
+TypeOK == 
+    /\ can \in [black: 0..MaxBeanCount, white: 0..MaxBeanCount]
+
+TotalBeans == can.black + can.white
+
+Init ==
+    /\ can \in [black: 0..MaxBeanCount, white: 0..MaxBeanCount]
+    /\ TotalBeans >= 1
+
+RemoveTwoBlack ==
+    /\ can.black >= 2
+    /\ can' = [can EXCEPT !.black = @ - 1]
+
+RemoveTwoWhite ==
+    /\ can.white >= 2
+    /\ can' = [can EXCEPT !.white = @ - 1, !.black = @ + 1]
+
+RemoveOneOfEach ==
+    /\ can.black >= 1
+    /\ can.white >= 1
+    /\ can' = [can EXCEPT !.white = @ - 1]
+
+Terminated == TotalBeans = 1
+
+Termination ==
+    /\ Terminated
+    /\ UNCHANGED can
+
+Next ==
+    \/ RemoveTwoBlack
+    \/ RemoveTwoWhite
+    \/ RemoveOneOfEach
+    \/ Termination
+
+Spec == Init /\ [][Next]_can /\ WF_can(Next)
+
+MonotonicDecrease ==
+    [][TotalBeans' <= TotalBeans]_can
+
+EventualTermination ==
+    <>(TotalBeans = 1)
+
+ParityInvariant ==
+    (can.white % 2) = (can.white % 2)
+
+WhiteParityPreserved ==
+    [][(can'.white % 2) = (can.white % 2)]_can
+
+FinalBeanHypothesis ==
+    [](Terminated => 
+        ((can.white = 1) \/ (can.black = 1)))
+
+==========================================================================

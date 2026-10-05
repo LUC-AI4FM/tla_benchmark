@@ -1,0 +1,105 @@
+```tla+
+---- MODULE MCMultiNodeReadsAltInit ----
+
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS 
+    Nodes,
+    Keys,
+    Values,
+    TxnIds,
+    MaxTxns
+
+VARIABLES 
+    ledgerBranches,
+    history,
+    nodeStates,
+    pendingTxns,
+    committedTxns,
+    txnCounter
+
+vars == <<ledgerBranches, history, nodeStates, pendingTxns, committedTxns, txnCounter>>
+
+\* Type definitions for clarity
+NullValue == CHOOSE v : v \notin Values
+
+\* Base action imported from the base specification
+\* This represents the next-state action from MCMultiNodeReads
+MCNextMultiNodeReadsAction ==
+    \/ \E node \in Nodes, key \in Keys, val \in Values, txnId \in TxnIds :
+        /\ txnCounter < MaxTxns
+        /\ txnId \notin (pendingTxns \cup committedTxns)
+        /\ pendingTxns' = pendingTxns \cup {txnId}
+        /\ txnCounter' = txnCounter + 1
+        /\ nodeStates' = [nodeStates EXCEPT ![node][key] = val]
+        /\ ledgerBranches' = [ledgerBranches EXCEPT ![node] = Append(@, [key |-> key, val |-> val, txnId |-> txnId])]
+        /\ history' = Append(history, [type |-> "write", node |-> node, key |-> key, val |-> val, txnId |-> txnId])
+        /\ committedTxns' = committedTxns
+    \/ \E node \in Nodes, key \in Keys, txnId \in TxnIds :
+        /\ txnId \in pendingTxns
+        /\ pendingTxns' = pendingTxns \ {txnId}
+        /\ committedTxns' = committedTxns \cup {txnId}
+        /\ history' = Append(history, [type |-> "commit", txnId |-> txnId, committed |-> TRUE])
+        /\ UNCHANGED <<ledgerBranches, nodeStates, txnCounter>>
+    \/ \E node \in Nodes, key \in Keys :
+        /\ history' = Append(history, [type |-> "read", node |-> node, key |-> key, response |-> nodeStates[node][key]])
+        /\ UNCHANGED <<ledgerBranches, nodeStates, pendingTxns, committedTxns, txnCounter>>
+
+\* Alternative initial state with two transactions already committed
+\* Transaction 1 and Transaction 2 are pre-committed with their responses recorded
+AltInit ==
+    /\ Nodes # {}
+    /\ Keys # {}
+    /\ \E n1, n2 \in Nodes, k1, k2 \in Keys, v1, v2 \in Values, t1, t2 \in TxnIds :
+        /\ t1 # t2
+        /\ ledgerBranches = [n \in Nodes |-> 
+            IF n = n1 THEN <<[key |-> k1, val |-> v1, txnId |-> t1]>>
+            ELSE IF n = n2 THEN <<[key |-> k2, val |-> v2, txnId |-> t2]>>
+            ELSE <<>>]
+        /\ nodeStates = [n \in Nodes |-> [k \in Keys |->
+            IF n = n1 /\ k = k1 THEN v1
+            ELSE IF n = n2 /\ k = k2 THEN v2
+            ELSE NullValue]]
+        /\ history = <<
+            [type |-> "write", node |-> n1, key |-> k1, val |-> v1, txnId |-> t1],
+            [type |-> "response", txnId |-> t1, status |-> "ok"],
+            [type |-> "commit", txnId |-> t1, committed |-> TRUE],
+            [type |-> "write", node |-> n2, key |-> k2, val |-> v2, txnId |-> t2],
+            [type |-> "response", txnId |-> t2, status |-> "ok"],
+            [type |-> "commit", txnId |-> t2, committed |-> TRUE]
+        >>
+        /\ pendingTxns = {}
+        /\ committedTxns = {t1, t2}
+        /\ txnCounter = 2
+
+\* Temporal specification starting from alternative initial state
+Spec == AltInit /\ [][MCNextMultiNodeReadsAction]_vars
+
+\* Safety invariant: committed transactions should be recorded in history
+TypeInvariant ==
+    /\ ledgerBranches \in [Nodes -> Seq([key: Keys, val: Values, txnId: TxnIds])]
+    /\ history \in Seq([type: {"write", "read", "commit", "response"}, 
+                        node: Nodes \cup {NullValue}, 
+                        key: Keys \cup {NullValue}, 
+                        val: Values \cup {NullValue},
+                        txnId: TxnIds \cup {NullValue},
+                        response: Values \cup {NullValue},
+                        status: {"ok", "error"} \cup {NullValue},
+                        committed: BOOLEAN \cup {NullValue}])
+    /\ pendingTxns \subseteq TxnIds
+    /\ committedTxns \subseteq TxnIds
+    /\ txnCounter \in Nat
+
+\* Safety: No transaction can be both pending and committed
+NoDoubleCommit == pendingTxns \cap committedTxns = {}
+
+\* Safety: All committed transactions have a commit record in history
+CommittedInHistory ==
+    \A txn \in committedTxns :
+        \E i \in 1..Len(history) :
+            /\ history[i].type = "commit"
+            /\ history[i].txnId = txn
+            /\ history[i].committed = TRUE
+
+====
+```

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nProcs == 1..N\n\nVARIABLES pc, x, y, b, S\n\nvars == <<pc, x, y, b, S>>\n\nLabels == {\"ncs\", \"start\", \"l1\", \"l2\", \"l3\", \"l4\", \"l5\", \"l6\", \"cs\", \"l7\", \"l8\"}\n\nTypeOK ==\n    /\\ pc \\in [Procs -> Labels]\n    /\\ x \\in Procs \\cup {0}\n    /\\ y \\in Procs \\cup {0}\n    /\\ b \\in [Procs -> BOOLEAN]\n    /\\ S \\in [Procs -> SUBSET Procs]\n\nInit ==\n    /\\ pc = [p \\in Procs |-> \"ncs\"]\n    /\\ x = 0\n    /\\ y = 0\n    /\\ b = [p \\in Procs |-> FALSE]\n    /\\ S = [p \\in Procs |-> {}]\n\n(* Non-critical section - process decides to enter critical section *)\nncs(p) ==\n    /\\ pc[p] = \"ncs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Start of algorithm - set b[p] to TRUE *)\nstart(p) ==\n    /\\ pc[p] = \"start\"\n    /\\ b' = [b EXCEPT ![p] = TRUE]\n    /\\ pc' = [pc EXCEPT ![p] = \"l1\"]\n    /\\ UNCHANGED <<x, y, S>>\n\n(* l1: Set x to p *)\nl1(p) ==\n    /\\ pc[p] = \"l1\"\n    /\\ x' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"l2\"]\n    /\\ UNCHANGED <<y, b, S>>\n\n(* l2: Check if y is 0, if not go back to start after setting b[p] to FALSE *)\nl2(p) ==\n    /\\ pc[p] = \"l2\"\n    /\\ IF y /= 0\n       THEN /\\ b' = [b EXCEPT ![p] = FALSE]\n            /\\ pc' = [pc EXCEPT ![p] = \"l3\"]\n            /\\ UNCHANGED <<x, y, S>>\n       ELSE /\\ pc' = [pc EXCEPT ![p] = \"l4\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n\n(* l3: Wait until y = 0, then restart *)\nl3(p) ==\n    /\\ pc[p] = \"l3\"\n    /\\ y = 0\n    /\\ pc' = [pc EXCEPT ![p] = \"start\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l4: Set y to p *)\nl4(p) ==\n    /\\ pc[p] = \"l4\"\n    /\\ y' = p\n    /\\ pc' = [pc EXCEPT ![p] = \"l5\"]\n    /\\ UNCHANGED <<x, b, S>>\n\n(* l5: Check if x = p *)\nl5(p) ==\n    /\\ pc[p] = \"l5\"\n    /\\ IF x /= p\n       THEN /\\ b' = [b EXCEPT ![p] = FALSE]\n            /\\ pc' = [pc EXCEPT ![p] = \"l6\"]\n            /\\ UNCHANGED <<x, y, S>>\n       ELSE /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n            /\\ UNCHANGED <<x, y, b, S>>\n\n(* l6: Collect all processes q where b[q] is TRUE into S[p], then check if y = p *)\nl6(p) ==\n    /\\ pc[p] = \"l6\"\n    /\\ S' = [S EXCEPT ![p] = {q \\in Procs : b[q]}]\n    /\\ IF y /= p\n       THEN /\\ pc' = [pc EXCEPT ![p] = \"l3\"]\n            /\\ UNCHANGED <<x, y, b>>\n       ELSE /\\ pc' = [pc EXCEPT ![p] = \"l7\"]\n            /\\ UNCHANGED <<x, y, b>>\n\n(* l7: Wait until all processes in S[p] have b[q] = FALSE *)\nl7(p) ==\n    /\\ pc[p] = \"l7\"\n    /\\ \\A q \\in S[p] : ~b[q]\n    /\\ pc' = [pc EXCEPT ![p] = \"cs\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* Critical section - process is in CS *)\ncs(p) ==\n    /\\ pc[p] = \"cs\"\n    /\\ pc' = [pc EXCEPT ![p] = \"l8\"]\n    /\\ UNCHANGED <<x, y, b, S>>\n\n(* l8: Exit protocol - set y to 0 and b[p] to FALSE *)\nl8(p) ==\n    /\\ pc[p] = \"l8\"\n    /\\ y' = 0\n    /\\ b' = [b EXCEPT ![p] = FALSE]\n    /\\ pc' = [pc EXCEPT ![p] = \"ncs\"]\n    /\\ UNCHANGED <<x, S>>\n\n(* Process p takes a step *)\nproc(p) ==\n    \\/ ncs(p)\n    \\/ start(p)\n    \\/ l1(p)\n    \\/ l2(p)\n    \\/ l3(p)\n    \\/ l4(p)\n    \\/ l5(p)\n    \\/ l6(p)\n    \\/ l7(p)\n    \\/ cs(p)\n    \\/ l8(p)\n\nNext == \\E p \\in Procs : proc(p)\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Safety: Mutual exclusion - no two distinct processes in CS simultaneously *)\nMutualExclusion == \\A p, q \\in Procs : (p /= q) => ~(pc[p] = \"cs\" /\\ pc[q] = \"cs\")\n\n(* Liveness: Infinitely often some process is in the critical section *)\nLiveness == []<>(\\E p \\in Procs : pc[p] = \"cs\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 253,
+    "outputTokens": 1596,
+    "totalTokens": 1849,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 18570
+  }
+}

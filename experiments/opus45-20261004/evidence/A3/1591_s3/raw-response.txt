@@ -1,0 +1,191 @@
+```tla+
+---------------------------- MODULE EvenOdd ----------------------------
+EXTENDS Naturals, Sequences, TLC
+
+CONSTANT N
+
+VARIABLES pc, stack, xEven, xOdd, result
+
+vars == <<pc, stack, xEven, xOdd, result>>
+
+----------------------------------------------------------------------------
+(* Initial state *)
+
+Init ==
+    /\ pc = "CallEvenMain"
+    /\ stack = <<>>
+    /\ xEven = 0
+    /\ xOdd = 0
+    /\ result = FALSE
+
+----------------------------------------------------------------------------
+(* Procedure Even *)
+
+(* Entry point: call Even(N) from main *)
+CallEvenMain ==
+    /\ pc = "CallEvenMain"
+    /\ xEven' = N
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<stack, xOdd, result>>
+
+(* Check if xEven = 0 *)
+EvenCheck ==
+    /\ pc = "EvenCheck"
+    /\ IF xEven = 0
+       THEN /\ result' = TRUE
+            /\ IF stack = <<>>
+               THEN pc' = "Done"
+               ELSE /\ pc' = Head(stack).returnTo
+                    /\ stack' = Tail(stack)
+                    /\ IF Head(stack).proc = "Even"
+                       THEN xEven' = Head(stack).x
+                            /\ UNCHANGED xOdd
+                       ELSE xOdd' = Head(stack).x
+                            /\ UNCHANGED xEven
+            /\ IF stack # <<>> THEN UNCHANGED <<>> ELSE UNCHANGED <<xEven, xOdd>>
+       ELSE /\ pc' = "EvenCallOdd"
+            /\ UNCHANGED <<stack, result, xEven, xOdd>>
+
+EvenCheck2 ==
+    /\ pc = "EvenCheck"
+    /\ xEven = 0
+    /\ result' = TRUE
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE /\ pc' = Head(stack).returnTo
+            /\ xEven' = Head(stack).xEven
+            /\ xOdd' = Head(stack).xOdd
+            /\ stack' = Tail(stack)
+
+EvenCheckNonZero ==
+    /\ pc = "EvenCheck"
+    /\ xEven # 0
+    /\ pc' = "EvenCallOdd"
+    /\ UNCHANGED <<stack, xEven, xOdd, result>>
+
+(* Even calls Odd(xEven - 1) *)
+EvenCallOdd ==
+    /\ pc = "EvenCallOdd"
+    /\ stack' = <<[returnTo |-> "EvenReturn", xEven |-> xEven, xOdd |-> xOdd]>> \o stack
+    /\ xOdd' = xEven - 1
+    /\ pc' = "OddCheck"
+    /\ UNCHANGED <<xEven, result>>
+
+(* Return from Odd to Even *)
+EvenReturn ==
+    /\ pc = "EvenReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd, result>>
+       ELSE /\ pc' = Head(stack).returnTo
+            /\ xEven' = Head(stack).xEven
+            /\ xOdd' = Head(stack).xOdd
+            /\ stack' = Tail(stack)
+            /\ UNCHANGED result
+
+----------------------------------------------------------------------------
+(* Procedure Odd *)
+
+OddCheckZero ==
+    /\ pc = "OddCheck"
+    /\ xOdd = 0
+    /\ result' = FALSE
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE /\ pc' = Head(stack).returnTo
+            /\ xEven' = Head(stack).xEven
+            /\ xOdd' = Head(stack).xOdd
+            /\ stack' = Tail(stack)
+
+OddCheckNonZero ==
+    /\ pc = "OddCheck"
+    /\ xOdd # 0
+    /\ pc' = "OddCallEven"
+    /\ UNCHANGED <<stack, xEven, xOdd, result>>
+
+(* Odd calls Even(xOdd - 1) *)
+OddCallEven ==
+    /\ pc = "OddCallEven"
+    /\ stack' = <<[returnTo |-> "OddReturn", xEven |-> xEven, xOdd |-> xOdd]>> \o stack
+    /\ xEven' = xOdd - 1
+    /\ pc' = "EvenCheck"
+    /\ UNCHANGED <<xOdd, result>>
+
+(* Return from Even to Odd *)
+OddReturn ==
+    /\ pc = "OddReturn"
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd, result>>
+       ELSE /\ pc' = Head(stack).returnTo
+            /\ xEven' = Head(stack).xEven
+            /\ xOdd' = Head(stack).xOdd
+            /\ stack' = Tail(stack)
+            /\ UNCHANGED result
+
+----------------------------------------------------------------------------
+(* Termination - allow infinite stuttering *)
+
+Done ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ CallEvenMain
+    \/ EvenCheckZero
+    \/ EvenCheckNonZero
+    \/ EvenCallOdd
+    \/ EvenReturn
+    \/ OddCheckZero
+    \/ OddCheckNonZero
+    \/ OddCallEven
+    \/ OddReturn
+    \/ Done
+
+----------------------------------------------------------------------------
+(* Simplified version for cleaner specification *)
+
+EvenCheckZero ==
+    /\ pc = "EvenCheck"
+    /\ xEven = 0
+    /\ result' = TRUE
+    /\ IF stack = <<>>
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<stack, xEven, xOdd>>
+       ELSE /\ pc' = Head(stack).returnTo
+            /\ xEven' = Head(stack).xEven
+            /\ xOdd' = Head(stack).xOdd
+            /\ stack' = Tail(stack)
+
+----------------------------------------------------------------------------
+(* Temporal specification with weak fairness *)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+----------------------------------------------------------------------------
+(* Liveness property: eventual termination *)
+
+Termination == <>(pc = "Done")
+
+----------------------------------------------------------------------------
+(* Safety invariant: result correctly indicates even/odd when done *)
+
+TypeOK ==
+    /\ pc \in {"CallEvenMain", "EvenCheck", "EvenCallOdd", "EvenReturn",
+               "OddCheck", "OddCallEven", "OddReturn", "Done"}
+    /\ xEven \in Nat
+    /\ xOdd \in Nat
+    /\ result \in BOOLEAN
+    /\ stack \in Seq([returnTo : {"EvenReturn", "OddReturn"}, 
+                      xEven : Nat, xOdd : Nat])
+
+(* When done, result should be TRUE iff N is even *)
+CorrectResult == pc = "Done" => (result = (N % 2 = 0))
+
+============================================================================
+```

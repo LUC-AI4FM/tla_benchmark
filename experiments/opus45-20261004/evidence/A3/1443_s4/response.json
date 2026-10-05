@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SmallStateMachine ----------------------------\nEXTENDS Integers, TLC\n\nVARIABLES x\n\n\\* Helper predicates\nIsOne == x = 1\nAllDone == x = 2\nWrapAround == x = 2 /\\ x' = 0\n\n\\* Initial state\nInit == x = 0\n\n\\* Next state relation - advance modulo 3\nNext == x' = (x + 1) % 3\n\n\\* Temporal specification with stuttering\nSpec == Init /\\ [][Next]_x\n\n\\* Safety invariant - x is always in valid range\nTypeInvariant == x \\in 0..2\n\n\\* TLC-specific check for named-state coverage\n\\* This checks that three named predicates are each counted once\nTLCCoverageCheck ==\n    LET coverage == TLCGet(\"stats\").coverage\n        isOneCoverage == coverage[\"IsOne\"]\n        allDoneCoverage == coverage[\"AllDone\"]\n        wrapAroundCoverage == coverage[\"WrapAround\"]\n    IN /\\ Assert(isOneCoverage = 1, \"IsOne should be counted once\")\n       /\\ Assert(allDoneCoverage = 1, \"AllDone should be counted once\")\n       /\\ Assert(wrapAroundCoverage = 1, \"WrapAround should be counted once\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 261,
+    "outputTokens": 334,
+    "totalTokens": 595,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 5796
+  }
+}

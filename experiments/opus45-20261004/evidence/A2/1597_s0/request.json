@@ -1,0 +1,16 @@
+{
+  "modelId": "us.anthropic.claude-opus-4-5-20251101-v1:0",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "You are a TLA+ specification engineer. You will receive a natural language description of a system. Produce a complete, syntactically correct TLA+ specification that faithfully captures the described behavior. The output must be a valid TLA+ module that passes the SANY parser. Include the MODULE declaration, EXTENDS, CONSTANTS, VARIABLES, Init, Next and Spec. Include all safety invariants and liveness properties described, and any fairness conditions mentioned. Output only the TLA+ specification.\n\nSystem description: The module specifies a multi-process variant of Lamport's Fast Mutex algorithm, translated from PlusCal into TLA+. It models N processes competing for a critical section using shared variables: an integer `x` (last process to write its identity), an integer `y` (last process to claim priority), and a boolean array `b` indexed 1..N indicating whether each process is actively attempting entry.\n\nThe process set consists of a singleton `Proc1` (process 1) and a parameterized family `Proc2` covering processes 2..N. Both implement the same fast-mutex entry protocol: a process sets its `b` flag, writes its identity to `x`, then checks `y`. If `y` is nonzero it backs off and waits for `y` to clear; otherwise it writes `y` and checks whether `x` still holds its identity. If not, it clears its flag, waits for all other `b` flags to drop, then checks whether it owns `y`, setting a `failed` flag if not. A process enters the critical section only if `failed` is false; after the critical section it resets `y` and its `b` flag. Process-local variables `j`/`j2` serve as loop counters and `failed`/`failed2` track whether the fast path was lost.\n\nThe temporal specification `Spec` requires weak fairness for all processes. The model is checked with N=2. The mutual-exclusion invariant `Invariant` asserts no two distinct processes are simultaneously in the critical section. The liveness property `Liveness` requires that some process is infinitely often in the critical section."
+        }
+      ]
+    }
+  ],
+  "inferenceConfig": {
+    "maxTokens": 16000
+  }
+}

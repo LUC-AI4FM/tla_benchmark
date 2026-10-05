@@ -1,0 +1,94 @@
+```tla
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+ASSUME N \in Nat /\ N >= 2
+
+VARIABLES pc, forks
+
+vars == <<pc, forks>>
+
+Philosophers == 0..(N-1)
+
+LeftFork(i) == i
+RightFork(i) == (i + 1) % N
+
+Init ==
+    /\ pc = [i \in Philosophers |-> "thinking"]
+    /\ forks = [i \in Philosophers |-> 1]
+
+Think(i) ==
+    /\ pc[i] = "thinking"
+    /\ pc' = [pc EXCEPT ![i] = "hungry"]
+    /\ UNCHANGED forks
+
+AcquireFirstFork(i) ==
+    /\ pc[i] = "hungry"
+    /\ IF i = 0
+       THEN /\ forks[LeftFork(i)] > 0
+            /\ forks' = [forks EXCEPT ![LeftFork(i)] = @ - 1]
+       ELSE /\ forks[RightFork(i)] > 0
+            /\ forks' = [forks EXCEPT ![RightFork(i)] = @ - 1]
+    /\ pc' = [pc EXCEPT ![i] = "hasFirst"]
+
+AcquireSecondFork(i) ==
+    /\ pc[i] = "hasFirst"
+    /\ IF i = 0
+       THEN /\ forks[RightFork(i)] > 0
+            /\ forks' = [forks EXCEPT ![RightFork(i)] = @ - 1]
+       ELSE /\ forks[LeftFork(i)] > 0
+            /\ forks' = [forks EXCEPT ![LeftFork(i)] = @ - 1]
+    /\ pc' = [pc EXCEPT ![i] = "eating"]
+
+Eat(i) ==
+    /\ pc[i] = "eating"
+    /\ pc' = [pc EXCEPT ![i] = "done"]
+    /\ UNCHANGED forks
+
+ReleaseForks(i) ==
+    /\ pc[i] = "done"
+    /\ forks' = [forks EXCEPT ![LeftFork(i)] = @ + 1, ![RightFork(i)] = @ + 1]
+    /\ pc' = [pc EXCEPT ![i] = "thinking"]
+
+PhilosopherAction(i) ==
+    \/ Think(i)
+    \/ AcquireFirstFork(i)
+    \/ AcquireSecondFork(i)
+    \/ Eat(i)
+    \/ ReleaseForks(i)
+
+Next == \E i \in Philosophers : PhilosopherAction(i)
+
+Fairness ==
+    \A i \in Philosophers :
+        /\ SF_vars(AcquireFirstFork(i))
+        /\ SF_vars(AcquireSecondFork(i))
+        /\ SF_vars(Eat(i))
+        /\ SF_vars(ReleaseForks(i))
+        /\ WF_vars(Think(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+MutualExclusion ==
+    \A i, j \in Philosophers :
+        (i # j /\ (RightFork(i) = LeftFork(j) \/ LeftFork(i) = RightFork(j))) =>
+        ~(pc[i] = "eating" /\ pc[j] = "eating")
+
+AdjacentMutualExclusion ==
+    \A i \in Philosophers :
+        LET j == (i + 1) % N
+        IN ~(pc[i] = "eating" /\ pc[j] = "eating")
+
+Invariant == MutualExclusion
+
+StarvationFreedom ==
+    \A i \in Philosophers : pc[i] = "hungry" ~> pc[i] = "eating"
+
+TypeInvariant ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "hasFirst", "eating", "done"}]
+    /\ forks \in [Philosophers -> 0..1]
+
+=============================================================================
+```

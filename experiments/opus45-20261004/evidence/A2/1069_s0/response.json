@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n-------------------------------- MODULE TerminationDetection --------------------------------\n\nEXTENDS Integers, FiniteSets, TLAPS\n\nCONSTANTS N\n\nASSUME NAssumption == N \\in Nat /\\ N > 0\n\nVARIABLES active, pending, terminationDetected\n\nvars == <<active, pending, terminationDetected>>\n\nNodes == 0..(N-1)\n\nTypeOK ==\n    /\\ active \\in [Nodes -> BOOLEAN]\n    /\\ pending \\in [Nodes -> Nat]\n    /\\ terminationDetected \\in BOOLEAN\n\nTerminated ==\n    /\\ \\A n \\in Nodes : ~active[n]\n    /\\ \\A n \\in Nodes : pending[n] = 0\n\nInit ==\n    /\\ active \\in [Nodes -> BOOLEAN]\n    /\\ pending = [n \\in Nodes |-> 0]\n    /\\ terminationDetected = (\\A n \\in Nodes : ~active[n])\n\nTerminate(n) ==\n    /\\ active[n]\n    /\\ active' = [active EXCEPT ![n] = FALSE]\n    /\\ pending' = pending\n    /\\ terminationDetected' \\in {terminationDetected, \n                                  IF Terminated' THEN TRUE ELSE terminationDetected}\n\nSendMsg(sender, receiver) ==\n    /\\ active[sender]\n    /\\ pending' = [pending EXCEPT ![receiver] = pending[receiver] + 1]\n    /\\ active' = active\n    /\\ terminationDetected' = terminationDetected\n\nRcvMsg(n) ==\n    /\\ pending[n] > 0\n    /\\ pending' = [pending EXCEPT ![n] = pending[n] - 1]\n    /\\ active' = [active EXCEPT ![n] = TRUE]\n    /\\ terminationDetected' = terminationDetected\n\nDetectTermination ==\n    /\\ Terminated\n    /\\ ~terminationDetected\n    /\\ terminationDetected' = TRUE\n    /\\ active' = active\n    /\\ pending' = pending\n\nNext ==\n    \\/ \\E n \\in Nodes : Terminate(n)\n    \\/ \\E sender, receiver \\in Nodes : SendMsg(sender, receiver)\n    \\/ \\E n \\in Nodes : RcvMsg(n)\n    \\/ DetectTermination\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(DetectTermination)\n\n-----------------------------------------------------------------------------\n(* Safety Properties *)\n\nSafe == terminationDetected => Terminated\n\n(* Liveness Properties *)\n\nLive == Terminated ~> terminationDetected\n\n(* Quiescence Property *)\n\nQuiescence == Terminated => [][Terminated]_vars\n\n(* Action-formula variants of quiescence *)\n\nQuiescenceAction == Terminated => Terminated'\n\nStableTermination == [][Terminated => Terminated']_vars\n\n-----------------------------------------------------------------------------\n(* Inductive Invariant for Apalache *)\n\nIndInv == TypeOK /\\ Safe\n\n-----------------------------------------------------------------------------\n(* State Constraint for Model Checking *)\n\nStateConstraint == \\A n \\in Nodes : pending[n] <= 3\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 487,
+    "outputTokens": 761,
+    "totalTokens": 1248,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12782
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE MutualExclusion ----------------------------\nEXTENDS Integers, TLC\n\nCONSTANTS Proc\n\nASSUME Proc = {1, 2}\n\n(*\n--algorithm MutualExclusion\nvariables lock = \"free\";\n\nprocess proc \\in Proc\nvariables pc_local = \"ncs\";\nbegin\nncs:\n    while TRUE do\n        l1:\n            await lock = \"free\";\n            lock := \"self\";\n        cs:\n            skip;\n        l2:\n            lock := \"free\";\n    end while;\nend process;\n\nend algorithm;\n*)\n\nVARIABLES lock, pc\n\nvars == << lock, pc >>\n\nProcSet == (Proc)\n\nInit == (* Global variables *)\n        /\\ lock = \"free\"\n        /\\ pc = [self \\in ProcSet |-> \"ncs\"]\n\nncs(self) == /\\ pc[self] = \"ncs\"\n             /\\ pc' = [pc EXCEPT ![self] = \"l1\"]\n             /\\ lock' = lock\n\nl1(self) == /\\ pc[self] = \"l1\"\n            /\\ lock = \"free\"\n            /\\ lock' = self\n            /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n\ncs(self) == /\\ pc[self] = \"cs\"\n            /\\ TRUE\n            /\\ pc' = [pc EXCEPT ![self] = \"l2\"]\n            /\\ lock' = lock\n\nl2(self) == /\\ pc[self] = \"l2\"\n            /\\ lock' = \"free\"\n            /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n\nproc(self) == ncs(self) \\/ l1(self) \\/ cs(self) \\/ l2(self)\n\nNext == (\\E self \\in Proc: proc(self))\n\nSpec == /\\ Init /\\ [][Next]_vars\n        /\\ \\A self \\in Proc : WF_vars(proc(self))\n\n-----------------------------------------------------------------------------\n\n(* Type correctness invariant *)\nTypeOK == /\\ lock \\in {\"free\"} \\cup Proc\n          /\\ pc \\in [Proc -> {\"ncs\", \"l1\", \"cs\", \"l2\"}]\n\n(* Mutual exclusion invariant: at most one process in critical section *)\nMutualExclusion == ~(pc[1] = \"cs\" /\\ pc[2] = \"cs\")\n\n(* Liveness property: if process 1 is waiting, it eventually enters critical section *)\nLiveness == (pc[1] = \"l1\") ~> (pc[1] = \"cs\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 243,
+    "outputTokens": 635,
+    "totalTokens": 878,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10880
+  }
+}

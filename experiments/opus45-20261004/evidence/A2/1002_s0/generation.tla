@@ -1,0 +1,31 @@
+---------------------------- MODULE CyclicBarrier ----------------------------
+EXTENDS Integers
+
+CONSTANTS N
+
+VARIABLES pc
+
+Processes == 1..N
+
+Locations == {"b0", "b1"}
+
+TypeOK == pc \in [Processes -> Locations]
+
+Init == pc = [self \in Processes |-> "b0"]
+
+b0(self) == /\ pc[self] = "b0"
+            /\ pc' = [pc EXCEPT ![self] = "b1"]
+
+b1 == /\ \A self \in Processes : pc[self] = "b1"
+      /\ pc' = [self \in Processes |-> "b0"]
+
+Next == \/ \E self \in Processes : b0(self)
+        \/ b1
+
+Spec == Init /\ [][Next]_pc
+
+BarrierProperty == 
+    \A p1, p2 \in Processes :
+        (pc[p1] = "b0" /\ pc[p2] = "b1") => pc'[p2] = "b1"
+
+=============================================================================

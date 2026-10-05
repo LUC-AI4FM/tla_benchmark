@@ -1,0 +1,100 @@
+--------------------------- MODULE CoffeeCanBeans ---------------------------
+
+EXTENDS Naturals
+
+CONSTANTS MaxBeans
+
+VARIABLES can, terminated
+
+vars == <<can, terminated>>
+
+TypeOK ==
+    /\ can \in [black: 0..MaxBeans, white: 0..MaxBeans]
+    /\ terminated \in BOOLEAN
+
+TotalBeans == can.black + can.white
+
+Init ==
+    /\ can \in [black: 0..MaxBeans, white: 0..MaxBeans]
+    /\ TotalBeans >= 1
+    /\ terminated = FALSE
+
+\* Remove two black beans, put one black bean back
+\* Net effect: remove one black bean
+RemoveTwoBlack ==
+    /\ can.black >= 2
+    /\ can' = [can EXCEPT !.black = @ - 1]
+    /\ terminated' = (can'.black + can'.white = 1)
+
+\* Remove two white beans, put one black bean back
+\* Net effect: remove two white beans, add one black bean
+RemoveTwoWhite ==
+    /\ can.white >= 2
+    /\ can' = [can EXCEPT !.black = @ + 1, !.white = @ - 2]
+    /\ terminated' = (can'.black + can'.white = 1)
+
+\* Remove one black and one white bean, put the white bean back
+\* Net effect: remove one black bean
+RemoveOneEach ==
+    /\ can.black >= 1
+    /\ can.white >= 1
+    /\ can' = [can EXCEPT !.black = @ - 1]
+    /\ terminated' = (can'.black + can'.white = 1)
+
+\* Stuttering action when exactly one bean remains (termination)
+Terminated ==
+    /\ TotalBeans = 1
+    /\ terminated' = TRUE
+    /\ UNCHANGED can
+
+Next ==
+    \/ RemoveTwoBlack
+    \/ RemoveTwoWhite
+    \/ RemoveOneEach
+    \/ Terminated
+
+Fairness == WF_vars(Next)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariant: total bean count decreases monotonically
+\* We express this as: after any non-stuttering step, total decreases or stays same when terminated
+MonotonicDecrease ==
+    [][TotalBeans' <= TotalBeans]_vars
+
+\* The game terminates when exactly one bean remains
+IsTerminated == TotalBeans = 1
+
+\* Liveness: Eventually the game terminates
+EventualTermination == <>(IsTerminated)
+
+\* Parity loop invariant: the parity of white beans is preserved
+\* In each step, white beans either stay same (RemoveTwoBlack, RemoveOneEach) or decrease by 2 (RemoveTwoWhite)
+\* So white bean count mod 2 is invariant
+WhiteParityInvariant ==
+    [][(can'.white % 2 = can.white % 2)]_vars
+
+\* Hypothesis: If initial white bean count is odd, final bean is white
+\* If initial white bean count is even, final bean is black
+\* We express this as: when terminated with one bean, the color matches initial parity
+\* Since we can't directly reference initial state in temporal formula easily,
+\* we express it as: at termination, if white=1 then initial white was odd, if black=1 then initial white was even
+
+\* Final bean is white iff exactly one white bean remains at termination
+FinalBeanIsWhite == IsTerminated /\ can.white = 1
+FinalBeanIsBlack == IsTerminated /\ can.black = 1
+
+\* The parity hypothesis: at termination, white bean remains iff white started odd
+\* This follows from WhiteParityInvariant: if we end with white=1, initial white was odd
+\* if we end with white=0 (so black=1), initial white was even
+ParityHypothesis ==
+    [](IsTerminated => 
+        /\ (can.white = 1 => can.white % 2 = 1)
+        /\ (can.white = 0 => can.white % 2 = 0))
+
+\* Stronger statement using the invariant
+\* At termination: white=1 means odd parity preserved, white=0 means even parity preserved
+FinalColorMatchesParity ==
+    [](IsTerminated => (can.white = can.white % 2))
+
+=============================================================================

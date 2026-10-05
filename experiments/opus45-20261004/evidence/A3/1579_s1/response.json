@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DijkstraTokenRing ----------------------------\nEXTENDS Naturals, TLAPS\n\nCONSTANT N, K\n\nASSUME NPositive == N > 0\nASSUME KGreaterThanN == K > N\n\nVARIABLES x\n\nvars == <<x>>\n\nTypeOK == x \\in [0..(N-1) -> 0..(K-1)]\n\nHasToken(i) ==\n    IF i = 0\n    THEN x[i] = x[N-1]\n    ELSE x[i] # x[i-1]\n\nTokenCount == Cardinality({i \\in 0..(N-1) : HasToken(i)})\n\nCardinality(S) == \n    LET Card[T \\in SUBSET S] == \n        IF T = {} THEN 0\n        ELSE 1 + Card[T \\ {CHOOSE t \\in T : TRUE}]\n    IN Card[S]\n\nSystem(i) ==\n    /\\ HasToken(i)\n    /\\ IF i = 0\n       THEN x' = [x EXCEPT ![0] = (x[0] + 1) % K]\n       ELSE x' = [x EXCEPT ![i] = x[i-1]]\n\nProc(i) == System(i)\n\nInit == x \\in [0..(N-1) -> 0..(K-1)]\n\nNext == \\E i \\in 0..(N-1) : Proc(i)\n\nFairness == \\A i \\in 0..(N-1) : WF_vars(Proc(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\nAtLeastOneToken == \\E i \\in 0..(N-1) : HasToken(i)\n\nExactlyOneToken == \n    \\E i \\in 0..(N-1) : \n        /\\ HasToken(i)\n        /\\ \\A j \\in 0..(N-1) : j # i => ~HasToken(j)\n\nLegitimate == ExactlyOneToken\n\nSafety == []AtLeastOneToken\n\nLiveness == <>[]ExactlyOneToken\n\nConvergence == <>Legitimate\n\nTHEOREM TypeCorrect == Spec => []TypeOK\nPROOF OMITTED\n\nTHEOREM AlwaysSomeToken == Spec => []AtLeastOneToken\nPROOF OMITTED\n\nTHEOREM EventuallyOneToken == Spec => <>[]ExactlyOneToken\nPROOF OMITTED\n\n=================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 258,
+    "outputTokens": 608,
+    "totalTokens": 866,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10843
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE DieHard ----------------------------\nEXTENDS Integers, TLC\n\nVARIABLES small, big\n\n\\* Capacities of the jugs\nSmallCap == 3\nBigCap == 5\n\n\\* Type invariant: both variables remain within their capacity bounds\nTypeOK == /\\ small \\in 0..SmallCap\n          /\\ big \\in 0..BigCap\n\n\\* Goal state: big jug contains exactly 4 gallons\nHasFour == big = 4\n\n\\* Pour action: both jugs change simultaneously\nPourAction == small' # small /\\ big' # big\n\n\\* Initial state: both jugs are empty\nInit == /\\ small = 0\n        /\\ big = 0\n\n\\* Fill the small jug to capacity\nFillSmall == /\\ small' = SmallCap\n             /\\ big' = big\n             /\\ TLCSet(42, TLCGet(42) + (SmallCap - small))\n\n\\* Fill the big jug to capacity\nFillBig == /\\ big' = BigCap\n           /\\ small' = small\n           /\\ TLCSet(42, TLCGet(42) + (BigCap - big))\n\n\\* Empty the small jug completely\nEmptySmall == /\\ small' = 0\n              /\\ big' = big\n\n\\* Empty the big jug completely\nEmptyBig == /\\ big' = 0\n            /\\ small' = small\n\n\\* Pour from small to big: stops when source is empty or destination is full\nSmallToBig == LET amount == IF small + big <= BigCap \n                            THEN small \n                            ELSE BigCap - big\n              IN /\\ small' = small - amount\n                 /\\ big' = big + amount\n\n\\* Pour from big to small: stops when source is empty or destination is full\nBigToSmall == LET amount == IF small + big <= SmallCap \n                            THEN big \n                            ELSE SmallCap - small\n              IN /\\ small' = small - amount\n                 /\\ big' = big + amount\n\n\\* Next state relation: disjunction of all six actions\nNext == \\/ FillSmall\n        \\/ FillBig\n        \\/ EmptySmall\n        \\/ EmptyBig\n        \\/ SmallToBig\n        \\/ BigToSmall\n\n\\* Temporal specification with stuttering\nSpec == Init /\\ [][Next]_<<small, big>>\n\n\\* TLC instrumentation for tracking reachability counts\nHasFour_POSSIBLE == HasFour\nPourAction_POSSIBLE == PourAction\n\n\\* Post-condition for model checking statistics\nPostCondition == /\\ TLCGet(\"generated\") = 97\n                 /\\ TLCGet(\"distinct\") = 16\n                 /\\ TLCGet(\"diameter\") = 8\n                 /\\ TLCGet(42) = 128\n\n\\* Verification of possible counts for annotated predicates\nPossibleCounts == /\\ TLCGet(\"HasFour_POSSIBLE\") = 8\n                  /\\ TLCGet(\"PourAction_POSSIBLE\") = 14\n\n=========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 488,
+    "outputTokens": 771,
+    "totalTokens": 1259,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10697
+  }
+}

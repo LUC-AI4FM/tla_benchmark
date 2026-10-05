@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---- MODULE spec ----\n\nEXTENDS Integers, Sequences, FiniteSets, TLC\n\nCONSTANTS \n    Nodes,\n    Keys,\n    Values,\n    TxIds,\n    MaxTransactions\n\nVARIABLES\n    ledgerBranches,\n    history,\n    nodeStates,\n    pendingReads\n\nvars == <<ledgerBranches, history, nodeStates, pendingReads>>\n\n\\* Helper operators\nNil == CHOOSE v : v \\notin Values\n\n\\* Type definitions for history entries\nResponseEntry(txId, key, value) == [type |-> \"response\", txId |-> txId, key |-> key, value |-> value]\nCommittedEntry(txId) == [type |-> \"committed\", txId |-> txId]\n\n\\* Base action definition (imported from base spec conceptually)\nMCNextMultiNodeReadsAction ==\n    \\/ \\E n \\in Nodes, k \\in Keys, txId \\in TxIds :\n        /\\ pendingReads' = pendingReads \\cup {[node |-> n, key |-> k, txId |-> txId]}\n        /\\ UNCHANGED <<ledgerBranches, history, nodeStates>>\n    \\/ \\E pr \\in pendingReads :\n        /\\ pendingReads' = pendingReads \\ {pr}\n        /\\ \\E v \\in Values \\cup {Nil} :\n            /\\ history' = Append(history, ResponseEntry(pr.txId, pr.key, v))\n            /\\ UNCHANGED <<ledgerBranches, nodeStates>>\n    \\/ \\E txId \\in TxIds :\n        /\\ history' = Append(history, CommittedEntry(txId))\n        /\\ UNCHANGED <<ledgerBranches, nodeStates, pendingReads>>\n    \\/ UNCHANGED vars\n\n\\* Alternative initial state with two transactions already committed\nMCInitMultiNodeReadsAlt ==\n    /\\ ledgerBranches = [n \\in Nodes |-> [k \\in Keys |-> Nil]]\n    /\\ nodeStates = [n \\in Nodes |-> \"active\"]\n    /\\ pendingReads = {}\n    \\* History pre-populated with two committed transactions\n    /\\ history = <<\n        ResponseEntry(\"tx1\", CHOOSE k \\in Keys : TRUE, CHOOSE v \\in Values : TRUE),\n        CommittedEntry(\"tx1\"),\n        ResponseEntry(\"tx2\", CHOOSE k \\in Keys : TRUE, CHOOSE v \\in Values : TRUE),\n        CommittedEntry(\"tx2\")\n       >>\n\n\\* Temporal specification starting from alternative initial state\nMCSpecMultiNodeReadsAlt ==\n    MCInitMultiNodeReadsAlt /\\ [][MCNextMultiNodeReadsAction]_vars\n\n====\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 253,
+    "outputTokens": 674,
+    "totalTokens": 927,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11063
+  }
+}

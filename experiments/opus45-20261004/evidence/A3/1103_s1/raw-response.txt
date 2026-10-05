@@ -1,0 +1,217 @@
+```tla+
+---------------------------- MODULE NBAC ----------------------------
+(***************************************************************************)
+(* Non-Blocking Atomic Commitment (NBAC) with crash failures               *)
+(* Based on Raynal 1997                                                    *)
+(* Processes vote YES or NO, exchange messages, may crash, and observe     *)
+(* a local failure detector that can nondeterministically report whether   *)
+(* some process has crashed.                                               *)
+(***************************************************************************)
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    Procs,          \* Set of processes
+    YES, NO,        \* Vote values
+    COMMIT, ABORT,  \* Decision values
+    UNDECIDED       \* Initial decision state
+
+VARIABLES
+    vote,           \* vote[p] = YES or NO (the vote of process p)
+    decision,       \* decision[p] = COMMIT, ABORT, or UNDECIDED
+    crashed,        \* crashed[p] = TRUE if p has crashed
+    failureDetector,\* failureDetector[p] = TRUE if p's FD suspects a crash
+    msgs,           \* Set of messages in transit
+    received,       \* received[p] = set of messages received by p
+    phase           \* phase[p] = current phase of process p
+
+(***************************************************************************)
+(* Message types:                                                          *)
+(* - VoteMsg: [type: "VOTE", src: p, vote: v]                             *)
+(* - DecisionMsg: [type: "DECISION", src: p, decision: d]                 *)
+(***************************************************************************)
+
+Votes == {YES, NO}
+Decisions == {COMMIT, ABORT, UNDECIDED}
+
+TypeOK ==
+    /\ vote \in [Procs -> Votes]
+    /\ decision \in [Procs -> Decisions]
+    /\ crashed \in [Procs -> BOOLEAN]
+    /\ failureDetector \in [Procs -> BOOLEAN]
+    /\ msgs \subseteq [type: {"VOTE", "DECISION"}, src: Procs, 
+                       vote: Votes \cup {UNDECIDED}, 
+                       decision: Decisions]
+    /\ received \in [Procs -> SUBSET [type: {"VOTE", "DECISION"}, 
+                                       src: Procs,
+                                       vote: Votes \cup {UNDECIDED},
+                                       decision: Decisions]]
+    /\ phase \in [Procs -> {"INIT", "VOTED", "DECIDED"}]
+
+(***************************************************************************)
+(* Initial state: all processes have voted but not decided                 *)
+(***************************************************************************)
+Init ==
+    /\ vote \in [Procs -> Votes]  \* Each process has an initial vote
+    /\ decision = [p \in Procs |-> UNDECIDED]
+    /\ crashed = [p \in Procs |-> FALSE]
+    /\ failureDetector = [p \in Procs |-> FALSE]
+    /\ msgs = {}
+    /\ received = [p \in Procs |-> {}]
+    /\ phase = [p \in Procs |-> "INIT"]
+
+(***************************************************************************)
+(* Process p broadcasts its vote                                           *)
+(***************************************************************************)
+BroadcastVote(p) ==
+    /\ ~crashed[p]
+    /\ phase[p] = "INIT"
+    /\ msgs' = msgs \cup {[type |-> "VOTE", src |-> p, 
+                           vote |-> vote[p], decision |-> UNDECIDED]}
+    /\ phase' = [phase EXCEPT ![p] = "VOTED"]
+    /\ UNCHANGED <<vote, decision, crashed, failureDetector, received>>
+
+(***************************************************************************)
+(* Process p receives a message                                            *)
+(***************************************************************************)
+ReceiveMsg(p) ==
+    /\ ~crashed[p]
+    /\ \E m \in msgs:
+        /\ m \notin received[p]
+        /\ received' = [received EXCEPT ![p] = @ \cup {m}]
+    /\ UNCHANGED <<vote, decision, crashed, failureDetector, msgs, phase>>
+
+(***************************************************************************)
+(* Failure detector at process p nondeterministically suspects a crash     *)
+(***************************************************************************)
+SuspectCrash(p) ==
+    /\ ~crashed[p]
+    /\ \E q \in Procs: crashed[q]  \* FD can only suspect if someone crashed
+    /\ failureDetector' = [failureDetector EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, decision, crashed, msgs, received, phase>>
+
+(***************************************************************************)
+(* Process p decides based on received votes and failure detector          *)
+(***************************************************************************)
+ReceivedVotesFrom(p) ==
+    {m.src : m \in {m \in received[p] : m.type = "VOTE"}}
+
+AllVotesYes(p) ==
+    \A m \in received[p]: m.type = "VOTE" => m.vote = YES
+
+ReceivedAllVotes(p) ==
+    ReceivedVotesFrom(p) = Procs
+
+Decide(p) ==
+    /\ ~crashed[p]
+    /\ phase[p] = "VOTED"
+    /\ decision[p] = UNDECIDED
+    /\ \/ \* Commit: received YES from all processes, no suspected crash
+          /\ ReceivedAllVotes(p)
+          /\ AllVotesYes(p)
+          /\ ~failureDetector[p]
+          /\ decision' = [decision EXCEPT ![p] = COMMIT]
+          /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p,
+                                  vote |-> UNDECIDED, decision |-> COMMIT]}
+       \/ \* Abort: received NO vote or suspected crash
+          /\ \/ ~AllVotesYes(p)
+             \/ failureDetector[p]
+          /\ decision' = [decision EXCEPT ![p] = ABORT]
+          /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p,
+                                  vote |-> UNDECIDED, decision |-> ABORT]}
+       \/ \* Adopt decision from another process
+          /\ \E m \in received[p]:
+              /\ m.type = "DECISION"
+              /\ m.decision # UNDECIDED
+              /\ decision' = [decision EXCEPT ![p] = m.decision]
+              /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p,
+                                      vote |-> UNDECIDED, decision |-> m.decision]}
+    /\ phase' = [phase EXCEPT ![p] = "DECIDED"]
+    /\ UNCHANGED <<vote, crashed, failureDetector, received>>
+
+(***************************************************************************)
+(* Process p crashes                                                       *)
+(***************************************************************************)
+Crash(p) ==
+    /\ ~crashed[p]
+    /\ crashed' = [crashed EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, decision, failureDetector, msgs, received, phase>>
+
+(***************************************************************************)
+(* Next state relation                                                     *)
+(***************************************************************************)
+Next ==
+    \E p \in Procs:
+        \/ BroadcastVote(p)
+        \/ ReceiveMsg(p)
+        \/ SuspectCrash(p)
+        \/ Decide(p)
+        \/ Crash(p)
+
+(***************************************************************************)
+(* Fairness: weak fairness for non-crashed processes                       *)
+(***************************************************************************)
+Fairness ==
+    \A p \in Procs:
+        /\ WF_<<vote, decision, crashed, failureDetector, msgs, received, phase>>(
+               BroadcastVote(p))
+        /\ WF_<<vote, decision, crashed, failureDetector, msgs, received, phase>>(
+               ReceiveMsg(p))
+        /\ WF_<<vote, decision, crashed, failureDetector, msgs, received, phase>>(
+               Decide(p))
+
+Spec == Init /\ [][Next]_<<vote, decision, crashed, failureDetector, 
+                           msgs, received, phase>> /\ Fairness
+
+(***************************************************************************)
+(* Safety Invariants                                                       *)
+(***************************************************************************)
+
+(* Agreement: No two processes decide differently *)
+Agreement ==
+    \A p, q \in Procs:
+        (decision[p] # UNDECIDED /\ decision[q] # UNDECIDED) =>
+        decision[p] = decision[q]
+
+(* Validity: If all processes vote YES and no crash occurs, 
+   then COMMIT is possible. If any process votes NO, 
+   only ABORT is possible. *)
+Validity ==
+    /\ (\A p \in Procs: vote[p] = NO) => 
+       (\A q \in Procs: decision[q] # COMMIT)
+    /\ (\E p \in Procs: vote[p] = NO) =>
+       (\A q \in Procs: decision[q] # COMMIT)
+
+(* Validity for unanimous YES: if all vote YES and none crashed,
+   no process can have decided ABORT *)
+ValidityUnanimousYes ==
+    ((\A p \in Procs: vote[p] = YES) /\ (\A p \in Procs: ~crashed[p])) =>
+    (\A q \in Procs: decision[q] = UNDECIDED \/ decision[q] = COMMIT)
+
+(* Integrity: A process decides at most once *)
+Integrity ==
+    \A p \in Procs:
+        (phase[p] = "DECIDED") => (decision[p] # UNDECIDED)
+
+(* Non-triviality: COMMIT is reachable if all vote YES and no crashes *)
+NonTrivialityCondition ==
+    (\A p \in Procs: vote[p] = YES /\ ~crashed[p]) =>
+    (\A q \in Procs: decision[q] # ABORT \/ decision[q] = UNDECIDED)
+
+(* Combined Safety Invariant *)
+Safety == TypeOK /\ Agreement /\ Validity /\ Integrity
+
+(***************************************************************************)
+(* Liveness Properties                                                     *)
+(***************************************************************************)
+
+(* Termination: Every non-crashed process eventually decides *)
+Termination ==
+    \A p \in Procs: (crashed[p] = FALSE) ~> (decision[p] # UNDECIDED)
+
+(* Non-blocking: If all processes are correct, everyone eventually decides *)
+NonBlocking ==
+    (\A p \in Procs: ~crashed[p]) ~> (\A p \in Procs: decision[p] # UNDECIDED)
+
+=========================================================================
+```

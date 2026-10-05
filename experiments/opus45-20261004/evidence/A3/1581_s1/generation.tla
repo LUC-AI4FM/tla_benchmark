@@ -1,0 +1,77 @@
+---------------------------- MODULE DiningPhilosophers ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANT N
+
+ASSUME N > 1
+
+Philosophers == 0..(N-1)
+
+Forks == 0..(N-1)
+
+LeftFork(p) == p
+RightFork(p) == (p + 1) % N
+
+VARIABLES pc, sem
+
+vars == <<pc, sem>>
+
+TypeOK ==
+    /\ pc \in [Philosophers -> {"thinking", "hungry", "has_first", "eating"}]
+    /\ sem \in [Forks -> 0..1]
+
+Init ==
+    /\ pc = [p \in Philosophers |-> "thinking"]
+    /\ sem = [f \in Forks |-> 1]
+
+FirstFork(p) == IF p = 0 THEN LeftFork(p) ELSE RightFork(p)
+SecondFork(p) == IF p = 0 THEN RightFork(p) ELSE LeftFork(p)
+
+BecomeHungry(p) ==
+    /\ pc[p] = "thinking"
+    /\ pc' = [pc EXCEPT ![p] = "hungry"]
+    /\ sem' = sem
+
+PickUpFirstFork(p) ==
+    /\ pc[p] = "hungry"
+    /\ sem[FirstFork(p)] = 1
+    /\ sem' = [sem EXCEPT ![FirstFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "has_first"]
+
+PickUpSecondFork(p) ==
+    /\ pc[p] = "has_first"
+    /\ sem[SecondFork(p)] = 1
+    /\ sem' = [sem EXCEPT ![SecondFork(p)] = 0]
+    /\ pc' = [pc EXCEPT ![p] = "eating"]
+
+FinishEating(p) ==
+    /\ pc[p] = "eating"
+    /\ sem' = [sem EXCEPT ![LeftFork(p)] = 1, ![RightFork(p)] = 1]
+    /\ pc' = [pc EXCEPT ![p] = "thinking"]
+
+PhilosopherAction(p) ==
+    \/ BecomeHungry(p)
+    \/ PickUpFirstFork(p)
+    \/ PickUpSecondFork(p)
+    \/ FinishEating(p)
+
+Next ==
+    \E p \in Philosophers : PhilosopherAction(p)
+
+Fairness ==
+    \A p \in Philosophers :
+        /\ SF_vars(BecomeHungry(p))
+        /\ SF_vars(PickUpFirstFork(p))
+        /\ SF_vars(PickUpSecondFork(p))
+        /\ SF_vars(FinishEating(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+MutualExclusion ==
+    \A p \in Philosophers :
+        ~(pc[p] = "eating" /\ pc[(p + 1) % N] = "eating")
+
+StarvationFreedom ==
+    \A p \in Philosophers : []<>(pc[p] = "eating")
+
+===================================================================================

@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE MutualExclusion ----------------------------\n\nEXTENDS Integers, Sequences, TLC\n\n(* \n--algorithm MutualExclusion\nvariables lock = \"free\";\n\nprocess Proc \\in {1, 2}\nvariables pc_local = \"ncs\";\nbegin\nncs:\n  while TRUE do\n    l1:\n      await lock = \"free\";\n      lock := \"self\";\n    cs:\n      skip;\n    l2:\n      lock := \"free\";\n  end while;\nend process;\n\nend algorithm;\n*)\n\n\\* BEGIN TRANSLATION\nVARIABLES lock, pc\n\nvars == << lock, pc >>\n\nProcSet == ({1, 2})\n\nInit == (* Global variables *)\n        /\\ lock = \"free\"\n        /\\ pc = [self \\in ProcSet |-> \"ncs\"]\n\nncs(self) == /\\ pc[self] = \"ncs\"\n             /\\ pc' = [pc EXCEPT ![self] = \"l1\"]\n             /\\ lock' = lock\n\nl1(self) == /\\ pc[self] = \"l1\"\n            /\\ lock = \"free\"\n            /\\ lock' = [lock EXCEPT @ = self]\n            /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n\ncs(self) == /\\ pc[self] = \"cs\"\n            /\\ TRUE\n            /\\ pc' = [pc EXCEPT ![self] = \"l2\"]\n            /\\ lock' = lock\n\nl2(self) == /\\ pc[self] = \"l2\"\n            /\\ lock' = \"free\"\n            /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n\nProc(self) == ncs(self) \\/ l1(self) \\/ cs(self) \\/ l2(self)\n\nNext == (\\E self \\in {1, 2}: Proc(self))\n\nSpec == Init /\\ [][Next]_vars /\\ \\A self \\in {1, 2} : WF_vars(Proc(self))\n\n\\* END TRANSLATION\n\n-----------------------------------------------------------------------------\n\n(* Type correctness invariant *)\nTypeOK == /\\ lock \\in {\"free\"} \\cup {1, 2}\n          /\\ pc \\in [ProcSet -> {\"ncs\", \"l1\", \"cs\", \"l2\"}]\n\n(* Mutual exclusion invariant: at most one process in critical section *)\nLockInv == ~(pc[1] = \"cs\" /\\ pc[2] = \"cs\")\n\n(* Liveness property: if process 1 is waiting, it eventually enters cs *)\nLiveness == (pc[1] = \"l1\") ~> (pc[1] = \"cs\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 262,
+    "outputTokens": 657,
+    "totalTokens": 919,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 11223
+  }
+}

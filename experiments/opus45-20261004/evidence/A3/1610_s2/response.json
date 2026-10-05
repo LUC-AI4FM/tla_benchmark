@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE QuickSort ----------------------------\nEXTENDS Integers, Sequences, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N >= 1\n\nVARIABLES arr, S, pc\n\nvars == <<arr, S, pc>>\n\nIndices == 1..N\nValues == 1..N\n\n\\* A permutation of a sequence over an interval [lo, hi]\nIsPermutationOver(newArr, oldArr, lo, hi) ==\n    /\\ \\A i \\in Indices \\ (lo..hi) : newArr[i] = oldArr[i]\n    /\\ LET Subseq(a, l, h) == [j \\in 1..(h-l+1) |-> a[l+j-1]]\n           oldSub == Subseq(oldArr, lo, hi)\n           newSub == Subseq(newArr, lo, hi)\n       IN \\A v \\in Values : \n            Cardinality({j \\in 1..(hi-lo+1) : oldSub[j] = v}) = \n            Cardinality({j \\in 1..(hi-lo+1) : newSub[j] = v})\n\n\\* Partition property: all elements in [lo, p-1] <= arr[p] and all in [p+1, hi] >= arr[p]\nPartitionProperty(a, lo, hi, p) ==\n    /\\ \\A i \\in lo..(p-1) : a[i] <= a[p]\n    /\\ \\A j \\in (p+1)..hi : a[j] >= a[p]\n\n\\* Initial arrays: all functions from Indices to Values\nInitArrays == [Indices -> Values]\n\nInit ==\n    /\\ arr \\in InitArrays\n    /\\ S = IF N >= 1 THEN {<<1, N>>} ELSE {}\n    /\\ pc = \"qs1\"\n\n\\* The main quicksort step\nqs1 ==\n    /\\ pc = \"qs1\"\n    /\\ IF S = {}\n       THEN /\\ pc' = \"Done\"\n            /\\ arr' = arr\n            /\\ S' = S\n       ELSE \\E interval \\in S :\n            LET lo == interval[1]\n                hi == interval[2]\n            IN IF lo >= hi\n               THEN /\\ S' = S \\ {interval}\n                    /\\ arr' = arr\n                    /\\ pc' = \"qs1\"\n               ELSE \\E p \\in lo..hi :\n                    \\E newArr \\in [Indices -> Values] :\n                        /\\ IsPermutationOver(newArr, arr, lo, hi)\n                        /\\ PartitionProperty(newArr, lo, hi, p)\n                        /\\ arr' = newArr\n                        /\\ S' = (S \\ {interval}) \\cup \n                                (IF p > lo THEN {<<lo, p-1>>} ELSE {}) \\cup\n                                (IF p < hi THEN {<<p+1, hi>>} ELSE {})\n                        /\\ pc' = \"qs1\"\n\nTerminating ==\n    /\\ pc = \"Done\"\n    /\\ UNCHANGED vars\n\nNext == qs1 \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety invariant: array always contains values in range\nTypeInvariant ==\n    /\\ arr \\in [Indices -> Values]\n    /\\ S \\subseteq (Indices \\X Indices)\n    /\\ pc \\in {\"qs1\", \"Done\"}\n\n\\* When done, array should be sorted\nIsSorted == \\A i, j \\in Indices : i < j => arr[i] <= arr[j]\n\nSortedWhenDone == pc = \"Done\" => IsSorted\n\n\\* Liveness: eventually terminates\nTermination == <>(pc = \"Done\")\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 269,
+    "outputTokens": 965,
+    "totalTokens": 1234,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15530
+  }
+}

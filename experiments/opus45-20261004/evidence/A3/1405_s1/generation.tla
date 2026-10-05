@@ -1,0 +1,28 @@
+---------------------------- MODULE Outer ----------------------------
+EXTENDS Integers, Sequences
+
+CONSTANTS Input
+
+VARIABLES result, seq
+
+Inner(r, s) ==
+    INSTANCE Inner WITH result <- r, seq <- s
+
+Init ==
+    /\ result = 0
+    /\ seq = Input
+
+Next ==
+    \/ Inner(result, seq)!Step
+    \/ (ENABLED Inner(result, seq)!Step = FALSE /\ UNCHANGED <<result, seq>>)
+
+Fairness ==
+    WF_<<result, seq>>(Inner(result, seq)!Step)
+
+Spec ==
+    Init /\ [][Next]_<<result, seq>> /\ Fairness
+
+EventuallyDisabledForever ==
+    <>[](ENABLED Inner(result, seq)!Step = FALSE)
+
+===========================================================================

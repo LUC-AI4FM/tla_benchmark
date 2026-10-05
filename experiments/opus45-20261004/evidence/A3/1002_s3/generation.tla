@@ -1,0 +1,51 @@
+---------------------------- MODULE BarrierSync ----------------------------
+
+EXTENDS Integers, FiniteSets
+
+CONSTANTS N
+
+ASSUME N > 0
+
+VARIABLES pc
+
+Procs == 1..N
+
+TypeOK == pc \in [Procs -> {"b0", "b1"}]
+
+Init == pc = [p \in Procs |-> "b0"]
+
+Enter(p) == 
+    /\ pc[p] = "b0"
+    /\ pc' = [pc EXCEPT ![p] = "b1"]
+
+Reset == 
+    /\ \A p \in Procs : pc[p] = "b1"
+    /\ pc' = [p \in Procs |-> "b0"]
+
+Next == 
+    \/ \E p \in Procs : Enter(p)
+    \/ Reset
+
+Fairness == 
+    /\ \A p \in Procs : WF_pc(Enter(p))
+    /\ WF_pc(Reset)
+
+Spec == Init /\ [][Next]_pc /\ Fairness
+
+BarrierProperty == 
+    \A p \in Procs : \A q \in Procs : 
+        (pc[p] = "b0" /\ pc[q] = "b1") => (pc'[q] = "b1" \/ pc'[p] = "b0")
+
+SafeBarrier == 
+    \A p \in Procs : \A q \in Procs :
+        (pc[q] = "b0" /\ pc[p] = "b1") => 
+            ~(pc[p] = "b1" /\ pc'[p] = "b0" /\ pc'[q] = "b1")
+
+NoPartialReset == 
+    [][(\E p \in Procs : pc[p] = "b1" /\ pc'[p] = "b0") => 
+       (\A q \in Procs : pc[q] = "b1" /\ pc'[q] = "b0")]_pc
+
+EventualReset == 
+    \A p \in Procs : (pc[p] = "b1") ~> (pc[p] = "b0")
+
+=============================================================================

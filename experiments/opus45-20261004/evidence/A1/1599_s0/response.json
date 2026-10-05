@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE FastMutex ----------------------------\nEXTENDS Integers, TLAPS\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, b, pc\n\nvars == <<x, y, b, pc>>\n\nProcSet == 1..N\n\nLocs == {\"ncs\", \"start\", \"setx\", \"chky\", \"sety\", \"chkx\", \"wait\", \"cs\", \"exit1\", \"exit2\"}\n\nTypeOK == /\\ x \\in 0..N\n          /\\ y \\in 0..N\n          /\\ b \\in [1..N -> BOOLEAN]\n          /\\ pc \\in [1..N -> Locs]\n\nInit == /\\ x = 0\n        /\\ y = 0\n        /\\ b = [i \\in 1..N |-> FALSE]\n        /\\ pc = [i \\in 1..N |-> \"ncs\"]\n\nncs(self) == /\\ pc[self] = \"ncs\"\n             /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n             /\\ UNCHANGED <<x, y, b>>\n\nstart(self) == /\\ pc[self] = \"start\"\n               /\\ b' = [b EXCEPT ![self] = TRUE]\n               /\\ pc' = [pc EXCEPT ![self] = \"setx\"]\n               /\\ UNCHANGED <<x, y>>\n\nsetx(self) == /\\ pc[self] = \"setx\"\n              /\\ x' = self\n              /\\ pc' = [pc EXCEPT ![self] = \"chky\"]\n              /\\ UNCHANGED <<y, b>>\n\nchky(self) == /\\ pc[self] = \"chky\"\n              /\\ IF y # 0\n                 THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n                      /\\ pc' = [pc EXCEPT ![self] = \"wait\"]\n                 ELSE /\\ pc' = [pc EXCEPT ![self] = \"sety\"]\n                      /\\ b' = b\n              /\\ UNCHANGED <<x, y>>\n\nsety(self) == /\\ pc[self] = \"sety\"\n              /\\ y' = self\n              /\\ pc' = [pc EXCEPT ![self] = \"chkx\"]\n              /\\ UNCHANGED <<x, b>>\n\nchkx(self) == /\\ pc[self] = \"chkx\"\n              /\\ IF x # self\n                 THEN /\\ b' = [b EXCEPT ![self] = FALSE]\n                      /\\ IF \\A j \\in 1..N : ~b[j]\n                         THEN /\\ IF y = self\n                                 THEN /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n                                 ELSE /\\ pc' = [pc EXCEPT ![self] = \"wait\"]\n                         ELSE /\\ pc' = [pc EXCEPT ![self] = \"wait\"]\n                 ELSE /\\ pc' = [pc EXCEPT ![self] = \"cs\"]\n                      /\\ b' = b\n              /\\ UNCHANGED <<x, y>>\n\nwait(self) == /\\ pc[self] = \"wait\"\n              /\\ y = 0\n              /\\ pc' = [pc EXCEPT ![self] = \"start\"]\n              /\\ UNCHANGED <<x, y, b>>\n\ncs(self) == /\\ pc[self] = \"cs\"\n            /\\ pc' = [pc EXCEPT ![self] = \"exit1\"]\n            /\\ UNCHANGED <<x, y, b>>\n\nexit1(self) == /\\ pc[self] = \"exit1\"\n               /\\ y' = 0\n               /\\ pc' = [pc EXCEPT ![self] = \"exit2\"]\n               /\\ UNCHANGED <<x, b>>\n\nexit2(self) == /\\ pc[self] = \"exit2\"\n               /\\ b' = [b EXCEPT ![self] = FALSE]\n               /\\ pc' = [pc EXCEPT ![self] = \"ncs\"]\n               /\\ UNCHANGED <<x, y>>\n\nproc(self) == ncs(self) \\/ start(self) \\/ setx(self) \\/ chky(self) \n              \\/ sety(self) \\/ chkx(self) \\/ wait(self) \\/ cs(self) \n              \\/ exit1(self) \\/ exit2(self)\n\nNext == \\E self \\in ProcSet : proc(self)\n\nSpec == Init /\\ [][Next]_vars\n\nMutualExclusion == \\A i, j \\in 1..N : (i # j) => ~(pc[i] = \"cs\" /\\ pc[j] = \"cs\")\n\nInvariant == MutualExclusion\n\nLiveness == \\A self \\in ProcSet : pc[self] = \"start\" ~> pc[self] = \"cs\"\n\nCondLiveness == (\\A self \\in ProcSet : WF_vars(proc(self))) => Liveness\n\nFairActions(self) == /\\ WF_vars(start(self))\n                     /\\ WF_vars(setx(self))\n                     /\\ WF_vars(chky(self))\n                     /\\ WF_vars(sety(self))\n                     /\\ WF_vars(chkx(self))\n                     /\\ WF_vars(wait(self))\n                     /\\ WF_vars(exit1(self))\n                     /\\ WF_vars(exit2(self))\n\nFairness == \\A self \\in ProcSet : FairActions(self)\n\nFairSpec == Spec /\\ Fairness\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 276,
+    "outputTokens": 1362,
+    "totalTokens": 1638,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 16642
+  }
+}

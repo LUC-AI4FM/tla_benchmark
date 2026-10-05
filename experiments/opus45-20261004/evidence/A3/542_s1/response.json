@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n-------------------------------- MODULE PlusCalIncrement --------------------------------\nEXTENDS Integers, TLC\n\nCONSTANT ProcSet\n\nVARIABLES x, pc\n\nvars == << x, pc >>\n\nProcA == \"ProcA\"\nProcB == \"ProcB\"\n\nInit == \n    /\\ x = 0\n    /\\ pc = [p \\in {ProcA, ProcB} |-> \"a1\"]\n\nProcAAction ==\n    /\\ pc[ProcA] = \"a1\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcA] = \"Done\"]\n\nProcBAction ==\n    /\\ pc[ProcB] = \"a1\"\n    /\\ x' = x + 1\n    /\\ pc' = [pc EXCEPT ![ProcB] = \"Done\"]\n\nTerminating ==\n    /\\ pc[ProcA] = \"Done\"\n    /\\ pc[ProcB] = \"Done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ ProcAAction\n    \\/ ProcBAction\n    \\/ Terminating\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Safety invariant: x is always between 0 and 2\nTypeInvariant ==\n    /\\ x \\in 0..2\n    /\\ pc[ProcA] \\in {\"a1\", \"Done\"}\n    /\\ pc[ProcB] \\in {\"a1\", \"Done\"}\n\n\\* Safety invariant: when both processes are done, x equals 2\nFinalValueCorrect ==\n    (pc[ProcA] = \"Done\" /\\ pc[ProcB] = \"Done\") => x = 2\n\n\\* Liveness property: eventually all processes terminate\nTermination == <>(pc[ProcA] = \"Done\" /\\ pc[ProcB] = \"Done\")\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 242,
+    "outputTokens": 468,
+    "totalTokens": 710,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7618
+  }
+}

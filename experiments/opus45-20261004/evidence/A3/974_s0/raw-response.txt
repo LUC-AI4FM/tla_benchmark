@@ -1,0 +1,132 @@
+```tla+
+------------------------------ MODULE RegularReaders ------------------------------
+EXTENDS Naturals, FiniteSets, TLAPS
+
+CONSTANT N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, pc
+
+vars == <<x, y, pc>>
+
+Procs == 1..N
+
+(* Each process i has states: "write1" -> "write2" -> "read" -> "done" *)
+(* x[i] is a set representing possible values (regular register model) *)
+(* y[i] is the local variable where process i stores the value read *)
+
+TypeOK ==
+    /\ x \in [Procs -> SUBSET {0, 1}]
+    /\ y \in [Procs -> {0, 1}]
+    /\ pc \in [Procs -> {"write1", "write2", "read", "done"}]
+
+Init ==
+    /\ x = [i \in Procs |-> {0}]
+    /\ y = [i \in Procs |-> 0]
+    /\ pc = [i \in Procs |-> "write1"]
+
+(* Neighbor function: process i reads from process (i mod N) + 1 *)
+Neighbor(i) == (i % N) + 1
+
+(* Write phase 1: Begin writing 1, register goes from {0} to {0,1} *)
+Write1(i) ==
+    /\ pc[i] = "write1"
+    /\ x' = [x EXCEPT ![i] = {0, 1}]
+    /\ pc' = [pc EXCEPT ![i] = "write2"]
+    /\ y' = y
+
+(* Write phase 2: Complete writing 1, register goes from {0,1} to {1} *)
+Write2(i) ==
+    /\ pc[i] = "write2"
+    /\ x' = [x EXCEPT ![i] = {1}]
+    /\ pc' = [pc EXCEPT ![i] = "read"]
+    /\ y' = y
+
+(* Read: Process i reads from neighbor's register, getting any value in the set *)
+Read(i) ==
+    /\ pc[i] = "read"
+    /\ \E v \in x[Neighbor(i)] : y' = [y EXCEPT ![i] = v]
+    /\ pc' = [pc EXCEPT ![i] = "done"]
+    /\ x' = x
+
+(* Combined action for process i *)
+Step(i) ==
+    \/ Write1(i)
+    \/ Write2(i)
+    \/ Read(i)
+
+Next == \E i \in Procs : Step(i)
+
+(* Fairness: weak fairness for each process step *)
+Fairness == \A i \in Procs : WF_vars(Step(i))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+(* Termination: all processes reach done state *)
+Termination == <>(\A i \in Procs : pc[i] = "done")
+
+AllDone == \A i \in Procs : pc[i] = "done"
+
+(* Safety property: if all processes are done, some y[i] equals 1 *)
+PCorrect == AllDone => \E i \in Procs : y[i] = 1
+
+(* Inductive invariant *)
+Inv ==
+    /\ TypeOK
+    /\ \A i \in Procs :
+        /\ (pc[i] = "write1") => (x[i] = {0})
+        /\ (pc[i] = "write2") => (x[i] = {0, 1})
+        /\ (pc[i] \in {"read", "done"}) => (x[i] = {1})
+    /\ \A i \in Procs :
+        (pc[i] = "done" /\ y[i] = 0) =>
+            (pc[Neighbor(i)] \in {"write1", "write2"})
+
+(* THEOREM: Inv is inductive and implies PCorrect *)
+THEOREM InvInit == Init => Inv
+<1>1. ASSUME Init PROVE TypeOK
+  BY <1>1, NAssumption DEF Init, TypeOK, Procs
+<1>2. ASSUME Init PROVE \A i \in Procs : (pc[i] = "write1") => (x[i] = {0})
+  BY <1>2 DEF Init, Procs
+<1>3. ASSUME Init PROVE \A i \in Procs : (pc[i] = "write2") => (x[i] = {0, 1})
+  BY <1>3 DEF Init, Procs
+<1>4. ASSUME Init PROVE \A i \in Procs : (pc[i] \in {"read", "done"}) => (x[i] = {1})
+  BY <1>4 DEF Init, Procs
+<1>5. ASSUME Init PROVE \A i \in Procs : (pc[i] = "done" /\ y[i] = 0) => (pc[Neighbor(i)] \in {"write1", "write2"})
+  BY <1>5 DEF Init, Procs
+<1>6. QED
+  BY <1>1, <1>2, <1>3, <1>4, <1>5 DEF Inv
+
+THEOREM InvInductive == Inv /\ Next => Inv'
+<1>1. ASSUME Inv, NEW i \in Procs, Write1(i) PROVE Inv'
+  BY <1>1, NAssumption DEF Inv, TypeOK, Write1, Procs, Neighbor
+<1>2. ASSUME Inv, NEW i \in Procs, Write2(i) PROVE Inv'
+  BY <1>2, NAssumption DEF Inv, TypeOK, Write2, Procs, Neighbor
+<1>3. ASSUME Inv, NEW i \in Procs, Read(i) PROVE Inv'
+  BY <1>3, NAssumption DEF Inv, TypeOK, Read, Procs, Neighbor
+<1>4. QED
+  BY <1>1, <1>2, <1>3 DEF Next, Step
+
+THEOREM Safety == Inv => PCorrect
+<1>1. ASSUME Inv, AllDone PROVE \E i \in Procs : y[i] = 1
+  <2>1. 1 \in Procs
+    BY NAssumption DEF Procs
+  <2>2. pc[1] = "done"
+    BY <1>1, <2>1 DEF AllDone
+  <2>3. pc[Neighbor(1)] = "done"
+    BY <1>1, NAssumption DEF AllDone, Neighbor, Procs
+  <2>4. CASE y[1] = 1
+    BY <2>1, <2>4
+  <2>5. CASE y[1] = 0
+    <3>1. pc[Neighbor(1)] \in {"write1", "write2"}
+      BY <1>1, <2>1, <2>2, <2>5 DEF Inv
+    <3>2. FALSE
+      BY <3>1, <2>3
+    <3>3. QED BY <3>2
+  <2>6. QED
+    BY <1>1, <2>1, <2>4, <2>5 DEF Inv, TypeOK
+<1>2. QED
+  BY <1>1 DEF PCorrect
+
+=============================================================================
+```

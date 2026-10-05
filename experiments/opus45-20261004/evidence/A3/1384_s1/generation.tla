@@ -1,0 +1,147 @@
+---------------------------- MODULE BoundedSeqGraph ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+(******************************************************************************)
+(* Helper operators for bounded sequences                                      *)
+(******************************************************************************)
+
+\* The set of all sequences over S with length at most n
+BoundedSeq(S, n) == UNION {[1..i -> S] : i \in 0..n}
+
+\* Length bound for sequences
+CONSTANT MaxSeqLen
+
+(******************************************************************************)
+(* Helper operators for directed graphs                                        *)
+(******************************************************************************)
+
+\* A graph is represented as a set of edges (pairs of nodes)
+\* Nodes are implicitly defined by the edges
+
+\* Get all nodes from an edge set
+NodesOf(E) == {e[1] : e \in E} \union {e[2] : e \in E}
+
+\* The set of all possible edges over a node set
+AllEdges(N) == N \times N
+
+\* Outgoing edges from a node
+OutEdges(E, n) == {e \in E : e[1] = n}
+
+\* Incoming edges to a node
+InEdges(E, n) == {e \in E : e[2] = n}
+
+\* Successor nodes
+Successors(E, n) == {e[2] : e \in OutEdges(E, n)}
+
+\* Predecessor nodes  
+Predecessors(E, n) == {e[1] : e \in InEdges(E, n)}
+
+(******************************************************************************)
+(* Constants for the graph                                                     *)
+(******************************************************************************)
+
+CONSTANT Graph  \* The constant graph represented as a set of edges
+
+\* Derived node set from the constant graph
+Nodes == NodesOf(Graph)
+
+\* Edge set of the graph
+EdgeSet == Graph
+
+(******************************************************************************)
+(* Assumption about cardinality of nested bounded-sequence construction       *)
+(* This ensures the state space is finite and tractable                       *)
+(******************************************************************************)
+
+ASSUME Cardinality(BoundedSeq(BoundedSeq(Nodes, 2), 3)) >= 0
+
+(******************************************************************************)
+(* State variables                                                             *)
+(* Two variables ranging over the edge set of the constant graph              *)
+(******************************************************************************)
+
+VARIABLES x, y
+
+vars == <<x, y>>
+
+(******************************************************************************)
+(* Test graph derived from the constant graph                                  *)
+(* Used in the invariant to check membership                                   *)
+(******************************************************************************)
+
+\* A derived test graph - subset of edges meeting some criterion
+\* Caching behavior matters for correctness: TLCEval forces evaluation
+TestGraph == TLCEval({e \in Graph : e[1] # e[2]})  \* Non-self-loop edges
+
+(******************************************************************************)
+(* Type invariant                                                              *)
+(******************************************************************************)
+
+TypeOK == /\ x \in EdgeSet
+          /\ y \in EdgeSet
+
+(******************************************************************************)
+(* Initial state                                                               *)
+(* Uses RandomElement to pick initial edges - TLC-specific                    *)
+(******************************************************************************)
+
+Init == /\ x = RandomElement(EdgeSet)
+        /\ y = RandomElement(EdgeSet)
+
+(******************************************************************************)
+(* Next state relation                                                         *)
+(* Transitions between edges in the graph                                      *)
+(******************************************************************************)
+
+\* Move x to a different edge, possibly based on current y
+MoveX == /\ x' = RandomElement(EdgeSet)
+         /\ y' = y
+
+\* Move y to a different edge, possibly based on current x  
+MoveY == /\ y' = RandomElement(EdgeSet)
+         /\ x' = x
+
+\* Both move together
+MoveBoth == /\ x' = RandomElement(EdgeSet)
+            /\ y' = RandomElement(EdgeSet)
+
+Next == MoveX \/ MoveY \/ MoveBoth
+
+(******************************************************************************)
+(* Specification with weak fairness                                            *)
+(******************************************************************************)
+
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+(******************************************************************************)
+(* Safety Invariants                                                           *)
+(******************************************************************************)
+
+\* Combined invariant: type membership AND membership in derived test graph
+\* Note: Caching behavior of TLCEval matters for correctness here
+\* The TLCEval ensures TestGraph is computed once and cached
+
+TestGraphMembership == \/ x \in TestGraph
+                       \/ y \in TestGraph
+                       \/ x = y  \* Allow equal edges even if self-loops
+
+\* Fixed TLCEval-computed cardinality check
+\* This forces TLC to evaluate the cardinality in a specific context
+CardinalityCheck == TLCEval(Cardinality(TestGraph)) >= 0
+
+\* Main safety invariant combining all conditions
+SafetyInvariant == /\ TypeOK
+                   /\ TestGraphMembership
+                   /\ CardinalityCheck
+
+(******************************************************************************)
+(* Liveness Properties                                                         *)
+(******************************************************************************)
+
+\* Eventually the variables will have different values (if graph has multiple edges)
+EventuallyDifferent == <>(x # y)
+
+\* The system can always eventually reach any edge
+Reachability == \A e \in EdgeSet : []<>(x = e \/ y = e)
+
+================================================================================

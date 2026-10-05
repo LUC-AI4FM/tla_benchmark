@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE EuclidGCD ----------------------------\nEXTENDS Integers, Naturals, TLC\n\nCONSTANT MaxNum\n\nASSUME MaxNumAssumption == MaxNum \\in Nat /\\ MaxNum >= 1\n\nVARIABLES pc, u_ini, v_ini, u, v\n\nvars == <<pc, u_ini, v_ini, u, v>>\n\n(* Mathematical definition of GCD *)\nDivides(p, n) == \\E q \\in Int : n = p * q\n\nDivisorsOf(n) == {p \\in 1..n : Divides(p, n)}\n\nSetMax(S) == CHOOSE x \\in S : \\A y \\in S : x >= y\n\nGCD(m, n) == SetMax(DivisorsOf(m) \\cap DivisorsOf(n))\n\n(* Initial state *)\nInit ==\n    /\\ pc = \"start\"\n    /\\ u_ini \\in 1..MaxNum\n    /\\ v_ini \\in 1..MaxNum\n    /\\ u = u_ini\n    /\\ v = v_ini\n\n(* Algorithm steps *)\nStart ==\n    /\\ pc = \"start\"\n    /\\ pc' = \"loop\"\n    /\\ UNCHANGED <<u_ini, v_ini, u, v>>\n\nLoop ==\n    /\\ pc = \"loop\"\n    /\\ IF u = v\n       THEN /\\ pc' = \"done\"\n            /\\ UNCHANGED <<u, v>>\n       ELSE /\\ IF u > v\n               THEN /\\ u' = u - v\n                    /\\ UNCHANGED v\n               ELSE /\\ v' = v - u\n                    /\\ UNCHANGED u\n            /\\ pc' = \"loop\"\n    /\\ UNCHANGED <<u_ini, v_ini>>\n\nDone ==\n    /\\ pc = \"done\"\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ Start\n    \\/ Loop\n    \\/ Done\n\n(* Specification with weak fairness *)\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n(* Type invariant *)\nTypeOK ==\n    /\\ pc \\in {\"start\", \"loop\", \"done\"}\n    /\\ u_ini \\in 1..MaxNum\n    /\\ v_ini \\in 1..MaxNum\n    /\\ u \\in 1..(MaxNum * MaxNum)\n    /\\ v \\in 1..(MaxNum * MaxNum)\n\n(* Safety invariant: u and v remain positive *)\nPositiveInvariant ==\n    /\\ u >= 1\n    /\\ v >= 1\n\n(* GCD is preserved throughout the algorithm *)\nGCDInvariant ==\n    GCD(u, v) = GCD(u_ini, v_ini)\n\n(* Correctness: when done, u equals the GCD of the initial values *)\nCorrectness ==\n    pc = \"done\" => u = GCD(u_ini, v_ini)\n\n(* When done, u equals v *)\nResultEquality ==\n    pc = \"done\" => u = v\n\n(* Combined safety invariant *)\nSafetyInvariant ==\n    /\\ TypeOK\n    /\\ PositiveInvariant\n    /\\ GCDInvariant\n    /\\ Correctness\n    /\\ ResultEquality\n\n(* Termination property: the algorithm eventually reaches done *)\nTermination == <>(pc = \"done\")\n\n(* Liveness: the algorithm terminates with the correct result *)\nLivenessCorrectness == <>(pc = \"done\" /\\ u = GCD(u_ini, v_ini))\n\n(* Named properties for TLC counting *)\nPropInLoop == pc = \"loop\"\nPropTerminated == pc = \"done\"\nPropUGreaterV == pc = \"loop\" /\\ u > v\nPropVGreaterU == pc = \"loop\" /\\ v > u\nPropEqual == u = v\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 229,
+    "outputTokens": 943,
+    "totalTokens": 1172,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 14308
+  }
+}

@@ -1,0 +1,88 @@
+---------------------------- MODULE QuickSort ----------------------------
+EXTENDS Integers, Sequences, FiniteSets
+
+CONSTANTS N
+
+ASSUME N \in Nat /\ N >= 1
+
+VARIABLES A, S, pc
+
+vars == <<A, S, pc>>
+
+\* Helper: Set of all permutations of a sequence
+PermutationsOf(seq) ==
+    LET Domain == 1..Len(seq)
+        Range == {seq[i] : i \in Domain}
+    IN {f \in [Domain -> Range] : 
+        /\ \A i, j \in Domain : i /= j => f[i] /= f[j]
+        /\ {f[i] : i \in Domain} = Range}
+
+\* Check if array segment satisfies partition property around pivot position p
+\* All elements before p are <= A[p], all elements after p are >= A[p]
+IsPartitioned(arr, lo, hi, p) ==
+    /\ \A i \in lo..(p-1) : arr[i] <= arr[p]
+    /\ \A i \in (p+1)..hi : arr[i] >= arr[p]
+
+\* Check if two arrays are permutations of each other over interval [lo, hi]
+IsPermutationOver(arr1, arr2, lo, hi) ==
+    LET seq1 == [i \in 1..(hi-lo+1) |-> arr1[lo + i - 1]]
+        seq2 == [i \in 1..(hi-lo+1) |-> arr2[lo + i - 1]]
+    IN /\ \A i \in 1..(hi-lo+1) : seq2[i] \in {seq1[j] : j \in 1..(hi-lo+1)}
+       /\ \A v \in {seq1[j] : j \in 1..(hi-lo+1)} :
+            Cardinality({i \in 1..(hi-lo+1) : seq1[i] = v}) = 
+            Cardinality({i \in 1..(hi-lo+1) : seq2[i] = v})
+
+\* Type invariant
+TypeOK ==
+    /\ A \in [1..N -> 1..N]
+    /\ S \subseteq {<<lo, hi>> \in (1..N) \times (1..N) : lo <= hi}
+    /\ pc \in {"qs1", "Done"}
+
+\* Initial state
+Init ==
+    /\ A \in [1..N -> 1..N]
+    /\ S = {<<1, N>>}
+    /\ pc = "qs1"
+
+\* Main quicksort action
+qs1 ==
+    /\ pc = "qs1"
+    /\ IF S /= {}
+       THEN \E interval \in S :
+            LET lo == interval[1]
+                hi == interval[2]
+            IN /\ \E p \in lo..hi :
+                  \E newA \in [1..N -> 1..N] :
+                     /\ \A i \in 1..N : 
+                        IF i < lo \/ i > hi 
+                        THEN newA[i] = A[i]
+                        ELSE TRUE
+                     /\ IsPermutationOver(A, newA, lo, hi)
+                     /\ IsPartitioned(newA, lo, hi, p)
+                     /\ A' = newA
+                     /\ S' = (S \ {interval}) \cup
+                             (IF p > lo THEN {<<lo, p-1>>} ELSE {}) \cup
+                             (IF p < hi THEN {<<p+1, hi>>} ELSE {})
+               /\ pc' = "qs1"
+       ELSE /\ pc' = "Done"
+            /\ A' = A
+            /\ S' = S
+
+\* Terminating action (stuttering when done)
+Terminating ==
+    /\ pc = "Done"
+    /\ UNCHANGED vars
+
+\* Next-state relation
+Next == qs1 \/ Terminating
+
+\* Specification with weak fairness
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
+
+\* Termination property: eventually pc reaches "Done"
+Termination == <>(pc = "Done")
+
+\* Safety invariant: array always contains a permutation of initial values
+\* (implicit in the algorithm design)
+
+==========================================================================

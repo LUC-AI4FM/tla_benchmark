@@ -1,0 +1,154 @@
+```tla+
+---------------------------- MODULE RollingDeployment ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS Servers
+
+VARIABLES
+    serverVersion,      \* serverVersion[s] \in {"old", "new"}
+    serverStatus,       \* serverStatus[s] \in {"in_lb", "out_lb"}
+    serverUpdating,     \* serverUpdating[s] \in BOOLEAN
+    coordState,         \* State of coordinator process
+    coordCurrent,       \* Current server being updated by coordinator
+    coordPending,       \* Set of servers still pending update
+    pc                  \* Program counter for processes
+
+vars == <<serverVersion, serverStatus, serverUpdating, coordState, coordCurrent, coordPending, pc>>
+
+ServerProcs == Servers
+CoordProc == "coordinator"
+AllProcs == ServerProcs \cup {CoordProc}
+
+TypeInvariant ==
+    /\ serverVersion \in [Servers -> {"old", "new"}]
+    /\ serverStatus \in [Servers -> {"in_lb", "out_lb"}]
+    /\ serverUpdating \in [Servers -> BOOLEAN]
+    /\ coordState \in {"idle", "selecting", "removing", "updating", "waiting", "restoring", "done"}
+    /\ coordCurrent \in Servers \cup {CHOOSE x : x \notin Servers}
+    /\ coordPending \subseteq Servers
+    /\ pc \in [AllProcs -> {"Ready", "Updating", "Done", "Select", "Remove", "Update", "Wait", "Restore", "Finished"}]
+
+Init ==
+    /\ serverVersion = [s \in Servers |-> "old"]
+    /\ serverStatus = [s \in Servers |-> "in_lb"]
+    /\ serverUpdating = [s \in Servers |-> FALSE]
+    /\ coordState = "idle"
+    /\ coordCurrent = CHOOSE x : x \notin Servers
+    /\ coordPending = Servers
+    /\ pc = [p \in AllProcs |-> IF p = CoordProc THEN "Select" ELSE "Ready"]
+
+\* Server process: perform update when triggered
+ServerReady(s) ==
+    /\ pc[s] = "Ready"
+    /\ serverUpdating[s] = TRUE
+    /\ pc' = [pc EXCEPT ![s] = "Updating"]
+    /\ UNCHANGED <<serverVersion, serverStatus, serverUpdating, coordState, coordCurrent, coordPending>>
+
+ServerUpdate(s) ==
+    /\ pc[s] = "Updating"
+    /\ serverVersion' = [serverVersion EXCEPT ![s] = "new"]
+    /\ serverUpdating' = [serverUpdating EXCEPT ![s] = FALSE]
+    /\ pc' = [pc EXCEPT ![s] = "Done"]
+    /\ UNCHANGED <<serverStatus, coordState, coordCurrent, coordPending>>
+
+ServerDone(s) ==
+    /\ pc[s] = "Done"
+    /\ UNCHANGED vars
+
+\* Coordinator process steps
+CoordSelect ==
+    /\ pc[CoordProc] = "Select"
+    /\ coordPending # {}
+    /\ \E s \in coordPending:
+        /\ coordCurrent' = s
+        /\ coordPending' = coordPending \ {s}
+        /\ coordState' = "selecting"
+        /\ pc' = [pc EXCEPT ![CoordProc] = "Remove"]
+    /\ UNCHANGED <<serverVersion, serverStatus, serverUpdating>>
+
+CoordSelectDone ==
+    /\ pc[CoordProc] = "Select"
+    /\ coordPending = {}
+    /\ coordState' = "done"
+    /\ pc' = [pc EXCEPT ![CoordProc] = "Finished"]
+    /\ UNCHANGED <<serverVersion, serverStatus, serverUpdating, coordCurrent, coordPending>>
+
+CoordRemove ==
+    /\ pc[CoordProc] = "Remove"
+    /\ serverStatus' = [serverStatus EXCEPT ![coordCurrent] = "out_lb"]
+    /\ coordState' = "removing"
+    /\ pc' = [pc EXCEPT ![CoordProc] = "Update"]
+    /\ UNCHANGED <<serverVersion, serverUpdating, coordCurrent, coordPending>>
+
+CoordUpdate ==
+    /\ pc[CoordProc] = "Update"
+    /\ serverUpdating' = [serverUpdating EXCEPT ![coordCurrent] = TRUE]
+    /\ coordState' = "updating"
+    /\ pc' = [pc EXCEPT ![CoordProc] = "Wait"]
+    /\ UNCHANGED <<serverVersion, serverStatus, coordCurrent, coordPending>>
+
+CoordWait ==
+    /\ pc[CoordProc] = "Wait"
+    /\ serverVersion[coordCurrent] = "new"
+    /\ serverUpdating[coordCurrent] = FALSE
+    /\ coordState' = "waiting"
+    /\ pc' = [pc EXCEPT ![CoordProc] = "Restore"]
+    /\ UNCHANGED <<serverVersion, serverStatus, serverUpdating, coordCurrent, coordPending>>
+
+CoordRestore ==
+    /\ pc[CoordProc] = "Restore"
+    /\ serverStatus' = [serverStatus EXCEPT ![coordCurrent] = "in_lb"]
+    /\ coordState' = "restoring"
+    /\ pc' = [pc EXCEPT ![CoordProc] = "Select"]
+    /\ UNCHANGED <<serverVersion, serverUpdating, coordCurrent, coordPending>>
+
+CoordFinished ==
+    /\ pc[CoordProc] = "Finished"
+    /\ UNCHANGED vars
+
+\* Combined Next relation
+Next ==
+    \/ \E s \in Servers: ServerReady(s)
+    \/ \E s \in Servers: ServerUpdate(s)
+    \/ \E s \in Servers: ServerDone(s)
+    \/ CoordSelect
+    \/ CoordSelectDone
+    \/ CoordRemove
+    \/ CoordUpdate
+    \/ CoordWait
+    \/ CoordRestore
+    \/ CoordFinished
+
+\* Fairness conditions
+ServerFairness == \A s \in Servers: WF_vars(ServerReady(s)) /\ WF_vars(ServerUpdate(s))
+CoordFairness == WF_vars(CoordSelect) /\ WF_vars(CoordSelectDone) /\ WF_vars(CoordRemove) /\ 
+                 WF_vars(CoordUpdate) /\ WF_vars(CoordWait) /\ WF_vars(CoordRestore)
+
+Fairness == ServerFairness /\ CoordFairness
+
+\* Specification
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety: At least one server is always in the load balancer (availability)
+Availability == \E s \in Servers: serverStatus[s] = "in_lb"
+
+\* Safety: Only one server can be out of the load balancer at a time for update
+AtMostOneOutForUpdate == Cardinality({s \in Servers: serverStatus[s] = "out_lb"}) <= 1
+
+\* Safety: A server in the load balancer should not be updating
+NoUpdateWhileServing == \A s \in Servers: serverStatus[s] = "in_lb" => serverUpdating[s] = FALSE
+
+\* Combined safety invariant
+SafetyInvariant == TypeInvariant /\ Availability /\ AtMostOneOutForUpdate /\ NoUpdateWhileServing
+
+\* Liveness: All processes eventually terminate
+Termination == <>(\A p \in AllProcs: pc[p] \in {"Done", "Finished"})
+
+\* Liveness: All servers eventually get updated
+AllServersUpdated == <>(\A s \in Servers: serverVersion[s] = "new")
+
+\* Liveness: Coordinator eventually finishes
+CoordinatorTerminates == <>(pc[CoordProc] = "Finished")
+
+===============================================================================
+```

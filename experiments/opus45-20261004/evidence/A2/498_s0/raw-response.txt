@@ -1,0 +1,59 @@
+```tla+
+---------------------------- MODULE MultiConsensus ----------------------------
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS Values, Slots
+
+ASSUME ValuesAssumption == Values # {}
+ASSUME SlotsAssumption == Slots # {}
+
+VARIABLES proposed, chosen
+
+vars == <<proposed, chosen>>
+
+TypeOK ==
+    /\ proposed \subseteq Values
+    /\ chosen \in [Slots -> SUBSET Values]
+    /\ \A s \in Slots : IsFiniteSet(chosen[s])
+
+Init ==
+    /\ proposed = {}
+    /\ chosen = [s \in Slots |-> {}]
+
+Propose ==
+    /\ \E v \in Values :
+        /\ v \notin proposed
+        /\ proposed' = proposed \cup {v}
+        /\ UNCHANGED chosen
+
+Choose ==
+    /\ \E s \in Slots :
+        /\ chosen[s] = {}
+        /\ \E v \in proposed :
+            /\ chosen' = [chosen EXCEPT ![s] = {v}]
+            /\ UNCHANGED proposed
+
+Next == Propose \/ Choose
+
+Spec == Init /\ [][Next]_vars
+
+LiveSpec == Spec /\ WF_vars(Next)
+
+Nontriviality ==
+    \A s \in Slots : \A v \in chosen[s] : v \in proposed
+
+Stability ==
+    \A s \in Slots : \A v \in Values :
+        v \in chosen[s] => [][v \in chosen'[s]]_vars
+
+StabilityInv ==
+    \A s \in Slots : chosen[s] # {} => chosen'[s] = chosen[s]
+
+Consistency ==
+    \A s \in Slots : Cardinality(chosen[s]) <= 1
+
+Liveness ==
+    \A s \in Slots : <>(chosen[s] # {})
+
+=============================================================================
+```

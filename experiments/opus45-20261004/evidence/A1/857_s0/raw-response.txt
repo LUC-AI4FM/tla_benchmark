@@ -1,0 +1,101 @@
+```tla
+---------------------------- MODULE prisoners ----------------------------
+
+CONSTANT N
+
+ASSUME N \in Nat /\ N > 1
+
+VARIABLES
+    counter,
+    lightOn,
+    count,
+    announced,
+    visited,
+    numSignals
+
+vars == <<counter, lightOn, count, announced, visited, numSignals>>
+
+Prisoners == 1..N
+
+TypeOK ==
+    /\ counter \in Prisoners
+    /\ lightOn \in BOOLEAN
+    /\ count \in 0..(2*N)
+    /\ announced \in BOOLEAN
+    /\ visited \subseteq Prisoners
+    /\ numSignals \in [Prisoners -> 0..2]
+
+Init ==
+    /\ counter \in Prisoners
+    /\ lightOn \in BOOLEAN
+    /\ count = 0
+    /\ announced = FALSE
+    /\ visited = {}
+    /\ numSignals = [p \in Prisoners |-> 0]
+
+Threshold == 2 * N - 1
+
+CounterEnters ==
+    /\ ~announced
+    /\ lightOn
+    /\ count' = count + 1
+    /\ lightOn' = FALSE
+    /\ visited' = visited \cup {counter}
+    /\ UNCHANGED <<counter, announced, numSignals>>
+
+CounterAnnounces ==
+    /\ ~announced
+    /\ count >= Threshold
+    /\ announced' = TRUE
+    /\ UNCHANGED <<counter, lightOn, count, visited, numSignals>>
+
+NonCounterEnters(p) ==
+    /\ ~announced
+    /\ p # counter
+    /\ ~lightOn
+    /\ numSignals[p] < 2
+    /\ lightOn' = TRUE
+    /\ numSignals' = [numSignals EXCEPT ![p] = @ + 1]
+    /\ visited' = visited \cup {p}
+    /\ UNCHANGED <<counter, count, announced>>
+
+NonCounterNoAction(p) ==
+    /\ ~announced
+    /\ p # counter
+    /\ \/ lightOn
+       \/ numSignals[p] >= 2
+    /\ visited' = visited \cup {p}
+    /\ UNCHANGED <<counter, lightOn, count, announced, numSignals>>
+
+CounterNoAction ==
+    /\ ~announced
+    /\ ~lightOn
+    /\ count < Threshold
+    /\ visited' = visited \cup {counter}
+    /\ UNCHANGED <<counter, lightOn, count, announced, numSignals>>
+
+WardenSelectsCounter ==
+    \/ CounterEnters
+    \/ CounterNoAction
+    \/ CounterAnnounces
+
+WardenSelectsNonCounter(p) ==
+    \/ NonCounterEnters(p)
+    \/ NonCounterNoAction(p)
+
+Next ==
+    \/ WardenSelectsCounter
+    \/ \E p \in Prisoners \ {counter} : WardenSelectsNonCounter(p)
+
+Fairness ==
+    /\ WF_vars(WardenSelectsCounter)
+    /\ \A p \in Prisoners : WF_vars(WardenSelectsNonCounter(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+Terminating == <>(announced)
+
+VictoryOK == announced => (visited = Prisoners)
+
+=============================================================================
+```

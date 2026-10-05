@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n-------------------------------- MODULE Barrier --------------------------------\n\nEXTENDS Naturals, FiniteSets\n\nCONSTANTS N\n\nASSUME N \\in Nat /\\ N > 0\n\nProcs == 1..N\n\nVARIABLES pc\n\nvars == <<pc>>\n\nTypeOK == pc \\in [Procs -> {\"b0\", \"b1\"}]\n\nInit == pc = [p \\in Procs |-> \"b0\"]\n\nEnter(p) == \n    /\\ pc[p] = \"b0\"\n    /\\ pc' = [pc EXCEPT ![p] = \"b1\"]\n\nReset == \n    /\\ \\A p \\in Procs : pc[p] = \"b1\"\n    /\\ pc' = [p \\in Procs |-> \"b0\"]\n\nNext == \n    \\/ \\E p \\in Procs : Enter(p)\n    \\/ Reset\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(Next)\n\nAllAtB1 == \\A p \\in Procs : pc[p] = \"b1\"\n\nSomeNotEntered == \\E p \\in Procs : pc[p] = \"b0\"\n\nBarrierProperty == \n    \\A p \\in Procs : \n        (pc[p] = \"b1\" /\\ SomeNotEntered) => [][pc[p] = \"b1\" \\/ AllAtB1]_vars\n\nSafetyInvariant == \n    \\A p, q \\in Procs : \n        (pc[p] = \"b0\" /\\ pc[q] = \"b1\") => \n            (pc'[q] = \"b1\" \\/ (\\A r \\in Procs : pc[r] = \"b1\"))\n\nNoPartialReset == \n    [][\\A p \\in Procs : \n        (pc[p] = \"b1\" /\\ pc'[p] = \"b0\") => \n            (\\A q \\in Procs : pc[q] = \"b1\")]_vars\n\nEventualReset == \n    \\A p \\in Procs : pc[p] = \"b1\" ~> pc[p] = \"b0\"\n\n================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 223,
+    "outputTokens": 549,
+    "totalTokens": 772,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9112
+  }
+}

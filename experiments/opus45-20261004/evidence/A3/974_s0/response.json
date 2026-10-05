@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n------------------------------ MODULE RegularReaders ------------------------------\nEXTENDS Naturals, FiniteSets, TLAPS\n\nCONSTANT N\n\nASSUME NAssumption == N \\in Nat \\ {0}\n\nVARIABLES x, y, pc\n\nvars == <<x, y, pc>>\n\nProcs == 1..N\n\n(* Each process i has states: \"write1\" -> \"write2\" -> \"read\" -> \"done\" *)\n(* x[i] is a set representing possible values (regular register model) *)\n(* y[i] is the local variable where process i stores the value read *)\n\nTypeOK ==\n    /\\ x \\in [Procs -> SUBSET {0, 1}]\n    /\\ y \\in [Procs -> {0, 1}]\n    /\\ pc \\in [Procs -> {\"write1\", \"write2\", \"read\", \"done\"}]\n\nInit ==\n    /\\ x = [i \\in Procs |-> {0}]\n    /\\ y = [i \\in Procs |-> 0]\n    /\\ pc = [i \\in Procs |-> \"write1\"]\n\n(* Neighbor function: process i reads from process (i mod N) + 1 *)\nNeighbor(i) == (i % N) + 1\n\n(* Write phase 1: Begin writing 1, register goes from {0} to {0,1} *)\nWrite1(i) ==\n    /\\ pc[i] = \"write1\"\n    /\\ x' = [x EXCEPT ![i] = {0, 1}]\n    /\\ pc' = [pc EXCEPT ![i] = \"write2\"]\n    /\\ y' = y\n\n(* Write phase 2: Complete writing 1, register goes from {0,1} to {1} *)\nWrite2(i) ==\n    /\\ pc[i] = \"write2\"\n    /\\ x' = [x EXCEPT ![i] = {1}]\n    /\\ pc' = [pc EXCEPT ![i] = \"read\"]\n    /\\ y' = y\n\n(* Read: Process i reads from neighbor's register, getting any value in the set *)\nRead(i) ==\n    /\\ pc[i] = \"read\"\n    /\\ \\E v \\in x[Neighbor(i)] : y' = [y EXCEPT ![i] = v]\n    /\\ pc' = [pc EXCEPT ![i] = \"done\"]\n    /\\ x' = x\n\n(* Combined action for process i *)\nStep(i) ==\n    \\/ Write1(i)\n    \\/ Write2(i)\n    \\/ Read(i)\n\nNext == \\E i \\in Procs : Step(i)\n\n(* Fairness: weak fairness for each process step *)\nFairness == \\A i \\in Procs : WF_vars(Step(i))\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n(* Termination: all processes reach done state *)\nTermination == <>(\\A i \\in Procs : pc[i] = \"done\")\n\nAllDone == \\A i \\in Procs : pc[i] = \"done\"\n\n(* Safety property: if all processes are done, some y[i] equals 1 *)\nPCorrect == AllDone => \\E i \\in Procs : y[i] = 1\n\n(* Inductive invariant *)\nInv ==\n    /\\ TypeOK\n    /\\ \\A i \\in Procs :\n        /\\ (pc[i] = \"write1\") => (x[i] = {0})\n        /\\ (pc[i] = \"write2\") => (x[i] = {0, 1})\n        /\\ (pc[i] \\in {\"read\", \"done\"}) => (x[i] = {1})\n    /\\ \\A i \\in Procs :\n        (pc[i] = \"done\" /\\ y[i] = 0) =>\n            (pc[Neighbor(i)] \\in {\"write1\", \"write2\"})\n\n(* THEOREM: Inv is inductive and implies PCorrect *)\nTHEOREM InvInit == Init => Inv\n<1>1. ASSUME Init PROVE TypeOK\n  BY <1>1, NAssumption DEF Init, TypeOK, Procs\n<1>2. ASSUME Init PROVE \\A i \\in Procs : (pc[i] = \"write1\") => (x[i] = {0})\n  BY <1>2 DEF Init, Procs\n<1>3. ASSUME Init PROVE \\A i \\in Procs : (pc[i] = \"write2\") => (x[i] = {0, 1})\n  BY <1>3 DEF Init, Procs\n<1>4. ASSUME Init PROVE \\A i \\in Procs : (pc[i] \\in {\"read\", \"done\"}) => (x[i] = {1})\n  BY <1>4 DEF Init, Procs\n<1>5. ASSUME Init PROVE \\A i \\in Procs : (pc[i] = \"done\" /\\ y[i] = 0) => (pc[Neighbor(i)] \\in {\"write1\", \"write2\"})\n  BY <1>5 DEF Init, Procs\n<1>6. QED\n  BY <1>1, <1>2, <1>3, <1>4, <1>5 DEF Inv\n\nTHEOREM InvInductive == Inv /\\ Next => Inv'\n<1>1. ASSUME Inv, NEW i \\in Procs, Write1(i) PROVE Inv'\n  BY <1>1, NAssumption DEF Inv, TypeOK, Write1, Procs, Neighbor\n<1>2. ASSUME Inv, NEW i \\in Procs, Write2(i) PROVE Inv'\n  BY <1>2, NAssumption DEF Inv, TypeOK, Write2, Procs, Neighbor\n<1>3. ASSUME Inv, NEW i \\in Procs, Read(i) PROVE Inv'\n  BY <1>3, NAssumption DEF Inv, TypeOK, Read, Procs, Neighbor\n<1>4. QED\n  BY <1>1, <1>2, <1>3 DEF Next, Step\n\nTHEOREM Safety == Inv => PCorrect\n<1>1. ASSUME Inv, AllDone PROVE \\E i \\in Procs : y[i] = 1\n  <2>1. 1 \\in Procs\n    BY NAssumption DEF Procs\n  <2>2. pc[1] = \"done\"\n    BY <1>1, <2>1 DEF AllDone\n  <2>3. pc[Neighbor(1)] = \"done\"\n    BY <1>1, NAssumption DEF AllDone, Neighbor, Procs\n  <2>4. CASE y[1] = 1\n    BY <2>1, <2>4\n  <2>5. CASE y[1] = 0\n    <3>1. pc[Neighbor(1)] \\in {\"write1\", \"write2\"}\n      BY <1>1, <2>1, <2>2, <2>5 DEF Inv\n    <3>2. FALSE\n      BY <3>1, <2>3\n    <3>3. QED BY <3>2\n  <2>6. QED\n    BY <1>1, <2>1, <2>4, <2>5 DEF Inv, TypeOK\n<1>2. QED\n  BY <1>1 DEF PCorrect\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 293,
+    "outputTokens": 1896,
+    "totalTokens": 2189,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 25822
+  }
+}

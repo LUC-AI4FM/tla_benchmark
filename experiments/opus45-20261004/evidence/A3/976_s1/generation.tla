@@ -1,0 +1,155 @@
+---------------------------- MODULE SimpleRing ----------------------------
+EXTENDS Naturals, TLAPS
+
+CONSTANT N
+
+ASSUME NAssumption == N \in Nat \ {0}
+
+VARIABLES x, y, pc
+
+vars == << x, y, pc >>
+
+ProcSet == (1..N)
+
+Init == (* Global variables *)
+        /\ x = [i \in 1..N |-> 0]
+        /\ y = [i \in 1..N |-> 0]
+        /\ pc = [self \in ProcSet |-> "s1"]
+
+s1(self) == /\ pc[self] = "s1"
+            /\ x' = [x EXCEPT ![self] = 1]
+            /\ pc' = [pc EXCEPT ![self] = "s2"]
+            /\ y' = y
+
+s2(self) == /\ pc[self] = "s2"
+            /\ y' = [y EXCEPT ![self] = x[(self % N) + 1]]
+            /\ pc' = [pc EXCEPT ![self] = "Done"]
+            /\ x' = x
+
+P(self) == s1(self) \/ s2(self)
+
+(* Allow terminating processes to stutter *)
+Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
+               /\ UNCHANGED vars
+
+Next == (\E self \in 1..N: P(self))
+           \/ Terminating
+
+Spec == /\ Init
+        /\ [][Next]_vars
+        /\ \A self \in 1..N : WF_vars(P(self))
+
+Termination == <>(\A self \in ProcSet: pc[self] = "Done")
+
+\* Type correctness invariant
+TypeOK == /\ x \in [1..N -> {0, 1}]
+          /\ y \in [1..N -> {0, 1}]
+          /\ pc \in [1..N -> {"s1", "s2", "Done"}]
+
+\* Safety property: when all processes are done, at least one has y[i] = 1
+Safety == (\A self \in ProcSet: pc[self] = "Done") => 
+          (\E i \in 1..N: y[i] = 1)
+
+\* Inductive invariant components
+\* If any process has set x[i] = 1, it stays 1
+XMonotonic == \A i \in 1..N : pc[i] \in {"s2", "Done"} => x[i] = 1
+
+\* If process finished s1, its x is 1
+AfterS1 == \A i \in 1..N : pc[i] # "s1" => x[i] = 1
+
+\* Key insight: the last process to execute s1 will see its right neighbor's x = 1
+\* Because when it does s2, the neighbor has already done s1
+LastProcessSeesOne == 
+    (\A i \in 1..N : pc[i] \in {"s2", "Done"}) =>
+    (\E i \in 1..N : x[(i % N) + 1] = 1)
+
+\* When all in s2 or Done, all x values are 1
+AllXSet == (\A i \in 1..N : pc[i] # "s1") => (\A i \in 1..N : x[i] = 1)
+
+\* The main inductive invariant
+Inv == /\ TypeOK
+       /\ AfterS1
+       /\ ((\A i \in 1..N : pc[i] = "Done") => (\E i \in 1..N : y[i] = 1))
+
+\* Correctness theorem version 1
+THEOREM Spec => []Safety
+<1>1. Init => Inv
+  <2>1. Init => TypeOK
+    BY NAssumption DEF Init, TypeOK, ProcSet
+  <2>2. Init => AfterS1
+    BY DEF Init, AfterS1, ProcSet
+  <2>3. Init => ((\A i \in 1..N : pc[i] = "Done") => (\E i \in 1..N : y[i] = 1))
+    BY DEF Init, ProcSet
+  <2>. QED BY <2>1, <2>2, <2>3 DEF Inv
+<1>2. Inv /\ [Next]_vars => Inv'
+  <2>1. SUFFICES ASSUME Inv, [Next]_vars
+        PROVE Inv'
+    OBVIOUS
+  <2>2. CASE \E self \in 1..N: s1(self)
+    <3>1. PICK self \in 1..N : s1(self)
+      BY <2>2
+    <3>2. TypeOK'
+      BY <3>1, NAssumption DEF s1, Inv, TypeOK
+    <3>3. AfterS1'
+      BY <3>1 DEF s1, Inv, AfterS1, TypeOK
+    <3>4. ((\A i \in 1..N : pc'[i] = "Done") => (\E i \in 1..N : y'[i] = 1))
+      BY <3>1 DEF s1, Inv, TypeOK
+    <3>. QED BY <3>2, <3>3, <3>4 DEF Inv
+  <2>3. CASE \E self \in 1..N: s2(self)
+    <3>1. PICK self \in 1..N : s2(self)
+      BY <2>3
+    <3>2. TypeOK'
+      BY <3>1, NAssumption DEF s2, Inv, TypeOK
+    <3>3. AfterS1'
+      BY <3>1 DEF s2, Inv, AfterS1, TypeOK
+    <3>4. ((\A i \in 1..N : pc'[i] = "Done") => (\E i \in 1..N : y'[i] = 1))
+      <4>1. CASE \A i \in 1..N : pc'[i] = "Done"
+        <5>1. \A i \in 1..N : i # self => pc[i] = "Done"
+          BY <3>1, <4>1 DEF s2, Inv, TypeOK
+        <5>2. \A i \in 1..N : i # self => pc[i] # "s1"
+          BY <5>1
+        <5>3. pc[self] = "s2"
+          BY <3>1 DEF s2
+        <5>4. \A i \in 1..N : pc[i] # "s1"
+          BY <5>2, <5>3
+        <5>5. \A i \in 1..N : x[i] = 1
+          BY <5>4 DEF Inv, AfterS1
+        <5>6. x[(self % N) + 1] = 1
+          BY <5>5, NAssumption
+        <5>7. y'[self] = x[(self % N) + 1]
+          BY <3>1 DEF s2
+        <5>8. y'[self] = 1
+          BY <5>6, <5>7
+        <5>. QED BY <5>8
+      <4>2. CASE ~ (\A i \in 1..N : pc'[i] = "Done")
+        BY <4>2
+      <4>. QED BY <4>1, <4>2
+    <3>. QED BY <3>2, <3>3, <3>4 DEF Inv
+  <2>4. CASE Terminating
+    BY <2>4 DEF Terminating, vars, Inv, TypeOK, AfterS1
+  <2>5. CASE UNCHANGED vars
+    BY <2>5 DEF vars, Inv, TypeOK, AfterS1
+  <2>. QED BY <2>1, <2>2, <2>3, <2>4, <2>5 DEF Next
+<1>3. Inv => Safety
+  BY DEF Inv, Safety, ProcSet
+<1>. QED BY <1>1, <1>2, <1>3, PTL DEF Spec
+
+\* Correctness theorem version 2 (alternative proof structure)
+THEOREM Correctness == Spec => []Safety
+<1>1. Init => Inv
+  BY NAssumption DEF Init, Inv, TypeOK, AfterS1, ProcSet
+<1>2. Inv /\ [Next]_vars => Inv'
+  <2> SUFFICES ASSUME Inv, Next PROVE Inv'
+    BY DEF vars, Inv, TypeOK, AfterS1
+  <2>1. TypeOK'
+    BY NAssumption DEF Next, s1, s2, Terminating, vars, Inv, TypeOK
+  <2>2. AfterS1'
+    BY DEF Next, s1, s2, Terminating, vars, Inv, AfterS1, TypeOK
+  <2>3. (\A i \in 1..N : pc'[i] = "Done") => (\E i \in 1..N : y'[i] = 1)
+    BY NAssumption DEF Next, s1, s2, Terminating, vars, Inv, TypeOK, AfterS1
+  <2>. QED BY <2>1, <2>2, <2>3 DEF Inv
+<1>3. Inv => Safety
+  BY DEF Inv, Safety, ProcSet
+<1>. QED BY <1>1, <1>2, <1>3, PTL DEF Spec
+
+==========================================================================

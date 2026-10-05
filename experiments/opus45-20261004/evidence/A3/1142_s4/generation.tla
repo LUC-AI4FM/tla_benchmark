@@ -1,0 +1,305 @@
+---------------------------- MODULE TLAPlusCalMapping ----------------------------
+
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS
+    MaxLine,        \* Maximum line number
+    MaxCol,         \* Maximum column number
+    MaxTokens,      \* Maximum number of tokens
+    NULL            \* Null value for optional fields
+
+VARIABLES
+    tlaRegions,         \* Set of regions in TLA+ code
+    pcalRegions,        \* Set of regions in PlusCal code
+    mappings,           \* Mapping from TLA+ regions to PlusCal regions
+    currentToken,       \* Current token being processed
+    tokenSequence,      \* Sequence of tokens
+    parenDepth,         \* Current parenthesis depth
+    parenStack,         \* Stack for parenthesis matching
+    pc,                 \* Program counter for algorithm
+    result,             \* Result of computation
+    error               \* Error state
+
+vars == <<tlaRegions, pcalRegions, mappings, currentToken, tokenSequence, 
+          parenDepth, parenStack, pc, result, error>>
+
+-----------------------------------------------------------------------------
+(* Data structure definitions *)
+
+\* A Location is a record with line and column
+Location == [line: 1..MaxLine, col: 1..MaxCol]
+
+\* A Region is a record with begin and end locations
+Region == [begin: Location, end: Location]
+
+\* A Token is a record with type, region, and optional value
+TokenType == {"LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET",
+              "IDENTIFIER", "KEYWORD", "OPERATOR", "LITERAL", "EOF"}
+
+Token == [type: TokenType, region: Region, value: Seq({"a","b","c","d","e"})]
+
+\* A TranslationObject maps a TLA+ region to a PlusCal region
+TranslationObject == [tlaRegion: Region, pcalRegion: Region]
+
+-----------------------------------------------------------------------------
+(* Helper predicates for well-formedness *)
+
+\* Check if a location is well-formed
+WellFormedLocation(loc) ==
+    /\ loc.line >= 1
+    /\ loc.line <= MaxLine
+    /\ loc.col >= 1
+    /\ loc.col <= MaxCol
+
+\* Check if a region is well-formed (begin before or equal to end)
+WellFormedRegion(reg) ==
+    /\ WellFormedLocation(reg.begin)
+    /\ WellFormedLocation(reg.end)
+    /\ \/ reg.begin.line < reg.end.line
+       \/ /\ reg.begin.line = reg.end.line
+          /\ reg.begin.col <= reg.end.col
+
+\* Location ordering: loc1 is before loc2
+LocationBefore(loc1, loc2) ==
+    \/ loc1.line < loc2.line
+    \/ /\ loc1.line = loc2.line
+       /\ loc1.col < loc2.col
+
+LocationBeforeOrEqual(loc1, loc2) ==
+    \/ LocationBefore(loc1, loc2)
+    \/ /\ loc1.line = loc2.line
+       /\ loc1.col = loc2.col
+
+\* Region ordering: reg1 ends before reg2 begins
+RegionBefore(reg1, reg2) ==
+    LocationBeforeOrEqual(reg1.end, reg2.begin)
+
+\* Check if a region is contained within another
+RegionContainedIn(inner, outer) ==
+    /\ LocationBeforeOrEqual(outer.begin, inner.begin)
+    /\ LocationBeforeOrEqual(inner.end, outer.end)
+
+\* Check if a translation object is well-formed
+WellFormedTranslation(trans) ==
+    /\ WellFormedRegion(trans.tlaRegion)
+    /\ WellFormedRegion(trans.pcalRegion)
+
+\* Check if a token sequence is well-ordered (tokens don't overlap and are in order)
+WellOrderedTokens(tokens) ==
+    \A i \in 1..(Len(tokens)-1) :
+        RegionBefore(tokens[i].region, tokens[i+1].region)
+
+\* Matching open/close parenthesis types
+MatchingParen(openType, closeType) ==
+    \/ /\ openType = "LPAREN"
+       /\ closeType = "RPAREN"
+    \/ /\ openType = "LBRACE"
+       /\ closeType = "RBRACE"
+    \/ /\ openType = "LBRACKET"
+       /\ closeType = "RBRACKET"
+
+IsOpenParen(tokenType) ==
+    tokenType \in {"LPAREN", "LBRACE", "LBRACKET"}
+
+IsCloseParen(tokenType) ==
+    tokenType \in {"RPAREN", "RBRACE", "RBRACKET"}
+
+-----------------------------------------------------------------------------
+(* Initial state *)
+
+Init ==
+    /\ tlaRegions = {}
+    /\ pcalRegions = {}
+    /\ mappings = {}
+    /\ currentToken = 1
+    /\ tokenSequence = <<>>
+    /\ parenDepth = 0
+    /\ parenStack = <<>>
+    /\ pc = "Start"
+    /\ result = NULL
+    /\ error = FALSE
+
+-----------------------------------------------------------------------------
+(* PlusCal algorithm translated to TLA+ *)
+
+\* Start processing: initialize with a token sequence
+StartProcessing ==
+    /\ pc = "Start"
+    /\ pc' = "ProcessToken"
+    /\ UNCHANGED <<tlaRegions, pcalRegions, mappings, currentToken, 
+                   tokenSequence, parenDepth, parenStack, result, error>>
+
+\* Process current token
+ProcessToken ==
+    /\ pc = "ProcessToken"
+    /\ IF currentToken > Len(tokenSequence) \/ currentToken > MaxTokens
+       THEN /\ pc' = "Done"
+            /\ UNCHANGED <<tlaRegions, pcalRegions, mappings, currentToken,
+                          tokenSequence, parenDepth, parenStack, result, error>>
+       ELSE LET tok == tokenSequence[currentToken]
+            IN /\ IF IsOpenParen(tok.type)
+                  THEN /\ parenDepth' = parenDepth + 1
+                       /\ parenStack' = Append(parenStack, tok.type)
+                       /\ error' = error
+                  ELSE IF IsCloseParen(tok.type)
+                       THEN IF parenStack = <<>>
+                            THEN /\ error' = TRUE
+                                 /\ parenDepth' = parenDepth
+                                 /\ parenStack' = parenStack
+                            ELSE IF MatchingParen(parenStack[Len(parenStack)], tok.type)
+                                 THEN /\ parenDepth' = parenDepth - 1
+                                      /\ parenStack' = SubSeq(parenStack, 1, Len(parenStack)-1)
+                                      /\ error' = error
+                                 ELSE /\ error' = TRUE
+                                      /\ parenDepth' = parenDepth
+                                      /\ parenStack' = parenStack
+                       ELSE /\ parenDepth' = parenDepth
+                            /\ parenStack' = parenStack
+                            /\ error' = error
+               /\ currentToken' = currentToken + 1
+               /\ pc' = "ProcessToken"
+               /\ UNCHANGED <<tlaRegions, pcalRegions, mappings, tokenSequence, result>>
+
+\* Add a new TLA+ region
+AddTLARegion ==
+    /\ pc = "ProcessToken" \/ pc = "Start"
+    /\ \E reg \in Region :
+        /\ WellFormedRegion(reg)
+        /\ reg \notin tlaRegions
+        /\ tlaRegions' = tlaRegions \cup {reg}
+    /\ UNCHANGED <<pcalRegions, mappings, currentToken, tokenSequence,
+                   parenDepth, parenStack, pc, result, error>>
+
+\* Add a new PlusCal region
+AddPCalRegion ==
+    /\ pc = "ProcessToken" \/ pc = "Start"
+    /\ \E reg \in Region :
+        /\ WellFormedRegion(reg)
+        /\ reg \notin pcalRegions
+        /\ pcalRegions' = pcalRegions \cup {reg}
+    /\ UNCHANGED <<tlaRegions, mappings, currentToken, tokenSequence,
+                   parenDepth, parenStack, pc, result, error>>
+
+\* Create a mapping between TLA+ and PlusCal regions
+CreateMapping ==
+    /\ pc = "ProcessToken" \/ pc = "Start"
+    /\ \E tlaReg \in tlaRegions, pcalReg \in pcalRegions :
+        LET trans == [tlaRegion |-> tlaReg, pcalRegion |-> pcalReg]
+        IN /\ WellFormedTranslation(trans)
+           /\ trans \notin mappings
+           /\ mappings' = mappings \cup {trans}
+    /\ UNCHANGED <<tlaRegions, pcalRegions, currentToken, tokenSequence,
+                   parenDepth, parenStack, pc, result, error>>
+
+\* Add a token to the sequence
+AddToken ==
+    /\ pc = "Start"
+    /\ Len(tokenSequence) < MaxTokens
+    /\ \E t \in TokenType, reg \in Region :
+        /\ WellFormedRegion(reg)
+        /\ (tokenSequence = <<>> \/ RegionBefore(tokenSequence[Len(tokenSequence)].region, reg))
+        /\ tokenSequence' = Append(tokenSequence, [type |-> t, region |-> reg, value |-> <<>>])
+    /\ UNCHANGED <<tlaRegions, pcalRegions, mappings, currentToken,
+                   parenDepth, parenStack, pc, result, error>>
+
+\* Done processing
+Done ==
+    /\ pc = "Done"
+    /\ result' = [
+         parenBalanced |-> (parenDepth = 0 /\ parenStack = <<>>),
+         tokensProcessed |-> currentToken - 1,
+         mappingCount |-> Cardinality(mappings)
+       ]
+    /\ pc' = "Finished"
+    /\ UNCHANGED <<tlaRegions, pcalRegions, mappings, currentToken,
+                   tokenSequence, parenDepth, parenStack, error>>
+
+\* Finished state (stuttering)
+Finished ==
+    /\ pc = "Finished"
+    /\ UNCHANGED vars
+
+-----------------------------------------------------------------------------
+(* Next state relation *)
+
+Next ==
+    \/ StartProcessing
+    \/ ProcessToken
+    \/ AddTLARegion
+    \/ AddPCalRegion
+    \/ CreateMapping
+    \/ AddToken
+    \/ Done
+    \/ Finished
+
+-----------------------------------------------------------------------------
+(* Fairness conditions *)
+
+Fairness ==
+    /\ WF_vars(StartProcessing)
+    /\ WF_vars(ProcessToken)
+    /\ WF_vars(Done)
+
+-----------------------------------------------------------------------------
+(* Specification *)
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+-----------------------------------------------------------------------------
+(* Safety Invariants *)
+
+\* All TLA+ regions are well-formed
+TypeInvariant ==
+    /\ \A reg \in tlaRegions : WellFormedRegion(reg)
+    /\ \A reg \in pcalRegions : WellFormedRegion(reg)
+    /\ \A trans \in mappings : WellFormedTranslation(trans)
+    /\ parenDepth >= 0
+    /\ currentToken >= 1
+    /\ pc \in {"Start", "ProcessToken", "Done", "Finished"}
+
+\* Parenthesis depth is never negative
+ParenDepthNonNegative ==
+    parenDepth >= 0
+
+\* Parenthesis stack matches depth
+ParenStackConsistent ==
+    Len(parenStack) = parenDepth
+
+\* Token sequence is well-ordered
+TokenOrderInvariant ==
+    WellOrderedTokens(tokenSequence)
+
+\* Mappings only reference existing regions
+MappingConsistency ==
+    \A trans \in mappings :
+        /\ trans.tlaRegion \in tlaRegions
+        /\ trans.pcalRegion \in pcalRegions
+
+\* No error state reached during normal processing
+NoErrorDuringProcessing ==
+    (pc = "Finished" /\ ~error) => (parenDepth = 0 /\ parenStack = <<>>)
+
+\* Combined safety invariant
+SafetyInvariant ==
+    /\ TypeInvariant
+    /\ ParenDepthNonNegative
+    /\ ParenStackConsistent
+    /\ TokenOrderInvariant
+    /\ MappingConsistency
+
+-----------------------------------------------------------------------------
+(* Liveness Properties *)
+
+\* Processing eventually completes
+EventuallyCompletes ==
+    pc = "Start" ~> pc = "Finished"
+
+\* If tokens are added, they are eventually processed
+TokensEventuallyProcessed ==
+    [](Len(tokenSequence) > 0 => <>(currentToken > Len(tokenSequence)))
+
+\* Correct parenthesis matching eventually verified
+ParenMatchingVerified ==
+    <>[](pc = "Finished" => (result /= NULL /\ result.parenBalanced = (error = FALSE)))
+
+=============================================================================

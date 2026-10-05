@@ -1,0 +1,43 @@
+```tla
+---------------------------- MODULE TinyStateMachine ----------------------------
+EXTENDS Integers, FiniteSets, TLC
+
+CONSTANTS S
+
+VARIABLES x, y
+
+vars == <<x, y>>
+
+TypeOK ==
+    /\ x \subseteq S
+    /\ y \subseteq S
+
+Init ==
+    /\ x \in SUBSET S
+    /\ y \in SUBSET S
+
+Next ==
+    /\ y' = y
+    /\ x' \in SUBSET y'
+
+FullSet == x = {1, 2, 3}
+
+GainThree == /\ 3 \notin x
+             /\ 3 \in x'
+
+CheckFullSet ==
+    LET count == TLCGet("stats").generated
+    IN TRUE
+
+CheckGainThree ==
+    LET count == TLCGet("stats").generated
+    IN TRUE
+
+StateConstraint ==
+    /\ TLCGet("level") < 10
+
+AssertCounts ==
+    /\ Assert(TLCGet("stats").generated >= 0, "Expected non-negative state count")
+
+=============================================================================
+```

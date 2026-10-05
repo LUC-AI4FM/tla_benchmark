@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE PrisonerLightSwitch ----------------------------\nEXTENDS Integers, FiniteSets\n\nCONSTANTS \n    N,              \\* Number of prisoners (must be >= 2)\n    KnownInitial    \\* TRUE if initial light state is known to be off, FALSE otherwise\n\nASSUME N >= 2\nASSUME KnownInitial \\in BOOLEAN\n\nVARIABLES\n    light,          \\* Current state of the lamp (TRUE = on, FALSE = off)\n    counter,        \\* Counter maintained by the designated counter prisoner (prisoner 0)\n    visited,        \\* Set of prisoners who have actually visited the cell\n    signaled,       \\* Function: signaled[p] = number of times prisoner p has signaled (turned light on)\n    announced,      \\* TRUE if victory has been announced\n    turn            \\* Current prisoner in the cell (or \"none\" if between turns)\n\nvars == <<light, counter, visited, signaled, announced, turn>>\n\nPrisoners == 0..(N-1)\nCounterPrisoner == 0\n\n\\* Maximum times a non-counter prisoner can signal\nMaxSignals == IF KnownInitial THEN 1 ELSE 2\n\n\\* Threshold for counter to announce victory\nThreshold == IF KnownInitial THEN N - 1 ELSE 2 * N - 1\n\nTypeOK ==\n    /\\ light \\in BOOLEAN\n    /\\ counter \\in 0..Threshold\n    /\\ visited \\subseteq Prisoners\n    /\\ signaled \\in [Prisoners -> 0..MaxSignals]\n    /\\ announced \\in BOOLEAN\n    /\\ turn \\in Prisoners \\cup {\"none\"}\n\n\\* Initial state\nInit ==\n    /\\ light = IF KnownInitial THEN FALSE ELSE FALSE  \\* Model checker will explore both if needed\n    /\\ counter = 0\n    /\\ visited = {}\n    /\\ signaled = [p \\in Prisoners |-> 0]\n    /\\ announced = FALSE\n    /\\ turn = \"none\"\n\n\\* For unknown initial state variant, we also consider light starting as TRUE\nInitUnknown ==\n    /\\ light \\in BOOLEAN\n    /\\ counter = 0\n    /\\ visited = {}\n    /\\ signaled = [p \\in Prisoners |-> 0]\n    /\\ announced = FALSE\n    /\\ turn = \"none\"\n\n\\* Warden selects a prisoner to enter the cell\nWardenSelects(p) ==\n    /\\ turn = \"none\"\n    /\\ ~announced\n    /\\ turn' = p\n    /\\ visited' = visited \\cup {p}\n    /\\ UNCHANGED <<light, counter, signaled, announced>>\n\n\\* Counter prisoner's action in the cell\nCounterAction ==\n    /\\ turn = CounterPrisoner\n    /\\ ~announced\n    /\\ IF light = TRUE\n       THEN /\\ counter' = counter + 1\n            /\\ light' = FALSE\n            /\\ IF counter' >= Threshold\n               THEN announced' = TRUE\n               ELSE announced' = FALSE\n       ELSE /\\ counter' = counter\n            /\\ light' = light\n            /\\ announced' = FALSE\n    /\\ turn' = \"none\"\n    /\\ UNCHANGED <<visited, signaled>>\n\n\\* Non-counter prisoner's action in the cell\nNonCounterAction(p) ==\n    /\\ turn = p\n    /\\ p # CounterPrisoner\n    /\\ ~announced\n    /\\ IF light = FALSE /\\ signaled[p] < MaxSignals\n       THEN /\\ light' = TRUE\n            /\\ signaled' = [signaled EXCEPT ![p] = signaled[p] + 1]\n       ELSE /\\ light' = light\n            /\\ signaled' = signaled\n    /\\ turn' = \"none\"\n    /\\ UNCHANGED <<counter, visited, announced>>\n\n\\* Prisoner takes action in cell\nPrisonerActs ==\n    \\/ CounterAction\n    \\/ \\E p \\in Prisoners \\ {CounterPrisoner} : NonCounterAction(p)\n\n\\* Next state relation\nNext ==\n    \\/ \\E p \\in Prisoners : WardenSelects(p)\n    \\/ PrisonerActs\n\n\\* Fairness: warden must be weakly fair in selecting each prisoner\nFairness ==\n    \\A p \\in Prisoners : WF_vars(WardenSelects(p))\n\n\\* Full specification with fairness\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Alternative spec for unknown initial state\nSpecUnknown == InitUnknown /\\ [][Next]_vars /\\ Fairness\n\n\\* Safety: if victory is announced, all prisoners have visited\nSafety == announced => (visited = Prisoners)\n\n\\* Liveness: eventually victory is announced\nLiveness == <>announced\n\n\\* Invariant that should always hold\nInv == TypeOK /\\ Safety\n\n===================================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 247,
+    "outputTokens": 1185,
+    "totalTokens": 1432,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 17843
+  }
+}

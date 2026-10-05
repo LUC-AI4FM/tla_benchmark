@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE spec ----------------------------\nEXTENDS Naturals, FiniteSets\n\nCONSTANT N\n\nASSUME N \\in Nat /\\ N > 0\n\nVARIABLES\n    active,\n    pending,\n    detected\n\nvars == <<active, pending, detected>>\n\nNodes == 0..(N-1)\n\nTypeOK ==\n    /\\ active \\in [Nodes -> BOOLEAN]\n    /\\ pending \\in [Nodes -> Nat]\n    /\\ detected \\in BOOLEAN\n\nInit ==\n    /\\ active \\in [Nodes -> BOOLEAN]\n    /\\ pending = [n \\in Nodes |-> 0]\n    /\\ detected = FALSE\n\nTerminated ==\n    /\\ \\A n \\in Nodes : ~active[n]\n    /\\ \\A n \\in Nodes : pending[n] = 0\n\nTerminate(n) ==\n    /\\ active[n]\n    /\\ active' = [active EXCEPT ![n] = FALSE]\n    /\\ UNCHANGED <<pending, detected>>\n\nSendMsg(sender, receiver) ==\n    /\\ active[sender]\n    /\\ pending' = [pending EXCEPT ![receiver] = @ + 1]\n    /\\ UNCHANGED <<active, detected>>\n\nReceiveMsg(n) ==\n    /\\ pending[n] > 0\n    /\\ pending' = [pending EXCEPT ![n] = @ - 1]\n    /\\ active' = [active EXCEPT ![n] = TRUE]\n    /\\ UNCHANGED detected\n\nDetectTermination ==\n    /\\ ~detected\n    /\\ Terminated\n    /\\ detected' = TRUE\n    /\\ UNCHANGED <<active, pending>>\n\nNext ==\n    \\/ \\E n \\in Nodes : Terminate(n)\n    \\/ \\E s, r \\in Nodes : SendMsg(s, r)\n    \\/ \\E n \\in Nodes : ReceiveMsg(n)\n    \\/ DetectTermination\n\nSpec == Init /\\ [][Next]_vars\n\nFairSpec == Spec /\\ WF_vars(DetectTermination)\n\nSafety ==\n    detected => Terminated\n\nStableTermination ==\n    Terminated => [][Terminated]_vars\n\nDetectionLiveness ==\n    Terminated ~> detected\n\nInv ==\n    /\\ TypeOK\n    /\\ (detected => Terminated)\n\nStateConstraint ==\n    \\A n \\in Nodes : pending[n] <= 3\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 260,
+    "outputTokens": 584,
+    "totalTokens": 844,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 10241
+  }
+}

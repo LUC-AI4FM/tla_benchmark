@@ -1,0 +1,55 @@
+```tla
+---------------------------- MODULE MutualExclusion ----------------------------
+EXTENDS Integers, TLC
+
+CONSTANTS Proc
+
+VARIABLES pc, lock
+
+vars == <<pc, lock>>
+
+TypeOK ==
+    /\ pc \in [Proc -> {"ncs", "l1", "cs"}]
+    /\ lock \in Proc \cup {0}
+
+MutualExclusion ==
+    \A p1, p2 \in Proc : (pc[p1] = "cs" /\ pc[p2] = "cs") => (p1 = p2)
+
+Init ==
+    /\ pc = [p \in Proc |-> "ncs"]
+    /\ lock = 0
+
+TryAcquire(p) ==
+    /\ pc[p] = "ncs"
+    /\ pc' = [pc EXCEPT ![p] = "l1"]
+    /\ lock' = lock
+
+Acquire(p) ==
+    /\ pc[p] = "l1"
+    /\ lock = 0
+    /\ lock' = p
+    /\ pc' = [pc EXCEPT ![p] = "cs"]
+
+Release(p) ==
+    /\ pc[p] = "cs"
+    /\ lock' = 0
+    /\ pc' = [pc EXCEPT ![p] = "ncs"]
+
+Next ==
+    \E p \in Proc :
+        \/ TryAcquire(p)
+        \/ Acquire(p)
+        \/ Release(p)
+
+Fairness ==
+    \A p \in Proc :
+        /\ WF_vars(TryAcquire(p))
+        /\ WF_vars(Acquire(p))
+        /\ WF_vars(Release(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+Liveness == (pc[1] = "l1") ~> (pc[1] = "cs")
+
+=============================================================================
+```

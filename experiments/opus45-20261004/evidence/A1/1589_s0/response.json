@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE Euclid ----------------------------\nEXTENDS Naturals, TLC\n\nCONSTANT MaxNum\n\nASSUME MaxNumAssumption == MaxNum \\in Nat /\\ MaxNum > 0\n\n(***************************************************************************)\n(* Mathematical definition of GCD                                          *)\n(***************************************************************************)\nDivides(p, n) == \\E q \\in 0..n : n = p * q\n\nDivisorsOf(n) == {p \\in 1..n : Divides(p, n)}\n\nSetMax(S) == CHOOSE x \\in S : \\A y \\in S : x >= y\n\nGCD(m, n) == SetMax(DivisorsOf(m) \\cap DivisorsOf(n))\n\n(***************************************************************************)\n(* PlusCal Algorithm (for reference):                                      *)\n(*                                                                         *)\n(* --algorithm Euclid                                                      *)\n(*   variables u_ini \\in 1..MaxNum, v_ini \\in 1..MaxNum, u = u_ini, v = v_ini; *)\n(* begin                                                                   *)\n(*   while u /= v do                                                       *)\n(*     if u > v then                                                       *)\n(*       u := u - v;                                                       *)\n(*     else                                                                *)\n(*       v := v - u;                                                       *)\n(*     end if;                                                             *)\n(*   end while;                                                            *)\n(* end algorithm                                                           *)\n(***************************************************************************)\n\n\\* BEGIN TRANSLATION\nVARIABLES pc, u_ini, v_ini, u, v\n\nvars == << pc, u_ini, v_ini, u, v >>\n\nInit == /\\ u_ini \\in 1..MaxNum\n        /\\ v_ini \\in 1..MaxNum\n        /\\ u = u_ini\n        /\\ v = v_ini\n        /\\ pc = \"Loop\"\n\nLoop == /\\ pc = \"Loop\"\n        /\\ IF u /= v\n              THEN /\\ IF u > v\n                         THEN /\\ u' = u - v\n                              /\\ v' = v\n                         ELSE /\\ v' = v - u\n                              /\\ u' = u\n                   /\\ pc' = \"Loop\"\n              ELSE /\\ pc' = \"Done\"\n                   /\\ UNCHANGED << u, v >>\n        /\\ UNCHANGED << u_ini, v_ini >>\n\nDone == /\\ pc = \"Done\"\n        /\\ UNCHANGED vars\n\nNext == Loop \\/ Done\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nTermination == <>(pc = \"Done\")\n\n\\* END TRANSLATION\n\n(***************************************************************************)\n(* Invariant: When the algorithm terminates, u equals the GCD of the       *)\n(* initial values                                                          *)\n(***************************************************************************)\nInvariant == pc = \"Done\" => u = GCD(u_ini, v_ini)\n\n(***************************************************************************)\n(* Additional useful properties                                            *)\n(***************************************************************************)\nTypeOK == /\\ u_ini \\in 1..MaxNum\n          /\\ v_ini \\in 1..MaxNum\n          /\\ u \\in 1..MaxNum\n          /\\ v \\in 1..MaxNum\n          /\\ pc \\in {\"Loop\", \"Done\"}\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 247,
+    "outputTokens": 814,
+    "totalTokens": 1061,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 12852
+  }
+}

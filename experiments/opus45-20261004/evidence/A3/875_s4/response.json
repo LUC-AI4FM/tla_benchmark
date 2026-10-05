@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE SpanningTree ----------------------------\n\nEXTENDS Integers, FiniteSets, TLC\n\nCONSTANTS Nodes, Root\n\nASSUME Root \\in Nodes\n\n\\* Generate random edges: for each node, pick a random subset of other nodes\n\\* This creates an undirected graph\nRandomSubset(S) == RandomElement(SUBSET S)\n\nEdgesFrom == [n \\in Nodes |-> RandomSubset(Nodes \\ {n})]\n\n\\* Edges as a symmetric relation (undirected graph)\nEdges == {<<u, v>> \\in Nodes \\X Nodes : v \\in EdgesFrom[u] \\/ u \\in EdgesFrom[v]}\n\n\\* Neighbors of a node\nNeighbors(n) == {m \\in Nodes : <<n, m>> \\in Edges}\n\nVARIABLES mom, dist\n\nvars == <<mom, dist>>\n\n\\* Maximum possible distance (used for unreachable nodes)\nMaxDist == Cardinality(Nodes)\n\nTypeOK ==\n    /\\ mom \\in [Nodes -> Nodes]\n    /\\ dist \\in [Nodes -> 0..MaxDist]\n\nInit ==\n    /\\ mom = [n \\in Nodes |-> n]\n    /\\ dist = [n \\in Nodes |-> IF n = Root THEN 0 ELSE MaxDist]\n\n\\* A node can adopt a neighbor with strictly smaller distance\n\\* and choose an intermediate distance value\nAdopt(n) ==\n    /\\ n # Root\n    /\\ \\E neighbor \\in Neighbors(n) :\n        /\\ dist[neighbor] < dist[n] - 1 \\/ (dist[neighbor] < dist[n] /\\ dist[neighbor] < MaxDist)\n        /\\ dist[neighbor] + 1 < dist[n]\n        /\\ \\E newDist \\in (dist[neighbor] + 1)..(dist[n] - 1) :\n            /\\ mom' = [mom EXCEPT ![n] = neighbor]\n            /\\ dist' = [dist EXCEPT ![n] = newDist]\n\n\\* Alternative: direct adoption when neighbor's distance is exactly one less\nDirectAdopt(n) ==\n    /\\ n # Root\n    /\\ \\E neighbor \\in Neighbors(n) :\n        /\\ dist[neighbor] + 1 < dist[n]\n        /\\ mom' = [mom EXCEPT ![n] = neighbor]\n        /\\ dist' = [dist EXCEPT ![n] = dist[neighbor] + 1]\n\nNext == \\E n \\in Nodes : DirectAdopt(n)\n\n\\* Postcondition: characterizes a rooted spanning tree or unreachable nodes\n\\* A node is either:\n\\* 1. The root (points to itself, distance 0)\n\\* 2. Reachable: points to a neighbor with distance one less\n\\* 3. Unreachable: distance is MaxDist and points to itself\n\nIsReachable(n) == dist[n] < MaxDist\n\nPostCondition ==\n    \\A n \\in Nodes :\n        \\/ (n = Root /\\ mom[n] = Root /\\ dist[n] = 0)\n        \\/ (n # Root /\\ IsReachable(n) /\\ \n            mom[n] \\in Neighbors(n) /\\ \n            dist[n] = dist[mom[n]] + 1)\n        \\/ (n # Root /\\ ~IsReachable(n) /\\ \n            dist[n] = MaxDist /\\ \n            mom[n] = n)\n\n\\* Quiescence: no more actions are enabled\nQuiescent ==\n    ~(\\E n \\in Nodes : \n        /\\ n # Root\n        /\\ \\E neighbor \\in Neighbors(n) :\n            dist[neighbor] + 1 < dist[n])\n\n\\* Safety: quiescence implies postcondition\nSafetyProperty == Quiescent => PostCondition\n\n\\* Liveness: eventually the postcondition holds\nLivenessProperty == <>PostCondition\n\n\\* Specification with weak fairness\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\n\\* Invariants to check\nInvariants == TypeOK /\\ SafetyProperty\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 322,
+    "outputTokens": 1031,
+    "totalTokens": 1353,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 15761
+  }
+}

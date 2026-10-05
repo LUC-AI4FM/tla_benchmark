@@ -1,0 +1,58 @@
+---------------------------- MODULE CarTalkPuzzle ----------------------------
+EXTENDS Integers, Sequences, TLC
+
+CONSTANTS W, N
+
+ASSUME W \in Nat /\ W > 0
+ASSUME N \in Nat /\ N > 0
+
+RECURSIVE Partitions(_, _, _, _)
+Partitions(len, total, minVal, acc) ==
+    IF len = 0
+    THEN IF total = 0 THEN {acc} ELSE {}
+    ELSE LET maxVal == total - (len - 1) * minVal
+             minBound == minVal
+             maxBound == IF maxVal < minVal THEN minVal - 1 ELSE maxVal
+         IN IF minBound > maxBound
+            THEN {}
+            ELSE UNION {Partitions(len - 1, total - v, v, Append(acc, v)) : 
+                        v \in minBound..maxBound}
+
+AllPartitions(n, w) == Partitions(n, w, 1, <<>>)
+
+RECURSIVE SumWithCoeffs(_, _)
+SumWithCoeffs(seq, coeffs) ==
+    IF Len(seq) = 0
+    THEN 0
+    ELSE Head(coeffs) * Head(seq) + SumWithCoeffs(Tail(seq), Tail(coeffs))
+
+RECURSIVE AllCoefficients(_)
+AllCoefficients(len) ==
+    IF len = 0
+    THEN {<<>>}
+    ELSE {<<c>> \o rest : c \in {-1, 0, 1}, rest \in AllCoefficients(len - 1)}
+
+Weighs(seq, wt) ==
+    \E coeffs \in AllCoefficients(Len(seq)) : SumWithCoeffs(seq, coeffs) = wt
+
+CanWeighAll(seq) ==
+    \A wt \in 1..W : Weighs(seq, wt)
+
+Solutions == {p \in AllPartitions(N, W) : CanWeighAll(p)}
+
+PrintSolutions ==
+    IF Solutions = {}
+    THEN PrintT("No solution")
+    ELSE \A sol \in Solutions : PrintT(sol)
+
+ASSUME PrintSolutions
+
+VARIABLES dummy
+
+Init == dummy = 0
+
+Next == UNCHANGED dummy
+
+Spec == Init /\ [][Next]_dummy
+
+=============================================================================

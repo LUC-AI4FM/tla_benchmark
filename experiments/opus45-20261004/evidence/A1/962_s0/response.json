@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla\n---------------------------- MODULE ABCSpec ----------------------------\n\nEXTENDS Integers, Sequences\n\nCONSTANTS Data\n\nVARIABLES sbit,      \\* sender's current bit\n          sackbit,   \\* sender's acknowledgement bit\n          rbit,      \\* receiver's bit\n          sent,      \\* data value being sent\n          rcvd       \\* data value received\n\nvars == <<sbit, sackbit, rbit, sent, rcvd>>\n\nTypeInv == /\\ sbit \\in {0, 1}\n           /\\ sackbit \\in {0, 1}\n           /\\ rbit \\in {0, 1}\n           /\\ sent \\in Data\n           /\\ rcvd \\in Data\n\nInit == /\\ sbit = 0\n        /\\ sackbit = 0\n        /\\ rbit = 1\n        /\\ sent \\in Data\n        /\\ rcvd \\in Data\n\n\\* Sender sends a new value when acknowledgement bit matches send bit\nSendNew(d) == /\\ sackbit = sbit\n              /\\ sent' = d\n              /\\ sbit' = 1 - sbit\n              /\\ UNCHANGED <<sackbit, rbit, rcvd>>\n\n\\* Receiver accepts message when receive bit differs from sender bit\nReceiveMsg == /\\ rbit /= sbit\n              /\\ rcvd' = sent\n              /\\ rbit' = sbit\n              /\\ UNCHANGED <<sbit, sackbit, sent>>\n\n\\* Sender accepts acknowledgement when receiver bit differs from sender ack bit\nReceiveAck == /\\ rbit /= sackbit\n              /\\ sackbit' = rbit\n              /\\ UNCHANGED <<sbit, rbit, sent, rcvd>>\n\nNext == \\/ \\E d \\in Data : SendNew(d)\n        \\/ ReceiveMsg\n        \\/ ReceiveAck\n\n\\* Fairness assumptions for message reception and acknowledgement reception\nFairness == /\\ WF_vars(ReceiveMsg)\n            /\\ WF_vars(ReceiveAck)\n\nSpec == Init /\\ [][Next]_vars /\\ Fairness\n\n\\* Temporal property: sender and acknowledgement bits are infinitely often out of sync\nBitsOutOfSync == []<>(sbit /= sackbit)\n\n=============================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 263,
+    "outputTokens": 557,
+    "totalTokens": 820,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 7903
+  }
+}

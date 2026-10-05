@@ -1,0 +1,23 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "```tla+\n---------------------------- MODULE CoffeeCan ----------------------------\nEXTENDS Naturals\n\nCONSTANTS MaxBeanCount\n\nVARIABLES can, initialWhiteParity\n\nvars == <<can, initialWhiteParity>>\n\nTypeInvariant ==\n    /\\ can.black \\in 0..MaxBeanCount\n    /\\ can.white \\in 0..MaxBeanCount\n    /\\ can.black + can.white >= 0\n    /\\ can.black + can.white <= MaxBeanCount\n    /\\ initialWhiteParity \\in {0, 1}\n\nTotalBeans == can.black + can.white\n\nInit ==\n    /\\ can \\in [black : 0..MaxBeanCount, white : 0..MaxBeanCount]\n    /\\ can.black + can.white >= 1\n    /\\ can.black + can.white <= MaxBeanCount\n    /\\ initialWhiteParity = can.white % 2\n\nPickTwoBlack ==\n    /\\ can.black >= 2\n    /\\ can' = [can EXCEPT !.black = can.black - 1]\n    /\\ initialWhiteParity' = initialWhiteParity\n\nPickTwoWhite ==\n    /\\ can.white >= 2\n    /\\ can' = [black |-> can.black + 1, white |-> can.white - 2]\n    /\\ initialWhiteParity' = initialWhiteParity\n\nPickOneEach ==\n    /\\ can.black >= 1\n    /\\ can.white >= 1\n    /\\ can' = [can EXCEPT !.black = can.black - 1]\n    /\\ initialWhiteParity' = initialWhiteParity\n\nTermination ==\n    /\\ TotalBeans = 1\n    /\\ UNCHANGED vars\n\nNext ==\n    \\/ PickTwoBlack\n    \\/ PickTwoWhite\n    \\/ PickOneEach\n    \\/ Termination\n\nSpec == Init /\\ [][Next]_vars /\\ WF_vars(Next)\n\nMonotonicDecrease ==\n    [][TotalBeans' < TotalBeans \\/ TotalBeans = 1]_vars\n\nLoopInvariant ==\n    [](can.white % 2 = initialWhiteParity)\n\nTerminationHypothesis ==\n    <>(\n        /\\ TotalBeans = 1\n        /\\ (initialWhiteParity = 0 => can.black = 1)\n        /\\ (initialWhiteParity = 1 => can.white = 1)\n    )\n\n==========================================================================\n```"
+        }
+      ]
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 475,
+    "outputTokens": 633,
+    "totalTokens": 1108,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokens": 0
+  },
+  "metrics": {
+    "latencyMs": 9195
+  }
+}

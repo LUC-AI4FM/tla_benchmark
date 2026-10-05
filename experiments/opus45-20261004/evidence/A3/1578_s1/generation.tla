@@ -1,0 +1,326 @@
+---------------------------- MODULE ConcurrentDeque ----------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANTS 
+    Procs,          \* Set of process identifiers
+    Addresses,      \* Set of memory addresses
+    Values,         \* Set of values that can be stored
+    NullAddr        \* Null address constant
+
+VARIABLES
+    mem,            \* Memory: mapping from addresses to node records
+    leftHat,        \* Left hat pointer (head of deque from left)
+    rightHat,       \* Right hat pointer (head of deque from right)
+    freelist,       \* Free list for allocation
+    pc,             \* Program counter for each process
+    localL,         \* Local left pointer per process
+    localR,         \* Local right pointer per process
+    localNode,      \* Local node pointer per process
+    localVal,       \* Local value per process
+    localResult,    \* Local result per process
+    opType,         \* Current operation type per process
+    valBag          \* Multiset tracking values in deque
+
+vars == <<mem, leftHat, rightHat, freelist, pc, localL, localR, localNode, localVal, localResult, opType, valBag>>
+
+\* Node record structure: [val: Values, left: Addresses, right: Addresses]
+NullNode == [val |-> CHOOSE v \in Values : TRUE, left |-> NullAddr, right |-> NullAddr]
+
+\* Program counter locations
+PCLocs == {"T1", "PushL1", "PushL2", "PushL3", "PushL4", 
+           "PushR1", "PushR2", "PushR3", "PushR4",
+           "PopL1", "PopL2", "PopL3", "PopL4", "PopL5",
+           "PopR1", "PopR2", "PopR3", "PopR4", "PopR5",
+           "Done"}
+
+OpTypes == {"None", "PushLeft", "PushRight", "PopLeft", "PopRight"}
+
+\* Initialize multiset as a function from Values to Nat
+EmptyBag == [v \in Values |-> 0]
+
+AddToBag(bag, v) == [bag EXCEPT ![v] = @ + 1]
+
+RemoveFromBag(bag, v) == [bag EXCEPT ![v] = @ - 1]
+
+BagContains(bag, v) == bag[v] > 0
+
+TypeInvariant ==
+    /\ mem \in [Addresses -> [val: Values, left: Addresses \cup {NullAddr}, right: Addresses \cup {NullAddr}]]
+    /\ leftHat \in Addresses \cup {NullAddr}
+    /\ rightHat \in Addresses \cup {NullAddr}
+    /\ freelist \subseteq Addresses
+    /\ pc \in [Procs -> PCLocs]
+    /\ localL \in [Procs -> Addresses \cup {NullAddr}]
+    /\ localR \in [Procs -> Addresses \cup {NullAddr}]
+    /\ localNode \in [Procs -> Addresses \cup {NullAddr}]
+    /\ localVal \in [Procs -> Values]
+    /\ localResult \in [Procs -> Values \cup {NullAddr}]
+    /\ opType \in [Procs -> OpTypes]
+    /\ valBag \in [Values -> Nat]
+
+Init ==
+    /\ mem = [a \in Addresses |-> [val |-> CHOOSE v \in Values : TRUE, left |-> NullAddr, right |-> NullAddr]]
+    /\ leftHat = NullAddr
+    /\ rightHat = NullAddr
+    /\ freelist = Addresses
+    /\ pc = [p \in Procs |-> "T1"]
+    /\ localL = [p \in Procs |-> NullAddr]
+    /\ localR = [p \in Procs |-> NullAddr]
+    /\ localNode = [p \in Procs |-> NullAddr]
+    /\ localVal = [p \in Procs |-> CHOOSE v \in Values : TRUE]
+    /\ localResult = [p \in Procs |-> NullAddr]
+    /\ opType = [p \in Procs |-> "None"]
+    /\ valBag = EmptyBag
+
+\* Allocate a node from freelist
+Allocate(p) ==
+    /\ freelist # {}
+    /\ LET node == CHOOSE a \in freelist : TRUE
+       IN /\ localNode' = [localNode EXCEPT ![p] = node]
+          /\ freelist' = freelist \ {node}
+
+\* Free a node back to freelist
+Free(p, addr) ==
+    /\ addr # NullAddr
+    /\ freelist' = freelist \cup {addr}
+
+\* Test process: nondeterministically choose operation
+TestChoose(p) ==
+    /\ pc[p] = "T1"
+    /\ \/ /\ \E v \in Values : localVal' = [localVal EXCEPT ![p] = v]
+          /\ opType' = [opType EXCEPT ![p] = "PushLeft"]
+          /\ pc' = [pc EXCEPT ![p] = "PushL1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localResult, valBag>>
+       \/ /\ \E v \in Values : localVal' = [localVal EXCEPT ![p] = v]
+          /\ opType' = [opType EXCEPT ![p] = "PushRight"]
+          /\ pc' = [pc EXCEPT ![p] = "PushR1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localResult, valBag>>
+       \/ /\ opType' = [opType EXCEPT ![p] = "PopLeft"]
+          /\ pc' = [pc EXCEPT ![p] = "PopL1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localVal, localResult, valBag>>
+       \/ /\ opType' = [opType EXCEPT ![p] = "PopRight"]
+          /\ pc' = [pc EXCEPT ![p] = "PopR1"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localVal, localResult, valBag>>
+
+\* PushLeft operation
+PushL1(p) ==
+    /\ pc[p] = "PushL1"
+    /\ freelist # {}
+    /\ LET node == CHOOSE a \in freelist : TRUE
+       IN /\ localNode' = [localNode EXCEPT ![p] = node]
+          /\ freelist' = freelist \ {node}
+          /\ mem' = [mem EXCEPT ![node] = [val |-> localVal[p], left |-> NullAddr, right |-> NullAddr]]
+    /\ pc' = [pc EXCEPT ![p] = "PushL2"]
+    /\ UNCHANGED <<leftHat, rightHat, localL, localR, localVal, localResult, opType, valBag>>
+
+PushL2(p) ==
+    /\ pc[p] = "PushL2"
+    /\ localL' = [localL EXCEPT ![p] = leftHat]
+    /\ localR' = [localR EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PushL3"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localVal, localResult, opType, valBag>>
+
+PushL3(p) ==
+    /\ pc[p] = "PushL3"
+    /\ mem' = [mem EXCEPT ![localNode[p]].right = localL[p]]
+    /\ pc' = [pc EXCEPT ![p] = "PushL4"]
+    /\ UNCHANGED <<leftHat, rightHat, freelist, localL, localR, localNode, localVal, localResult, opType, valBag>>
+
+\* DCAS-like paired update for PushLeft
+PushL4(p) ==
+    /\ pc[p] = "PushL4"
+    /\ \/ /\ leftHat = localL[p]  \* CAS success condition
+          /\ rightHat = localR[p] \/ (localL[p] = NullAddr /\ localR[p] = NullAddr)
+          /\ leftHat' = localNode[p]
+          /\ rightHat' = IF localR[p] = NullAddr THEN localNode[p] ELSE rightHat
+          /\ IF localL[p] # NullAddr 
+             THEN mem' = [mem EXCEPT ![localL[p]].left = localNode[p]]
+             ELSE mem' = mem
+          /\ valBag' = AddToBag(valBag, localVal[p])
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+       \/ /\ ~(leftHat = localL[p] /\ (rightHat = localR[p] \/ (localL[p] = NullAddr /\ localR[p] = NullAddr)))
+          /\ pc' = [pc EXCEPT ![p] = "PushL2"]  \* Retry
+          /\ UNCHANGED <<mem, leftHat, rightHat, valBag, opType>>
+    /\ UNCHANGED <<freelist, localL, localR, localNode, localVal, localResult>>
+
+\* PushRight operation
+PushR1(p) ==
+    /\ pc[p] = "PushR1"
+    /\ freelist # {}
+    /\ LET node == CHOOSE a \in freelist : TRUE
+       IN /\ localNode' = [localNode EXCEPT ![p] = node]
+          /\ freelist' = freelist \ {node}
+          /\ mem' = [mem EXCEPT ![node] = [val |-> localVal[p], left |-> NullAddr, right |-> NullAddr]]
+    /\ pc' = [pc EXCEPT ![p] = "PushR2"]
+    /\ UNCHANGED <<leftHat, rightHat, localL, localR, localVal, localResult, opType, valBag>>
+
+PushR2(p) ==
+    /\ pc[p] = "PushR2"
+    /\ localL' = [localL EXCEPT ![p] = leftHat]
+    /\ localR' = [localR EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PushR3"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localVal, localResult, opType, valBag>>
+
+PushR3(p) ==
+    /\ pc[p] = "PushR3"
+    /\ mem' = [mem EXCEPT ![localNode[p]].left = localR[p]]
+    /\ pc' = [pc EXCEPT ![p] = "PushR4"]
+    /\ UNCHANGED <<leftHat, rightHat, freelist, localL, localR, localNode, localVal, localResult, opType, valBag>>
+
+\* DCAS-like paired update for PushRight
+PushR4(p) ==
+    /\ pc[p] = "PushR4"
+    /\ \/ /\ rightHat = localR[p]  \* CAS success condition
+          /\ leftHat = localL[p] \/ (localL[p] = NullAddr /\ localR[p] = NullAddr)
+          /\ rightHat' = localNode[p]
+          /\ leftHat' = IF localL[p] = NullAddr THEN localNode[p] ELSE leftHat
+          /\ IF localR[p] # NullAddr 
+             THEN mem' = [mem EXCEPT ![localR[p]].right = localNode[p]]
+             ELSE mem' = mem
+          /\ valBag' = AddToBag(valBag, localVal[p])
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+       \/ /\ ~(rightHat = localR[p] /\ (leftHat = localL[p] \/ (localL[p] = NullAddr /\ localR[p] = NullAddr)))
+          /\ pc' = [pc EXCEPT ![p] = "PushR2"]  \* Retry
+          /\ UNCHANGED <<mem, leftHat, rightHat, valBag, opType>>
+    /\ UNCHANGED <<freelist, localL, localR, localNode, localVal, localResult>>
+
+\* PopLeft operation
+PopL1(p) ==
+    /\ pc[p] = "PopL1"
+    /\ localL' = [localL EXCEPT ![p] = leftHat]
+    /\ localR' = [localR EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PopL2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localVal, localResult, opType, valBag>>
+
+PopL2(p) ==
+    /\ pc[p] = "PopL2"
+    /\ \/ /\ localL[p] = NullAddr  \* Empty deque
+          /\ localResult' = [localResult EXCEPT ![p] = NullAddr]
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localVal, valBag>>
+       \/ /\ localL[p] # NullAddr
+          /\ localVal' = [localVal EXCEPT ![p] = mem[localL[p]].val]
+          /\ pc' = [pc EXCEPT ![p] = "PopL3"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localResult, opType, valBag>>
+
+PopL3(p) ==
+    /\ pc[p] = "PopL3"
+    /\ localNode' = [localNode EXCEPT ![p] = mem[localL[p]].right]
+    /\ pc' = [pc EXCEPT ![p] = "PopL4"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localVal, localResult, opType, valBag>>
+
+\* DCAS-like paired update for PopLeft
+PopL4(p) ==
+    /\ pc[p] = "PopL4"
+    /\ \/ /\ leftHat = localL[p]
+          /\ rightHat = localR[p]
+          /\ \/ /\ localL[p] = localR[p]  \* Single element
+                /\ leftHat' = NullAddr
+                /\ rightHat' = NullAddr
+             \/ /\ localL[p] # localR[p]
+                /\ leftHat' = localNode[p]
+                /\ rightHat' = rightHat
+                /\ IF localNode[p] # NullAddr
+                   THEN mem' = [mem EXCEPT ![localNode[p]].left = NullAddr]
+                   ELSE mem' = mem
+          /\ freelist' = freelist \cup {localL[p]}
+          /\ valBag' = RemoveFromBag(valBag, localVal[p])
+          /\ localResult' = [localResult EXCEPT ![p] = localVal[p]]
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+       \/ /\ ~(leftHat = localL[p] /\ rightHat = localR[p])
+          /\ pc' = [pc EXCEPT ![p] = "PopL1"]  \* Retry
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localResult, valBag, opType>>
+    /\ UNCHANGED <<localL, localR, localNode, localVal>>
+
+\* PopRight operation
+PopR1(p) ==
+    /\ pc[p] = "PopR1"
+    /\ localL' = [localL EXCEPT ![p] = leftHat]
+    /\ localR' = [localR EXCEPT ![p] = rightHat]
+    /\ pc' = [pc EXCEPT ![p] = "PopR2"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localNode, localVal, localResult, opType, valBag>>
+
+PopR2(p) ==
+    /\ pc[p] = "PopR2"
+    /\ \/ /\ localR[p] = NullAddr  \* Empty deque
+          /\ localResult' = [localResult EXCEPT ![p] = NullAddr]
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localVal, valBag>>
+       \/ /\ localR[p] # NullAddr
+          /\ localVal' = [localVal EXCEPT ![p] = mem[localR[p]].val]
+          /\ pc' = [pc EXCEPT ![p] = "PopR3"]
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localNode, localResult, opType, valBag>>
+
+PopR3(p) ==
+    /\ pc[p] = "PopR3"
+    /\ localNode' = [localNode EXCEPT ![p] = mem[localR[p]].left]
+    /\ pc' = [pc EXCEPT ![p] = "PopR4"]
+    /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localL, localR, localVal, localResult, opType, valBag>>
+
+\* DCAS-like paired update for PopRight
+PopR4(p) ==
+    /\ pc[p] = "PopR4"
+    /\ \/ /\ rightHat = localR[p]
+          /\ leftHat = localL[p]
+          /\ \/ /\ localL[p] = localR[p]  \* Single element
+                /\ leftHat' = NullAddr
+                /\ rightHat' = NullAddr
+             \/ /\ localL[p] # localR[p]
+                /\ rightHat' = localNode[p]
+                /\ leftHat' = leftHat
+                /\ IF localNode[p] # NullAddr
+                   THEN mem' = [mem EXCEPT ![localNode[p]].right = NullAddr]
+                   ELSE mem' = mem
+          /\ freelist' = freelist \cup {localR[p]}
+          /\ valBag' = RemoveFromBag(valBag, localVal[p])
+          /\ localResult' = [localResult EXCEPT ![p] = localVal[p]]
+          /\ pc' = [pc EXCEPT ![p] = "T1"]
+          /\ opType' = [opType EXCEPT ![p] = "None"]
+       \/ /\ ~(rightHat = localR[p] /\ leftHat = localL[p])
+          /\ pc' = [pc EXCEPT ![p] = "PopR1"]  \* Retry
+          /\ UNCHANGED <<mem, leftHat, rightHat, freelist, localResult, valBag, opType>>
+    /\ UNCHANGED <<localL, localR, localNode, localVal>>
+
+\* Combined Next action
+Next ==
+    \E p \in Procs :
+        \/ TestChoose(p)
+        \/ PushL1(p) \/ PushL2(p) \/ PushL3(p) \/ PushL4(p)
+        \/ PushR1(p) \/ PushR2(p) \/ PushR3(p) \/ PushR4(p)
+        \/ PopL1(p) \/ PopL2(p) \/ PopL3(p) \/ PopL4(p)
+        \/ PopR1(p) \/ PopR2(p) \/ PopR3(p) \/ PopR4(p)
+
+\* Fairness: weak fairness for all process actions
+Fairness ==
+    \A p \in Procs :
+        /\ WF_vars(TestChoose(p))
+        /\ WF_vars(PushL1(p)) /\ WF_vars(PushL2(p)) /\ WF_vars(PushL3(p)) /\ WF_vars(PushL4(p))
+        /\ WF_vars(PushR1(p)) /\ WF_vars(PushR2(p)) /\ WF_vars(PushR3(p)) /\ WF_vars(PushR4(p))
+        /\ WF_vars(PopL1(p)) /\ WF_vars(PopL2(p)) /\ WF_vars(PopL3(p)) /\ WF_vars(PopL4(p))
+        /\ WF_vars(PopR1(p)) /\ WF_vars(PopR2(p)) /\ WF_vars(PopR3(p)) /\ WF_vars(PopR4(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety invariant: valBag counts are non-negative
+ValBagNonNegative == \A v \in Values : valBag[v] >= 0
+
+\* Safety invariant: deque structure consistency
+DequeConsistency ==
+    /\ (leftHat = NullAddr) <=> (rightHat = NullAddr)
+    /\ leftHat # NullAddr => leftHat \in Addresses
+    /\ rightHat # NullAddr => rightHat \in Addresses
+
+\* Safety invariant
+SafetyInvariant ==
+    /\ ValBagNonNegative
+    /\ DequeConsistency
+
+\* Liveness property: every test process returns to T1 infinitely often
+LivenessProperty == \A p \in Procs : []<>(pc[p] = "T1")
+
+================================================================================

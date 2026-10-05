@@ -1,0 +1,177 @@
+------------------------------ MODULE NBAC ------------------------------
+
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    Procs,          \* Set of process identifiers
+    AllVoteYes,     \* Boolean: if TRUE, all processes initially vote YES; if FALSE, all vote NO
+
+VARIABLES
+    vote,           \* vote[p] = "YES" or "NO" - initial vote of process p
+    decision,       \* decision[p] = "COMMIT", "ABORT", or "UNDECIDED"
+    crashed,        \* crashed[p] = TRUE iff process p has crashed
+    suspected,      \* suspected[p] = TRUE iff process p is suspected by failure detector
+    msgs,           \* Set of messages in transit
+    received        \* received[p] = set of messages received by process p
+
+vars == <<vote, decision, crashed, suspected, msgs, received>>
+
+\* Message types
+Message == [type: {"VOTE"}, src: Procs, v: {"YES", "NO"}]
+        \cup [type: {"DECISION"}, src: Procs, d: {"COMMIT", "ABORT"}]
+
+TypeOK ==
+    /\ vote \in [Procs -> {"YES", "NO"}]
+    /\ decision \in [Procs -> {"COMMIT", "ABORT", "UNDECIDED"}]
+    /\ crashed \in [Procs -> BOOLEAN]
+    /\ suspected \in [Procs -> BOOLEAN]
+    /\ msgs \subseteq Message
+    /\ received \in [Procs -> SUBSET Message]
+
+Init ==
+    /\ vote = [p \in Procs |-> IF AllVoteYes THEN "YES" ELSE "NO"]
+    /\ decision = [p \in Procs |-> "UNDECIDED"]
+    /\ crashed = [p \in Procs |-> FALSE]
+    /\ suspected = [p \in Procs |-> FALSE]
+    /\ msgs = {}
+    /\ received = [p \in Procs |-> {}]
+
+\* Process p sends its vote to all processes
+SendVote(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    /\ msgs' = msgs \cup {[type |-> "VOTE", src |-> p, v |-> vote[p]]}
+    /\ UNCHANGED <<vote, decision, crashed, suspected, received>>
+
+\* Process p receives a message m
+ReceiveMessage(p, m) ==
+    /\ ~crashed[p]
+    /\ m \in msgs
+    /\ m \notin received[p]
+    /\ received' = [received EXCEPT ![p] = @ \cup {m}]
+    /\ UNCHANGED <<vote, decision, crashed, suspected, msgs>>
+
+\* Process p decides to commit
+DecideCommit(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    \* All processes have sent YES votes and none are suspected
+    /\ \A q \in Procs : \E m \in received[p] : m.type = "VOTE" /\ m.src = q /\ m.v = "YES"
+    /\ \A q \in Procs : ~suspected[q]
+    /\ decision' = [decision EXCEPT ![p] = "COMMIT"]
+    /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p, d |-> "COMMIT"]}
+    /\ UNCHANGED <<vote, crashed, suspected, received>>
+
+\* Process p decides to abort
+DecideAbort(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    /\ \/ \E m \in received[p] : m.type = "VOTE" /\ m.v = "NO"
+       \/ \E q \in Procs : suspected[q]
+       \/ \E m \in received[p] : m.type = "DECISION" /\ m.d = "ABORT"
+    /\ decision' = [decision EXCEPT ![p] = "ABORT"]
+    /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p, d |-> "ABORT"]}
+    /\ UNCHANGED <<vote, crashed, suspected, received>>
+
+\* Process p adopts a decision it received
+AdoptDecision(p) ==
+    /\ ~crashed[p]
+    /\ decision[p] = "UNDECIDED"
+    /\ \E m \in received[p] : m.type = "DECISION"
+    /\ LET decisionMsgs == {m \in received[p] : m.type = "DECISION"}
+           commitMsgs == {m \in decisionMsgs : m.d = "COMMIT"}
+       IN IF commitMsgs /= {} /\ \A q \in Procs : ~suspected[q]
+          THEN /\ decision' = [decision EXCEPT ![p] = "COMMIT"]
+               /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p, d |-> "COMMIT"]}
+          ELSE /\ decision' = [decision EXCEPT ![p] = "ABORT"]
+               /\ msgs' = msgs \cup {[type |-> "DECISION", src |-> p, d |-> "ABORT"]}
+    /\ UNCHANGED <<vote, crashed, suspected, received>>
+
+\* Process p crashes
+Crash(p) ==
+    /\ ~crashed[p]
+    /\ crashed' = [crashed EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, decision, suspected, msgs, received>>
+
+\* Failure detector suspects process p (may be accurate or not)
+Suspect(p) ==
+    /\ ~suspected[p]
+    /\ suspected' = [suspected EXCEPT ![p] = TRUE]
+    /\ UNCHANGED <<vote, decision, crashed, msgs, received>>
+
+\* Failure detector stops suspecting process p (only if p hasn't crashed)
+Unsuspect(p) ==
+    /\ suspected[p]
+    /\ ~crashed[p]
+    /\ suspected' = [suspected EXCEPT ![p] = FALSE]
+    /\ UNCHANGED <<vote, decision, crashed, msgs, received>>
+
+\* Actions for a specific process
+ProcessAction(p) ==
+    \/ SendVote(p)
+    \/ \E m \in msgs : ReceiveMessage(p, m)
+    \/ DecideCommit(p)
+    \/ DecideAbort(p)
+    \/ AdoptDecision(p)
+
+\* Environment actions (crashes and failure detector)
+EnvironmentAction ==
+    \/ \E p \in Procs : Crash(p)
+    \/ \E p \in Procs : Suspect(p)
+    \/ \E p \in Procs : Unsuspect(p)
+
+Next ==
+    \/ \E p \in Procs : ProcessAction(p)
+    \/ EnvironmentAction
+
+\* Fairness: weak fairness for non-stuttering process actions
+Fairness ==
+    /\ \A p \in Procs : WF_vars(SendVote(p))
+    /\ \A p \in Procs : \A m \in Message : WF_vars(ReceiveMessage(p, m))
+    /\ \A p \in Procs : WF_vars(DecideCommit(p))
+    /\ \A p \in Procs : WF_vars(DecideAbort(p))
+    /\ \A p \in Procs : WF_vars(AdoptDecision(p))
+
+Spec == Init /\ [][Next]_vars /\ Fairness
+
+\* Safety Properties
+
+\* Agreement: No two processes decide differently
+Agreement ==
+    \A p, q \in Procs :
+        (decision[p] \in {"COMMIT", "ABORT"} /\ decision[q] \in {"COMMIT", "ABORT"})
+        => (decision[p] = decision[q])
+
+\* Abort Validity: If a process decides ABORT, then either some process voted NO
+\* or some process crashed
+AbortValidity ==
+    \A p \in Procs :
+        decision[p] = "ABORT" =>
+            (\E q \in Procs : vote[q] = "NO") \/ (\E q \in Procs : crashed[q])
+
+\* Commit Validity: If a process decides COMMIT, then all processes voted YES
+CommitValidity ==
+    \A p \in Procs :
+        decision[p] = "COMMIT" => (\A q \in Procs : vote[q] = "YES")
+
+\* Liveness Properties
+
+\* Termination: Every correct (non-crashed) process eventually decides
+Termination ==
+    \A p \in Procs :
+        ([]~crashed[p]) => <>(decision[p] \in {"COMMIT", "ABORT"})
+
+\* Eventual Commit: If all processes vote YES and no process crashes,
+\* then eventually all processes decide COMMIT
+EventualCommit ==
+    ((\A p \in Procs : vote[p] = "YES") /\ [](\A p \in Procs : ~crashed[p]))
+    => <>(\A p \in Procs : decision[p] = "COMMIT")
+
+\* Combined safety invariant
+SafetyInvariant ==
+    /\ TypeOK
+    /\ Agreement
+    /\ AbortValidity
+    /\ CommitValidity
+
+=============================================================================
