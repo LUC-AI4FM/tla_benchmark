@@ -1,0 +1,48 @@
+---------------------------- MODULE ABCorrectness ----------------------------
+
+EXTENDS Naturals
+
+CONSTANTS d1, d2
+
+Data == {d1, d2}
+
+VARIABLES sBit, sAck, rBit, sent, rcvd
+
+vars == <<sBit, sAck, rBit, sent, rcvd>>
+
+TypeInv == /\ sBit \in {0, 1}
+           /\ sAck \in {0, 1}
+           /\ rBit \in {0, 1}
+           /\ sent \in Data
+           /\ rcvd \in Data
+
+Init == /\ sBit \in {0, 1}
+        /\ sAck = sBit
+        /\ rBit = sBit
+        /\ sent \in Data
+        /\ rcvd \in Data
+
+CSndNewValue == /\ sAck = sBit
+                /\ \E d \in Data : sent' = d
+                /\ sBit' = 1 - sBit
+                /\ UNCHANGED <<sAck, rBit, rcvd>>
+
+CRcvMsg == /\ rBit # sBit
+           /\ rBit' = sBit
+           /\ rcvd' = sent
+           /\ UNCHANGED <<sBit, sAck, sent>>
+
+CRcvAck == /\ sAck # rBit
+           /\ sAck' = rBit
+           /\ UNCHANGED <<sBit, rBit, sent, rcvd>>
+
+Next == \/ CSndNewValue
+        \/ CRcvMsg
+        \/ CRcvAck
+
+Fairness == /\ WF_vars(CRcvMsg)
+            /\ WF_vars(CRcvAck)
+
+ABCSpec == Init /\ [][Next]_vars /\ Fairness
+
+=============================================================================

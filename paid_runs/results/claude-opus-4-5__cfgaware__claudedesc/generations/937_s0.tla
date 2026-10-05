@@ -1,0 +1,22 @@
+---------------------------- MODULE HourClockLiveness ----------------------------
+EXTENDS Naturals
+
+VARIABLE hr
+
+HCini == hr \in 1..12
+
+HCnxt == hr' = IF hr = 12 THEN 1 ELSE hr + 1
+
+HC == HCini /\ [][HCnxt]_hr
+
+LSpec == HC /\ WF_hr(HCnxt)
+
+AlwaysTick == []<><<HCnxt>>_hr
+
+AllTimes == \A n \in 1..12 : []<>(hr = n)
+
+TypeInvariance == []HCini
+
+THEOREM LSpec => AlwaysTick /\ AllTimes /\ TypeInvariance
+
+==============================================================================
