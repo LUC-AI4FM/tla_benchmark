@@ -1,6 +1,6 @@
 # Evidence for the rebuttal (2026-10-07)
 
-This folder holds the runs and analyses that the rebuttal reports and that are not in
+This folder contains the runs and analyses that the rebuttal reports and that are not in
 `outputs/` or `experiments/opus45-20261004/`. All commands run from the repository root.
 Every run uses the 100 evaluation specifications (`outputs/eval_100_ids.json`), the released
 descriptions and the released grader (`code/analysis/grading.py`).
@@ -10,7 +10,7 @@ descriptions and the released grader (`code/analysis/grading.py`).
 | Repeated samples: Opus 19, 19, 19, 19, 17; GPT-5 5, 6, 4, 4 | `experiments/opus45-20261004/evidence/A3/`, `results/gpt-5__default__gptdesc/` | `python experiments/rebuttal-20261007/summarize.py` |
 | Claude-written descriptions: Opus 31%, GPT-5 26%, open models 0% to 2% | `experiments/opus45-20261004/evidence/A2/`, `results/*__default__claudedesc/` | same |
 | Opus configuration-aware rerun at 16,000 tokens: 22% | `experiments/opus45-20261004/evidence/A1/` | same |
-| Description length and interface names mentioned (205 against 99 words; 79% against 25%) | `description_coverage.json` | `python experiments/rebuttal-20261007/description_coverage.py` |
+| Description length and share of the configuration's names mentioned (205 against 99 words; 79% against 25%) | `description_coverage.json` | `python experiments/rebuttal-20261007/description_coverage.py` |
 | McNemar tests and 95% bootstrap intervals | `paired_stats.json` | `python experiments/rebuttal-20261007/paired_stats.py` |
 | Controls for the reference check (HourClock) | `refcheck_controls.json`, `controls/` | `python experiments/rebuttal-20261007/refcheck_controls.py` |
 
