@@ -102,7 +102,8 @@ kept as `reproduce_as_submitted.py`.
   reference's own definitions of the configured properties, and TLC refinement in both
   directions. The 12 passes this cannot decide under the identity mapping are re-checked
   with explicit mappings. Of the 30 passes, 27 match the reference behavior exactly, 2 miss
-  some reference behavior and 1 implements a different algorithm.
+  some reference behavior and 1 stays undecided (Gemini on 1588 uses a loop that stops at
+  u = v; the reference loops until u = 0).
 - **Evaluation set.** Specification 1142 has no usable configuration (its source Toolbox
   model is empty), and six references (1275, 1343, 1413, 1435, 1455, 1504) have a single
   reachable state. They remain in the 100-specification evaluation set and are flagged in
