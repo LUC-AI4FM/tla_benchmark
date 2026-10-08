@@ -87,5 +87,44 @@ for item in cov["items"]:
         bins[k]["none" if share == 0 else "under half" if share < 0.5 else "half or more" if share < 1 else "all"] += 1
 out["name_coverage"] = {k: dict(v) for k, v in bins.items()}
 
+# invariants and temporal properties named by each configuration file
+STOP = {"SPECIFICATION", "INIT", "NEXT", "CONSTANT", "CONSTANTS", "SYMMETRY", "VIEW", "CONSTRAINT", "CONSTRAINTS",
+        "ACTION_CONSTRAINT", "ACTION_CONSTRAINTS", "CHECK_DEADLOCK", "ALIAS", "POSTCONDITION"}
+def named_props(path):
+    text = re.sub(r"\(\*.*?\*\)", "", open(path, errors="ignore").read(), flags=re.S)
+    text = re.sub(r"\\\*.*", "", text)
+    names, on = [], False
+    for tok in text.split():
+        if tok in ("INVARIANT", "INVARIANTS", "PROPERTY", "PROPERTIES"):
+            on = True
+        elif tok in STOP:
+            on = False
+        elif on:
+            names.append(tok)
+    return names
+cfg = {}
+for f in glob.glob(str(ROOT / "specs" / "**" / "*.cfg"), recursive=True):
+    b = os.path.basename(f)
+    if b.split("_")[0] in man:
+        cfg[b.split("_")[0]] = f
+def prop_stats(group):
+    n = [len(named_props(cfg[s])) for s in group if s in cfg]
+    return {"configurations": len(n), "name_a_property": sum(1 for x in n if x), "median": statistics.median(n), "max": max(n)}
+out["configuration_properties"] = {"gold": prop_stats([s for s in man if man[s]["tier"] == "gold"])}
+out["configuration_properties"].update({t: prop_stats([s for s in ids if man[s]["complexity"] == t]) for t in ("basic", "intermediate", "advanced")})
+out["configuration_properties"]["benchmark"] = prop_stats(ids)
+
+# outcome categories by difficulty, default setting
+CAT = {"no_cfg": "config_bind_fail"}
+out["outcomes_by_difficulty"] = {}
+for key in ["claude-opus-4-5", "gpt-5"]:
+    res = {str(r["spec_id"]): r for r in load(f"{key}.json")}
+    out["outcomes_by_difficulty"][key] = {t: dict(Counter(CAT.get(res[s]["label"], res[s]["label"]) for s in ids if man[s]["complexity"] == t))
+                                          for t in ("basic", "intermediate", "advanced")}
+
+# records per repository by difficulty
+out["repository_difficulty"] = {r: dict(Counter(man[s]["complexity"] for s in man if man[s]["source_repo"] == r))
+                                for r in sorted({m["source_repo"] for m in man.values()})}
+
 (ROOT / "experiments/rebuttal-20261007/paper_figures.json").write_text(json.dumps(out, indent=1))
 print(json.dumps(out, indent=1))
