@@ -39,6 +39,23 @@ for key in ["claude-opus-4-5", "gpt-5"]:
         "exercises_behavior": sum(1 for s in passes if not aud[(key, s)]["degenerate"] and aud[(key, s)]["real_props"] > 0),
     }
 
+# one row per default pass, for the per-specification figure
+out["passing_specs"] = []
+for key in ["claude-opus-4-5", "gpt-5"]:
+    res = {str(r["spec_id"]): r for r in load(f"{key}.json")}
+    refrow = {r["spec_id"]: r for r in ref if r["model"] == key}
+    for s in ids:
+        if res[s]["label"] != "correct":
+            continue
+        r = refrow[s]
+        out["passing_specs"].append({
+            "model": key, "spec_id": s, "module": os.path.basename(man[s]["source_path"])[:-4],
+            "difficulty": man[s]["complexity"], "reachable_states": mut[(key, s)]["baseline"].get("distinct"),
+            "behavior": hand.get((key, s)) or r.get("behavior"), "ref_props": r["ref_props"],
+            "behavior_change": mut[(key, s)]["verdict"],
+            "exercises_behavior": not aud[(key, s)]["degenerate"] and aud[(key, s)]["real_props"] > 0,
+        })
+
 # sizes: lines of TLA+ without blank lines and comments
 def loc(path):
     text = re.sub(r"\(\*.*?\*\)", "", open(path, errors="ignore").read(), flags=re.S)
