@@ -14,6 +14,8 @@ description set and setting, with the paper's values next to the new ones. Recom
 | Result | Files | Command |
 |---|---|---|
 | Full results matrix | `results_matrix.md` | `python experiments/rebuttal-20261007/results_matrix.py` |
+| Pooled numbers for Claude Opus 4.5 and GPT-5 (no Gemini) | `two_model_numbers.json` | `python experiments/rebuttal-20261007/two_model_numbers.py` |
+| Per-model checks of passes, sizes, description lengths and name coverage | `paper_figures.json` | `python experiments/rebuttal-20261007/paper_figures.py` |
 | Repeated runs and second description provider | `results/`, `experiments/opus45-20261004/evidence/` | `python experiments/rebuttal-20261007/summarize.py` |
 | Description length and share of the configuration's names mentioned (205 against 99 words; 79% against 25%) | `description_coverage.json` | `python experiments/rebuttal-20261007/description_coverage.py` |
 | McNemar tests and 95% bootstrap intervals | `paired_stats.json` | `python experiments/rebuttal-20261007/paired_stats.py` |
