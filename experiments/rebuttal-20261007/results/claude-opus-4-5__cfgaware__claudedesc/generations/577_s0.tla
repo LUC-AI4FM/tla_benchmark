@@ -1,0 +1,27 @@
+---------------------------- MODULE MCMultiNodeReadsAlt ----------------------------
+
+EXTENDS MCMultiNodeReads
+
+InitAlt ==
+    /\ ledger = <<[view |-> 1, tx |-> 1], [view |-> 2, tx |-> 2]>>
+    /\ history = [
+         requests |-> {
+             [tx |-> 1, type |-> "write"],
+             [tx |-> 2, type |-> "write"]
+         },
+         responses |-> {
+             [tx |-> 1, type |-> "write", status |-> "committed"],
+             [tx |-> 2, type |-> "write", status |-> "committed"]
+         },
+         receipts |-> {
+             [tx |-> 1, status |-> "committed"],
+             [tx |-> 2, status |-> "committed"]
+         }
+       ]
+    /\ view = 2
+    /\ nextTx = 3
+    /\ committedSeqno = 2
+
+MCSpecMultiNodeReadsAlt == InitAlt /\ [][MCNextMultiNodeReadsAction]_vars
+
+===================================================================================

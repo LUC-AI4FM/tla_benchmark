@@ -1,0 +1,17 @@
+---- MODULE D ----
+EXTENDS Naturals
+
+VARIABLE x
+
+RECURSIVE fact(_)
+
+fact(n) == IF n = 1 THEN 1 ELSE n * fact(n - 1)
+
+A == x' = fact(3)
+B == x' = fact(9)
+
+Next == A \/ B
+
+Spec == (x = 0) /\ [][Next]_x
+
+====

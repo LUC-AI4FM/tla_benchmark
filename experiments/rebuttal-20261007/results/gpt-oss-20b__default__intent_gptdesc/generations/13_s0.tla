@@ -1,0 +1,9 @@
+MODULE RollingUpdate
+EXTENDS Naturals
+
+CONSTANTS SERVERS, OLD, NEW, UPDATING
+
+VARIABLES State, LB
+
+StateType == [SERVERS -> {OLD, NEW, UPDATING}]
+LBType    == SUB

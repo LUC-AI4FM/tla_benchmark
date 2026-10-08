@@ -1,0 +1,27 @@
+```
+MODULE SmallPlusCal
+EXTENDS Integers
+
+CONSTANTS 
+
+VARIABLES x, pc
+
+Init ==
+  /\ x \in (1..10)
+  /\ pc = "Start"
+
+Next ==
+  /\ pc = "Start"
+  /\ x ^ 2 <= 100
+  /\ pc' = "Done"
+  /\ x' = x
+  \/ pc = "Done"
+  /\ pc' = pc
+  /\ x' = x
+
+Spec ==
+  Init /\ [][Next]_<<x, pc>>
+ WF_Vars == <<pc>>
+
+THEOREM Spec => []<> (pc = "Done")
+```

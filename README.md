@@ -174,6 +174,20 @@ The [summary](https://github.com/LUC-AI4FM/tla_benchmark/blob/9443647e95a5124a7b
 The linked supplement gives the pinned offline reproduction command. I1 is a separate
 experiment; A3's matched pass@5 remains 27/100.
 
+## All new results after the reviews (2026-10-07)
+
+[`experiments/rebuttal-20261007/`](experiments/rebuttal-20261007/README.md) contains every other
+run and analysis made after the reviews: GPT-5 and open-model runs on the Claude-written and
+intent descriptions in both settings, Claude Opus 4.5 runs on the Claude-written declarative and
+intent descriptions, repeated runs, paired statistics, description coverage and the controls
+for the reference comparison. [`results_matrix.md`](experiments/rebuttal-20261007/results_matrix.md)
+lists the number of correct outputs for every model, description set and setting in one table.
+Recompute it with:
+
+```bash
+python3 experiments/rebuttal-20261007/results_matrix.py
+```
+
 ## Licensing and responsible use
 
 The `.tla` specifications come from 13 public repositories; each specification's source

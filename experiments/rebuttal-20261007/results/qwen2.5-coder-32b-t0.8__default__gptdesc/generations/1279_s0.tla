@@ -1,0 +1,20 @@
+------------------------------- MODULE SmallTemporalModel ------------------------------
+
+EXTENDS Naturals
+
+CONSTANTS Next
+
+VARIABLES s
+
+Init == s = 23
+
+Next == /\ s' \in {0, 1}
+       /\ s' > 0
+
+Spec ==
+    /\ Init
+    /\ [][Next]_<<s>>
+
+Inv == s /= 0
+
+=============================================================================

@@ -1,0 +1,11 @@
+---- MODULE Inner725b ----
+EXTENDS Naturals
+
+VARIABLE x
+
+Step ==
+  /\ x < 3
+  /\ x' = x + 1
+
+Fairness == WF_x(Step)
+====
