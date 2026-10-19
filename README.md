@@ -121,6 +121,29 @@ kept as `reproduce_as_submitted.py`.
   TLC checks a different random graph on each run. The reference passes on every run. The
   Opus configuration-aware output passed in the released run; on re-runs it took between
   21 and 301 seconds and failed once by reaching the 300-second limit.
+- **Clean manifest (2026-10-19).** Every reference was re-graded under the paper's grading rule:
+  SANY within 60 s, TLC with the released configuration within 300 s, a pass requiring exit 0 and
+  no `Error:` line, and imports resolved as in `code/analysis/grading.py`. 71 items did not hold up;
+  `outputs/audit/broken_items.json` lists each one with the checker's output.
+  - **Removed:** 2 silver references do not parse (706 `AllTestsUnix`, 826 `MissionariesAndCannibals_proof`).
+  - **Demoted to silver:** 64 gold items cannot be model-checked as released.
+    - 39 configurations have no directives, so TLC cannot run.
+    - 4 gold items have no configuration (853, 854, 1140, 1142, as above).
+    - 13 references deadlock because the configuration does not set `CHECK_DEADLOCK FALSE`.
+    - 2 configurations disagree with their specification: 736 leaves `MaxNum` unassigned, and
+      1005 names a `TypeOK` the specification does not define.
+    - 5 references fail parsing in the release layout: 501, 1072, 1077 and 1333 under TLC, and 885
+      under SANY.
+    - 1 reference exceeds the 300 s budget (594).
+  - **Flagged, kept gold:** 5 references (561, 563, 566, 763, 979) pass when their imports resolve to
+    the intended module. They fail here because the released copy of an imported module that the
+    grading rule selects is a different version.
+
+  `manifest_clean.jsonl` / `manifest_clean.json` contain the resulting 1,298 specifications: 339 gold
+  and 959 silver. They add `tla_path` and `cfg_path`; demoted items have `cfg_path: null`. Rebuild them
+  with `python code/analysis/build_clean_manifest.py`. `manifest.jsonl`, the specifications and the
+  configurations are unchanged, so the reported tables and pinned revisions still reproduce. Only one
+  affected item (1142) is in the 100-specification evaluation set; it was already excluded by `--clean`.
 
 ## Supplementary Opus 4.5 runs (2026-10-04)
 
