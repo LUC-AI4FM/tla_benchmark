@@ -123,7 +123,9 @@ def make_call(a):
 
 
 def build_prompt(a, rec, names):
-    if a.desc.startswith("intent_"):   # name-hidden intent style, from descriptions/<style>/<id>.txt
+    if a.desc.startswith("intent_") and f"desc_{a.desc}" in rec:   # task file
+        desc = rec[f"desc_{a.desc}"]
+    elif a.desc.startswith("intent_"):   # name-hidden intent style, from descriptions/<style>/<id>.txt
         desc = (ROOT / "descriptions" / a.desc / f"{rec['spec_id']}.txt").read_text(encoding="utf-8").strip()
     else:
         desc = rec.get(f"desc_declarative_{a.desc}") or ""
@@ -156,24 +158,44 @@ def main() -> int:
     ap.add_argument("--min-interval", type=float, default=0.0, help="seconds between requests (rate limits)")
     ap.add_argument("--cap", type=float, default=60.0, help="stop when estimated spend reaches this (USD)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N specifications (smoke test)")
+    ap.add_argument("--tasks", default=None,
+                    help="JSONL task file (experiments/benchmark-v2/tasks.jsonl): ids, descriptions and names come from it, "
+                         "outputs go to experiments/benchmark-v2/results/ and are not graded here")
+    ap.add_argument("--ids", default="outputs/eval_100_ids.json",
+                    help="JSON list of specification IDs; outputs/benchmark_ids.json holds the 133-specification benchmark")
     ap.add_argument("--dry-run", action="store_true", help="print the first prompt and exit, no API call")
     a = ap.parse_args()
 
     man = {str(json.loads(l)["spec_id"]): json.loads(l) for l in open(ROOT / "manifest.jsonl")}
-    ids = [str(s) for s in json.load(open(ROOT / "outputs" / "eval_100_ids.json"))]
+    ids = [str(s) for s in json.load(open(ROOT / a.ids))]
+    tasks = None
+    if a.tasks:
+        tasks = {t["spec_id"]: t for t in map(json.loads, open(ROOT / a.tasks))}
+        ids = list(tasks)
     if a.limit:
         ids = ids[:a.limit]
     samples = list(range(a.sample_offset, a.sample_offset + a.samples))
 
     def names_for(sid):
+        if tasks:
+            return tasks[sid]["names"]
         _, cfg = G.gold_paths(sid)
         return G.cfg_names(cfg.read_text(errors="replace")) if cfg else ""
 
+    def record(sid):
+        if tasks:
+            t = tasks[sid]
+            return {"spec_id": sid, "desc_declarative_gpt": t["desc_declarative_gpt"],
+                    "desc_declarative_claude": t["desc_declarative_claude"],
+                    "desc_intent_gpt": t["desc_intent_gpt"], "desc_intent_claude": t["desc_intent_claude"]}
+        return man[sid]
+
     if a.dry_run:
-        print(build_prompt(a, man[ids[0]], names_for(ids[0])))
+        print(build_prompt(a, record(ids[0]), names_for(ids[0])))
         return 0
 
-    out_dir = HERE / "results" / f"{a.label}__{a.mode}__{a.desc}desc"
+    base = (ROOT / "experiments" / "benchmark-v2" / "results") if tasks else (HERE / "results")
+    out_dir = base / f"{a.label}__{a.mode}__{a.desc}desc"
     gen_dir = out_dir / "generations"
     gen_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "results.json"
@@ -210,12 +232,11 @@ def main() -> int:
 
     def work(item):
         sid, k = item
-        tla, cfg = G.gold_paths(sid)
-        prompt = build_prompt(a, man[sid], names_for(sid))
+        prompt = build_prompt(a, record(sid), names_for(sid))
         text, finish, tin, tout = generate(prompt)
         gen = G.extract_module(text)
         (gen_dir / f"{sid}_s{k}.tla").write_text(gen)
-        g = G.grade_clean(gen, tla)
+        g = {"sany_pass": None, "tlc_pass": None} if tasks else G.grade_clean(gen, G.gold_paths(sid)[0])
         return {"spec_id": sid, "sample": k, "model": a.label, "model_id": a.model_id,
                 "provider": a.provider, "mode": a.mode, "desc_provider": a.desc,
                 "template": a.template if a.mode == "default" else "cfgaware",
