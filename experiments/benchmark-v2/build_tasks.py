@@ -11,7 +11,8 @@ Each line holds what a model run needs and nothing from the upstream modules the
   provide for the wrapper to bind.
 
 Run from the repository root (needs dataset/ and the audit results):
-    python experiments/benchmark-v2/build_tasks.py <benchmark ids JSON>
+    python experiments/benchmark-v2/build_tasks.py <benchmark ids JSON>                    # Gold A -> tasks.jsonl
+    python experiments/benchmark-v2/build_tasks.py <{id: "A"|"B"} JSON> gold_tasks.jsonl   # all gold, with a tier field
 """
 import json, re, sys
 from pathlib import Path
@@ -27,6 +28,9 @@ rows = {r["spec_id"]: r for r in map(json.loads, open(DATA / "manifest.jsonl"))}
 aud_file = ROOT / "outputs/audit/dataset_audit_upstream.partial.jsonl"
 audit = {json.loads(l)["spec_id"]: json.loads(l) for l in open(aud_file)}
 ids = json.load(open(sys.argv[1]))
+tier_of = json.load(open(sys.argv[3])) if len(sys.argv) > 3 else {}      # optional {spec_id: "A" | "B"}
+if isinstance(ids, dict):
+    tier_of, ids = ids, sorted(ids, key=int)
 
 
 KEYS = {"SPECIFICATION", "INIT", "NEXT", "INVARIANT", "INVARIANTS", "PROPERTY", "PROPERTIES", "CONSTANT",
@@ -94,8 +98,10 @@ for sid in ids:
     else:
         names = cfg_names(cfg.read_text(errors="replace"))
     descs = {s: (DATA / row["descriptions"][s]).read_text(encoding="utf-8").strip() for s in SETS}
-    out.append({"spec_id": sid, "module": G.module_name(ref), "names": names, **{f"desc_{s}": descs[s] for s in SETS}})
-dest = ROOT / "experiments" / "benchmark-v2" / "tasks.jsonl"
+    extra = {"tier": "gold_" + tier_of[sid].lower()} if tier_of else {}
+    out.append({"spec_id": sid, "module": G.module_name(ref), **extra, "names": names,
+                **{f"desc_{s}": descs[s] for s in SETS}})
+dest = ROOT / "experiments" / "benchmark-v2" / (sys.argv[2] if len(sys.argv) > 2 else "tasks.jsonl")
 dest.write_text("".join(json.dumps(x) + "\n" for x in out))
 print("tasks:", len(out), " checked through a wrapper:", sum(audit[s]["config_source"] == "wrapper" for s in ids),
       " empty names:", sum(not x["names"] for x in out))

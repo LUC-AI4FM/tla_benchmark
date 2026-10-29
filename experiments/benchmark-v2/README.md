@@ -11,6 +11,13 @@ from an example folder. `tasks.jsonl` holds one line per specification with what
 | `desc_declarative_gpt`, `desc_declarative_claude`, `desc_intent_gpt`, `desc_intent_claude` | The four English descriptions |
 | `names` | Names that the configuration-aware prompt lists (read across all lines of the configuration) |
 
+`gold_tasks.jsonl` has the same fields for all 348 gold specifications (232 Gold A and 116 Gold B),
+with a `tier` field. `gold_ids.json` lists the Gold A and Gold B IDs and seven records still being
+rechecked. The tiers: Gold A passes TLC in its upstream folder, reaches more than one state, draws
+no random values, checks a named property and comes from an example folder; Gold B passes TLC the
+same way but checks no named property or comes from a test folder. To run all gold, pass
+`--tasks experiments/benchmark-v2/gold_tasks.jsonl`.
+
 Runs only generate. Grading happens afterwards with the dataset's grader, which checks each module in
 its upstream folder.
 
