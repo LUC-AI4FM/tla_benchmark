@@ -1,0 +1,120 @@
+--------------------------- MODULE TwoPCwithBTM ---------------------------
+EXTENDS Integers, Sequences, FiniteSets, TLC
+
+CONSTANT RM, RMMAYFAIL, TMMAYFAIL
+
+VARIABLES rmState, tmState, btmState, pc
+
+vars == << rmState, tmState, btmState, pc >>
+
+ProcSet == (RM) \cup {0} \cup {10}
+
+canCommit == \/ \A rmc \in RM : rmState[rmc] \in {"prepared"}
+             \/ \E rm \in RM : rmState[rm] \in {"committed"}
+
+canAbort == /\ \E rm \in RM : rmState[rm] \in {"aborted", "failed"}
+            /\ ~\E rmc \in RM : rmState[rmc] = "committed"
+
+Init == /\ rmState = [rm \in RM |-> "working"]
+        /\ tmState = "init"
+        /\ btmState = "init"
+        /\ pc = [self \in ProcSet |-> CASE self \in RM -> "RS"
+                                        [] self = 0 -> "TS"
+                                        [] self = 10 -> "BTS"]
+
+(* Resource manager *)
+RS(self) == /\ pc[self] = "RS"
+            /\ IF rmState[self] \in {"working", "prepared"}
+                  THEN /\ \/ /\ rmState[self] = "working"
+                             /\ rmState' = [rmState EXCEPT ![self] = "prepared"]
+                          \/ /\ \/ /\ (tmState = "commit" \/ btmState = "commit")
+                                   /\ rmState' = [rmState EXCEPT ![self] = "committed"]
+                                \/ /\ (rmState[self] = "working" \/ tmState = "abort" \/ btmState = "abort")
+                                   /\ rmState' = [rmState EXCEPT ![self] = "aborted"]
+                          \/ /\ IF RMMAYFAIL
+                                   THEN rmState' = [rmState EXCEPT ![self] = "failed"]
+                                   ELSE UNCHANGED rmState
+                       /\ pc' = [pc EXCEPT ![self] = "RS"]
+                  ELSE /\ pc' = [pc EXCEPT ![self] = "Done"]
+                       /\ UNCHANGED rmState
+            /\ UNCHANGED << tmState, btmState >>
+
+RManager(self) == RS(self)
+
+(* Primary transaction manager *)
+TS == /\ pc[0] = "TS"
+      /\ \/ /\ canCommit
+            /\ pc' = [pc EXCEPT ![0] = "TC"]
+         \/ /\ canAbort
+            /\ pc' = [pc EXCEPT ![0] = "TA"]
+      /\ UNCHANGED << rmState, tmState, btmState >>
+
+TC == /\ pc[0] = "TC"
+      /\ tmState' = "commit"
+      /\ pc' = [pc EXCEPT ![0] = "F1"]
+      /\ UNCHANGED << rmState, btmState >>
+
+F1 == /\ pc[0] = "F1"
+      /\ IF TMMAYFAIL
+            THEN tmState' = "hidden"
+            ELSE UNCHANGED tmState
+      /\ pc' = [pc EXCEPT ![0] = "Done"]
+      /\ UNCHANGED << rmState, btmState >>
+
+TA == /\ pc[0] = "TA"
+      /\ tmState' = "abort"
+      /\ pc' = [pc EXCEPT ![0] = "F2"]
+      /\ UNCHANGED << rmState, btmState >>
+
+F2 == /\ pc[0] = "F2"
+      /\ IF TMMAYFAIL
+            THEN tmState' = "hidden"
+            ELSE UNCHANGED tmState
+      /\ pc' = [pc EXCEPT ![0] = "Done"]
+      /\ UNCHANGED << rmState, btmState >>
+
+TManager == TS \/ TC \/ F1 \/ TA \/ F2
+
+(* Backup transaction manager *)
+BTS == /\ pc[10] = "BTS"
+       /\ \/ /\ canCommit /\ tmState = "hidden"
+             /\ pc' = [pc EXCEPT ![10] = "BTC"]
+          \/ /\ canAbort /\ tmState = "hidden"
+             /\ pc' = [pc EXCEPT ![10] = "BTA"]
+       /\ UNCHANGED << rmState, tmState, btmState >>
+
+BTC == /\ pc[10] = "BTC"
+       /\ btmState' = "commit"
+       /\ pc' = [pc EXCEPT ![10] = "Done"]
+       /\ UNCHANGED << rmState, tmState >>
+
+BTA == /\ pc[10] = "BTA"
+       /\ btmState' = "abort"
+       /\ pc' = [pc EXCEPT ![10] = "Done"]
+       /\ UNCHANGED << rmState, tmState >>
+
+BTManager == BTS \/ BTC \/ BTA
+
+Terminating == /\ \A self \in ProcSet : pc[self] = "Done"
+               /\ UNCHANGED vars
+
+Next == \/ TManager
+        \/ BTManager
+        \/ (\E self \in RM : RManager(self))
+        \/ Terminating
+
+Spec == /\ Init /\ [][Next]_vars
+        /\ \A self \in RM : WF_vars(RManager(self))
+        /\ WF_vars(TManager)
+        /\ WF_vars(BTManager)
+
+Termination == <>(\A self \in ProcSet : pc[self] = "Done")
+
+TypeOK == /\ rmState \in [RM -> {"working", "prepared", "committed", "aborted", "failed"}]
+          /\ tmState \in {"init", "commit", "abort", "hidden"}
+          /\ btmState \in {"init", "commit", "abort"}
+          /\ pc \in [ProcSet -> {"RS", "TS", "TC", "F1", "TA", "F2", "BTS", "BTC", "BTA", "Done"}]
+
+Consistency == \A rm1, rm2 \in RM : ~(rmState[rm1] = "aborted" /\ rmState[rm2] = "committed")
+
+=============================================================================
