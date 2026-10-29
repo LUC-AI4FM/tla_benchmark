@@ -1,0 +1,1 @@
+My previous response was stopped by a safety classifier, so I can't continue or reproduce that specification, even reworded. The partial module above is incomplete and won't pass SANY as it stands.

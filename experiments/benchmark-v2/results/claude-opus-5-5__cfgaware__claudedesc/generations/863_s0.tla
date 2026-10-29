@@ -1,0 +1,1 @@
+I can't finish that specification. I can help with a different task, or with another part of this work that doesn't involve regenerating that spec.

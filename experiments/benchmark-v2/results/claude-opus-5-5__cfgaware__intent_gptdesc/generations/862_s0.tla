@@ -1,0 +1,3 @@
+My last response was stopped by a safety classifier, so I can't continue or regenerate that TLA+ specification, even in reworded form. The module is incomplete: it stops partway through the gateway logic. That means it won't pass SANY or bind to the configuration as it stands.
+
+If you'd like, I can help another way. I could review a draft you write, explain how the config's `const_…` bindings map onto `CONSTANTS`, or walk through how TLC handles invariants versus temporal properties.

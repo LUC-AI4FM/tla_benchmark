@@ -1,0 +1,3 @@
+I can't continue this response. The earlier output was stopped by a safety classifier, and I've been told not to reproduce that content, even reworded. Because the withheld portion was the TLA+ specification itself, resuming it would mean regenerating that same content.
+
+If this looks like a false positive, you could start a new request, perhaps with a narrower scope such as just the refinement mapping or just the split-node actions.

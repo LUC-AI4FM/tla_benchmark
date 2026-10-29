@@ -1,0 +1,9 @@
+---- MODULE PrimedPredicate ----
+EXTENDS Integers
+
+VARIABLE s
+
+F(var) == var \in 0..9 /\ var % 2 = 0
+
+Spec == s = 0 /\ [][F(s')]_s
+====

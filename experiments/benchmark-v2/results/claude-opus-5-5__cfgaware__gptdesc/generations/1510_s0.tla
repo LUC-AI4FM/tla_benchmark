@@ -1,0 +1,22 @@
+---- MODULE Foo ----
+EXTENDS Naturals
+
+VARIABLES x, y
+
+vars == <<x, y>>
+
+Init ==
+    /\ x \in 1..5
+    /\ y = [i \in {1, 2, 3, 4, 5} |-> 0]
+
+Foo(f) ==
+    IF x = 1
+    THEN [f EXCEPT ![x] = 42]
+    ELSE f
+
+Next ==
+    /\ y' = Foo(y)
+    /\ UNCHANGED x
+
+Spec == Init /\ [][Next]_<<x, y>>
+====

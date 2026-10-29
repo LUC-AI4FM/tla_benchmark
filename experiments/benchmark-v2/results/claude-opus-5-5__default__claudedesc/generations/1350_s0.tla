@@ -1,0 +1,20 @@
+---------------------------- MODULE Github1037 ----------------------------
+EXTENDS Naturals
+
+VARIABLES x
+
+vars == <<x>>
+
+Init == x = 1
+
+Next == IF x < 5
+          THEN x' = x + 1
+          ELSE UNCHANGED x
+
+Spec == Init /\ [][Next]_x /\ WF_x(Next)
+
+TypeOK == x \in 1..5
+
+Liveness == (x = 1) => <>[](x = 5)
+
+=============================================================================

@@ -1,0 +1,28 @@
+---- MODULE ABSpec ----
+EXTENDS Integers
+
+CONSTANT Data
+
+VARIABLES AVar, BVar
+
+vars == <<AVar, BVar>>
+
+Msgs == [data : Data, bit : {0, 1}]
+
+TypeOK == AVar \in Msgs /\ BVar \in Msgs
+
+Init == /\ AVar \in [data : Data, bit : {1}]
+        /\ BVar = AVar
+
+A == /\ AVar.bit = BVar.bit
+     /\ \E d \in Data : AVar' = [data |-> d, bit |-> 1 - AVar.bit]
+     /\ UNCHANGED BVar
+
+B == /\ AVar.bit # BVar.bit
+     /\ BVar' = AVar
+     /\ UNCHANGED AVar
+
+Next == A \/ B
+
+Spec == Init /\ [][Next]_vars
+====
